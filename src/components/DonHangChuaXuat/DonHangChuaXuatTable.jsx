@@ -21,6 +21,7 @@ import {
   createHoaDon,
 } from "../../redux/slices/hoaDonSlice";
 import { fetchBangGiaByNhaKhoa } from "../../redux/slices/bangGiaSlice";
+import { useNavigate } from "react-router-dom";
 
 export default function DonHangChuaXuatTable({
   selectedClinic,
@@ -133,6 +134,8 @@ export default function DonHangChuaXuatTable({
     0
   );
 
+  const navigate = useNavigate();
+
   return (
     <Paper className="rounded-2xl shadow p-4 space-y-3">
       {/* ===== BUTTON TẠO ===== */}
@@ -154,7 +157,7 @@ export default function DonHangChuaXuatTable({
               <Checkbox onChange={toggleAll} />
             </TableCell>
             <TableCell>Đơn hàng</TableCell>
-            <TableCell>Bệnh nhân</TableCell>
+            <TableCell>Bác sĩ</TableCell>
             <TableCell>Sản phẩm</TableCell>
             <TableCell>Thành tiền</TableCell>
             <TableCell>Chiết khấu</TableCell>
@@ -192,11 +195,19 @@ export default function DonHangChuaXuatTable({
 
                 {/* MÃ */}
                 <TableCell>
-                  <b>{order._id.slice(-6)}</b>
+                  <Button
+                    variant="text"
+                    onClick={() => {
+                      navigate(`/donhang/${order._id}/edit`);
+                    }}
+                  >
+                    TAN{order._id.substring(order._id.length - 8).toUpperCase()}
+                  </Button>
+                  <b></b>
                 </TableCell>
 
                 {/* BỆNH NHÂN */}
-                <TableCell>{order.benhNhan?.hoVaTen || "-"}</TableCell>
+                <TableCell>{order.bacSi?.hoVaTen || "-"}</TableCell>
 
                 {/* SẢN PHẨM */}
                 <TableCell>

@@ -173,6 +173,7 @@ const HoaDonTable = () => {
                     value={filterNhaKhoa}
                     label="Lọc theo Nha Khoa"
                     onChange={(e) => {
+                      console.log("Lọc theo nha khoa: ", e.target.value);
                       setFilterNhaKhoa(e.target.value);
                       setPage(0);
                     }}
@@ -319,7 +320,9 @@ const HoaDonTable = () => {
               danhSachHoaDon.map((hd) => (
                 <TableRow key={hd._id} hover>
                   <TableCell className="font-semibold text-gray-700">
-                    {hd.soHoaDon}
+                    <b>
+                      TAN{hd._id.substring(hd._id.length - 8).toUpperCase()}
+                    </b>
                   </TableCell>
                   <TableCell>{hd.nhaKhoa?.hoVaTen}</TableCell>
                   <TableCell className="text-blue-600 font-medium">

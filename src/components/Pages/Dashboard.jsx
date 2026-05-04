@@ -19,11 +19,6 @@ import CongDoanPage from "../CongDoan/CongDoanPage";
 import HoaDonTable from "../HoaDon/HoaDonTable";
 import DonHangChuaXuatPage from "../DonHangChuaXuat/DonHangChuaXuatPage";
 import HoaDonDetail from "../HoaDon/HoaDonDetail";
-import KhoPage from "../Kho/KhoPage";
-import VatLieu from "../Kho/VatLieu";
-import PhieuNhapXuat from "../Kho/PhieuNhapXuat";
-import NhaCungCap from "../Kho/NhaCungCap";
-
 const Dashboard = () => {
   const [collapsed, setCollapsed] = useState(false);
   return (
@@ -60,6 +55,10 @@ const Dashboard = () => {
           <Route path="/kho/nha-cung-cap" element={<NhaCungCap />} />
           <Route path="/cho-xuat-hoa-don" element={<DonHangChuaXuatPage />} />
           <Route path="/hoa-don" element={<HoaDonTable />} />
+          <Route
+            path="/ke-hoach-giao-hang"
+            element={<KeHoachGiaoHangTable />}
+          />
           <Route
             path="/hoa-don/:id/edit"
             element={<HoaDonDetail></HoaDonDetail>}

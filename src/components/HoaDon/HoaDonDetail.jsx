@@ -184,7 +184,7 @@ const HoaDonDetail = () => {
                 </span>
                 <span className="text-gray-500">Địa chỉ:</span>
                 <span>
-                  {`${nhaKhoaInfo?.diaChiCuThe} - ${nhaKhoaInfo.quanHuyen} - ${nhaKhoaInfo.tinh}` ||
+                  {`${nhaKhoaInfo?.diaChiCuThe} - ${nhaKhoaInfo?.quanHuyen} - ${nhaKhoaInfo?.tinh}` ||
                     "---"}
                 </span>
                 <span className="text-gray-500">Email:</span>
@@ -199,7 +199,7 @@ const HoaDonDetail = () => {
               <div className="grid grid-cols-2 gap-y-2 text-sm">
                 <span className="text-gray-500">Số hóa đơn:</span>
                 <span className="font-bold text-red-600">
-                  {hoaDon.soHoaDon}
+                  TAN{hoaDon._id.substring(hoaDon._id.length - 8).toUpperCase()}
                 </span>
                 <span className="text-gray-500">Ngày xuất:</span>
                 <span>

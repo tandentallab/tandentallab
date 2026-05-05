@@ -10,6 +10,7 @@ import {
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import { Button, IconButton, Tooltip } from "@mui/material";
 import { DeleteIcon, EditIcon, TrashIcon } from "lucide-react";
+import { exportHoaDonToExcel } from "../../utils/exportToExcel";
 
 const HoaDonDetail = () => {
   const navigate = useNavigate();
@@ -359,7 +360,18 @@ const HoaDonDetail = () => {
               >
                 Cập nhật hóa đơn
               </button>
-              <button className="w-full bg-blue-600 text-white py-2 rounded font-medium shadow hover:bg-blue-700 transition">
+              <button
+                onClick={async () => {
+                  await exportHoaDonToExcel(hoaDon, nhaKhoaInfo);
+                }}
+                className="w-full bg-green-600 text-white py-2 rounded font-medium shadow hover:bg-green-700 transition"
+              >
+                Xuất Excel
+              </button>
+              <button
+                onClick={() => navigate(`/hoa-don/${hoaDon._id}/print`)}
+                className="w-full bg-blue-600 text-white py-2 rounded font-medium shadow hover:bg-blue-700 transition"
+              >
                 In hóa đơn (F4)
               </button>
               <button className="w-full bg-white border border-blue-600 text-blue-600 py-2 rounded font-medium hover:bg-blue-50 transition">

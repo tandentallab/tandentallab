@@ -7,8 +7,10 @@ export const fetchStaff = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await api.get("/staff");
+      console.log("📥 FETCH STAFF RESPONSE:", res.data);
       return res.data;
     } catch (err) {
+      console.error("❌ FETCH STAFF ERROR:", err);
       return rejectWithValue(
         err.response?.data?.message || "Lỗi tải dữ liệu"
       );
@@ -110,15 +112,18 @@ const staffSlice = createSlice({
       })
       .addCase(updateStaff.fulfilled, (state, action) => {
         state.loading = false;
+        console.log("✅ UPDATE SUCCESS - Payload:", action.payload);
         const index = state.data.findIndex(
           (s) => s._id === action.payload.staff._id
         );
+        console.log("✅ Found index:", index);
         if (index !== -1) {
           state.data[index] = action.payload.staff;
         }
       })
       .addCase(updateStaff.rejected, (state, action) => {
         state.loading = false;
+        console.error("❌ UPDATE FAILED - Error:", action.payload);
         state.error = action.payload;
       })
 

@@ -9,8 +9,11 @@ export const login = createAsyncThunk(
     try {
       const res = await api.post("/staff/login", data);
 
-      // lưu token
+      // Lưu token
       localStorage.setItem("token", res.data.token);
+      
+      // Lưu user info (backup)
+      localStorage.setItem("currentUser", JSON.stringify(res.data.staff));
 
       return res.data;
     } catch (err) {
@@ -34,15 +37,19 @@ export const restoreAuth = createAsyncThunk(
         return null;
       }
 
-      // Verify token bằng cách gọi API (hoặc giải mã JWT)
-      // Cách đơn giản: lấy user info từ API (nếu token hợp lệ)
-      const res = await api.get("/staff"); // API này yêu cầu token trong header
+      // Gọi API để lấy thông tin user hiện tại (từ token)
+      const res = await api.get("/staff/me");
 
-      // Nếu thành công → token còn hợp lệ
-      return { token, staff: res.data?.[0] || null };
+      // Nếu thành công → token còn hợp lệ, lưu user info
+      if (res.data?.staff) {
+        localStorage.setItem("currentUser", JSON.stringify(res.data.staff));
+      }
+
+      return { token, staff: res.data.staff || null };
     } catch (err) {
       // Token hết hạn hoặc invalid → xóa token
       localStorage.removeItem("token");
+      localStorage.removeItem("currentUser");
       return null;
     }
   }
@@ -52,6 +59,7 @@ export const restoreAuth = createAsyncThunk(
 
 export const logout = createAsyncThunk("auth/logout", async () => {
   localStorage.removeItem("token");
+  localStorage.removeItem("currentUser");
 });
 
 /* ================= SLICE ================= */

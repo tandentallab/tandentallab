@@ -10,6 +10,9 @@ import NhaKhoaPage from "../NhaKhoa/NhaKhoaPage";
 import NguoiLienHePage from "../NguoiLienHe/NguoiLienHePage";
 import BenhNhanPage from "../BenhNhan/BenhNhanPage";
 import StaffPage from "../Staff/StaffPage";
+import NhapDuLieu from "../Settings/NhapDuLieu";
+import CongTy from "../Settings/CongTy";
+import VaiTro from "../Settings/VaiTro";
 import StaffProfile from "../Staff/StaffProfile";
 import SanPhamPage from "../SanPham/SanPhamPage";
 import CongDoanPage from "../CongDoan/CongDoanPage";
@@ -17,6 +20,10 @@ import HoaDonTable from "../HoaDon/HoaDonTable";
 import DonHangChuaXuatPage from "../DonHangChuaXuat/DonHangChuaXuatPage";
 import HoaDonDetail from "../HoaDon/HoaDonDetail";
 import KeHoachGiaoHangTable from "../KeHoachGiaoHang/KeHoachGiaoHangTable";
+import KhoPage from "../Kho/KhoPage";
+import VatLieu from "../Kho/VatLieu";
+import PhieuNhapXuat from "../Kho/PhieuNhapXuat";
+import NhaCungCap from "../Kho/NhaCungCap";
 const Dashboard = () => {
   const [collapsed, setCollapsed] = useState(false);
   return (
@@ -41,9 +48,16 @@ const Dashboard = () => {
           <Route path="/nguoi-lien-he" element={<NguoiLienHePage />} />
           <Route path="/benh-nhan" element={<BenhNhanPage />} />
           <Route path="/tai-khoan" element={<StaffPage />} />
+          <Route path="/nhap-du-lieu" element={<NhapDuLieu />} />
+          <Route path="/cong-ty" element={<CongTy />} />
+          <Route path="/quyen-su-dung" element={<VaiTro />} />
           <Route path="/ho-so" element={<StaffProfile />} />
           <Route path="/san-pham" element={<SanPhamPage />} />
           <Route path="/cong-doan" element={<CongDoanPage />} />
+          <Route path="/kho" element={<KhoPage />} />
+          <Route path="/kho/vat-lieu" element={<VatLieu />} />
+          <Route path="/kho/phieu-nhap-xuat" element={<PhieuNhapXuat />} />
+          <Route path="/kho/nha-cung-cap" element={<NhaCungCap />} />
           <Route path="/cho-xuat-hoa-don" element={<DonHangChuaXuatPage />} />
           <Route path="/hoa-don" element={<HoaDonTable />} />
           <Route

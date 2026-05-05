@@ -19,6 +19,7 @@ import {
   fetchStaff,
 } from "../../redux/slices/staffSlice";
 import AddIcon from "@mui/icons-material/Add";
+import { api } from "../../config/api";
 
 export default function StaffModal({ staffId = null, onClose = null }) {
   const dispatch = useDispatch();
@@ -26,6 +27,8 @@ export default function StaffModal({ staffId = null, onClose = null }) {
   const { loading } = useSelector((state) => state.staff);
 
   const [open, setOpen] = useState(false);
+  const [quyens, setQuyens] = useState([]);
+  const [loadingQuyens, setLoadingQuyens] = useState(false);
 
   const [form, setForm] = useState({
     MSNV: "",
@@ -33,11 +36,33 @@ export default function StaffModal({ staffId = null, onClose = null }) {
     Email: "",
     Password: "",
     ChucVu: "Thành viên",
-    Permissions: "",
+    quyenSuDung: "",
+    DienThoai: "",
+    DiaChi: "",
+    GioiThieu: "",
     Status: 1,
   });
 
   const [errors, setErrors] = useState({});
+
+  /* ================= FETCH QUYỀN SỬ DỤNG ================= */
+  useEffect(() => {
+    const fetchQuyens = async () => {
+      try {
+        setLoadingQuyens(true);
+        const response = await api.get("/quyen-su-dung");
+        setQuyens(response.data.data || []);
+      } catch (error) {
+        console.error("Lỗi lấy quyền sử dụng:", error);
+      } finally {
+        setLoadingQuyens(false);
+      }
+    };
+
+    if (open) {
+      fetchQuyens();
+    }
+  }, [open]);
 
   /* ================= LOAD STAFF DATA (EDIT MODE) ================= */
   useEffect(() => {
@@ -104,7 +129,10 @@ export default function StaffModal({ staffId = null, onClose = null }) {
         Email: "",
         Password: "",
         ChucVu: "Thành viên",
-        Permissions: "",
+        quyenSuDung: "",
+        DienThoai: "",
+        DiaChi: "",
+        GioiThieu: "",
         Status: 1,
       });
 
@@ -186,6 +214,24 @@ export default function StaffModal({ staffId = null, onClose = null }) {
               required
             />
 
+            {/* ĐIỆN THOẠI */}
+            <TextField
+              label="Điện thoại"
+              value={form.DienThoai}
+              onChange={(e) => handleChange("DienThoai", e.target.value)}
+              placeholder="Số điện thoại"
+              size="small"
+            />
+
+            {/* ĐỊA CHỈ */}
+            <TextField
+              label="Địa chỉ"
+              value={form.DiaChi}
+              onChange={(e) => handleChange("DiaChi", e.target.value)}
+              placeholder="Địa chỉ"
+              size="small"
+            />
+
             {/* VAI TRÒ */}
             <TextField
               select
@@ -201,11 +247,30 @@ export default function StaffModal({ staffId = null, onClose = null }) {
 
             {/* QUYỀN SỬ DỤNG */}
             <TextField
+              select
               label="Quyền sử dụng"
-              value={form.Permissions}
-              onChange={(e) => handleChange("Permissions", e.target.value)}
-              placeholder="Tùy chọn"
+              value={form.quyenSuDung}
+              onChange={(e) => handleChange("quyenSuDung", e.target.value)}
               size="small"
+              disabled={loadingQuyens}
+            >
+              <MenuItem value="">-- Chọn quyền sử dụng --</MenuItem>
+              {quyens.map((quyen) => (
+                <MenuItem key={quyen._id} value={quyen._id}>
+                  {quyen.ten}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            {/* GIỚI THIỆU */}
+            <TextField
+              label="Giới thiệu"
+              value={form.GioiThieu}
+              onChange={(e) => handleChange("GioiThieu", e.target.value)}
+              placeholder="Giới thiệu bản thân"
+              multiline
+              rows={3}
+              fullWidth
             />
 
             {/* BỊ KHOÁ */}

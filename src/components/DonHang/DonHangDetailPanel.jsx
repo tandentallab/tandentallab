@@ -25,6 +25,10 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
     navigate(`/donhang/${donHang._id}/edit`);
   };
 
+  const handlePrint = () => {
+    navigate(`/donhang/${donHang._id}/print`);
+  };
+
   const handleDelete = () => {
     if (window.confirm(`Bạn có chắc chắn muốn xóa đơn hàng ${maDonHang}?`)) {
       const promise = dispatch(deleteDonHang(donHang._id)).unwrap();
@@ -111,6 +115,26 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
             )}
           </div>
           <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              onClick={handlePrint}
+              title="In đơn hàng"
+              className="p-1.5 rounded hover:bg-teal-600 transition"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.8}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4"
+                />
+              </svg>
+            </button>
             <button
               onClick={handleEdit}
               title="Chỉnh sửa"

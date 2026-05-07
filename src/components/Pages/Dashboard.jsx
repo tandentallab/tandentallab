@@ -5,6 +5,8 @@ import Header from "../Layout/Header";
 import { Route, Routes } from "react-router-dom";
 import DonHangPage from "../DonHang/DonHangPage";
 import DonHangForm from "../DonHang/DonHangForm";
+import DonHangPrintPreview from "../DonHang/DonHangPrintPreview";
+import DonHangDeliveryNotePrintPreview from "../DonHang/DonHangDeliveryNotePrintPreview";
 import Charts from "../Charts";
 import NhaKhoaPage from "../NhaKhoa/NhaKhoaPage";
 import NguoiLienHePage from "../NguoiLienHe/NguoiLienHePage";
@@ -20,6 +22,7 @@ import HoaDonTable from "../HoaDon/HoaDonTable";
 import DonHangChuaXuatPage from "../DonHangChuaXuat/DonHangChuaXuatPage";
 import HoaDonDetail from "../HoaDon/HoaDonDetail";
 import KeHoachGiaoHangTable from "../KeHoachGiaoHang/KeHoachGiaoHangTable";
+import HoaDonPrintPreview from "../HoaDon/HoaDonPrintPreview";
 import KhoPage from "../Kho/KhoPage";
 import VatLieu from "../Kho/VatLieu";
 import PhieuNhapXuat from "../Kho/PhieuNhapXuat";
@@ -44,6 +47,11 @@ const Dashboard = () => {
           <Route path="/don-hang/*" element={<DonHangPage />} />
           <Route path="/donhang/create" element={<DonHangForm />} />
           <Route path="/donhang/:id/edit" element={<DonHangForm />} />
+          <Route path="/donhang/:id/print" element={<DonHangPrintPreview />} />
+          <Route
+            path="/donhang/:id/delivery-note"
+            element={<DonHangDeliveryNotePrintPreview />}
+          />
           <Route path="/nha-khoa" element={<NhaKhoaPage />} />
           <Route path="/nguoi-lien-he" element={<NguoiLienHePage />} />
           <Route path="/benh-nhan" element={<BenhNhanPage />} />
@@ -68,6 +76,7 @@ const Dashboard = () => {
             path="/hoa-don/:id/edit"
             element={<HoaDonDetail></HoaDonDetail>}
           ></Route>
+          <Route path="/hoa-don/:id/print" element={<HoaDonPrintPreview />} />
         </Routes>
       </Box>
     </Box>

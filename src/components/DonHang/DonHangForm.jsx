@@ -269,6 +269,21 @@ const DonHangForm = () => {
     }
   }, [formData.nhaKhoa, nhaKhoasList]);
 
+  // Keyboard shortcuts: F3 = Save, F4 = Print
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "F3") {
+        e.preventDefault();
+        handleSave();
+      } else if (e.key === "F4" && isEditMode) {
+        e.preventDefault();
+        navigate(`/donhang/${id}/print`);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isEditMode, id]);
+
   const handleInputChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -632,9 +647,42 @@ const DonHangForm = () => {
 
       {/* Footer save bar */}
       <div className="bg-gray-100 px-6 py-3 flex justify-between items-center border-t z-10 shadow-lg shrink-0">
-        <button className="bg-gray-500 text-white px-4 py-1.5 rounded text-sm">
-          Cập nhật phiên bản mới!
-        </button>
+        <div className="flex gap-2">
+          <button className="bg-gray-500 text-white px-4 py-1.5 rounded text-sm">
+            Cập nhật phiên bản mới!
+          </button>
+          {isEditMode && (
+            <button
+              onClick={() => navigate(`/donhang/${id}/print`)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded text-sm flex items-center gap-1"
+              title="In đơn hàng (F4)"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.8}
+                stroke="currentColor"
+                className="w-4 h-4"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4"
+                />
+              </svg>
+              In đơn hàng (F4)
+            </button>
+          )}
+          {isEditMode && (
+            <button
+              onClick={() => navigate(`/donhang/${id}/delivery-note`)}
+              className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-1.5 rounded text-sm"
+            >
+              In Phiếu giao hàng
+            </button>
+          )}
+        </div>
         <button
           onClick={handleSave}
           className="bg-[#4CAF50] hover:bg-green-600 text-white px-8 py-2 rounded shadow-md font-medium"

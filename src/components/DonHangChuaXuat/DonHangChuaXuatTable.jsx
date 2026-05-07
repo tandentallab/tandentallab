@@ -42,6 +42,12 @@ import {
 import { fetchBangGiaByNhaKhoa } from "../../redux/slices/bangGiaSlice";
 import { useNavigate } from "react-router-dom";
 
+import {
+  buildPriceMap,
+  buildProductNameMap,
+  calcOrderTongTien,
+} from "../../utils/hoaDonUtils";
+
 export default function DonHangChuaXuatTable({
   selectedClinic,
   selectedOrders,
@@ -131,34 +137,31 @@ export default function DonHangChuaXuatTable({
   }, [donHangs, dateFilter]);
 
   /* ================= MAP DATA ================= */
-  const mapGia = useMemo(() => {
-    const map = {};
-    bangGia.forEach((item) => {
-      map[item.sanPhamId?.toString()] = item.donGia;
-    });
-    return map;
-  }, [bangGia]);
+  const mapGia = useMemo(() => buildPriceMap(bangGia), [bangGia]);
 
-  const mapTen = useMemo(() => {
-    const map = {};
-    bangGia.forEach((item) => {
-      map[item.sanPhamId?.toString()] = item.tenSanPham;
-    });
-    return map;
-  }, [bangGia]);
+  const mapTen = useMemo(() => buildProductNameMap(bangGia), [bangGia]);
 
   /* ================= LOGIC TÍNH TOÁN ================= */
   const calcTotal = (order) => {
-    let total = order.danhSachSanPham.reduce((sum, sp) => {
-      const donGia = mapGia[sp.sanPham?.toString()] || 0;
-      return sum + donGia * sp.soLuong;
-    }, 0);
+    const currentDiscount = discounts?.[order._id];
 
-    const discount = discounts[order._id];
-    if (discount?.type === "%") total -= (total * discount.value) / 100;
-    else if (discount?.type === "VND") total -= discount.value;
+    let discount = null;
 
-    return total < 0 ? 0 : total;
+    if (currentDiscount?.type === "%") {
+      discount = {
+        loaiChiecKhau: "phanTram",
+        chiecKhau: currentDiscount.value,
+      };
+    }
+
+    if (currentDiscount?.type === "VND") {
+      discount = {
+        loaiChiecKhau: "tienMat",
+        chiecKhau: currentDiscount.value,
+      };
+    }
+
+    return calcOrderTongTien(order, mapGia, discount);
   };
 
   const totalAll = selectedOrders.reduce(

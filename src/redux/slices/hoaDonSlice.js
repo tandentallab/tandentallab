@@ -19,10 +19,12 @@ export const fetchDonHangChuaHoaDon = createAsyncThunk(
 export const fetchAllHoaDonAdmin = createAsyncThunk(
   "hoaDon/fetchAllAdmin",
 
-  async ({ page, search, trangThai } = {}) => {
+  async ({ page,limit, nhaKhoaId, search, trangThai } = {}) => {
     const res = await api.get(`/hoa-don/all`, {
       params: {
         page,
+        limit,
+        nhaKhoaId,
         search,
         trangThai,
       },

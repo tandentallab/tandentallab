@@ -1,6 +1,6 @@
 // utils/hoaDonUtils.js
 
-/* ================= MAP BẢNG GIÁ ================= */
+/* ================= BUILD MAP ================= */
 
 export const buildPriceMap = (bangGia = []) => {
   const map = {};
@@ -16,7 +16,8 @@ export const buildProductNameMap = (bangGia = []) => {
   const map = {};
 
   bangGia.forEach((item) => {
-    map[item.sanPhamId?.toString()] = item.tenSanPham || "SP";
+    map[item.sanPhamId?.toString()] =
+      item.tenSanPham || "SP";
   });
 
   return map;
@@ -27,16 +28,16 @@ export const buildProductNameMap = (bangGia = []) => {
 export const getSanPhamId = (sp) => {
   if (!sp?.sanPham) return null;
 
-  // trường hợp populate object
+  // populate object
   if (typeof sp.sanPham === "object") {
     return sp.sanPham._id?.toString();
   }
 
-  // trường hợp chỉ là string id
+  // string id
   return sp.sanPham.toString();
 };
 
-/* ================= TÍNH TỔNG TIỀN ================= */
+/* ================= TÍNH TIỀN ================= */
 
 export const calcOrderTongTien = (
   order,
@@ -45,13 +46,16 @@ export const calcOrderTongTien = (
 ) => {
   if (!order?.danhSachSanPham) return 0;
 
-  let tongTien = order.danhSachSanPham.reduce((sum, sp) => {
-    const sanPhamId = getSanPhamId(sp);
+  let tongTien = order.danhSachSanPham.reduce(
+    (sum, sp) => {
+      const sanPhamId = getSanPhamId(sp);
 
-    const donGia = mapGia[sanPhamId] || 0;
+      const donGia = mapGia[sanPhamId] || 0;
 
-    return sum + donGia * (sp.soLuong || 0);
-  }, 0);
+      return sum + donGia * (sp.soLuong || 0);
+    },
+    0
+  );
 
   if (discount?.loaiChiecKhau === "phanTram") {
     tongTien -=
@@ -72,13 +76,16 @@ export const buildOrderInvoiceItem = (
   mapGia = {},
   discounts = {}
 ) => {
-  const tongTien = order.danhSachSanPham.reduce((sum, sp) => {
-    const sanPhamId = getSanPhamId(sp);
+  const tongTien = order.danhSachSanPham.reduce(
+    (sum, sp) => {
+      const sanPhamId = getSanPhamId(sp);
 
-    const donGia = mapGia[sanPhamId] || 0;
+      const donGia = mapGia[sanPhamId] || 0;
 
-    return sum + donGia * (sp.soLuong || 0);
-  }, 0);
+      return sum + donGia * (sp.soLuong || 0);
+    },
+    0
+  );
 
   const discount = discounts?.[order._id];
 

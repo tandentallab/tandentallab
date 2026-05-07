@@ -141,34 +141,81 @@ const HoaDonDetail = () => {
     }).format(amount);
   };
 
+  const handleChangeChiPhiKhac = (chiPhi) => {
+    setChiPhiKhac(chiPhi);
+
+    const newHoaDon = { ...hoaDon };
+
+    newHoaDon.chiPhiKhac = chiPhi;
+
+    newHoaDon.thanhTien += chiPhiKhac;
+
+    newHoaDon.conLai = newHoaDon.thanhTien - (newHoaDon.daThanhToan || 0);
+
+    setHoaDon(newHoaDon);
+  };
+
   // LOGIC HANDLERS (Giữ nguyên logic của bạn)
   const handleDiscountChange = (index, field, value) => {
     const newHoaDon = { ...hoaDon };
+
     const items = [...newHoaDon.danhSachDonHang];
+
     const item = { ...items[index] };
+
+    // update field
     item[field] = value;
-    const tong = item.tongTien || 0;
+
+    const tong = Number(item.tongTien || 0);
+
     let thanhTien = tong;
+
+    // tính sau chiết khấu
     if (item.loaiChietKhau === "phanTram") {
       const percent = Number(item.chietKhau) || 0;
+
       thanhTien = tong - (tong * percent) / 100;
     } else {
       const tien = Number(item.chietKhau) || 0;
+
       thanhTien = tong - tien;
     }
+
     item.thanhTienSauCK = Math.max(thanhTien, 0);
+
     items[index] = item;
+
     newHoaDon.danhSachDonHang = items;
+
+    /* ================= TÍNH LẠI TỔNG ================= */
+
     let tongTien = 0;
     let tongChietKhau = 0;
+
+    // ✅ thành tiền = tổng thanhTienSauCK
+    let thanhTienHoaDon = 0;
+
     items.forEach((i) => {
-      tongTien += i.tongTien || 0;
-      tongChietKhau += (i.tongTien || 0) - (i.thanhTienSauCK || 0);
+      const tong = Number(i.tongTien || 0);
+
+      const thanhTienSauCK = Number(i.thanhTienSauCK || 0);
+
+      tongTien += tong;
+
+      tongChietKhau += tong - thanhTienSauCK;
+
+      thanhTienHoaDon += thanhTienSauCK;
     });
+
     newHoaDon.tongTien = tongTien;
+
     newHoaDon.tongChietKhau = tongChietKhau;
-    newHoaDon.thanhTien = tongTien - tongChietKhau;
+
+    // ✅ logic mới
+    newHoaDon.thanhTien = thanhTienHoaDon + chiPhiKhac;
+
     newHoaDon.conLai = newHoaDon.thanhTien - (newHoaDon.daThanhToan || 0);
+
     setHoaDon(newHoaDon);
   };
 
@@ -312,7 +359,7 @@ const HoaDonDetail = () => {
                         }
                         className="font-bold text-blue-600 hover:underline text-xs"
                       >
-                        #TAN{item.donHang?._id?.slice(-6).toUpperCase()}
+                        TAN{item.donHang?._id?.slice(-6).toUpperCase()}
                       </button>
                     </td>
                     <td className="p-3">
@@ -512,9 +559,6 @@ const HoaDonDetail = () => {
                   <span className="text-[10px] text-gray-400">% =</span>
                 </div>
               </div>
-              <span className="text-gray-800 font-medium">
-                {formatCurrency((thuePhanTram / 100) * hoaDon.thanhTien)}
-              </span>
             </div>
 
             {/* CHI PHÍ KHÁC (VNĐ) - Ô nhập liệu */}
@@ -524,7 +568,9 @@ const HoaDonDetail = () => {
                 <input
                   type="number"
                   value={chiPhiKhac}
-                  onChange={(e) => setChiPhiKhac(Number(e.target.value))}
+                  onChange={(e) => {
+                    setChiPhiKhac(Number(e.target.value));
+                  }}
                   placeholder="Nhập VNĐ..."
                   className="w-full text-right outline-none text-xs p-1 bg-transparent font-medium"
                 />

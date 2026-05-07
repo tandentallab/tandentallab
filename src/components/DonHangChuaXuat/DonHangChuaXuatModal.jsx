@@ -47,6 +47,12 @@ import {
 import { fetchBangGiaByNhaKhoa } from "../../redux/slices/bangGiaSlice";
 import { useNavigate } from "react-router-dom";
 import { fetchDonHangById } from "../../redux/slices/donHangSlice";
+import {
+  buildPriceMap,
+  buildProductNameMap,
+  calcOrderTongTien,
+  buildOrderInvoiceItem,
+} from "../../utils/hoaDonUtils";
 
 export default function DonHangChuaXuatModal({
   open,
@@ -59,17 +65,13 @@ export default function DonHangChuaXuatModal({
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    console.log("Clinic: ", selectedClinic);
-  }, [selectedClinic]);
-
   const { donHangs = [], loading } = useSelector((state) => state.hoaDon) || {};
+
   const { data: bangGia = [] } = useSelector((state) => state.bangGia) || {};
 
   const [discounts, setDiscounts] = useState({});
   const [dateFilter, setDateFilter] = useState("all");
 
-  /* ================= CALL API ================= */
   useEffect(() => {
     if (open && selectedClinic) {
       dispatch(fetchDonHangChuaHoaDon(selectedClinic));
@@ -77,11 +79,13 @@ export default function DonHangChuaXuatModal({
     }
   }, [open, selectedClinic, dispatch]);
 
-  /* ================= XỬ LÝ LỌC NGÀY ================= */
+  /* ================= FILTER ================= */
+
   const filteredDonHangs = useMemo(() => {
     if (dateFilter === "all") return donHangs;
 
     const now = new Date();
+
     let start, end;
 
     switch (dateFilter) {
@@ -89,124 +93,96 @@ export default function DonHangChuaXuatModal({
         start = startOfDay(now);
         end = endOfDay(now);
         break;
+
       case "yesterday":
         const yesterday = subDays(now, 1);
         start = startOfDay(yesterday);
         end = endOfDay(yesterday);
         break;
+
       case "thisWeek":
-        start = startOfWeek(now, { weekStartsOn: 1 });
-        end = endOfWeek(now, { weekStartsOn: 1 });
+        start = startOfWeek(now, {
+          weekStartsOn: 1,
+        });
+        end = endOfWeek(now, {
+          weekStartsOn: 1,
+        });
         break;
+
       case "lastWeek":
         const lw = subWeeks(now, 1);
-        start = startOfWeek(lw, { weekStartsOn: 1 });
-        end = endOfWeek(lw, { weekStartsOn: 1 });
+
+        start = startOfWeek(lw, {
+          weekStartsOn: 1,
+        });
+
+        end = endOfWeek(lw, {
+          weekStartsOn: 1,
+        });
+
         break;
+
       case "thisMonth":
         start = startOfMonth(now);
         end = endOfMonth(now);
         break;
+
       case "lastMonth":
         const lm = subMonths(now, 1);
         start = startOfMonth(lm);
         end = endOfMonth(lm);
         break;
+
       case "thisYear":
         start = startOfYear(now);
         end = endOfYear(now);
         break;
+
       case "lastYear":
         const ly = subYears(now, 1);
         start = startOfYear(ly);
         end = endOfYear(ly);
         break;
+
       case "7days":
         start = subDays(now, 7);
         end = now;
         break;
+
       case "10days":
         start = subDays(now, 10);
         end = now;
         break;
+
       case "30days":
         start = subDays(now, 30);
         end = now;
         break;
+
       default:
         return donHangs;
     }
 
     return donHangs.filter((order) => {
       const orderDate = new Date(order.ngayNhan);
-      return isWithinInterval(orderDate, { start, end });
+
+      return isWithinInterval(orderDate, {
+        start,
+        end,
+      });
     });
   }, [donHangs, dateFilter]);
 
-  /* ================= MAP DATA ================= */
-  const mapGia = useMemo(() => {
-    const map = {};
-    bangGia.forEach((item) => {
-      map[item.sanPhamId?.toString()] = item.donGia;
-    });
-    return map;
-  }, [bangGia]);
+  /* ================= MAP ================= */
 
-  const mapTen = useMemo(() => {
-    const map = {};
-    bangGia.forEach((item) => {
-      map[item.sanPhamId?.toString()] = item.tenSanPham;
-    });
-    return map;
-  }, [bangGia]);
+  const mapGia = useMemo(() => buildPriceMap(bangGia), [bangGia]);
 
-  /* ================= LOGIC TÍNH TOÁN ================= */
-  const calcTotal = (order) => {
-    let total = order.danhSachSanPham.reduce((sum, sp) => {
-      const donGia = mapGia[sp.sanPham?.toString()] || 0;
-      return sum + donGia * sp.soLuong;
-    }, 0);
+  const mapTen = useMemo(() => buildProductNameMap(bangGia), [bangGia]);
 
-    const discount = discounts[order._id];
-    if (discount?.loaiChiecKhau === "phanTram") {
-      total -= (total * (discount.chiecKhau || 0)) / 100;
-    } else if (discount?.loaiChiecKhau === "tienMat") {
-      total -= discount.chiecKhau || 0;
-    }
+  /* ================= CALC ================= */
 
-    return total < 0 ? 0 : total;
-  };
-
-  const buildOrderInvoiceItem = (order) => {
-    console.log("Bảng giá: ", mapGia);
-    console.log("Data bang giá: ", bangGia);
-    console.log("Danh sách sản phẩm: ", order.danhSachSanPham);
-    const tongTien = order.danhSachSanPham.reduce((sum, sp) => {
-      console.log("Sản phẩm id: ", sp.sanPham._id.toString());
-      const donGia = mapGia[sp.sanPham._id.toString()] || 0;
-      console.log("Đơn giá của sp ", sp.sanPham._id.toString(), " = ", donGia);
-      return sum + donGia * sp.soLuong;
-    }, 0);
-
-    const discount = discounts?.[order._id];
-
-    let thanhTienSauCK = tongTien;
-
-    if (discount?.loaiChiecKhau === "phanTram") {
-      thanhTienSauCK = tongTien - (tongTien * (discount.chiecKhau || 0)) / 100;
-    } else if (discount?.loaiChiecKhau === "tienMat") {
-      thanhTienSauCK = tongTien - (discount.chiecKhau || 0);
-    }
-
-    return {
-      donHang: order,
-      tongTien,
-      chietKhau: discount?.chiecKhau || 0,
-      loaiChietKhau:
-        discount?.loaiChiecKhau === "tienMat" ? "tienMat" : "phanTram",
-      thanhTienSauCK: Math.max(thanhTienSauCK, 0),
-    };
-  };
+  const calcTotal = (order) =>
+    calcOrderTongTien(order, mapGia, discounts?.[order._id]);
 
   const totalAll = selectedOrders.reduce(
     (sum, order) => sum + calcTotal(order),
@@ -214,27 +190,26 @@ export default function DonHangChuaXuatModal({
   );
 
   /* ================= ACTIONS ================= */
+
   const toggleOrder = async (order) => {
     const exists = selectedOrders.some((o) => o._id === order._id);
 
-    // Nếu đã tồn tại => bỏ chọn
     if (exists) {
       setSelectedOrders((prev) => prev.filter((o) => o._id !== order._id));
+
       return;
     }
 
     try {
-      // Lấy chi tiết đầy đủ đơn hàng
       const fullOrder = await dispatch(fetchDonHangById(order._id)).unwrap();
 
       setSelectedOrders((prev) => [...prev, fullOrder]);
     } catch (err) {
-      console.error("Lỗi lấy chi tiết đơn hàng:", err);
+      console.error(err);
     }
   };
 
   const toggleAll = async () => {
-    // Nếu đã chọn hết => bỏ chọn hết
     if (selectedOrders.length === filteredDonHangs.length) {
       setSelectedOrders([]);
       return;
@@ -249,31 +224,40 @@ export default function DonHangChuaXuatModal({
 
       setSelectedOrders(fullOrders);
     } catch (err) {
-      console.error("Lỗi lấy danh sách đơn hàng:", err);
+      console.error(err);
     }
   };
+
   const handleCreateHoaDon = async () => {
     if (!selectedClinic || selectedOrders.length === 0) {
       alert("Chọn nha khoa và ít nhất 1 đơn hàng");
       return;
     }
+
     const danhSachDonHang = selectedOrders.map((order) => ({
       donHangId: order._id,
-      chietKhau: discounts[order._id]?.value || 0,
+      chietKhau: discounts[order._id]?.chiecKhau || 0,
       loaiChietKhau:
-        discounts[order._id]?.type === "VND" ? "tienMat" : "phanTram",
+        discounts[order._id]?.loaiChiecKhau === "tienMat"
+          ? "tienMat"
+          : "phanTram",
     }));
 
     const result = await dispatch(
-      createHoaDon({ nhaKhoaId: selectedClinic, danhSachDonHang })
+      createHoaDon({
+        nhaKhoaId: selectedClinic,
+        danhSachDonHang,
+      })
     );
+
     if (result.meta.requestStatus === "fulfilled") {
-      onClose(); // Đóng modal sau khi tạo thành công
+      onClose();
     }
   };
 
   const formatDate = (dateTime) => {
     if (!dateTime) return "-";
+
     return new Date(dateTime).toLocaleString("vi-VN", {
       day: "2-digit",
       month: "2-digit",
@@ -497,8 +481,9 @@ export default function DonHangChuaXuatModal({
           variant="contained"
           color="success"
           onClick={() => {
-            const mappedOrders = selectedOrders.map(buildOrderInvoiceItem);
-
+            const mappedOrders = selectedOrders.map((order) =>
+              buildOrderInvoiceItem(order, mapGia, discounts)
+            );
             onAddOrders(mappedOrders);
 
             setSelectedOrders([]);

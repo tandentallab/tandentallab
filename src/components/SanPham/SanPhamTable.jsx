@@ -91,14 +91,17 @@ export default function SanPhamTable() {
           className="flex-1 bg-gray-50"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search className="text-gray-400" />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search className="text-gray-400" />
+                </InputAdornment>
+              ),
+            }
           }}
-          sx={{ "& fieldset": { border: "none" } }} // Xóa viền để nhìn hiện đại hơn
+
+          sx={{ "& fieldset": { border: "none" } }}
         />
 
         <TextField

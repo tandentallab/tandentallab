@@ -10,6 +10,7 @@ import chamSocKhachHangReducer from "./slices/chamSocKhachHangSlice"
 import bangGiaReducer from "./slices/bangGiaSlice"
 import donHangReducer from "./slices/donHangSlice"; // Thêm dòng này
 import hoaDonReducer from "./slices/hoaDonSlice"
+import baoCaoReducer from "./slices/baoCaoSlice"
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -18,7 +19,7 @@ export const store = configureStore({
     benhNhan: benhNhanReducer,
     staff: staffReducer,
     sanPham: sanPhamReducer, // Đăng ký ngăn tủ Sản Phẩm
-    congDoan: congDoanReducer, 
+    congDoan: congDoanReducer,
     chamSocKhachHang: chamSocKhachHangReducer,
     bangGia: bangGiaReducer,
     congDoan: congDoanReducer, // Đăng ký ngăn tủ Công đoạn
@@ -28,5 +29,6 @@ export const store = configureStore({
     donHang: donHangReducer,
     chamSocKhachHang: chamSocKhachHangReducer,
     bangGia: bangGiaReducer,
+    baoCao: baoCaoReducer,
   },
 });

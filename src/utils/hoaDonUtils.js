@@ -113,3 +113,18 @@ export const buildOrderInvoiceItem = (
     thanhTienSauCK: Math.max(thanhTienSauCK, 0),
   };
 };
+
+//TÌM HÓA ĐƠN CHỨA ĐƠN HÀNG
+export const findHoaDonByDonHang = (hoaDons = [], donHangId) => {
+  return hoaDons.find((hoaDon) =>
+    hoaDon.danhSachDonHang?.some((item) => {
+      // hỗ trợ cả object và string
+      const id =
+        typeof item.donHang === "object"
+          ? item.donHang?._id
+          : item.donHang;
+
+      return id?.toString() === donHangId?.toString();
+    })
+  );
+};

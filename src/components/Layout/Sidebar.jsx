@@ -25,6 +25,7 @@ import {
   Settings,
   Category,
   AccountTree,
+  ReceiptLong,
 } from "@mui/icons-material";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -59,7 +60,7 @@ const Sidebar = ({ collapsed }) => {
     {
       name: "Chờ xuất hóa đơn",
       router: "/cho-xuat-hoa-don",
-      icon: <Receipt />,
+      icon: <ReceiptLong />,
     },
     { name: "Hóa Đơn", router: "/hoa-don", icon: <Receipt /> },
     { name: "Báo Cáo", router: "/reports", icon: <BarChart /> },

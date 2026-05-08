@@ -26,6 +26,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
     const dispatch = useDispatch();
     const nhaKhoaList = useSelector((s) => s.nhaKhoa.data);
     const { hoaDonChuaThanhToan, loadingHoaDon, loading } = useSelector((s) => s.phieuThu);
+    const currentUser = useSelector((s) => s.auth.user);
 
     const [selectedNhaKhoa, setSelectedNhaKhoa] = useState("");
     const [search, setSearch] = useState("");
@@ -128,6 +129,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
                     soTienThu: soTienThanhToan,
                     noiDung,
                     phuongThucThanhToan: phuongThuc,
+                    nguoiTao: currentUser?._id,
                 })).unwrap();
             }
             setSubmitSuccess(true);

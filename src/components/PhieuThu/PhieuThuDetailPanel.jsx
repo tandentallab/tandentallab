@@ -129,7 +129,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                                 <InfoRow label="Phương thức thanh toán" value={phieuThu.phuongThucThanhToan} />
                                 <InfoRow label="Ngày thu" value={formatDate(phieuThu.ngayThu)} />
                                 <InfoRow label="Ngày tạo" value={formatDate(phieuThu.ngayTao || phieuThu.createdAt)} />
-                                <InfoRow label="Người tạo" value={ngt.hoVaTen} />
+                                <InfoRow label="Người tạo" value={phieuThu.nguoiTaoInfo?.HoTenNV || "-"} />
                                 {phieuThu.noiDung && (
                                     <InfoRow label="Nội dung" value={phieuThu.noiDung} />
                                 )}

@@ -41,7 +41,7 @@ export default function PhieuThuPage() {
 
     useEffect(() => { loadData(); }, [loadData]);
 
-    const handleRefresh = () => { setSearchTerm(""); setDebouncedSearch(""); setPage(1); };
+    const handleRefresh = () => { setSearchTerm(""); setDebouncedSearch(""); setPage(1); loadData(); };
 
     const handleRowClick = (pt) => {
         setSelectedPhieuThu((prev) => (prev?._id === pt._id ? null : pt));
@@ -126,7 +126,7 @@ export default function PhieuThuPage() {
                                                 {pt.phuongThucThanhToan || "-"}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">{pt.nguoiTaoInfo?.hoVaTen || "-"}</td>
+                                        <td className="px-4 py-3">{pt.nguoiTaoInfo?.HoTenNV || "-"}</td>
                                     </tr>
                                 ))
                             )}

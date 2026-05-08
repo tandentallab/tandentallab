@@ -23,10 +23,6 @@ import DonHangChuaXuatPage from "../DonHangChuaXuat/DonHangChuaXuatPage";
 import HoaDonDetail from "../HoaDon/HoaDonDetail";
 import KeHoachGiaoHangTable from "../KeHoachGiaoHang/KeHoachGiaoHangTable";
 import HoaDonPrintPreview from "../HoaDon/HoaDonPrintPreview";
-import KhoPage from "../Kho/KhoPage";
-import VatLieu from "../Kho/VatLieu";
-import PhieuNhapXuat from "../Kho/PhieuNhapXuat";
-import NhaCungCap from "../Kho/NhaCungCap";
 import BaoCaoPage from "../BaoCao/BaoCaoPage";
 import PhieuThuPage from "../PhieuThu/PhieuThuPage";
 const Dashboard = () => {
@@ -64,10 +60,6 @@ const Dashboard = () => {
           <Route path="/ho-so" element={<StaffProfile />} />
           <Route path="/san-pham" element={<SanPhamPage />} />
           <Route path="/cong-doan" element={<CongDoanPage />} />
-          <Route path="/kho" element={<KhoPage />} />
-          <Route path="/kho/vat-lieu" element={<VatLieu />} />
-          <Route path="/kho/phieu-nhap-xuat" element={<PhieuNhapXuat />} />
-          <Route path="/kho/nha-cung-cap" element={<NhaCungCap />} />
           <Route path="/cho-xuat-hoa-don" element={<DonHangChuaXuatPage />} />
           <Route path="/hoa-don" element={<HoaDonTable />} />
           <Route path="/bao-cao" element={<BaoCaoPage />} />

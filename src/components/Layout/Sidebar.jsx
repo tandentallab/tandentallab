@@ -64,19 +64,9 @@ const Sidebar = ({ collapsed }) => {
     },
     { name: "Hóa Đơn", router: "/hoa-don", icon: <Receipt /> },
     { name: "Phiếu Thu", router: "/phieu-thu", icon: <Receipt /> },
-    { name: "Báo Cáo", router: "/reports", icon: <BarChart /> },
+    { name: "Báo Cáo", router: "/bao-cao", icon: <BarChart /> },
 
     // Kho will be rendered as a dropdown with sub-items
-  ];
-
-  const khoMenu = [
-    { name: "Vật liệu", router: "/kho/vat-lieu", icon: <Category /> },
-    {
-      name: "Phiếu nhập xuất",
-      router: "/kho/phieu-nhap-xuat",
-      icon: <Receipt />,
-    },
-    { name: "Nhà cung cấp", router: "/kho/nha-cung-cap", icon: <Contacts /> },
   ];
 
   const settingMenu = [
@@ -99,10 +89,6 @@ const Sidebar = ({ collapsed }) => {
 
   const [openCustomer, setOpenCustomer] = useState(isCustomerActive);
   const [openSetting, setOpenSetting] = useState(isSettingActive);
-  const isKhoActive = khoMenu.some((item) =>
-    location.pathname.includes(item.router)
-  );
-  const [openKho, setOpenKho] = useState(isKhoActive);
 
   return (
     <Drawer
@@ -261,73 +247,6 @@ const Sidebar = ({ collapsed }) => {
             </ListItemButton>
           </Tooltip>
         ))}
-
-        {/* ===== KHO DROPDOWN ===== */}
-        <Tooltip title={collapsed ? "Kho" : ""} placement="right">
-          <ListItemButton
-            onClick={() => setOpenKho(!openKho)}
-            sx={{
-              justifyContent: collapsed ? "center" : "flex-start",
-              px: collapsed ? 1 : 2,
-            }}
-            className={`transition ${
-              isKhoActive ? "bg-blue-50 text-blue-600" : "hover:bg-gray-100"
-            }`}
-          >
-            <ListItemIcon
-              sx={{
-                minWidth: 0,
-                mr: collapsed ? 0 : 2,
-                justifyContent: "center",
-              }}
-              className={isKhoActive ? "text-blue-600" : ""}
-            >
-              <Warehouse />
-            </ListItemIcon>
-
-            {!collapsed && <ListItemText primary="Kho" />}
-
-            {!collapsed && (openKho ? <ExpandLess /> : <ExpandMore />)}
-          </ListItemButton>
-        </Tooltip>
-
-        <Collapse in={openKho && !collapsed} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            {khoMenu.map((item, index) => (
-              <Tooltip
-                key={index}
-                title={collapsed ? item.name : ""}
-                placement="right"
-              >
-                <ListItemButton
-                  sx={{
-                    pl: collapsed ? 1 : 4,
-                    justifyContent: collapsed ? "center" : "flex-start",
-                  }}
-                  onClick={() => navigate(item.router)}
-                  className={`transition ${
-                    isActive(item.router)
-                      ? "bg-blue-100 text-blue-600"
-                      : "hover:bg-gray-100"
-                  }`}
-                >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 0,
-                      mr: collapsed ? 0 : 2,
-                      justifyContent: "center",
-                    }}
-                    className={isActive(item.router) ? "text-blue-600" : ""}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-
-                  {!collapsed && <ListItemText primary={item.name} />}
-                </ListItemButton>
-              </Tooltip>
-            ))}
-          </List>
-        </Collapse>
 
         {/* ===== SETTING MENU ===== */}
         <Tooltip title={collapsed ? "Thiết lập" : ""} placement="right">

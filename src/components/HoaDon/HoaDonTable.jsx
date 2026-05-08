@@ -311,6 +311,7 @@ const HoaDonTable = () => {
               <TableCell className="font-bold">Đã Thanh Toán</TableCell>
               <TableCell className="font-bold">Còn lại</TableCell>
               <TableCell className="font-bold">Ngày Tạo</TableCell>
+              <TableCell className="font-bold">Trạng thái</TableCell>
               <TableCell align="center" className="font-bold">
                 Thao Tác
               </TableCell>
@@ -327,11 +328,18 @@ const HoaDonTable = () => {
               danhSachHoaDon.map((hd) => (
                 <TableRow key={hd._id} hover>
                   <TableCell className="font-semibold text-gray-700">
-                    <b>
+                    <Button
+                      variant="text"
+                      onClick={() => {
+                        navigate(`/hoa-don/${hd._id}/edit`);
+                      }}
+                    >
                       TAN{hd._id.substring(hd._id.length - 8).toUpperCase()}
-                    </b>
+                    </Button>
                   </TableCell>
-                  <TableCell>{hd.nhaKhoa?.hoVaTen}</TableCell>
+                  <TableCell>
+                    <b>{hd.nhaKhoa?.hoVaTen}</b>
+                  </TableCell>
                   <TableCell className="text-blue-600 font-medium">
                     {hd.tongTien?.toLocaleString()}đ
                   </TableCell>
@@ -350,6 +358,23 @@ const HoaDonTable = () => {
                   <TableCell>
                     {new Date(hd.createdAt).toLocaleDateString("vi-VN")}
                   </TableCell>
+                  <TableCell className="text-blue-600 font-medium">
+                    <Chip
+                      label={hd.trangThai}
+                      sx={{
+                        fontWeight: 600,
+                        color: "#fff",
+                        backgroundColor:
+                          hd.trangThai === "Chưa thanh toán"
+                            ? "#ef4444" // đỏ
+                            : hd.trangThai === "Thanh toán một phần"
+                            ? "#f59e0b" // vàng
+                            : hd.trangThai === "Đã thanh toán"
+                            ? "#22c55e" // xanh lá
+                            : "#9ca3af", // mặc định
+                      }}
+                    />{" "}
+                  </TableCell>{" "}
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
                       <Tooltip title="Chi tiết & Chăm sóc">

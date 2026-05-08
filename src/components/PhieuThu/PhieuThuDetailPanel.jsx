@@ -1,5 +1,9 @@
 import React, { useState } from "react";
 import PhieuThuEditModal from "./PhieuThuEditModal";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import CloseIcon from "@mui/icons-material/Close";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import PrintIcon from "@mui/icons-material/Print";
 
 const formatNumber = (v) =>
     new Intl.NumberFormat("vi-VN").format(v || 0);
@@ -71,15 +75,10 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                             title="Chỉnh sửa"
                             className="p-1.5 rounded-full hover:bg-white/20 transition"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                            </svg>
+                            <EditOutlinedIcon sx={{ fontSize: 20 }} />
                         </button>
-                        <button onClick={onClose} title="Đóng" className="p-1.5 rounded-full hover:bg-white/20 transition text-xl font-bold leading-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                                <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-                                <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-                            </svg>
+                        <button onClick={onClose} title="Đóng" className="p-1.5 rounded-full hover:bg-white/20 transition">
+                            <CloseIcon sx={{ fontSize: 20 }} />
                         </button>
                     </div>
                 </div>
@@ -117,9 +116,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
                                         <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
+                                            <AttachMoneyIcon sx={{ fontSize: 18, color: "#16a34a" }} />
                                         </div>
                                         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Số tiền thu</span>
                                     </div>
@@ -184,9 +181,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                         onClick={alert.bind(null, "Tính năng in phiếu thu đang được phát triển")}
                         className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition px-3 py-1.5 rounded-lg hover:bg-gray-100"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                        </svg>
+                        <PrintIcon sx={{ fontSize: 16 }} />
                         In phiếu thu
                     </button>
                 </div>

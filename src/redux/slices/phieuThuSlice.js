@@ -6,8 +6,8 @@ import { api } from "../../config/api";
 // Lấy tất cả phiếu thu
 export const fetchAllPhieuThu = createAsyncThunk(
     "phieuThu/fetchAll",
-    async ({ page = 1, limit = 20, search = "" } = {}) => {
-        const res = await api.get("/phieu-thu", { params: { page, limit, search } });
+    async ({ page = 1, limit = 20, search = "", nhaKhoaId = "", dateFrom = "", dateTo = "" } = {}) => {
+        const res = await api.get("/phieu-thu", { params: { page, limit, search, nhaKhoaId, dateFrom, dateTo } });
         return res.data;
     }
 );

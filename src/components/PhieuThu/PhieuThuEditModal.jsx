@@ -1,6 +1,9 @@
 ﻿import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { updatePhieuThu } from "../../redux/slices/phieuThuSlice";
+import CloseIcon from "@mui/icons-material/Close";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import PrintIcon from "@mui/icons-material/Print";
 
 const toLocalDatetimeInput = (d) => {
     if (!d) return "";
@@ -75,9 +78,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                 <div className="flex items-center justify-between px-6 py-3.5 bg-[#29b6f6] rounded-t-2xl shrink-0">
                     <h2 className="text-white font-semibold text-base tracking-wide">Phiếu thu {phieuThu.soPhieuThu}</h2>
                     <button onClick={onClose} className="text-white hover:bg-white/20 rounded-full p-1 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <CloseIcon sx={{ fontSize: 20 }} />
                     </button>
                 </div>
 
@@ -186,9 +187,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                     <div className="flex items-center gap-3">
                         <button onClick={alert.bind(null, "Tính năng in phiếu thu đang được phát triển")}
                             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                            </svg>
+                            <PrintIcon sx={{ fontSize: 16 }} />
                             In phiếu thu (F2)
                         </button>
                         <button onClick={handleSave} disabled={loading}
@@ -199,14 +198,12 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                                 </svg>
                             )}
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                            </svg>
+                            <SaveOutlinedIcon sx={{ fontSize: 17 }} />
                             Lưu (F3)
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

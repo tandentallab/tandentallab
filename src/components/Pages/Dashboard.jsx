@@ -27,6 +27,7 @@ import KhoPage from "../Kho/KhoPage";
 import VatLieu from "../Kho/VatLieu";
 import PhieuNhapXuat from "../Kho/PhieuNhapXuat";
 import NhaCungCap from "../Kho/NhaCungCap";
+import BaoCaoPage from "../BaoCao/BaoCaoPage";
 const Dashboard = () => {
   const [collapsed, setCollapsed] = useState(false);
   return (
@@ -68,6 +69,7 @@ const Dashboard = () => {
           <Route path="/kho/nha-cung-cap" element={<NhaCungCap />} />
           <Route path="/cho-xuat-hoa-don" element={<DonHangChuaXuatPage />} />
           <Route path="/hoa-don" element={<HoaDonTable />} />
+          <Route path="/bao-cao" element={<BaoCaoPage />} />
           <Route
             path="/ke-hoach-giao-hang"
             element={<KeHoachGiaoHangTable />}

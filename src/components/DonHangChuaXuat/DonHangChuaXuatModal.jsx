@@ -228,33 +228,6 @@ export default function DonHangChuaXuatModal({
     }
   };
 
-  const handleCreateHoaDon = async () => {
-    if (!selectedClinic || selectedOrders.length === 0) {
-      alert("Chọn nha khoa và ít nhất 1 đơn hàng");
-      return;
-    }
-
-    const danhSachDonHang = selectedOrders.map((order) => ({
-      donHangId: order._id,
-      chietKhau: discounts[order._id]?.chiecKhau || 0,
-      loaiChietKhau:
-        discounts[order._id]?.loaiChiecKhau === "tienMat"
-          ? "tienMat"
-          : "phanTram",
-    }));
-
-    const result = await dispatch(
-      createHoaDon({
-        nhaKhoaId: selectedClinic,
-        danhSachDonHang,
-      })
-    );
-
-    if (result.meta.requestStatus === "fulfilled") {
-      onClose();
-    }
-  };
-
   const formatDate = (dateTime) => {
     if (!dateTime) return "-";
 
@@ -492,15 +465,6 @@ export default function DonHangChuaXuatModal({
           disabled={selectedOrders.length === 0}
         >
           Thêm vào hóa đơn ({selectedOrders.length})
-        </Button>
-
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleCreateHoaDon}
-          disabled={selectedOrders.length === 0 || loading}
-        >
-          Tạo hóa đơn
         </Button>
       </DialogActions>
     </Dialog>

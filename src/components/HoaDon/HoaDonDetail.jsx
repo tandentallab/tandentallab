@@ -443,7 +443,7 @@ const HoaDonDetail = () => {
                 <tr>
                   <td colSpan={8}>
                     <Button onClick={() => setIsModalOpen(true)}>
-                      Mở danh sách đơn hàng
+                      Thêm đơn hàng chưa xuất hóa đơn
                     </Button>
                     <DonHangChuaXuatModal
                       open={isModalOpen}

@@ -11,6 +11,15 @@ import {
   IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import {
+  Group,
+  Assignment,
+  Description,
+  Download,
+  Upload,
+  Business,
+  Add,
+} from "@mui/icons-material";
 
 import vietnamAddress from "../../data/vietNameAddress";
 
@@ -18,7 +27,7 @@ import vietnamAddress from "../../data/vietNameAddress";
 import { useDispatch, useSelector } from "react-redux";
 import { createNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 
-export default function NhaKhoaModal() {
+export default function NhaKhoaModal({ isQuickMenu }) {
   const dispatch = useDispatch();
   const { loading } = useSelector((state) => state.nhaKhoa);
 
@@ -96,14 +105,26 @@ export default function NhaKhoaModal() {
 
   return (
     <>
-      <Tooltip title="Thêm nha khoa">
-        <IconButton
+      {isQuickMenu ? (
+        <button
+          className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 border-b last:border-0"
           onClick={() => setOpen(true)}
-          className="bg-green-500 text-white hover:bg-green-600"
         >
-          <AddIcon />
-        </IconButton>
-      </Tooltip>
+          <span className="mr-3 text-gray-500">
+            <Group fontSize="small" />
+          </span>
+          <span className="font-medium">Thêm Nha Khoa</span>
+        </button>
+      ) : (
+        <Tooltip title="Thêm nha khoa">
+          <IconButton
+            onClick={() => setOpen(true)}
+            className="bg-green-500 text-white hover:bg-green-600"
+          >
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
+      )}
 
       <Modal open={open} onClose={() => setOpen(false)}>
         <Box className="bg-white w-[800px] max-h-[90vh] overflow-y-auto mx-auto mt-10 p-6 rounded-2xl shadow-xl">

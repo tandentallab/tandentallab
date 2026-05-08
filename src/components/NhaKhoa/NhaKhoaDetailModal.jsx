@@ -33,6 +33,7 @@ import TabBangGiaRieng from "./TabBangGiaRieng";
 import { fetchBangGiaByNhaKhoa } from "../../redux/slices/bangGiaSlice";
 import { Info } from "lucide-react";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import { fetchSanPham } from "../../redux/slices/sanPhamSlice";
 
 const NhaKhoaDetailModal = ({ nhaKhoaData }) => {
   const [open, setOpen] = useState(false);
@@ -51,6 +52,7 @@ const NhaKhoaDetailModal = ({ nhaKhoaData }) => {
     if (nhaKhoaData?._id) {
       dispatch(fetchChamSocByNhaKhoa(nhaKhoaData._id));
       dispatch(fetchBangGiaByNhaKhoa(nhaKhoaData._id));
+      dispatch(fetchSanPham);
     }
   };
 

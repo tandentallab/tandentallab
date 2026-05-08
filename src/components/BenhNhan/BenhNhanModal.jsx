@@ -11,6 +11,8 @@ import {
   Typography,
 } from "@mui/material";
 
+import { Group } from "@mui/icons-material";
+
 import vietnamAddress from "../../data/vietNameAddress";
 
 // 🔥 REDUX
@@ -19,7 +21,7 @@ import { createBenhNhan } from "../../redux/slices/benhNhanSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import AddIcon from "@mui/icons-material/Add";
 
-export default function BenhNhanModal() {
+export default function BenhNhanModal({ isQuickMenu }) {
   const dispatch = useDispatch();
 
   const { loading } = useSelector((state) => state.benhNhan);
@@ -86,14 +88,26 @@ export default function BenhNhanModal() {
 
   return (
     <>
-      <Tooltip title="Thêm bệnh nhân">
-        <IconButton
+      {isQuickMenu ? (
+        <button
+          className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 border-b last:border-0"
           onClick={() => setOpen(true)}
-          className="bg-green-500 text-white hover:bg-green-600"
         >
-          <AddIcon />
-        </IconButton>
-      </Tooltip>
+          <span className="mr-3 text-gray-500">
+            <Group fontSize="small" />
+          </span>
+          <span className="font-medium">Thêm Bệnh Nhân</span>
+        </button>
+      ) : (
+        <Tooltip title="Thêm bệnh nhân">
+          <IconButton
+            onClick={() => setOpen(true)}
+            className="bg-green-500 text-white hover:bg-green-600"
+          >
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
+      )}
       <Modal open={open} onClose={() => setOpen(false)}>
         <Box className="bg-white w-[700px] p-6 mx-auto mt-20 rounded-2xl shadow-xl">
           <div className="bg-[#0091ea] px-4 py-2 my-2 flex justify-between items-center shrink-0 text-white">

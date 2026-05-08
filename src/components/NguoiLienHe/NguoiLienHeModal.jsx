@@ -10,6 +10,15 @@ import {
   Tooltip,
   IconButton,
 } from "@mui/material";
+import {
+  Group,
+  Assignment,
+  Description,
+  Download,
+  Upload,
+  Business,
+  Add,
+} from "@mui/icons-material";
 
 // 🔥 REDUX
 import { useDispatch, useSelector } from "react-redux";
@@ -17,7 +26,7 @@ import { createNguoiLienHe } from "../../redux/slices/nguoiLienHeSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import AddIcon from "@mui/icons-material/Add";
 
-export default function NguoiLienHeModal() {
+export default function NguoiLienHeModal({ isQuickMenu }) {
   const dispatch = useDispatch();
 
   const { loading } = useSelector((state) => state.nguoiLienHe);
@@ -70,14 +79,26 @@ export default function NguoiLienHeModal() {
   return (
     <>
       {/* BUTTON */}
-      <Tooltip title="Thêm người liên hệ">
-        <IconButton
+      {isQuickMenu ? (
+        <button
+          className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 border-b last:border-0"
           onClick={() => setOpen(true)}
-          className="bg-green-500 text-white hover:bg-green-600"
         >
-          <AddIcon />
-        </IconButton>
-      </Tooltip>
+          <span className="mr-3 text-gray-500">
+            <Group fontSize="small" />
+          </span>
+          <span className="font-medium">Thêm Người Liên Hệ</span>
+        </button>
+      ) : (
+        <Tooltip title="Thêm người liên hệ">
+          <IconButton
+            onClick={() => setOpen(true)}
+            className="bg-green-500 text-white hover:bg-green-600"
+          >
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
+      )}
 
       {/* MODAL */}
       <Modal open={open} onClose={() => setOpen(false)}>

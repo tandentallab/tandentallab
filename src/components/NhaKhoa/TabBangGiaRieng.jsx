@@ -17,12 +17,16 @@ import {
   deleteBangGia,
 } from "../../redux/slices/bangGiaSlice";
 
+import { fetchSanPham } from "../../redux/slices/sanPhamSlice";
+
 export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
   const dispatch = useDispatch();
 
   // ✅ Lấy state an toàn (tránh undefined crash)
 
   const { data, loading } = useSelector((state) => state.bangGia);
+
+  const sanPham = useSelector((state) => state.sanPham);
 
   return (
     <Paper
@@ -50,7 +54,8 @@ export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
             }}
           >
             <Box>Sản phẩm</Box>
-            <Box>Giá</Box>
+            <Box>Giá chung</Box>
+            <Box>Giá riêng</Box>
             <Box textAlign="center">Hành động</Box>
           </Box>
 
@@ -82,6 +87,12 @@ export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
                 <Typography variant="caption" color="text.secondary">
                   {item.nhomSanPham}
                 </Typography>
+              </Box>
+
+              <Box textAlign="center">
+                {Array.isArray(sanPham?.data) &&
+                  sanPham?.data?.find((sp) => sp._id === item.sanPhamId)
+                    ?.donGiaChung}
               </Box>
 
               {/* GIÁ */}

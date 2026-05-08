@@ -96,6 +96,13 @@ const HoaDonTable = () => {
 
   // Gọi API lấy hóa đơn khi các tham số thay đổi
   useEffect(() => {
+    console.log("Lọc theo: ", {
+      page: page + 1,
+      limit: rowsPerPage,
+      nhaKhoaId: filterNhaKhoa,
+      trangThai: filterTrangThai,
+      search: debouncedSearch, // Gửi từ khóa tìm kiếm lên server
+    });
     dispatch(
       fetchAllHoaDonAdmin({
         page: page + 1,

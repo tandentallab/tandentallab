@@ -20,8 +20,13 @@ import {
 } from "../../redux/slices/staffSlice";
 import AddIcon from "@mui/icons-material/Add";
 import { api } from "../../config/api";
+import { Group } from "@mui/icons-material";
 
-export default function StaffModal({ staffId = null, onClose = null }) {
+export default function StaffModal({
+  staffId = null,
+  onClose = null,
+  isQuickMenu,
+}) {
   const dispatch = useDispatch();
 
   const { loading } = useSelector((state) => state.staff);
@@ -152,14 +157,26 @@ export default function StaffModal({ staffId = null, onClose = null }) {
 
   return (
     <>
-      <Tooltip title="Thêm nha khoa">
-        <IconButton
-          onClick={handleOpenModal}
-          className="bg-green-500 text-white hover:bg-green-600"
+      {isQuickMenu ? (
+        <button
+          className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 border-b last:border-0"
+          onClick={() => setOpen(true)}
         >
-          <AddIcon />
-        </IconButton>
-      </Tooltip>
+          <span className="mr-3 text-gray-500">
+            <Group fontSize="small" />
+          </span>
+          <span className="font-medium">Thêm Nhân Viên Mới</span>
+        </button>
+      ) : (
+        <Tooltip title="Thêm nha khoa">
+          <IconButton
+            onClick={handleOpenModal}
+            className="bg-green-500 text-white hover:bg-green-600"
+          >
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
+      )}
 
       <Modal open={open} onClose={() => setOpen(false)}>
         <Box className="bg-white w-[700px] p-6 mx-auto mt-20 rounded-2xl shadow-xl">

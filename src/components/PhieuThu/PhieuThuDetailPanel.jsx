@@ -20,8 +20,8 @@ const formatDateShort = (d) => {
     return new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
-const formatSoHoaDon = (id) =>
-    id ? "TAYDO" + id.toString().slice(-7).toUpperCase() : "—";
+const formatSoPhieu = (id) =>
+    id ? "TAN" + id.toString().slice(-8).toUpperCase() : "—";
 
 const getInitials = (name) => {
     if (!name) return "?";
@@ -63,10 +63,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                 {/* ── HEADER ── */}
                 <div className="bg-[#29b6f6] text-white px-4 py-3 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2 min-w-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
-                        <span className="font-bold text-base tracking-wide truncate">{phieuThu?.soPhieuThu || "Phiếu Thu"}</span>
+                        <span className="font-bold text-base tracking-wide truncate">{formatSoPhieu(phieuThu?._id)}</span>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                         <button
@@ -79,7 +76,10 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                             </svg>
                         </button>
                         <button onClick={onClose} title="Đóng" className="p-1.5 rounded-full hover:bg-white/20 transition text-xl font-bold leading-none">
-                            &times;
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                                <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
+                                <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -144,7 +144,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                                     <p className="font-semibold text-gray-800 text-sm mb-3">Hóa đơn</p>
                                     {/* Invoice header row */}
                                     <div className="flex justify-between items-center mb-3">
-                                        <span className="text-sm font-bold text-[#29b6f6]">{formatSoHoaDon(hd._id)}</span>
+                                        <span className="text-sm font-bold text-[#29b6f6]">{formatSoPhieu(hd._id)}</span>
                                         <span className="text-sm text-gray-500">Ngày xuất: {formatDateShort(hd.ngayXuatHoaDon)}</span>
                                     </div>
                                     {/* Invoice detail rows */}
@@ -181,7 +181,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                 {/* ── FOOTER ── */}
                 <div className="shrink-0 px-4 py-3 bg-white border-t flex justify-end">
                     <button
-                        onClick={() => window.print()}
+                        onClick={alert.bind(null, "Tính năng in phiếu thu đang được phát triển")}
                         className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition px-3 py-1.5 rounded-lg hover:bg-gray-100"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

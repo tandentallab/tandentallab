@@ -720,7 +720,9 @@ const DonHangForm = () => {
             <button
               onClick={() => {
                 if (!formData._id) {
-                  toast.error("Vui lòng lưu đơn hàng trước khi thêm thẻ bảo hành");
+                  toast.error(
+                    "Vui lòng lưu đơn hàng trước khi thêm thẻ bảo hành"
+                  );
                   return;
                 }
                 setIsPhieuBaoHanhModalOpen(true);
@@ -812,7 +814,11 @@ const RightSidePanel = ({
         {[
           { key: "sanxuat", label: "Sản xuất" },
           { key: "ghichu", label: "Ghi chú" },
-          { key: "baohanhc", label: "Bảo hành", badge: phieuBaoHanhList.length },
+          {
+            key: "baohanhc",
+            label: "Bảo hành",
+            badge: phieuBaoHanhList.length,
+          },
         ].map((tab) => (
           <button
             key={tab.key}

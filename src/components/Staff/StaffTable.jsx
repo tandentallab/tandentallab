@@ -172,8 +172,8 @@ export default function StaffTable() {
             {/* ✅ DATA */}
             {!loading &&
               data.map((item) => (
-                <TableRow 
-                  key={item._id} 
+                <TableRow
+                  key={item._id}
                   hover
                   style={{ cursor: "pointer" }}
                   onClick={() => handleEditClick(item._id)}
@@ -202,7 +202,10 @@ export default function StaffTable() {
                   </TableCell>
                   <TableCell>{formatDate(item.createdAt)}</TableCell>
                   {isAdmin && (
-                    <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                    <TableCell
+                      align="center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <IconButton
                         size="small"
                         color="error"
@@ -260,7 +263,7 @@ function StaffEditModal({ staffId, onClose }) {
   const [open, setOpen] = React.useState(true);
 
   const staff = data.find((s) => s._id === staffId);
-  
+
   console.log("🔵 Staff object từ Redux:", staff);
 
   const [form, setForm] = React.useState({
@@ -274,7 +277,7 @@ function StaffEditModal({ staffId, onClose }) {
     GioiThieu: staff?.GioiThieu || "",
     Status: staff?.Status !== undefined ? staff.Status : 1,
   });
-  
+
   console.log("🔵 Form state initialized:", form);
 
   const [errors, setErrors] = React.useState({});
@@ -343,7 +346,7 @@ function StaffEditModal({ staffId, onClose }) {
 
   const handleSubmit = async () => {
     console.log("🔵 Form data:", form);
-    
+
     if (!validateForm()) {
       console.log("❌ Validation failed:", errors);
       return;
@@ -352,8 +355,10 @@ function StaffEditModal({ staffId, onClose }) {
     try {
       setLoading(true);
       console.log("📤 Gửi update request:", { id: staffId, data: form });
-      
-      const result = await dispatch(updateStaff({ id: staffId, data: form })).unwrap();
+
+      const result = await dispatch(
+        updateStaff({ id: staffId, data: form })
+      ).unwrap();
       console.log("✅ Cập nhật thành công:", result);
 
       // Refetch dữ liệu sau khi update thành công
@@ -364,7 +369,10 @@ function StaffEditModal({ staffId, onClose }) {
       onClose();
     } catch (err) {
       console.error("❌ Lỗi cập nhật:", err);
-      const errorMsg = err?.response?.data?.message || err?.message || "Lỗi cập nhật nhân viên";
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Lỗi cập nhật nhân viên";
       setErrors({ submit: errorMsg });
     } finally {
       setLoading(false);
@@ -372,7 +380,7 @@ function StaffEditModal({ staffId, onClose }) {
   };
 
   return (
-      <Drawer
+    <Drawer
       anchor="right"
       open={open}
       onClose={() => {
@@ -435,9 +443,13 @@ function StaffEditModal({ staffId, onClose }) {
                   placeholder="Tên nhân viên"
                   value={form.HoTenNV}
                   onChange={(e) => handleChange("HoTenNV", e.target.value)}
-                  className={`border rounded px-3 py-2 w-full text-sm ${errors.HoTenNV ? "border-red-500" : ""}`}
+                  className={`border rounded px-3 py-2 w-full text-sm ${
+                    errors.HoTenNV ? "border-red-500" : ""
+                  }`}
                 />
-                {errors.HoTenNV && <span className="text-red-500 text-xs">{errors.HoTenNV}</span>}
+                {errors.HoTenNV && (
+                  <span className="text-red-500 text-xs">{errors.HoTenNV}</span>
+                )}
               </div>
 
               <div>
@@ -447,9 +459,13 @@ function StaffEditModal({ staffId, onClose }) {
                   placeholder="Email"
                   value={form.Email}
                   onChange={(e) => handleChange("Email", e.target.value)}
-                  className={`border rounded px-3 py-2 w-full text-sm ${errors.Email ? "border-red-500" : ""}`}
+                  className={`border rounded px-3 py-2 w-full text-sm ${
+                    errors.Email ? "border-red-500" : ""
+                  }`}
                 />
-                {errors.Email && <span className="text-red-500 text-xs">{errors.Email}</span>}
+                {errors.Email && (
+                  <span className="text-red-500 text-xs">{errors.Email}</span>
+                )}
               </div>
 
               <div>
@@ -519,7 +535,9 @@ function StaffEditModal({ staffId, onClose }) {
                 <label className="text-sm font-medium">Trạng thái</label>
                 <select
                   value={form.Status}
-                  onChange={(e) => handleChange("Status", parseInt(e.target.value))}
+                  onChange={(e) =>
+                    handleChange("Status", parseInt(e.target.value))
+                  }
                   className="border rounded px-3 py-2 w-full text-sm"
                 >
                   <option value="1">Hoạt động</option>

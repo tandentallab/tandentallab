@@ -9,6 +9,7 @@ import { EditIcon, TrashIcon } from "lucide-react";
 import { exportHoaDonToExcel } from "../../utils/exportToExcel";
 import { deepPurple } from "@mui/material/colors";
 import DonHangChuaXuatModal from "../DonHangChuaXuat/DonHangChuaXuatModal";
+import AddIcon from "@mui/icons-material/Add";
 
 const HoaDonDetail = () => {
   const navigate = useNavigate();
@@ -442,7 +443,11 @@ const HoaDonDetail = () => {
                 ))}
                 <tr>
                   <td colSpan={8}>
-                    <Button onClick={() => setIsModalOpen(true)}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<AddIcon></AddIcon>}
+                      onClick={() => setIsModalOpen(true)}
+                    >
                       Thêm đơn hàng chưa xuất hóa đơn
                     </Button>
                     <DonHangChuaXuatModal

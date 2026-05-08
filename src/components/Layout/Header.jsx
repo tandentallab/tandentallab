@@ -40,10 +40,7 @@ const Header = ({ onToggleSidebar }) => {
         <Box className="flex items-center gap-3">
           {isAuthenticated ? (
             <>
-              {/* <Button variant="contained" startIcon={<SearchIcon />}>
-                Tìm đơn hàng
-              </Button>
-              <QuickAddMenu></QuickAddMenu> */}
+              <QuickAddMenu></QuickAddMenu>
               <IconButton color="inherit">
                 <NotificationsIcon />
               </IconButton>

@@ -52,7 +52,6 @@ const StaffProfile = () => {
           {/* AVATAR */}
           <div className="absolute -bottom-14">
             <Avatar
-              src={avatar}
               sx={{ width: 120, height: 120 }}
               className="border-4 border-white shadow-lg"
             />

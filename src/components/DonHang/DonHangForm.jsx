@@ -7,6 +7,8 @@ import DanhSachPhuKien from "./DanhSachPhuKien";
 import ChonViTriRangModal from "./ChonViTriRangModal";
 import SanPhamModal from "../SanPham/SanPhamModal";
 import ChonDonHangCuModal from "./ChonDonHangCuModal";
+import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
+import PhieuBaoHanhList from "./PhieuBaoHanhList";
 import toast from "react-hot-toast";
 
 const SearchInput = ({
@@ -144,6 +146,10 @@ const DonHangForm = () => {
     loaiDon: "",
   });
 
+  // State cho Modal Phiếu Bảo Hành
+  const [isPhieuBaoHanhModalOpen, setIsPhieuBaoHanhModalOpen] = useState(false);
+  const [phieuBaoHanhList, setPhieuBaoHanhList] = useState([]);
+
   const [formData, setFormData] = useState({
     nhaKhoa: "",
     bacSi: "",
@@ -256,6 +262,20 @@ const DonHangForm = () => {
           });
         })
         .catch(() => toast.error("Không thể tải thông tin đơn hàng"));
+    }
+  }, [id, isEditMode]);
+
+  // Fetch phiếu bảo hành
+  useEffect(() => {
+    if (isEditMode) {
+      api
+        .get(`/phieu-bao-hanh/don-hang/${id}`)
+        .then((res) => {
+          setPhieuBaoHanhList(res.data?.data || res.data || []);
+        })
+        .catch((err) => {
+          console.error("Lỗi fetch phiếu bảo hành:", err);
+        });
     }
   }, [id, isEditMode]);
 
@@ -642,6 +662,20 @@ const DonHangForm = () => {
           formData={formData}
           setFormData={setFormData}
           handleInputChange={handleInputChange}
+          phieuBaoHanhList={phieuBaoHanhList}
+          donHangId={id}
+          onRefreshPhieuBaoHanh={() => {
+            if (id) {
+              api
+                .get(`/phieu-bao-hanh/don-hang/${id}`)
+                .then((res) => {
+                  setPhieuBaoHanhList(res.data?.data || res.data || []);
+                })
+                .catch((err) => {
+                  console.error("Lỗi fetch phiếu bảo hành:", err);
+                });
+            }
+          }}
         />
       </div>
 
@@ -680,6 +714,20 @@ const DonHangForm = () => {
               className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-1.5 rounded text-sm"
             >
               In Phiếu giao hàng
+            </button>
+          )}
+          {isEditMode && (
+            <button
+              onClick={() => {
+                if (!formData._id) {
+                  toast.error("Vui lòng lưu đơn hàng trước khi thêm thẻ bảo hành");
+                  return;
+                }
+                setIsPhieuBaoHanhModalOpen(true);
+              }}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 rounded text-sm"
+            >
+              + Thêm thẻ bảo hành
             </button>
           )}
         </div>
@@ -722,12 +770,39 @@ const DonHangForm = () => {
         }
         loaiDon={modalDonHangCuInfo.loaiDon}
       />
+
+      <PhieuBaoHanhModal
+        open={isPhieuBaoHanhModalOpen}
+        onClose={() => setIsPhieuBaoHanhModalOpen(false)}
+        donHang={formData}
+        onSuccess={() => {
+          setIsPhieuBaoHanhModalOpen(false);
+          // Fetch lại danh sách phiếu bảo hành
+          if (id) {
+            api
+              .get(`/phieu-bao-hanh/don-hang/${id}`)
+              .then((res) => {
+                setPhieuBaoHanhList(res.data?.data || res.data || []);
+              })
+              .catch((err) => {
+                console.error("Lỗi fetch phiếu bảo hành:", err);
+              });
+          }
+        }}
+      />
     </div>
   );
 };
 
 /* ===== Right side panel ===== */
-const RightSidePanel = ({ formData, setFormData, handleInputChange }) => {
+const RightSidePanel = ({
+  formData,
+  setFormData,
+  handleInputChange,
+  phieuBaoHanhList = [],
+  donHangId,
+  onRefreshPhieuBaoHanh,
+}) => {
   const [activeTab, setActiveTab] = useState("ghichu");
 
   return (
@@ -737,17 +812,23 @@ const RightSidePanel = ({ formData, setFormData, handleInputChange }) => {
         {[
           { key: "sanxuat", label: "Sản xuất" },
           { key: "ghichu", label: "Ghi chú" },
+          { key: "baohanhc", label: "Bảo hành", badge: phieuBaoHanhList.length },
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-2.5 text-sm font-medium transition border-b-2 ${
+            className={`flex-1 py-2.5 text-sm font-medium transition border-b-2 relative ${
               activeTab === tab.key
                 ? "border-blue-500 text-blue-700 bg-blue-50"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
             {tab.label}
+            {tab.badge !== undefined && tab.badge > 0 && (
+              <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -809,6 +890,16 @@ const RightSidePanel = ({ formData, setFormData, handleInputChange }) => {
                 placeholder="Nhập ghi chú tài chính..."
               />
             </div>
+          </div>
+        )}
+
+        {activeTab === "baohanhc" && (
+          <div className="flex flex-col gap-2">
+            <PhieuBaoHanhList
+              phieuBaoHanhList={phieuBaoHanhList}
+              donHangId={donHangId}
+              onDelete={onRefreshPhieuBaoHanh}
+            />
           </div>
         )}
       </div>

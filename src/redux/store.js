@@ -12,6 +12,7 @@ import donHangReducer from "./slices/donHangSlice";
 import hoaDonReducer from "./slices/hoaDonSlice";
 import phieuBaoHanhReducer from "./slices/phieuBaoHanhSlice";
 import baoCaoReducer from "./slices/baoCaoSlice";
+import phieuThuReducer from "./slices/phieuThuSlice"
 
 export const store = configureStore({
   reducer: {
@@ -28,5 +29,6 @@ export const store = configureStore({
     hoaDon: hoaDonReducer,
     phieuBaoHanh: phieuBaoHanhReducer,
     baoCao: baoCaoReducer,
+    phieuThu: phieuThuReducer,
   },
 });

@@ -40,6 +40,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Link, useNavigate } from "react-router-dom";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import ThongKeCongNo from "./ThongKeCongNo";
 
 const modalStyle = {
   position: "absolute",
@@ -164,7 +165,7 @@ const HoaDonTable = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Quản lý Hóa Đơn</h2>
-
+      <ThongKeCongNo></ThongKeCongNo>
       {/* BỘ LỌC (FILTERS) */}
       <Paper className="p-4 mb-6 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between">
@@ -302,6 +303,11 @@ const HoaDonTable = () => {
       <TableContainer component={Paper} className="shadow-lg overflow-hidden">
         <Table>
           <TableHead>
+            <TableRow>
+              <TableCell colSpan={10}>
+                {/* <ThongKeCongNo></ThongKeCongNo> */}
+              </TableCell>
+            </TableRow>
             <TableRow className="bg-gray-100">
               <TableCell className="font-bold">Số Hóa Đơn</TableCell>
               <TableCell className="font-bold">Nha Khoa</TableCell>

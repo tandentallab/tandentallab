@@ -108,6 +108,25 @@ export const deleteHoaDon = createAsyncThunk(
   }
 );
 
+// 🔥 Thống kê công nợ hóa đơn
+export const fetchThongKeCongNoHoaDon =
+  createAsyncThunk(
+    "hoaDon/fetchThongKeCongNo",
+
+    async (nhaKhoaId) => {
+      const res = await api.get(
+        `/hoa-don/thong-ke-cong-no`,
+        {
+          params: {
+            nhaKhoaId,
+          },
+        }
+      );
+
+      return res.data;
+    }
+  );
+
 /* ================= SLICE ================= */
 
 const slice = createSlice({
@@ -120,6 +139,23 @@ const slice = createSlice({
 
     // 🔥 CHI TIẾT HÓA ĐƠN
     chiTietHoaDon: null,
+
+    thongKeCongNo: {
+      conNo: {
+        soHoaDon: 0,
+        tongTien: 0,
+      },
+
+      treHan: {
+        soHoaDon: 0,
+        tongTien: 0,
+      },
+
+      chuaDenHan: {
+        soHoaDon: 0,
+        tongTien: 0,
+      },
+    },
 
     pagination: {},
 
@@ -302,7 +338,36 @@ const slice = createSlice({
               "Xóa thất bại"
           );
         }
-      );
+      )
+
+      /* ================= THỐNG KÊ CÔNG NỢ ================= */
+
+      .addCase(
+        fetchThongKeCongNoHoaDon.pending,
+        (state) => {
+          state.loading = true;
+        }
+      )
+
+      .addCase(
+        fetchThongKeCongNoHoaDon.fulfilled,
+        (state, action) => {
+          state.loading = false;
+
+          state.thongKeCongNo =
+            action.payload.data;
+        }
+      )
+
+      .addCase(
+        fetchThongKeCongNoHoaDon.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.error.message;
+        }
+      )
   },
 });
 

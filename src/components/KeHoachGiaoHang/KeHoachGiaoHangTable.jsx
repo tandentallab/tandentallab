@@ -10,6 +10,7 @@ import {
   endOfDay,
   parseISO,
 } from "date-fns";
+import ThongKeKeHoachGiaoHang from "./ThongKeKeHoachGiaoHang";
 
 const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
@@ -89,22 +90,11 @@ const KeHoachGiaoHangTable = () => {
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* ================= HEADER STATS ================= */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div className="bg-blue-600 text-white p-4 rounded-lg">
-            <div className="text-2xl font-bold">{countToday}</div>
-            <div>Giao hôm nay</div>
-          </div>
-
-          <div className="bg-red-600 text-white p-4 rounded-lg">
-            <div className="text-2xl font-bold">{countOverdue}</div>
-            <div>Trễ</div>
-          </div>
-
-          <div className="bg-green-600 text-white p-4 rounded-lg">
-            <div className="text-2xl font-bold">{countDone}</div>
-            <div>Hoàn thành</div>
-          </div>
-        </div>
+        <ThongKeKeHoachGiaoHang
+          countToday={countToday}
+          countOverdue={countOverdue}
+          countDone={countDone}
+        ></ThongKeKeHoachGiaoHang>
 
         {/* ================= FILTER ================= */}
         <div className="flex flex-wrap gap-3 mb-4 items-center">

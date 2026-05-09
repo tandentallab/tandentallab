@@ -220,3 +220,111 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
   const fileName = `Hoá đơn ${clinicNameSafe}.xlsx`;
   saveAs(new Blob([buffer]), fileName);
 };
+
+export const exportPhieuThuToExcel = async (
+  phieuThuList = [],
+  { fromDate = "", toDate = "", nhaKhoaName = "Tất cả" } = {}
+) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Phiếu thu");
+
+  worksheet.columns = [
+    { width: 18 },
+    { width: 30 },
+    { width: 17 },
+    { width: 18 },
+    { width: 18 },
+    { width: 14 },
+    { width: 20 },
+    { width: 28 },
+    { width: 20 },
+  ];
+
+  worksheet.mergeCells("A1:C1");
+  worksheet.mergeCells("A2:F2");
+  worksheet.mergeCells("A3:D3");
+  worksheet.mergeCells("A4:D4");
+
+  worksheet.getCell("A1").value = "CÔNG TY TNHH TẤN DENTAL";
+  worksheet.getCell("A1").font = { bold: true, size: 14 };
+
+  worksheet.getCell("A2").value =
+    "Địa chỉ: Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ";
+  worksheet.getCell("A3").value = "Điện thoại: 0842 312 828";
+  worksheet.getCell("A4").value = "Email: tandentallab@gmail.com";
+
+  ["A1", "A2", "A3", "A4"].forEach((ref) => {
+    worksheet.getCell(ref).alignment = {
+      horizontal: "left",
+      vertical: "middle",
+      wrapText: true,
+    };
+  });
+
+  worksheet.getCell("A5").value = `Từ ngày: ${fromDate || ""}   Đến ngày: ${toDate || ""}`;
+  worksheet.getCell("A5").font = { bold: true, size: 11 };
+  worksheet.getCell("A6").value = `Nha khoa: ${nhaKhoaName || "Tất cả"}`;
+  worksheet.getCell("A6").font = { bold: true, size: 11 };
+
+  const headers = [
+    "Số",
+    "Khách hàng",
+    "Ngày thu",
+    "Số tiền thu",
+    "Được khấu trừ",
+    "Còn thừa",
+    "Nội dung thu",
+    "Phương thức thanh toán",
+    "Người tạo",
+  ];
+
+  const headerRowIndex = 8;
+  worksheet.getRow(headerRowIndex).values = headers;
+  worksheet.getRow(headerRowIndex).font = { bold: true, size: 12 };
+  worksheet.getRow(headerRowIndex).alignment = {
+    horizontal: "left",
+    vertical: "middle",
+  };
+
+  headers.forEach((_, i) => {
+    const cell = worksheet.getCell(headerRowIndex, i + 1);
+    applyBorder(cell, "thin");
+  });
+
+  phieuThuList.forEach((pt, idx) => {
+    const rowIndex = headerRowIndex + 1 + idx;
+    const soPhieu = pt.soPhieuThu || (pt._id ? `TAN${pt._id.toString().slice(-8).toUpperCase()}` : "");
+    const tenKhach = pt.nhaKhoaInfo?.hoVaTen || pt.nhaKhoaInfo?.tenGiaoDich || "";
+    const ngayThu = pt.ngayThu
+      ? new Date(pt.ngayThu).toLocaleDateString("vi-VN")
+      : "";
+
+    worksheet.getRow(rowIndex).values = [
+      soPhieu,
+      tenKhach,
+      ngayThu,
+      pt.soTienThu || 0,
+      pt.duocKhauTru || 0,
+      pt.conThua || 0,
+      pt.noiDung || "",
+      pt.phuongThucThanhToan || "",
+      pt.nguoiTaoInfo?.HoTenNV || pt.nguoiTaoInfo?.hoVaTen || "",
+    ];
+
+    [4, 5, 6].forEach((col) => {
+      worksheet.getCell(rowIndex, col).numFmt = "#,##0";
+      worksheet.getCell(rowIndex, col).alignment = {
+        horizontal: "right",
+        vertical: "middle",
+      };
+    });
+
+    for (let col = 1; col <= headers.length; col += 1) {
+      applyBorder(worksheet.getCell(rowIndex, col), "thin");
+    }
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const fileName = `Danh sach phieu thu ${fromDate || ""}-${toDate || ""}.xlsx`;
+  saveAs(new Blob([buffer]), fileName);
+};

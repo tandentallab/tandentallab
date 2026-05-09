@@ -12,6 +12,9 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import StoreIcon from "@mui/icons-material/Store";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import DownloadIcon from "@mui/icons-material/Download";
+import { api } from "../../config/api";
+import { exportPhieuThuToExcel } from "../../utils/exportToExcel";
 
 const formatCurrency = (value) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value || 0);
@@ -91,6 +94,11 @@ export default function PhieuThuPage() {
     const [openCustomerSection, setOpenCustomerSection] = useState(false);
     const [customerSearch, setCustomerSearch] = useState("");
     const filterRef = useRef(null);
+    const [openExport, setOpenExport] = useState(false);
+    const [exportFrom, setExportFrom] = useState("");
+    const [exportTo, setExportTo] = useState("");
+    const [exportNhaKhoa, setExportNhaKhoa] = useState("");
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => { dispatch(fetchNhaKhoa()); }, [dispatch]);
 
@@ -165,6 +173,45 @@ export default function PhieuThuPage() {
     const handlePanelUpdated = (updated) => {
         if (updated) setSelectedPhieuThu((prev) => prev ? { ...prev, ...updated } : prev);
         loadData();
+    };
+
+    const handleExportExcel = async () => {
+        if (!exportFrom || !exportTo) {
+            alert("Vui lòng chọn khoảng thời gian xuất phiếu thu.");
+            return;
+        }
+
+        try {
+            setExporting(true);
+            const dateFrom = new Date(exportFrom).toISOString();
+            const dateTo = new Date(`${exportTo}T23:59:59`).toISOString();
+
+            const res = await api.get("/phieu-thu", {
+                params: {
+                    page: 1,
+                    limit: 5000,
+                    search: "",
+                    nhaKhoaId: exportNhaKhoa || "",
+                    dateFrom,
+                    dateTo,
+                },
+            });
+
+            const data = res.data?.data || [];
+            const selectedNk = nhaKhoaList.find((nk) => nk._id === exportNhaKhoa);
+
+            await exportPhieuThuToExcel(data, {
+                fromDate: new Date(exportFrom).toLocaleDateString("vi-VN"),
+                toDate: new Date(exportTo).toLocaleDateString("vi-VN"),
+                nhaKhoaName: selectedNk?.hoVaTen || selectedNk?.tenGiaoDich || "Tất cả",
+            });
+
+            setOpenExport(false);
+        } catch (err) {
+            alert(`Xuất Excel thất bại: ${err?.response?.data?.message || err.message}`);
+        } finally {
+            setExporting(false);
+        }
     };
 
     const filteredCustomers = nhaKhoaList.filter((nk) => {
@@ -341,6 +388,14 @@ export default function PhieuThuPage() {
                         <button onClick={handleRefresh} title="Tải lại" className="text-gray-600 hover:bg-gray-100 p-1.5 rounded">
                             <RefreshIcon sx={{ fontSize: 20 }} />
                         </button>
+                        <button
+                            onClick={() => setOpenExport(true)}
+                            title="Xuất excel phiếu thu"
+                            className="px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1"
+                        >
+                            <DownloadIcon sx={{ fontSize: 17 }} />
+                            Xuất excel
+                        </button>
                     </div>
                 </div>
 
@@ -440,6 +495,69 @@ export default function PhieuThuPage() {
                 onClose={() => setSelectedPhieuThu(null)}
                 onUpdated={handlePanelUpdated}
             />
+
+            {openExport && (
+                <div className="fixed inset-0 z-[1400] flex items-start justify-center pt-12">
+                    <div className="fixed inset-0 bg-black/40" onClick={() => setOpenExport(false)} />
+                    <div className="relative w-full max-w-3xl bg-gray-50 rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+                        <div className="bg-[#1ea4e8] px-6 py-4 flex items-center justify-between">
+                            <h3 className="text-white text-base font-semibold">Xuất excel</h3>
+                            <button className="text-white" onClick={() => setOpenExport(false)}>
+                                <CloseIcon sx={{ fontSize: 28 }} />
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            <div className="grid grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <p className="text-sm text-gray-500 mb-1">Khoảng thời gian</p>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="date"
+                                            value={exportFrom}
+                                            onChange={(e) => setExportFrom(e.target.value)}
+                                            className="w-full border-b border-gray-300 bg-transparent py-2 outline-none"
+                                        />
+                                        <span className="text-gray-500">-</span>
+                                        <input
+                                            type="date"
+                                            value={exportTo}
+                                            onChange={(e) => setExportTo(e.target.value)}
+                                            className="w-full border-b border-gray-300 bg-transparent py-2 outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <p className="text-sm text-gray-500 mb-1">Nha khoa</p>
+                                    <select
+                                        value={exportNhaKhoa}
+                                        onChange={(e) => setExportNhaKhoa(e.target.value)}
+                                        className="w-full border-b border-gray-300 bg-transparent py-2 outline-none"
+                                    >
+                                        <option value="">Tất cả nha khoa</option>
+                                        {nhaKhoaList.map((nk) => (
+                                            <option key={nk._id} value={nk._id}>
+                                                {nk.hoVaTen || nk.tenGiaoDich}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-gray-200 pt-4 flex justify-end">
+                                <button
+                                    onClick={handleExportExcel}
+                                    disabled={exporting}
+                                    className="px-6 py-2.5 bg-[#1ea4e8] hover:bg-[#039be5] text-white rounded-full font-semibold shadow disabled:opacity-60"
+                                >
+                                    {exporting ? "Đang xuất..." : "Tải xuống"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

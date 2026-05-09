@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem } from "@mui/material";
 import { api } from "../../config/api";
 
-const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
+const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess, productIndex = null }) => {
   const [formData, setFormData] = useState({
     selectedProducts: [],
     mauTheTi: "Mẫu in UNC",
@@ -22,15 +22,17 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
         try {
           const res = await api.get(`/donhang/${donHang._id}`);
           setFullDonHang(res.data.data);
-          
+
           // Auto-set selectedProducts: nếu 1 sản phẩm thì chọn ngay, nếu nhiều để admin chọn
           const spList = res.data.data?.danhSachSanPham || [];
-          if (spList.length === 1) {
+          if (productIndex !== null && spList[productIndex]) {
+            setFormData((prev) => ({ ...prev, selectedProducts: [productIndex] }));
+          } else if (spList.length === 1) {
             setFormData((prev) => ({ ...prev, selectedProducts: [0] }));
           } else {
             setFormData((prev) => ({ ...prev, selectedProducts: [] }));
           }
-          
+
           // Auto-set bảo hành đến = 1 năm
           const start = new Date(res.data.data.ngayNhan);
           const end = new Date(start.getFullYear() + 1, start.getMonth(), start.getDate());
@@ -45,7 +47,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
       };
       fetchFullDonHang();
     }
-  }, [open, donHang?._id]);
+  }, [open, donHang?._id, productIndex]);
 
   // Guard: Không render nếu donHang không có _id hoặc modal chưa mở
   if (!open || !donHang?._id) {
@@ -104,9 +106,13 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
       const baoHanhDenDate = new Date(formData.baoHanhDen);
       const createdPhieus = [];
 
+      const targetProducts =
+        productIndex !== null ? [productIndex] : formData.selectedProducts;
+
       // Tạo phiếu bảo hành cho mỗi sản phẩm được chọn
-      for (const spIndex of formData.selectedProducts) {
+      for (const spIndex of targetProducts) {
         const selectedSP = fullDonHang.danhSachSanPham[spIndex];
+        if (!selectedSP) continue;
 
         // Tính vị trí răng từ viTri object
         const viTriRang = selectedSP.viTri
@@ -140,9 +146,12 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
       }
 
       if (createdPhieus.length > 0) {
-        alert(`Tạo phiếu bảo hành thành công cho: ${createdPhieus.join(", ")}`);
+        alert(`Thêm phiếu bảo hành thành công cho: ${createdPhieus.join(", ")}`);
         setFormData({
-          selectedProducts: [],
+          selectedProducts:
+            productIndex !== null && fullDonHang?.danhSachSanPham?.[productIndex]
+              ? [productIndex]
+              : [],
           mauTheTi: "Mẫu in UNC",
           baoHanhDen: "",
           namBaoHanh: 1,
@@ -153,7 +162,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
       }
     } catch (err) {
       console.error("Lỗi tạo phiếu:", err);
-      alert("Lỗi khi tạo phiếu bảo hành: " + err.message);
+      alert("Lỗi khi thêm phiếu bảo hành: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -166,7 +175,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle className="bg-blue-600 text-white font-bold">
-        Tạo thẻ bảo hành
+        Thêm phiếu bảo hành
       </DialogTitle>
 
       <DialogContent className="pt-6 flex flex-col gap-4 px-8">
@@ -185,36 +194,72 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
         {/* Mã QR */}
         <TextField label="Mã QR" placeholder="(Để trống)" fullWidth size="small" />
 
-        {/* Sản phẩm - Checkbox list (auto-load từ đơn hàng) */}
-        <div>
-          <label className="text-xs text-gray-600 font-bold block mb-2">Chọn sản phẩm *</label>
-          <div className="border rounded p-3 space-y-2">
-            {fullDonHang?.danhSachSanPham?.length === 1 ? (
-              // Nếu chỉ có 1 sản phẩm, hiển thị thông tin + auto-check
-              <div className="bg-blue-50 p-2 rounded">
-                <div className="font-medium text-sm">
-                  ✓ {fullDonHang.danhSachSanPham[0].sanPham?.tenSanPham || "---"}
+        {productIndex === null && (
+          <div>
+            <label className="text-xs text-gray-600 font-bold block mb-2">Chọn sản phẩm *</label>
+            <div className="border rounded p-3 space-y-2">
+              {fullDonHang?.danhSachSanPham?.length === 1 ? (
+                <div className="bg-blue-50 p-2 rounded">
+                  <div className="font-medium text-sm">
+                    ✓ {fullDonHang.danhSachSanPham[0].sanPham?.tenSanPham || "---"}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              // Nếu nhiều sản phẩm, hiển thị checkbox list
-              fullDonHang?.danhSachSanPham?.map((sp, idx) => (
-                <label key={idx} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.selectedProducts.includes(idx)}
-                    onChange={() => handleProductSelect(idx)}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm">{sp.sanPham?.tenSanPham || "---"}</span>
-                </label>
-              ))
-            )}
+              ) : (
+                fullDonHang?.danhSachSanPham?.map((sp, idx) => (
+                  <label key={idx} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.selectedProducts.includes(idx)}
+                      onChange={() => handleProductSelect(idx)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">{sp.sanPham?.tenSanPham || "---"}</span>
+                  </label>
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {productIndex !== null && fullDonHang?.danhSachSanPham?.[productIndex] && (
+          <div className="space-y-3 bg-blue-50 p-3 rounded border border-blue-200">
+            <TextField
+              label="Sản phẩm"
+              disabled
+              value={fullDonHang.danhSachSanPham[productIndex].sanPham?.tenSanPham || "---"}
+              fullWidth
+              size="small"
+            />
+            <TextField
+              label="Vị trí răng"
+              disabled
+              value={
+                fullDonHang.danhSachSanPham[productIndex].viTri
+                  ?.map((v) => `${v.kieu}: ${v.soRang.join(", ")}`)
+                  .join("; ") || "---"
+              }
+              fullWidth
+              size="small"
+            />
+            <TextField
+              label="Số lượng"
+              disabled
+              value={fullDonHang.danhSachSanPham[productIndex].soLuong || 1}
+              fullWidth
+              size="small"
+            />
+            <TextField
+              label="Màu"
+              disabled
+              value={fullDonHang.danhSachSanPham[productIndex].mau || "---"}
+              fullWidth
+              size="small"
+            />
+          </div>
+        )}
 
         {/* Hiển thị thông tin chi tiết của sản phẩm được chọn */}
-        {formData.selectedProducts.length > 0 && (
+        {productIndex === null && formData.selectedProducts.length > 0 && (
           <div className="space-y-3 bg-blue-50 p-3 rounded border border-blue-200">
             {formData.selectedProducts.map((spIndex) => {
               const sp = fullDonHang.danhSachSanPham[spIndex];

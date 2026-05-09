@@ -4,6 +4,7 @@ import { updatePhieuThu } from "../../redux/slices/phieuThuSlice";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import PrintIcon from "@mui/icons-material/Print";
+import { useNavigate } from "react-router-dom";
 
 const toLocalDatetimeInput = (d) => {
     if (!d) return "";
@@ -28,6 +29,7 @@ const getInitials = (name) => {
 
 export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }) {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { loading } = useSelector((s) => s.phieuThu);
 
     const [ngayThu, setNgayThu] = useState("");
@@ -185,7 +187,12 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                 <div className="px-6 py-3 border-t bg-white rounded-b-2xl flex items-center justify-between shrink-0">
                     <div />
                     <div className="flex items-center gap-3">
-                        <button onClick={alert.bind(null, "Tính năng in phiếu thu đang được phát triển")}
+                        <button
+                            onClick={() => {
+                                if (phieuThu?._id) {
+                                    navigate(`/phieu-thu/${phieuThu._id}/print`);
+                                }
+                            }}
                             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">
                             <PrintIcon sx={{ fontSize: 16 }} />
                             In phiếu thu (F2)

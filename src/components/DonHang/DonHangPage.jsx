@@ -4,6 +4,20 @@ import { useNavigate } from "react-router-dom";
 import { fetchDonHang } from "../../redux/slices/donHangSlice";
 import DonHangTable from "./DonHangTable";
 import DonHangDetailPanel from "./DonHangDetailPanel";
+import {
+  Modal,
+  Box,
+  Typography,
+  Divider,
+  Grid,
+  TextField,
+  FormControl,
+  Select,
+  MenuItem,
+  Chip,
+  Stack,
+  Button,
+} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -14,6 +28,8 @@ import PersonIcon from "@mui/icons-material/Person";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
+import DownloadIcon from "@mui/icons-material/Download";
+import { exportDonHangListToExcel } from "../../utils/exportToExcel";
 
 const DATE_PRESETS = [
   { key: "custom", label: "Chọn trên Lịch", isCalendar: true },
@@ -33,6 +49,25 @@ const DATE_PRESETS = [
 const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Đang sản xuất", "Hoàn thành", "Đã giao"];
 
 const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
+const EXPORT_STATUS_OPTIONS = [
+  { value: "Chờ xử lý", label: "Chờ sản xuất" },
+  { value: "Đang sản xuất", label: "Đang sản xuất" },
+];
+
+const exportModalStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: { xs: "96%", md: 900 },
+  maxWidth: 980,
+  maxHeight: "92vh",
+  overflow: "auto",
+  bgcolor: "background.paper",
+  boxShadow: 24,
+  p: 3,
+  borderRadius: 2,
+};
 
 const getDateRange = (preset) => {
   const now = new Date();
@@ -102,6 +137,19 @@ const DonHangPage = () => {
   const [nhaKhoaSearch, setNhaKhoaSearch] = useState("");
   const [benhNhanSearch, setBenhNhanSearch] = useState("");
   const filterRef = useRef(null);
+
+  // Export state
+  const [openExport, setOpenExport] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportNgayNhanFrom, setExportNgayNhanFrom] = useState("");
+  const [exportNgayNhanTo, setExportNgayNhanTo] = useState("");
+  const [exportYeuCauGiaoFrom, setExportYeuCauGiaoFrom] = useState("");
+  const [exportYeuCauGiaoTo, setExportYeuCauGiaoTo] = useState("");
+  const [exportDaHoanThanhFrom, setExportDaHoanThanhFrom] = useState("");
+  const [exportDaHoanThanhTo, setExportDaHoanThanhTo] = useState("");
+  const [exportTrangThai, setExportTrangThai] = useState([]);
+  const [exportNhaKhoa, setExportNhaKhoa] = useState("");
+  const [exportBenhNhan, setExportBenhNhan] = useState("");
 
   useEffect(() => { dispatch(fetchDonHang()); }, [dispatch]);
 
@@ -183,6 +231,95 @@ const DonHangPage = () => {
 
   const toggleDraftTrangThai = (status) => {
     setDraftTrangThai((prev) => prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]);
+  };
+
+  const isDateInRangeForExport = (dateValue, from, to) => {
+    if (!dateValue) return false;
+    const date = new Date(dateValue);
+    const fromDate = from ? new Date(from) : null;
+    const toDate = to ? new Date(`${to}T23:59:59`) : null;
+
+    if (fromDate && date < fromDate) return false;
+    if (toDate && date > toDate) return false;
+    return true;
+  };
+
+  const handleCloseExport = () => {
+    setOpenExport(false);
+    setExportNgayNhanFrom("");
+    setExportNgayNhanTo("");
+    setExportYeuCauGiaoFrom("");
+    setExportYeuCauGiaoTo("");
+    setExportDaHoanThanhFrom("");
+    setExportDaHoanThanhTo("");
+    setExportTrangThai([]);
+    setExportNhaKhoa("");
+    setExportBenhNhan("");
+  };
+
+  const handleExportExcel = async () => {
+    if (!exportNgayNhanFrom || !exportNgayNhanTo) {
+      alert("Vui lòng nhập đầy đủ Ngày nhận đơn (Từ - Đến).");
+      return;
+    }
+    if (!exportYeuCauGiaoFrom || !exportYeuCauGiaoTo) {
+      alert("Vui lòng nhập đầy đủ Ngày yêu cầu giao (Từ - Đến).");
+      return;
+    }
+
+    try {
+      setExporting(true);
+
+      const data = donHangs.filter((dh) => {
+        if (!isDateInRangeForExport(dh.ngayNhan, exportNgayNhanFrom, exportNgayNhanTo)) {
+          return false;
+        }
+
+        if (!isDateInRangeForExport(dh.yeuCauHoanThanh, exportYeuCauGiaoFrom, exportYeuCauGiaoTo)) {
+          return false;
+        }
+
+        if (exportDaHoanThanhFrom || exportDaHoanThanhTo) {
+          const completedStatus = dh.trangThai === "Hoàn thành" || dh.trangThai === "Đã giao";
+          if (!completedStatus) return false;
+          if (!isDateInRangeForExport(dh.updatedAt, exportDaHoanThanhFrom, exportDaHoanThanhTo)) {
+            return false;
+          }
+        }
+
+        if (exportTrangThai.length > 0 && !exportTrangThai.includes(dh.trangThai)) {
+          return false;
+        }
+
+        if (exportNhaKhoa && dh.nhaKhoa?._id !== exportNhaKhoa) {
+          return false;
+        }
+
+        if (exportBenhNhan && dh.benhNhan?._id !== exportBenhNhan) {
+          return false;
+        }
+
+        return true;
+      });
+
+      const selectedNhaKhoa = nhaKhoaOptions.find((nk) => nk._id === exportNhaKhoa);
+      const selectedBenhNhan = benhNhanOptions.find((bn) => bn._id === exportBenhNhan);
+
+      await exportDonHangListToExcel(data, {
+        ngayNhanFrom: new Date(exportNgayNhanFrom).toLocaleDateString("vi-VN"),
+        ngayNhanTo: new Date(exportNgayNhanTo).toLocaleDateString("vi-VN"),
+        yeuCauGiaoFrom: new Date(exportYeuCauGiaoFrom).toLocaleDateString("vi-VN"),
+        yeuCauGiaoTo: new Date(exportYeuCauGiaoTo).toLocaleDateString("vi-VN"),
+        nhaKhoaName: selectedNhaKhoa?.name || "Tất cả",
+        benhNhanName: selectedBenhNhan?.name || "Tất cả",
+      });
+
+      handleCloseExport();
+    } catch (err) {
+      alert(`Xuất Excel thất bại: ${err?.message || "Lỗi không xác định"}`);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const filteredDonHangs = useMemo(() => {
@@ -411,6 +548,13 @@ const DonHangPage = () => {
             <button onClick={handleOpenAdd} className="bg-green-500 text-white rounded-full hover:bg-green-600 flex items-center justify-center w-8 h-8 shadow-sm">
               <AddIcon sx={{ fontSize: 20 }} />
             </button>
+            <button
+              onClick={() => setOpenExport(true)}
+              title="Xuất excel"
+              className="bg-blue-500 text-white rounded-full hover:bg-blue-600 flex items-center justify-center w-8 h-8 shadow-sm"
+            >
+              <DownloadIcon sx={{ fontSize: 18 }} />
+            </button>
             <button onClick={handleRefresh} title="Tải lại" className="text-gray-600 hover:bg-gray-100 p-1.5 rounded">
               <RefreshIcon sx={{ fontSize: 20 }} />
             </button>
@@ -480,6 +624,167 @@ const DonHangPage = () => {
       )}
 
       <DonHangDetailPanel donHang={selectedDonHang} onClose={() => setSelectedDonHangId(null)} />
+
+      <Modal open={openExport} onClose={handleCloseExport}>
+        <Box sx={{ ...exportModalStyle, maxWidth: 650 }}>
+          <Typography variant="h6" className="font-bold text-blue-700 mb-2 flex items-center gap-2">
+            <DownloadIcon sx={{ fontSize: 24 }} />
+            Xuất Excel Đơn Hàng
+          </Typography>
+          <Divider sx={{ mb: 3 }} />
+
+          <Stack spacing={4}>
+            {/* KHỐI 1: LỌC THEO THỜI GIAN */}
+            <Box>
+              <Typography variant="subtitle2" className="font-semibold text-gray-800 mb-4 border-b pb-1">
+                Lọc theo khoảng thời gian
+              </Typography>
+              <Stack spacing={3}>
+                
+                {/* Ngày nhận đơn */}
+                <Box>
+                  <Typography variant="body2" className="font-semibold text-gray-700 mb-2">
+                    1. Ngày nhận đơn
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6} sm={6}>
+                      <Typography variant="caption" className="text-gray-500 mb-1 block">Từ ngày</Typography>
+                      <TextField type="date" size="small" fullWidth value={exportNgayNhanFrom} onChange={(e) => setExportNgayNhanFrom(e.target.value)} />
+                    </Grid>
+                    <Grid item xs={6} sm={6}>
+                      <Typography variant="caption" className="text-gray-500 mb-1 block">Đến ngày</Typography>
+                      <TextField type="date" size="small" fullWidth value={exportNgayNhanTo} onChange={(e) => setExportNgayNhanTo(e.target.value)} />
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {/* Ngày yêu cầu giao */}
+                <Box>
+                  <Typography variant="body2" className="font-semibold text-gray-700 mb-2">
+                    2. Ngày yêu cầu giao
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6} sm={6}>
+                      <Typography variant="caption" className="text-gray-500 mb-1 block">Từ ngày</Typography>
+                      <TextField type="date" size="small" fullWidth value={exportYeuCauGiaoFrom} onChange={(e) => setExportYeuCauGiaoFrom(e.target.value)} />
+                    </Grid>
+                    <Grid item xs={6} sm={6}>
+                      <Typography variant="caption" className="text-gray-500 mb-1 block">Đến ngày</Typography>
+                      <TextField type="date" size="small" fullWidth value={exportYeuCauGiaoTo} onChange={(e) => setExportYeuCauGiaoTo(e.target.value)} />
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {/* Ngày đã hoàn thành */}
+                <Box>
+                  <Typography variant="body2" className="font-semibold text-gray-700 mb-2">
+                    3. Ngày hoàn thành
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6} sm={6}>
+                      <Typography variant="caption" className="text-gray-500 mb-1 block">Từ ngày</Typography>
+                      <TextField type="date" size="small" fullWidth value={exportDaHoanThanhFrom} onChange={(e) => setExportDaHoanThanhFrom(e.target.value)} />
+                    </Grid>
+                    <Grid item xs={6} sm={6}>
+                      <Typography variant="caption" className="text-gray-500 mb-1 block">Đến ngày</Typography>
+                      <TextField type="date" size="small" fullWidth value={exportDaHoanThanhTo} onChange={(e) => setExportDaHoanThanhTo(e.target.value)} />
+                    </Grid>
+                  </Grid>
+                </Box>
+
+              </Stack>
+            </Box>
+
+            {/* KHỐI 2: LỌC THEO THUỘC TÍNH */}
+            <Box>
+              <Typography variant="subtitle2" className="font-semibold text-gray-800 mb-3 border-b pb-1">
+                Lọc theo đối tượng / trạng thái
+              </Typography>
+              <Stack spacing={2.5}>
+                {/* Trạng thái */}
+                <Box>
+                  <Typography variant="caption" className="font-semibold text-gray-700 mb-1 block">Trạng thái (chọn nhiều)</Typography>
+                  <FormControl size="small" fullWidth>
+                    <Select
+                      multiple
+                      displayEmpty
+                      value={exportTrangThai}
+                      onChange={(e) => setExportTrangThai(e.target.value)}
+                      renderValue={(selected) => {
+                        if (!selected || selected.length === 0) return <span className="text-gray-500">-- Tất cả trạng thái --</span>;
+                        return (
+                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                            {selected.map((item) => {
+                              const label = EXPORT_STATUS_OPTIONS.find((s) => s.value === item)?.label || item;
+                              return <Chip key={item} size="small" label={label} color="primary" variant="outlined" />;
+                            })}
+                          </Box>
+                        );
+                      }}
+                    >
+                      {EXPORT_STATUS_OPTIONS.map((status) => (
+                        <MenuItem key={status.value} value={status.value}>
+                          {status.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                {/* Nha khoa */}
+                <Box>
+                  <Typography variant="caption" className="font-semibold text-gray-700 mb-1 block">Nha khoa</Typography>
+                  <FormControl size="small" fullWidth>
+                    <Select
+                      value={exportNhaKhoa}
+                      onChange={(e) => setExportNhaKhoa(e.target.value)}
+                      displayEmpty
+                    >
+                      <MenuItem value=""><span className="text-gray-500">-- Tất cả nha khoa --</span></MenuItem>
+                      {nhaKhoaOptions.map((nk) => (
+                        <MenuItem key={nk._id} value={nk._id}>{nk.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                {/* Bệnh nhân */}
+                <Box>
+                  <Typography variant="caption" className="font-semibold text-gray-700 mb-1 block">Bệnh nhân</Typography>
+                  <FormControl size="small" fullWidth>
+                    <Select
+                      value={exportBenhNhan}
+                      onChange={(e) => setExportBenhNhan(e.target.value)}
+                      displayEmpty
+                    >
+                      <MenuItem value=""><span className="text-gray-500">-- Tất cả bệnh nhân --</span></MenuItem>
+                      {benhNhanOptions.map((bn) => (
+                        <MenuItem key={bn._id} value={bn._id}>{bn.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Stack>
+            </Box>
+          </Stack>
+
+          {/* FOOTER: NÚT THAO TÁC */}
+          <Box className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+            <Button variant="outlined" color="inherit" onClick={handleCloseExport}>
+              Hủy
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleExportExcel}
+              disabled={exporting}
+              startIcon={<DownloadIcon />}
+            >
+              {exporting ? "Đang xuất..." : "Tải xuống"}
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </div>
   );
 };

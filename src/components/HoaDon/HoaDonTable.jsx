@@ -41,18 +41,43 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Link, useNavigate } from "react-router-dom";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import ThongKeCongNo from "./ThongKeCongNo";
+import DownloadIcon from "@mui/icons-material/Download";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import { exportHoaDonListToExcel } from "../../utils/exportToExcel";
+import { api } from "../../config/api";
+import SvgIcon from "@mui/material/SvgIcon";
 
 const modalStyle = {
   position: "absolute",
   top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
-  width: { xs: "90%", md: 650 },
+  width: { xs: "96%", md: "90%" },
+  maxWidth: 1000,
+  maxHeight: "90vh",
+  overflow: "auto",
   bgcolor: "background.paper",
   boxShadow: 24,
   p: 4,
   borderRadius: 2,
 };
+
+function ExcelIcon(props) {
+  return (
+    <SvgIcon {...props} viewBox="0 0 24 24">
+      <rect x="2" y="3" width="20" height="18" rx="2" ry="2" fill="#1b7a34" />
+      <path d="M6 7h12v2H6z" fill="#fff" />
+      <path
+        d="M7.2 15.5l1.6-2.3 1.6 2.3 1.6-2.3 1.6 2.3"
+        stroke="#fff"
+        strokeWidth="0.9"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </SvgIcon>
+  );
+}
 
 const HoaDonTable = () => {
   const dispatch = useDispatch();
@@ -159,6 +184,55 @@ const HoaDonTable = () => {
   const handleDeleteHoaDon = (id) => {
     if (window.confirm("Bạn có chắc muốn xóa hóa đơn?")) {
       dispatch(deleteHoaDon(String(id)));
+    }
+  };
+
+  // Export modal state
+  const [openExport, setOpenExport] = useState(false);
+  const [exportFrom, setExportFrom] = useState("");
+  const [exportTo, setExportTo] = useState("");
+  const [exportNhaKhoa, setExportNhaKhoa] = useState("");
+  const [exportTrangThai, setExportTrangThai] = useState([]);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!exportFrom || !exportTo) {
+      alert("Vui lòng chọn khoảng thời gian để xuất.");
+      return;
+    }
+    try {
+      setExporting(true);
+      const fromDate = new Date(exportFrom).toISOString();
+      const toDate = new Date(`${exportTo}T23:59:59`).toISOString();
+      const res = await api.get("/hoa-don/all", {
+        params: {
+          page: 1,
+          limit: 5000,
+          fromDate,
+          toDate,
+          nhaKhoaId: exportNhaKhoa || "",
+        },
+      });
+      let data = res.data?.data || [];
+      // Filter by status if selected
+      if (exportTrangThai.length > 0) {
+        data = data.filter((hd) => exportTrangThai.includes(hd.trangThai));
+      }
+      const selectedNk = (nhaKhoa?.data || []).find(
+        (nk) => nk._id === exportNhaKhoa
+      );
+      await exportHoaDonListToExcel(data, {
+        fromDate: new Date(exportFrom).toLocaleDateString("vi-VN"),
+        toDate: new Date(exportTo).toLocaleDateString("vi-VN"),
+        nhaKhoaName: selectedNk?.hoVaTen || selectedNk?.tenGiaoDich || "Tất cả",
+      });
+      setOpenExport(false);
+    } catch (err) {
+      alert(
+        `Xuất Excel thất bại: ${err?.response?.data?.message || err.message}`
+      );
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -288,6 +362,12 @@ const HoaDonTable = () => {
                   <IconButton onClick={() => dispatch(fetchAllHoaDonAdmin())}>
                     <RefreshIcon />
                   </IconButton>
+                  <IconButton
+                    onClick={() => setOpenExport(true)}
+                    title="Xuất excel"
+                  >
+                    <ExcelIcon sx={{ color: "#1b7a34" }} />
+                  </IconButton>
 
                   <IconButton>
                     <MoreVertIcon />
@@ -383,6 +463,18 @@ const HoaDonTable = () => {
                   </TableCell>{" "}
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
+                      <Tooltip title="In hóa đơn">
+                        <IconButton
+                          onClick={() => {
+                            navigate(`/hoa-don/${hd._id}/print`);
+                          }}
+                          sx={{
+                            color: "#1b7a34",
+                          }}
+                        >
+                          <ExcelIcon />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Chi tiết & Chăm sóc">
                         <IconButton
                           onClick={() => {
@@ -550,6 +642,162 @@ const HoaDonTable = () => {
               Lưu thay đổi
             </Button>
           </Stack>
+        </Box>
+      </Modal>
+
+      {/* MODAL XUẤT EXCEL */}
+      <Modal open={openExport} onClose={() => setOpenExport(false)}>
+        <Box sx={{ ...modalStyle, maxWidth: 500 }}>
+          <Typography
+            variant="h6"
+            component="h2"
+            className="font-bold mb-2 text-blue-700 flex items-center gap-2"
+          >
+            <ExcelIcon sx={{ fontSize: 24, color: "#1b7a34" }} />
+            Xuất Excel Hóa Đơn
+          </Typography>
+          <Divider sx={{ mb: 3 }} />
+
+          <Stack spacing={3}>
+            {/* Hàng 1: Khoảng thời gian */}
+            <Box>
+              <Typography
+                variant="subtitle2"
+                className="font-semibold mb-2 text-gray-800"
+              >
+                Khoảng thời gian
+              </Typography>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <Box className="w-full">
+                  <Typography
+                    variant="caption"
+                    className="text-gray-600 mb-1 block"
+                  >
+                    Từ ngày
+                  </Typography>
+                  <TextField
+                    type="date"
+                    fullWidth
+                    size="small"
+                    value={exportFrom}
+                    onChange={(e) => setExportFrom(e.target.value)}
+                  />
+                </Box>
+                <Box className="w-full">
+                  <Typography
+                    variant="caption"
+                    className="text-gray-600 mb-1 block"
+                  >
+                    Đến ngày
+                  </Typography>
+                  <TextField
+                    type="date"
+                    fullWidth
+                    size="small"
+                    value={exportTo}
+                    onChange={(e) => setExportTo(e.target.value)}
+                  />
+                </Box>
+              </Stack>
+            </Box>
+
+            {/* Hàng 2: Nha khoa */}
+            <Box>
+              <Typography
+                variant="subtitle2"
+                className="font-semibold mb-2 text-gray-800"
+              >
+                Nha khoa
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  displayEmpty
+                  value={exportNhaKhoa}
+                  onChange={(e) => setExportNhaKhoa(e.target.value)}
+                >
+                  <MenuItem value="">-- Tất cả nha khoa --</MenuItem>
+                  {Array?.isArray(nhaKhoa?.data) &&
+                    nhaKhoa?.data?.map((nk) => (
+                      <MenuItem key={nk._id} value={nk._id}>
+                        {nk.hoVaTen || nk.tenGiaoDich}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Hàng 3: Trạng thái */}
+            <Box>
+              <Typography
+                variant="subtitle2"
+                className="font-semibold mb-2 text-gray-800"
+              >
+                Trạng thái (chọn nhiều)
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  multiple
+                  displayEmpty
+                  value={exportTrangThai}
+                  onChange={(e) => setExportTrangThai(e.target.value)}
+                  renderValue={(selected) => {
+                    if (selected.length === 0) {
+                      return (
+                        <span className="text-gray-500">
+                          -- Tất cả trạng thái --
+                        </span>
+                      );
+                    }
+                    return (
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                        {selected.map((value) => (
+                          <Chip
+                            key={value}
+                            label={value}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                          />
+                        ))}
+                      </Box>
+                    );
+                  }}
+                >
+                  <MenuItem value="Chưa thanh toán">Chưa thanh toán</MenuItem>
+                  <MenuItem value="Thanh toán một phần">
+                    Thanh toán một phần
+                  </MenuItem>
+                  <MenuItem value="Đã thanh toán">Đã thanh toán</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Stack>
+
+          {/* Hàng 4: Buttons */}
+          <Box className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+            <Button
+              variant="outlined"
+              color="inherit"
+              onClick={() => {
+                setOpenExport(false);
+                setExportFrom("");
+                setExportTo("");
+                setExportNhaKhoa("");
+                setExportTrangThai([]);
+              }}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleExport}
+              disabled={exporting}
+              startIcon={<DownloadIcon />}
+            >
+              {exporting ? "Đang xuất..." : "Tải xuống"}
+            </Button>
+          </Box>
         </Box>
       </Modal>
     </div>

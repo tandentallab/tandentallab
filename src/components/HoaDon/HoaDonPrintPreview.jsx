@@ -78,6 +78,17 @@ const HoaDonPrintPreview = () => {
     return new Date(date).toLocaleDateString("vi-VN");
   };
 
+  const formatDiscount = (value, type) => {
+    if (value === null || value === undefined || value === "") return "";
+
+    if (type === "phanTram") {
+      const raw = String(value).replace("%", "").trim();
+      return raw ? `${raw}%` : "";
+    }
+
+    return formatCurrency(Number(value) || 0);
+  };
+
   const items = hoaDon.danhSachDonHang || [];
   const buildTeethText = (viTri = []) => {
     if (!Array.isArray(viTri)) return "";
@@ -104,9 +115,7 @@ const HoaDonPrintPreview = () => {
         rang: "",
         soLuong: "",
         donGia: wrap.tongTien || 0,
-        giamGia: wrap.chietKhau
-          ? `${wrap.chietKhau}${wrap.loaiChietKhau === "phanTram" ? "%" : "đ"}`
-          : "",
+        giamGia: formatDiscount(wrap.chietKhau, wrap.loaiChietKhau),
         thanhTien: wrap.thanhTienSauCK || 0,
       });
       return;
@@ -123,7 +132,7 @@ const HoaDonPrintPreview = () => {
         donGia: sp.sanPham?.donGiaChung || "",
         giamGia:
           spIndex === 0 && wrap.chietKhau
-            ? `${wrap.chietKhau}${wrap.loaiChietKhau === "phanTram" ? "%" : "đ"}`
+            ? formatDiscount(wrap.chietKhau, wrap.loaiChietKhau)
             : "",
         thanhTien: spIndex === 0 ? wrap.thanhTienSauCK || 0 : "",
       });
@@ -147,9 +156,7 @@ const HoaDonPrintPreview = () => {
         rang: "",
         soLuong: "",
         donGia: wrap.tongTien || 0,
-        giamGia: wrap.chietKhau
-          ? `${wrap.chietKhau}${wrap.loaiChietKhau === "phanTram" ? "%" : "đ"}`
-          : "",
+        giamGia: formatDiscount(wrap.chietKhau, wrap.loaiChietKhau),
         thanhTien: wrap.thanhTienSauCK || 0,
       });
       return;
@@ -166,7 +173,7 @@ const HoaDonPrintPreview = () => {
         donGia: sp.sanPham?.donGiaChung || 0,
         giamGia:
           spIndex === 0 && wrap.chietKhau
-            ? `${wrap.chietKhau}${wrap.loaiChietKhau === "phanTram" ? "%" : "đ"}`
+            ? formatDiscount(wrap.chietKhau, wrap.loaiChietKhau)
             : "",
         thanhTien: spIndex === 0 ? wrap.thanhTienSauCK || 0 : "",
       });
@@ -258,9 +265,11 @@ const HoaDonPrintPreview = () => {
                   </td>
                   <td className="border-r border-gray-800 p-2 text-right">
                     {row.giamGia}
-                    {row.thanhTien ? formatCurrency(row.thanhTien) : ""}
                   </td>
-                    {formatCurrency(row.thanhTien)}
+                  <td className="border-r border-gray-800 p-2 text-right">
+                    {row.thanhTien === "" ? "" : formatCurrency(row.thanhTien)}
+                  </td>
+                  <td className="p-2"></td>
                 </tr>
               ))}
             </tbody>

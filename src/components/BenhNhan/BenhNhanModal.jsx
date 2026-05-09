@@ -20,6 +20,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { createBenhNhan } from "../../redux/slices/benhNhanSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import AddIcon from "@mui/icons-material/Add";
+import vietnamProvinces from "../../utils/vietNamProvinces";
 
 export default function BenhNhanModal({ isQuickMenu }) {
   const dispatch = useDispatch();
@@ -155,28 +156,13 @@ export default function BenhNhanModal({ isQuickMenu }) {
             {/* 🔥 TỈNH */}
             <TextField
               select
-              label="Tỉnh"
+              label="Tỉnh / Thành phố"
               value={form.tinh}
-              onChange={handleProvince}
+              onChange={(e) => handleChange("tinh", e.target.value)}
             >
-              {vietnamAddress.map((p) => (
-                <MenuItem key={p.name} value={p.name}>
-                  {p.name}
-                </MenuItem>
-              ))}
-            </TextField>
-
-            {/* 🔥 QUẬN */}
-            <TextField
-              select
-              label="Quận"
-              value={form.quanHuyen}
-              disabled={!districts.length}
-              onChange={(e) => handleChange("quanHuyen", e.target.value)}
-            >
-              {districts.map((d) => (
-                <MenuItem key={d} value={d}>
-                  {d}
+              {vietnamProvinces.map((item) => (
+                <MenuItem key={item} value={item}>
+                  {item}
                 </MenuItem>
               ))}
             </TextField>

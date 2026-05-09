@@ -40,18 +40,17 @@ export default function NhaKhoaTable() {
 
   // ===== STATE =====
   const [search, setSearch] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedProvince, setSelectedProvince] = useState("");
   const [favorites, setFavorites] = useState([]);
 
   useEffect(() => {
     dispatch(fetchNhaKhoa());
   }, [dispatch]);
 
-  // ===== DANH SÁCH QUỐC GIA =====
-  const countries = useMemo(() => {
-    return [...new Set(data?.map((i) => i.quocGia).filter(Boolean))];
+  // ===== DANH SÁCH TỈNH THÀNH  =====
+  const provinces = useMemo(() => {
+    return [...new Set(data?.map((i) => i.tinh).filter(Boolean))];
   }, [data]);
-
   // ===== FILTER =====
   const filteredData = useMemo(() => {
     return data.filter((item) => {
@@ -63,13 +62,13 @@ export default function NhaKhoaTable() {
         item.soDienThoai?.includes(keyword) ||
         item.diaChiCuThe?.toLowerCase().includes(keyword);
 
-      const matchCountry = selectedCountry
-        ? item.quocGia === selectedCountry
+      const matchProvince = selectedProvince
+        ? item.tinh === selectedProvince
         : true;
 
-      return matchSearch && matchCountry;
+      return matchSearch && matchProvince;
     });
-  }, [data, search, selectedCountry]);
+  }, [data, search, selectedProvince]);
 
   // ===== FAVORITE =====
   const toggleFavorite = (id) => {
@@ -89,10 +88,10 @@ export default function NhaKhoaTable() {
         {/* LEFT */}
         <Box className="flex items-center gap-3">
           {/* CHIP */}
-          {selectedCountry && (
+          {selectedProvince && (
             <Chip
-              label={`Quốc gia: ${selectedCountry}`}
-              onDelete={() => setSelectedCountry("")}
+              label={`Tỉnh/Thành: ${selectedProvince}`}
+              onDelete={() => setSelectedProvince("")}
               className="bg-gray-200"
             />
           )}
@@ -100,17 +99,20 @@ export default function NhaKhoaTable() {
           {/* SELECT */}
           <TextField
             select
-            label="Quốc gia"
+            label="Tỉnh/Thành"
             size="small"
-            value={selectedCountry}
-            onChange={(e) => setSelectedCountry(e.target.value)}
+            value={selectedProvince}
+            onChange={(e) => setSelectedProvince(e.target.value)}
             className="w-52"
-            InputLabelProps={{ shrink: true }}
+            InputLabelProps={{
+              shrink: true,
+            }}
           >
             <MenuItem value="">Tất cả</MenuItem>
-            {countries.map((c, index) => (
-              <MenuItem key={index} value={c}>
-                {c}
+
+            {provinces.map((province, index) => (
+              <MenuItem key={index} value={province}>
+                {province}
               </MenuItem>
             ))}
           </TextField>

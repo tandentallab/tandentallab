@@ -1,0 +1,41 @@
+// data/vietnamProvinces2026.js
+// Danh sách tỉnh/thành phố Việt Nam sau sáp nhập hành chính
+
+const vietnamProvinces = [
+  "An Giang",
+  "Bắc Ninh",
+  "Cà Mau",
+  "Cần Thơ",
+  "Cao Bằng",
+  "Đà Nẵng",
+  "Đắk Lắk",
+  "Điện Biên",
+  "Đồng Nai",
+  "Đồng Tháp",
+  "Gia Lai",
+  "Hà Nội",
+  "Hà Tĩnh",
+  "Hải Phòng",
+  "Hưng Yên",
+  "Khánh Hòa",
+  "Lai Châu",
+  "Lâm Đồng",
+  "Lạng Sơn",
+  "Lào Cai",
+  "Nghệ An",
+  "Ninh Bình",
+  "Phú Thọ",
+  "Quảng Ngãi",
+  "Quảng Ninh",
+  "Quảng Trị",
+  "Sơn La",
+  "Tây Ninh",
+  "Thái Nguyên",
+  "Thanh Hóa",
+  "Thừa Thiên Huế",
+  "TP. Hồ Chí Minh",
+  "Tuyên Quang",
+  "Vĩnh Long",
+];
+
+export default vietnamProvinces;

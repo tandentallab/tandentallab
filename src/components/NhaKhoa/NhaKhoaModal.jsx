@@ -26,6 +26,7 @@ import vietnamAddress from "../../data/vietNameAddress";
 // 🔥 REDUX
 import { useDispatch, useSelector } from "react-redux";
 import { createNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
+import vietnamProvinces from "../../utils/vietNamProvinces";
 
 export default function NhaKhoaModal({ isQuickMenu }) {
   const dispatch = useDispatch();
@@ -52,27 +53,6 @@ export default function NhaKhoaModal({ isQuickMenu }) {
 
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleProvinceChange = (e) => {
-    const provinceName = e.target.value;
-
-    const province = vietnamAddress.find((p) => p.name === provinceName);
-
-    setDistricts(province?.districts || []);
-
-    setForm((prev) => ({
-      ...prev,
-      tinh: provinceName,
-      quanHuyen: "",
-    }));
-  };
-
-  const handleDistrictChange = (e) => {
-    setForm((prev) => ({
-      ...prev,
-      quanHuyen: e.target.value,
-    }));
   };
 
   const handleSubmit = async () => {
@@ -181,29 +161,13 @@ export default function NhaKhoaModal({ isQuickMenu }) {
 
             <TextField
               select
-              label="Tỉnh/Thành"
-              fullWidth
+              label="Tỉnh / Thành phố"
               value={form.tinh}
-              onChange={handleProvinceChange}
+              onChange={(e) => handleChange("tinh", e.target.value)}
             >
-              {vietnamAddress.map((p) => (
-                <MenuItem key={p.name} value={p.name}>
-                  {p.name}
-                </MenuItem>
-              ))}
-            </TextField>
-
-            <TextField
-              select
-              label="Quận/Huyện"
-              fullWidth
-              value={form.quanHuyen}
-              disabled={!districts.length}
-              onChange={handleDistrictChange}
-            >
-              {districts.map((d) => (
-                <MenuItem key={d} value={d}>
-                  {d}
+              {vietnamProvinces.map((item) => (
+                <MenuItem key={item} value={item}>
+                  {item}
                 </MenuItem>
               ))}
             </TextField>

@@ -46,6 +46,12 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { exportHoaDonListToExcel } from "../../utils/exportToExcel";
 import { api } from "../../config/api";
 import SvgIcon from "@mui/material/SvgIcon";
+import ExportDateSelector from "../common/ExportDateSelector";
+import {
+  EMPTY_EXPORT_DATE_FILTER,
+  toISODateRange,
+  isValidExportDateFilter,
+} from "../../utils/exportDatePresets";
 
 const modalStyle = {
   position: "absolute",
@@ -189,43 +195,63 @@ const HoaDonTable = () => {
 
   // Export modal state
   const [openExport, setOpenExport] = useState(false);
-  const [exportFrom, setExportFrom] = useState("");
-  const [exportTo, setExportTo] = useState("");
+  const [exportDateFilter, setExportDateFilter] = useState(
+    EMPTY_EXPORT_DATE_FILTER
+  );
   const [exportNhaKhoa, setExportNhaKhoa] = useState("");
   const [exportTrangThai, setExportTrangThai] = useState([]);
   const [exporting, setExporting] = useState(false);
+  const [exportFrom, setExportFrom] = useState("");
+  const [exportTo, setExportTo] = useState("");
 
   const handleExport = async () => {
+    // Kiểm tra ngày
     if (!exportFrom || !exportTo) {
       alert("Vui lòng chọn khoảng thời gian để xuất.");
       return;
     }
+
+    // Kiểm tra preset/filter ngày
+    if (!isValidExportDateFilter(exportDateFilter)) {
+      alert("Vui lòng chọn thời gian bằng preset hoặc Chọn trên lịch.");
+      return;
+    }
+
     try {
       setExporting(true);
+
       const fromDate = new Date(exportFrom).toISOString();
       const toDate = new Date(`${exportTo}T23:59:59`).toISOString();
+
+      const { fromISO, toISO } = toISODateRange(exportDateFilter);
+
       const res = await api.get("/hoa-don/all", {
         params: {
           page: 1,
           limit: 5000,
-          fromDate,
-          toDate,
+          fromDate: fromISO || fromDate,
+          toDate: toISO || toDate,
           nhaKhoaId: exportNhaKhoa || "",
         },
       });
+
       let data = res.data?.data || [];
-      // Filter by status if selected
+
+      // Filter trạng thái
       if (exportTrangThai.length > 0) {
         data = data.filter((hd) => exportTrangThai.includes(hd.trangThai));
       }
+
       const selectedNk = (nhaKhoa?.data || []).find(
         (nk) => nk._id === exportNhaKhoa
       );
+
       await exportHoaDonListToExcel(data, {
-        fromDate: new Date(exportFrom).toLocaleDateString("vi-VN"),
-        toDate: new Date(exportTo).toLocaleDateString("vi-VN"),
+        fromDate: fromISO || fromDate,
+        toDate: toISO || toDate,
         nhaKhoaName: selectedNk?.hoVaTen || selectedNk?.tenGiaoDich || "Tất cả",
       });
+
       setOpenExport(false);
     } catch (err) {
       alert(
@@ -362,13 +388,13 @@ const HoaDonTable = () => {
                   <IconButton onClick={() => dispatch(fetchAllHoaDonAdmin())}>
                     <RefreshIcon />
                   </IconButton>
-                  <IconButton
+                  <button
                     onClick={() => setOpenExport(true)}
                     title="Xuất excel"
+                    className="px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1"
                   >
-                    <ExcelIcon sx={{ color: "#1b7a34" }} />
-                  </IconButton>
-
+                    Xuất excel
+                  </button>
                   <IconButton>
                     <MoreVertIcon />
                   </IconButton>
@@ -699,6 +725,11 @@ const HoaDonTable = () => {
                   />
                 </Box>
               </Stack>
+              <ExportDateSelector
+                title="Ngày xuất hóa đơn"
+                value={exportDateFilter}
+                onChange={setExportDateFilter}
+              />
             </Box>
 
             {/* Hàng 2: Nha khoa */}
@@ -780,8 +811,7 @@ const HoaDonTable = () => {
               color="inherit"
               onClick={() => {
                 setOpenExport(false);
-                setExportFrom("");
-                setExportTo("");
+                setExportDateFilter(EMPTY_EXPORT_DATE_FILTER);
                 setExportNhaKhoa("");
                 setExportTrangThai([]);
               }}

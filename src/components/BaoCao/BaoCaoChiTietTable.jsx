@@ -1,22 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDetailedReport } from '../../redux/slices/baoCaoSlice';
 import {
     Table, TableBody, TableCell, TableContainer,
-    TableHead, TableRow, Paper, Box,
+    TableHead, TableRow, Paper, Box, Collapse, IconButton,
 } from '@mui/material';
+import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
+import { useEffect } from 'react';
 
 // ─── Màu nền các tầng ───────────────────────────────────────────────────────
 const BG = {
-    type: '#fff3e0',   // Cấp 1 — Loại SP (cam nhạt)
-    group: '#fffde7',   // Cấp 2 — Nhóm SP (vàng nhạt)
+    type: '#fff3e0',   // Cấp 1 — Loại SP
+    group: '#fffde7',   // Cấp 2 — Nhóm SP
     product: '#ffffff',   // Cấp 3 — Sản phẩm
     total: '#fef3c7',   // Hàng tổng cộng
 };
 
 const COL = { name: '32%', data: '13.6%' };
 
-// Chiều rộng header cột — dùng chung cho head và body
 const headSx = (extra = {}) => ({
     bgcolor: '#e0f2fe',
     color: '#0369a1',
@@ -26,9 +27,111 @@ const headSx = (extra = {}) => ({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BaoCaoChiTietTable
-//   Hiển thị toàn bộ 3 tầng ngay khi load — không có collapse/expand.
-//   Props: startDate, endDate (YYYY-MM-DD), dateType ('ngayNhan'|'henGiao')
+// Cấp 2: Nhóm sản phẩm — collapse được, mặc định MỞ
+// ─────────────────────────────────────────────────────────────────────────────
+const GroupRow = ({ group }) => {
+    const [open, setOpen] = useState(true);
+
+    return (
+        <>
+            {/* Header nhóm */}
+            <TableRow
+                sx={{ bgcolor: BG.group, cursor: 'pointer', '&:hover': { filter: 'brightness(0.97)' } }}
+                onClick={() => setOpen((v) => !v)}
+            >
+                <TableCell sx={{ width: COL.name, pl: 2.5, py: 0.6, fontWeight: 600, fontSize: '12px', color: '#374151' }}>
+                    <IconButton size="small" sx={{ mr: 0.5, p: 0.2 }} onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}>
+                        {open ? <KeyboardArrowUp sx={{ fontSize: 16 }} /> : <KeyboardArrowDown sx={{ fontSize: 16 }} />}
+                    </IconButton>
+                    {group.tenNhom || 'KHÁC'}
+                </TableCell>
+                <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.moi}</TableCell>
+                <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.sua}</TableCell>
+                <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.baoHanh}</TableCell>
+                <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.lamLai}</TableCell>
+                <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.tong}</TableCell>
+            </TableRow>
+
+            {/* Cấp 3: Sản phẩm — luôn hiển thị khi nhóm mở, không có nút collapse thêm */}
+            <TableRow sx={{ p: 0 }}>
+                <TableCell colSpan={6} sx={{ p: 0, border: 0 }}>
+                    <Collapse in={open} timeout="auto" unmountOnExit>
+                        <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
+                            <TableBody>
+                                {group.products?.map((item, pIdx) => (
+                                    <TableRow
+                                        key={pIdx}
+                                        sx={{ bgcolor: BG.product, '&:hover': { bgcolor: '#f8fafc' } }}
+                                    >
+                                        <TableCell sx={{ width: COL.name, pl: 7.5, py: 0.5, fontSize: '11.5px', color: '#475569' }}>
+                                            {item.ten}
+                                        </TableCell>
+                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px' }}>{item.moi}</TableCell>
+                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px' }}>{item.sua}</TableCell>
+                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px' }}>{item.baoHanh}</TableCell>
+                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px', color: item.lamLai > 0 ? '#ef4444' : 'inherit' }}>
+                                            {item.lamLai}
+                                        </TableCell>
+                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px', fontWeight: 600, color: '#94a3b8' }}>
+                                            {item.tong}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </Collapse>
+                </TableCell>
+            </TableRow>
+        </>
+    );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cấp 1: Loại sản phẩm — collapse được, mặc định MỞ
+// ─────────────────────────────────────────────────────────────────────────────
+const TypeRow = ({ typeData }) => {
+    const [open, setOpen] = useState(true);
+
+    return (
+        <>
+            {/* Header loại */}
+            <TableRow
+                sx={{ bgcolor: BG.type, cursor: 'pointer', '&:hover': { filter: 'brightness(0.97)' } }}
+                onClick={() => setOpen((v) => !v)}
+            >
+                <TableCell sx={{ width: COL.name, py: 0.8, fontWeight: 700, fontSize: '13px' }}>
+                    <IconButton size="small" sx={{ mr: 0.5, p: 0.2 }} onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}>
+                        {open ? <KeyboardArrowUp sx={{ fontSize: 17 }} /> : <KeyboardArrowDown sx={{ fontSize: 17 }} />}
+                    </IconButton>
+                    <span className="uppercase">{typeData._id || 'KHÁC'}</span>
+                </TableCell>
+                <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{typeData.t_moi}</TableCell>
+                <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{typeData.t_sua}</TableCell>
+                <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{typeData.t_bh}</TableCell>
+                <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{typeData.t_ll}</TableCell>
+                <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{typeData.t_tong}</TableCell>
+            </TableRow>
+
+            {/* Các nhóm bên trong — mỗi nhóm tự collapse độc lập */}
+            <TableRow sx={{ p: 0 }}>
+                <TableCell colSpan={6} sx={{ p: 0, border: 0 }}>
+                    <Collapse in={open} timeout="auto" unmountOnExit>
+                        <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
+                            <TableBody>
+                                {typeData.groups?.map((group, gIdx) => (
+                                    <GroupRow key={gIdx} group={group} />
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </Collapse>
+                </TableCell>
+            </TableRow>
+        </>
+    );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BaoCaoChiTietTable — main component
 // ─────────────────────────────────────────────────────────────────────────────
 const BaoCaoChiTietTable = ({ startDate, endDate, dateType }) => {
     const dispatch = useDispatch();
@@ -49,12 +152,6 @@ const BaoCaoChiTietTable = ({ startDate, endDate, dateType }) => {
         }),
         { m: 0, s: 0, b: 0, l: 0, t: 0 }
     );
-
-    // ── Shared cell styles ──────────────────────────────────────────────
-    const numCell = (sx = {}) => ({
-        align: 'center',
-        sx: { width: COL.data, py: 0.5, fontSize: '12px', ...sx },
-    });
 
     return (
         <Box sx={{ width: '100%', mt: 3 }}>
@@ -81,9 +178,7 @@ const BaoCaoChiTietTable = ({ startDate, endDate, dateType }) => {
                     <TableBody>
                         {detailedLoading ? (
                             <TableRow>
-                                <TableCell
-                                    colSpan={6}
-                                    align="center"
+                                <TableCell colSpan={6} align="center"
                                     sx={{ py: 8, color: '#60a5fa', fontStyle: 'italic', fontSize: '13px' }}
                                     className="animate-pulse"
                                 >
@@ -99,61 +194,10 @@ const BaoCaoChiTietTable = ({ startDate, endDate, dateType }) => {
                         ) : (
                             <>
                                 {detailedData.map((type, tIdx) => (
-                                    <React.Fragment key={tIdx}>
-
-                                        {/* ── Cấp 1: Loại sản phẩm ── */}
-                                        <TableRow sx={{ bgcolor: BG.type }}>
-                                            <TableCell sx={{ width: COL.name, py: 0.8, fontWeight: 700, fontSize: '13px' }}>
-                                                <span className="uppercase">{type._id || 'KHÁC'}</span>
-                                            </TableCell>
-                                            <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{type.t_moi}</TableCell>
-                                            <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{type.t_sua}</TableCell>
-                                            <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{type.t_bh}</TableCell>
-                                            <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{type.t_ll}</TableCell>
-                                            <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{type.t_tong}</TableCell>
-                                        </TableRow>
-
-                                        {type.groups?.map((group, gIdx) => (
-                                            <React.Fragment key={gIdx}>
-
-                                                {/* ── Cấp 2: Nhóm sản phẩm ── */}
-                                                <TableRow sx={{ bgcolor: BG.group }}>
-                                                    <TableCell sx={{ width: COL.name, pl: 3.5, py: 0.6, fontWeight: 600, fontSize: '12px', color: '#374151' }}>
-                                                        {group.tenNhom || 'KHÁC'}
-                                                    </TableCell>
-                                                    <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.moi}</TableCell>
-                                                    <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.sua}</TableCell>
-                                                    <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.baoHanh}</TableCell>
-                                                    <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.lamLai}</TableCell>
-                                                    <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.tong}</TableCell>
-                                                </TableRow>
-
-                                                {/* ── Cấp 3: Sản phẩm ── */}
-                                                {group.products?.map((item, pIdx) => (
-                                                    <TableRow
-                                                        key={pIdx}
-                                                        sx={{ bgcolor: BG.product, '&:hover': { bgcolor: '#f8fafc' } }}
-                                                    >
-                                                        <TableCell sx={{ width: COL.name, pl: 7, py: 0.5, fontSize: '11.5px', color: '#475569' }}>
-                                                            {item.ten}
-                                                        </TableCell>
-                                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px' }}>{item.moi}</TableCell>
-                                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px' }}>{item.sua}</TableCell>
-                                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px' }}>{item.baoHanh}</TableCell>
-                                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px', color: item.lamLai > 0 ? '#ef4444' : 'inherit' }}>
-                                                            {item.lamLai}
-                                                        </TableCell>
-                                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px', fontWeight: 600, color: '#94a3b8' }}>
-                                                            {item.tong}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </React.Fragment>
-                                        ))}
-                                    </React.Fragment>
+                                    <TypeRow key={tIdx} typeData={type} />
                                 ))}
 
-                                {/* ── Hàng tổng cộng — sticky bottom ── */}
+                                {/* ── Hàng tổng cộng sticky ── */}
                                 <TableRow sx={{ bgcolor: BG.total, position: 'sticky', bottom: 0, zIndex: 5 }}>
                                     <TableCell sx={{ width: COL.name, py: 1, fontWeight: 800, fontSize: '13px' }}>
                                         TỔNG CỘNG HỆ THỐNG

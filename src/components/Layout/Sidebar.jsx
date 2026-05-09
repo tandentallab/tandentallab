@@ -64,7 +64,7 @@ const Sidebar = ({ collapsed }) => {
     },
     { name: "Hóa Đơn", router: "/hoa-don", icon: <Receipt /> },
     { name: "Phiếu Thu", router: "/phieu-thu", icon: <Receipt /> },
-    { name: "Báo Cáo", router: "/reports", icon: <BarChart /> },
+    { name: "Báo Cáo", router: "/bao-cao", icon: <BarChart /> },
 
     // Kho will be rendered as a dropdown with sub-items
   ];
@@ -134,11 +134,10 @@ const Sidebar = ({ collapsed }) => {
                 justifyContent: collapsed ? "center" : "flex-start",
                 px: collapsed ? 1 : 2,
               }}
-              className={`transition ${
-                isActive(item.router)
+              className={`transition ${isActive(item.router)
                   ? "bg-blue-100 text-blue-600"
                   : "hover:bg-gray-100"
-              }`}
+                }`}
             >
               <ListItemIcon
                 sx={{
@@ -167,11 +166,10 @@ const Sidebar = ({ collapsed }) => {
               justifyContent: collapsed ? "center" : "flex-start",
               px: collapsed ? 1 : 2,
             }}
-            className={`transition ${
-              isCustomerActive
+            className={`transition ${isCustomerActive
                 ? "bg-blue-50 text-blue-600"
                 : "hover:bg-gray-100"
-            }`}
+              }`}
           >
             <ListItemIcon
               sx={{
@@ -203,11 +201,10 @@ const Sidebar = ({ collapsed }) => {
                     justifyContent: collapsed ? "center" : "flex-start",
                   }}
                   onClick={() => navigate(item.router)}
-                  className={`transition ${
-                    isActive(item.router)
+                  className={`transition ${isActive(item.router)
                       ? "bg-blue-100 text-blue-600"
                       : "hover:bg-gray-100"
-                  }`}
+                    }`}
                 >
                   <ListItemIcon
                     sx={{
@@ -240,11 +237,10 @@ const Sidebar = ({ collapsed }) => {
                 justifyContent: collapsed ? "center" : "flex-start",
                 px: collapsed ? 1 : 2,
               }}
-              className={`transition ${
-                isActive(item.router)
+              className={`transition ${isActive(item.router)
                   ? "bg-blue-100 text-blue-600"
                   : "hover:bg-gray-100"
-              }`}
+                }`}
             >
               <ListItemIcon
                 sx={{
@@ -270,9 +266,8 @@ const Sidebar = ({ collapsed }) => {
               justifyContent: collapsed ? "center" : "flex-start",
               px: collapsed ? 1 : 2,
             }}
-            className={`transition ${
-              isKhoActive ? "bg-blue-50 text-blue-600" : "hover:bg-gray-100"
-            }`}
+            className={`transition ${isKhoActive ? "bg-blue-50 text-blue-600" : "hover:bg-gray-100"
+              }`}
           >
             <ListItemIcon
               sx={{
@@ -305,11 +300,10 @@ const Sidebar = ({ collapsed }) => {
                     justifyContent: collapsed ? "center" : "flex-start",
                   }}
                   onClick={() => navigate(item.router)}
-                  className={`transition ${
-                    isActive(item.router)
+                  className={`transition ${isActive(item.router)
                       ? "bg-blue-100 text-blue-600"
                       : "hover:bg-gray-100"
-                  }`}
+                    }`}
                 >
                   <ListItemIcon
                     sx={{
@@ -337,9 +331,8 @@ const Sidebar = ({ collapsed }) => {
               justifyContent: collapsed ? "center" : "flex-start",
               px: collapsed ? 1 : 2,
             }}
-            className={`transition ${
-              isSettingActive ? "bg-blue-50 text-blue-600" : "hover:bg-gray-100"
-            }`}
+            className={`transition ${isSettingActive ? "bg-blue-50 text-blue-600" : "hover:bg-gray-100"
+              }`}
           >
             <ListItemIcon
               sx={{
@@ -371,11 +364,10 @@ const Sidebar = ({ collapsed }) => {
                     justifyContent: collapsed ? "center" : "flex-start",
                   }}
                   onClick={() => navigate(item.router)}
-                  className={`transition ${
-                    isActive(item.router)
+                  className={`transition ${isActive(item.router)
                       ? "bg-blue-100 text-blue-600"
                       : "hover:bg-gray-100"
-                  }`}
+                    }`}
                 >
                   <ListItemIcon
                     sx={{

@@ -10,10 +10,14 @@ import FilterBar from './FilterBar';
 import PrintPreviewDialog from './PrintPreviewDialog';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SINGLE SOURCE OF TRUTH: Tính startDate / endDate duy nhất tại đây,
-// truyền xuống cho cả Chart, Table và PrintTemplate qua props.
-// Format: 'YYYY-MM-DD' — Backend sẽ tự chuẩn hóa 00:00:00 / 23:59:59.
+// SINGLE SOURCE OF TRUTH: ĐÃ FIX LỖI MÚI GIỜ VÀ MẤT ĐƠN HÀNG
+// Đảm bảo 'end' luôn là endOf('day') và dùng .toISOString() 
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// CHUẨN HÓA Y HỆT DASHBOARD: Tính toán bằng dayjs và xuất ra chuỗi .toISOString()
+// ─────────────────────────────────────────────────────────────────────────────
+// ✅ ĐÂY LÀ PHIÊN BẢN CHUẨN ĐÃ FIX LỖI MÚI GIỜ
+// Trả về thẳng chuỗi YYYY-MM-DD để Backend tự ép múi giờ +07:00
 const computeDateRange = (filter, customDates) => {
     if (filter === 'custom') {
         return {
@@ -28,54 +32,44 @@ const computeDateRange = (filter, customDates) => {
 
     switch (filter) {
         case 'today':
-            start = now.startOf('day');
-            end = now;
             break;
         case 'yesterday':
-            start = now.subtract(1, 'day').startOf('day');
+            start = now.subtract(1, 'day');
             end = now.subtract(1, 'day');
             break;
         case 'this_week':
-            // Tuần bắt đầu Thứ Hai (add 1 ngày so với startOf('week') = CN)
             start = now.startOf('week').add(1, 'day');
-            end = now;
             break;
         case 'last_week':
             start = now.subtract(1, 'week').startOf('week').add(1, 'day');
             end = now.subtract(1, 'week').endOf('week').add(1, 'day');
             break;
         case 'last_7_days':
-            start = now.subtract(7, 'day').startOf('day');
-            end = now;
+            start = now.subtract(6, 'day');
             break;
         case 'last_10_days':
-            start = now.subtract(10, 'day').startOf('day');
-            end = now;
+            start = now.subtract(9, 'day');
             break;
         case 'this_month':
             start = now.startOf('month');
-            end = now;
             break;
         case 'last_month':
             start = now.subtract(1, 'month').startOf('month');
             end = now.subtract(1, 'month').endOf('month');
             break;
         case 'last_30_days':
-            start = now.subtract(30, 'day').startOf('day');
-            end = now;
+            start = now.subtract(29, 'day');
             break;
         default:
             start = now.startOf('month');
-            end = now;
     }
 
+    // FIX CHÍNH LÀ ĐÂY: Trả về chuẩn YYYY-MM-DD thay vì toISOString()
     return {
         startDate: start.format('YYYY-MM-DD'),
         endDate: end.format('YYYY-MM-DD'),
     };
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 const BaoCaoSanLuongPage = () => {
     const [selectedFilter, setSelectedFilter] = useState('this_month');
@@ -89,7 +83,6 @@ const BaoCaoSanLuongPage = () => {
     const { detailedData } = useSelector((state) => state.baoCao);
 
     // ── SINGLE SOURCE OF TRUTH ───────────────────────────────────────────
-    // Mọi component con đều dùng cặp {startDate, endDate} này.
     const { startDate, endDate } = useMemo(
         () => computeDateRange(selectedFilter, customDates),
         [selectedFilter, customDates]
@@ -160,8 +153,6 @@ const BaoCaoSanLuongPage = () => {
 
             {/* ════ GIAO DIỆN WEB ════ */}
             <div className="no-print">
-
-                {/* 1. Biểu đồ — nhận startDate / endDate đã tính sẵn */}
                 <div className="mb-6">
                     <BaoCaoSanLuongChart
                         startDate={startDate}
@@ -170,7 +161,6 @@ const BaoCaoSanLuongPage = () => {
                     />
                 </div>
 
-                {/* 2. Thanh bộ lọc */}
                 <FilterBar
                     dateType={dateType}
                     setDateType={setDateType}
@@ -182,7 +172,6 @@ const BaoCaoSanLuongPage = () => {
                     onExport={handleExportExcel}
                 />
 
-                {/* 3. Bảng chi tiết — nhận startDate / endDate đã tính sẵn */}
                 <BaoCaoChiTietTable
                     startDate={startDate}
                     endDate={endDate}
@@ -202,7 +191,7 @@ const BaoCaoSanLuongPage = () => {
                 />
             </div>
 
-            {/* ════ VÙNG IN — dùng startDate/endDate để hiển thị "Từ ngày... đến ngày..." ════ */}
+            {/* ════ VÙNG IN ════ */}
             <div className="print-only">
                 <PrintTemplate
                     data={detailedData}

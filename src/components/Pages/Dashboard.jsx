@@ -7,7 +7,7 @@ import DonHangPage from "../DonHang/DonHangPage";
 import DonHangForm from "../DonHang/DonHangForm";
 import DonHangPrintPreview from "../DonHang/DonHangPrintPreview";
 import DonHangDeliveryNotePrintPreview from "../DonHang/DonHangDeliveryNotePrintPreview";
-import Charts from "../Charts";
+import DashboardPage from "../Dashboard/DashboardPage";
 import NhaKhoaPage from "../NhaKhoa/NhaKhoaPage";
 import NguoiLienHePage from "../NguoiLienHe/NguoiLienHePage";
 import BenhNhanPage from "../BenhNhan/BenhNhanPage";
@@ -41,7 +41,7 @@ const Dashboard = () => {
         }}
       >
         <Routes>
-          <Route path="/" element={<Charts />} />
+          <Route path="/" element={<DashboardPage />} />
           <Route path="/don-hang/*" element={<DonHangPage />} />
           <Route path="/donhang/create" element={<DonHangForm />} />
           <Route path="/donhang/:id/edit" element={<DonHangForm />} />

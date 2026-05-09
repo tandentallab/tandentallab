@@ -1,104 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDetailedReport } from '../../redux/slices/baoCaoSlice';
 import {
     Table, TableBody, TableCell, TableContainer,
-    TableHead, TableRow, Paper, IconButton, Collapse, Box,
+    TableHead, TableRow, Paper, Box,
 } from '@mui/material';
-import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 
-const COL_WIDTHS = { name: '30%', data: '14%' };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SubGroupRow: Hàng cấp 2 — Nhóm sản phẩm (collapsible)
-// ─────────────────────────────────────────────────────────────────────────────
-const SubGroupRow = ({ group }) => {
-    const [open, setOpen] = useState(false);
-    return (
-        <>
-            <TableRow sx={{ bgcolor: '#fff3e0', cursor: 'pointer' }} onClick={() => setOpen(!open)}>
-                <TableCell sx={{ pl: 4, py: 1, width: COL_WIDTHS.name }} className="font-bold">
-                    <IconButton size="small">
-                        {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                    </IconButton>
-                    <span className="ml-1 text-[12px]">{group.tenNhom || 'KHÁC'}</span>
-                </TableCell>
-                <TableCell align="center" sx={{ width: COL_WIDTHS.data }} className="font-bold">{group.moi}</TableCell>
-                <TableCell align="center" sx={{ width: COL_WIDTHS.data }} className="font-bold">{group.sua}</TableCell>
-                <TableCell align="center" sx={{ width: COL_WIDTHS.data }} className="font-bold">{group.baoHanh}</TableCell>
-                <TableCell align="center" sx={{ width: COL_WIDTHS.data }} className="font-bold">{group.lamLai}</TableCell>
-                <TableCell align="center" sx={{ width: COL_WIDTHS.data }} className="font-bold">{group.tong}</TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell style={{ padding: 0 }} colSpan={6}>
-                    <Collapse in={open} timeout="auto" unmountOnExit>
-                        <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
-                            <TableBody>
-                                {group.products?.map((item, idx) => (
-                                    <TableRow key={idx} sx={{ bgcolor: '#ffffff' }}>
-                                        <TableCell sx={{ pl: 10, py: 0.8, width: COL_WIDTHS.name, color: '#475569', fontSize: '12px' }}>
-                                            {item.ten}
-                                        </TableCell>
-                                        <TableCell align="center" sx={{ width: COL_WIDTHS.data, fontSize: '12px' }}>{item.moi}</TableCell>
-                                        <TableCell align="center" sx={{ width: COL_WIDTHS.data, fontSize: '12px' }}>{item.sua}</TableCell>
-                                        <TableCell align="center" sx={{ width: COL_WIDTHS.data, fontSize: '12px' }}>{item.baoHanh}</TableCell>
-                                        <TableCell align="center" sx={{ width: COL_WIDTHS.data, fontSize: '12px' }} className="text-red-400">{item.lamLai}</TableCell>
-                                        <TableCell align="center" sx={{ width: COL_WIDTHS.data, fontSize: '12px' }} className="font-bold text-gray-400">{item.tong}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </Collapse>
-                </TableCell>
-            </TableRow>
-        </>
-    );
+// ─── Màu nền các tầng ───────────────────────────────────────────────────────
+const BG = {
+    type: '#fff3e0',   // Cấp 1 — Loại SP (cam nhạt)
+    group: '#fffde7',   // Cấp 2 — Nhóm SP (vàng nhạt)
+    product: '#ffffff',   // Cấp 3 — Sản phẩm
+    total: '#fef3c7',   // Hàng tổng cộng
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MainTypeRow: Hàng cấp 1 — Loại sản phẩm (collapsible, mặc định mở)
-// ─────────────────────────────────────────────────────────────────────────────
-const MainTypeRow = ({ typeData }) => {
-    const [open, setOpen] = useState(true);
-    return (
-        <>
-            <TableRow sx={{ bgcolor: '#ffe0b2' }}>
-                <TableCell sx={{ width: COL_WIDTHS.name }} className="py-2">
-                    <div className="flex items-center font-bold text-gray-900">
-                        <IconButton size="small" onClick={() => setOpen(!open)}>
-                            {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                        </IconButton>
-                        <span className="ml-1 text-[13px] uppercase">{typeData._id || 'KHÁC'}</span>
-                    </div>
-                </TableCell>
-                <TableCell align="center" sx={{ width: COL_WIDTHS.data }} className="font-bold text-[13px]">{typeData.t_moi}</TableCell>
-                <TableCell align="center" sx={{ width: COL_WIDTHS.data }} className="font-bold text-[13px]">{typeData.t_sua}</TableCell>
-                <TableCell align="center" sx={{ width: COL_WIDTHS.data }} className="font-bold text-[13px]">{typeData.t_bh}</TableCell>
-                <TableCell align="center" sx={{ width: COL_WIDTHS.data }} className="font-bold text-[13px]">{typeData.t_ll}</TableCell>
-                <TableCell align="center" sx={{ width: COL_WIDTHS.data }} className="font-bold text-[13px]">{typeData.t_tong}</TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell style={{ padding: 0 }} colSpan={6}>
-                    <Collapse in={open} timeout="auto" unmountOnExit>
-                        <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
-                            <TableBody>
-                                {typeData.groups?.map((group, idx) => (
-                                    <SubGroupRow key={idx} group={group} />
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </Collapse>
-                </TableCell>
-            </TableRow>
-        </>
-    );
-};
+const COL = { name: '32%', data: '13.6%' };
+
+// Chiều rộng header cột — dùng chung cho head và body
+const headSx = (extra = {}) => ({
+    bgcolor: '#e0f2fe',
+    color: '#0369a1',
+    fontWeight: 'bold',
+    py: 1.2,
+    ...extra,
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BaoCaoChiTietTable
-// Props: startDate, endDate (YYYY-MM-DD) — do BaoCaoPage tính sẵn (SSOT)
-//        dateType: 'ngayNhan' | 'henGiao'
-// Component KHÔNG tự tính toán ngày tháng, chỉ dispatch và hiển thị.
+//   Hiển thị toàn bộ 3 tầng ngay khi load — không có collapse/expand.
+//   Props: startDate, endDate (YYYY-MM-DD), dateType ('ngayNhan'|'henGiao')
 // ─────────────────────────────────────────────────────────────────────────────
 const BaoCaoChiTietTable = ({ startDate, endDate, dateType }) => {
     const dispatch = useDispatch();
@@ -111,56 +41,128 @@ const BaoCaoChiTietTable = ({ startDate, endDate, dateType }) => {
 
     const totals = detailedData.reduce(
         (acc, curr) => ({
-            m: acc.m + curr.t_moi,
-            s: acc.s + curr.t_sua,
-            b: acc.b + curr.t_bh,
-            l: acc.l + curr.t_ll,
-            t: acc.t + curr.t_tong,
+            m: acc.m + (curr.t_moi || 0),
+            s: acc.s + (curr.t_sua || 0),
+            b: acc.b + (curr.t_bh || 0),
+            l: acc.l + (curr.t_ll || 0),
+            t: acc.t + (curr.t_tong || 0),
         }),
         { m: 0, s: 0, b: 0, l: 0, t: 0 }
     );
 
+    // ── Shared cell styles ──────────────────────────────────────────────
+    const numCell = (sx = {}) => ({
+        align: 'center',
+        sx: { width: COL.data, py: 0.5, fontSize: '12px', ...sx },
+    });
+
     return (
-        <Box sx={{ width: '100%', mt: 4 }}>
+        <Box sx={{ width: '100%', mt: 3 }}>
             <TableContainer
                 component={Paper}
                 className="rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
-                sx={{ height: '100vh', overflowY: 'auto', scrollbarGutter: 'stable' }}
+                sx={{ maxHeight: '100vh', overflowY: 'auto', scrollbarGutter: 'stable' }}
             >
                 <Table stickyHeader size="small" sx={{ tableLayout: 'fixed' }}>
+
+                    {/* ── HEADER ── */}
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ width: COL_WIDTHS.name, bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 'bold', py: 2, zIndex: 10 }}>
-                                SẢN PHẨM
-                            </TableCell>
-                            <TableCell align="center" sx={{ width: COL_WIDTHS.data, bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 'bold' }}>MỚI</TableCell>
-                            <TableCell align="center" sx={{ width: COL_WIDTHS.data, bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 'bold' }}>SỬA</TableCell>
-                            <TableCell align="center" sx={{ width: COL_WIDTHS.data, bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 'bold' }}>BẢO HÀNH</TableCell>
-                            <TableCell align="center" sx={{ width: COL_WIDTHS.data, bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 'bold' }}>LÀM LẠI</TableCell>
-                            <TableCell align="center" sx={{ width: COL_WIDTHS.data, bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 'bold' }}>TỔNG CỘNG</TableCell>
+                            <TableCell sx={headSx({ width: COL.name, zIndex: 10 })}>SẢN PHẨM</TableCell>
+                            <TableCell align="center" sx={headSx({ width: COL.data })}>MỚI</TableCell>
+                            <TableCell align="center" sx={headSx({ width: COL.data })}>SỬA</TableCell>
+                            <TableCell align="center" sx={headSx({ width: COL.data })}>BẢO HÀNH</TableCell>
+                            <TableCell align="center" sx={headSx({ width: COL.data })}>LÀM LẠI</TableCell>
+                            <TableCell align="center" sx={headSx({ width: COL.data })}>TỔNG CỘNG</TableCell>
                         </TableRow>
                     </TableHead>
+
+                    {/* ── BODY ── */}
                     <TableBody>
                         {detailedLoading ? (
                             <TableRow>
-                                <TableCell colSpan={6} align="center" className="py-20 text-blue-400 font-bold italic animate-pulse">
+                                <TableCell
+                                    colSpan={6}
+                                    align="center"
+                                    sx={{ py: 8, color: '#60a5fa', fontStyle: 'italic', fontSize: '13px' }}
+                                    className="animate-pulse"
+                                >
                                     Đang tổng hợp dữ liệu chi tiết...
+                                </TableCell>
+                            </TableRow>
+                        ) : detailedData.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={6} align="center" sx={{ py: 8, color: '#94a3b8', fontSize: '13px' }}>
+                                    Không có dữ liệu trong khoảng thời gian này
                                 </TableCell>
                             </TableRow>
                         ) : (
                             <>
-                                {detailedData.map((type, idx) => (
-                                    <MainTypeRow key={idx} typeData={type} />
+                                {detailedData.map((type, tIdx) => (
+                                    <React.Fragment key={tIdx}>
+
+                                        {/* ── Cấp 1: Loại sản phẩm ── */}
+                                        <TableRow sx={{ bgcolor: BG.type }}>
+                                            <TableCell sx={{ width: COL.name, py: 0.8, fontWeight: 700, fontSize: '13px' }}>
+                                                <span className="uppercase">{type._id || 'KHÁC'}</span>
+                                            </TableCell>
+                                            <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{type.t_moi}</TableCell>
+                                            <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{type.t_sua}</TableCell>
+                                            <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{type.t_bh}</TableCell>
+                                            <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{type.t_ll}</TableCell>
+                                            <TableCell align="center" sx={{ width: COL.data, py: 0.8, fontWeight: 700, fontSize: '13px' }}>{type.t_tong}</TableCell>
+                                        </TableRow>
+
+                                        {type.groups?.map((group, gIdx) => (
+                                            <React.Fragment key={gIdx}>
+
+                                                {/* ── Cấp 2: Nhóm sản phẩm ── */}
+                                                <TableRow sx={{ bgcolor: BG.group }}>
+                                                    <TableCell sx={{ width: COL.name, pl: 3.5, py: 0.6, fontWeight: 600, fontSize: '12px', color: '#374151' }}>
+                                                        {group.tenNhom || 'KHÁC'}
+                                                    </TableCell>
+                                                    <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.moi}</TableCell>
+                                                    <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.sua}</TableCell>
+                                                    <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.baoHanh}</TableCell>
+                                                    <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.lamLai}</TableCell>
+                                                    <TableCell align="center" sx={{ width: COL.data, py: 0.6, fontWeight: 600, fontSize: '12px' }}>{group.tong}</TableCell>
+                                                </TableRow>
+
+                                                {/* ── Cấp 3: Sản phẩm ── */}
+                                                {group.products?.map((item, pIdx) => (
+                                                    <TableRow
+                                                        key={pIdx}
+                                                        sx={{ bgcolor: BG.product, '&:hover': { bgcolor: '#f8fafc' } }}
+                                                    >
+                                                        <TableCell sx={{ width: COL.name, pl: 7, py: 0.5, fontSize: '11.5px', color: '#475569' }}>
+                                                            {item.ten}
+                                                        </TableCell>
+                                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px' }}>{item.moi}</TableCell>
+                                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px' }}>{item.sua}</TableCell>
+                                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px' }}>{item.baoHanh}</TableCell>
+                                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px', color: item.lamLai > 0 ? '#ef4444' : 'inherit' }}>
+                                                            {item.lamLai}
+                                                        </TableCell>
+                                                        <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px', fontWeight: 600, color: '#94a3b8' }}>
+                                                            {item.tong}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </React.Fragment>
+                                        ))}
+                                    </React.Fragment>
                                 ))}
 
-                                {/* Hàng tổng cộng — sticky bottom */}
-                                <TableRow sx={{ bgcolor: '#fef3c7', position: 'sticky', bottom: 0, zIndex: 5 }}>
-                                    <TableCell className="font-bold py-4 text-[14px]">TỔNG CỘNG HỆ THỐNG</TableCell>
-                                    <TableCell align="center" className="font-black text-blue-900">{totals.m}</TableCell>
-                                    <TableCell align="center" className="font-black text-blue-900">{totals.s}</TableCell>
-                                    <TableCell align="center" className="font-black text-blue-900">{totals.b}</TableCell>
-                                    <TableCell align="center" className="font-black text-red-700">{totals.l}</TableCell>
-                                    <TableCell align="center" className="font-black text-blue-900">{totals.t}</TableCell>
+                                {/* ── Hàng tổng cộng — sticky bottom ── */}
+                                <TableRow sx={{ bgcolor: BG.total, position: 'sticky', bottom: 0, zIndex: 5 }}>
+                                    <TableCell sx={{ width: COL.name, py: 1, fontWeight: 800, fontSize: '13px' }}>
+                                        TỔNG CỘNG HỆ THỐNG
+                                    </TableCell>
+                                    <TableCell align="center" sx={{ width: COL.data, py: 1, fontWeight: 800, fontSize: '13px', color: '#1e3a8a' }}>{totals.m}</TableCell>
+                                    <TableCell align="center" sx={{ width: COL.data, py: 1, fontWeight: 800, fontSize: '13px', color: '#1e3a8a' }}>{totals.s}</TableCell>
+                                    <TableCell align="center" sx={{ width: COL.data, py: 1, fontWeight: 800, fontSize: '13px', color: '#1e3a8a' }}>{totals.b}</TableCell>
+                                    <TableCell align="center" sx={{ width: COL.data, py: 1, fontWeight: 800, fontSize: '13px', color: '#b91c1c' }}>{totals.l}</TableCell>
+                                    <TableCell align="center" sx={{ width: COL.data, py: 1, fontWeight: 800, fontSize: '13px', color: '#1e3a8a' }}>{totals.t}</TableCell>
                                 </TableRow>
                             </>
                         )}

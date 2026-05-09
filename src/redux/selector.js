@@ -9,3 +9,4 @@ export const getBangGiaSelector = state => state.bangGia
 export const getDonHangSelector = state => state.donHang
 export const getHoaDonSelector = state => state.hoaDon
 export const getBaoCaoSelector = state => state.baoCao
+export const getDashboardSelecor = state => state.dashboard

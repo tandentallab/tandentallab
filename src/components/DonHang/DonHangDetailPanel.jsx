@@ -3,11 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { deleteDonHang, updateDonHang } from "../../redux/slices/donHangSlice";
 import toast from "react-hot-toast";
+import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 
 const DonHangDetailPanel = ({ donHang, onClose }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("chitiet");
+  const [isPhieuBaoHanhOpen, setIsPhieuBaoHanhOpen] = useState(false);
+  const [selectedProductIndex, setSelectedProductIndex] = useState(null);
   const isOpen = !!donHang;
 
   const maDonHang = donHang
@@ -80,6 +83,11 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
     { key: "sanxuat", label: "Sản xuất" },
     { key: "ghichu", label: "Ghi chú" },
   ];
+
+  const handleOpenPhieuBaoHanh = (productIndex) => {
+    setSelectedProductIndex(productIndex);
+    setIsPhieuBaoHanhOpen(true);
+  };
 
   return (
     <>
@@ -262,6 +270,13 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
                           {sp.sanPham?.tenSanPham || "N/A"}
                         </span>
                         <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPhieuBaoHanh(idx)}
+                            className="text-xs px-2 py-1 rounded border border-blue-300 text-blue-700 hover:bg-blue-100 transition"
+                          >
+                            Thêm phiếu BH
+                          </button>
                           <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
                             {sp.loaiDon}
                           </span>
@@ -410,6 +425,21 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
           )}
         </div>
       </div>
+
+      {donHang && isPhieuBaoHanhOpen && selectedProductIndex !== null && (
+        <PhieuBaoHanhModal
+          open={isPhieuBaoHanhOpen}
+          onClose={() => {
+            setIsPhieuBaoHanhOpen(false);
+            setSelectedProductIndex(null);
+          }}
+          donHang={donHang}
+          productIndex={selectedProductIndex}
+          onSuccess={() => {
+            toast.success("Đã tạo phiếu bảo hành");
+          }}
+        />
+      )}
     </>
   );
 };

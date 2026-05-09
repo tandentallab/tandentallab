@@ -4,6 +4,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import PrintIcon from "@mui/icons-material/Print";
+import { useNavigate } from "react-router-dom";
 
 const formatNumber = (v) => new Intl.NumberFormat("vi-VN").format(v || 0);
 
@@ -54,6 +55,7 @@ const InfoRow = ({ label, value, valueClass = "" }) => (
 );
 
 export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
+  const navigate = useNavigate();
   const isOpen = !!phieuThu;
   const [openEdit, setOpenEdit] = useState(false);
 
@@ -257,10 +259,11 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
         {/* ── FOOTER ── */}
         <div className="shrink-0 px-4 py-3 bg-white border-t flex justify-end">
           <button
-            onClick={alert.bind(
-              null,
-              "Tính năng in phiếu thu đang được phát triển"
-            )}
+            onClick={() => {
+              if (phieuThu?._id) {
+                navigate(`/phieu-thu/${phieuThu._id}/print`);
+              }
+            }}
             className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition px-3 py-1.5 rounded-lg hover:bg-gray-100"
           >
             <PrintIcon sx={{ fontSize: 16 }} />

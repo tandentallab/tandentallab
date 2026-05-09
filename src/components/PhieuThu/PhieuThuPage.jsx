@@ -1,8 +1,17 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllPhieuThu } from "../../redux/slices/phieuThuSlice";
+import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import PhieuThuModal from "./PhieuThuModal";
 import PhieuThuDetailPanel from "./PhieuThuDetailPanel";
+import SearchIcon from "@mui/icons-material/Search";
+import AddIcon from "@mui/icons-material/Add";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import CloseIcon from "@mui/icons-material/Close";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import StoreIcon from "@mui/icons-material/Store";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
 
 const formatCurrency = (value) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value || 0);
@@ -18,11 +27,47 @@ const formatDateTime = (d) => {
     });
 };
 
+const DATE_PRESETS = [
+    { key: "custom", label: "Chọn trên Lịch", isCalendar: true },
+    { key: "today", label: "Hôm nay" },
+    { key: "yesterday", label: "Hôm qua" },
+    { key: "this_week", label: "Tuần này" },
+    { key: "this_month", label: "Tháng này" },
+    { key: "this_year", label: "Năm nay" },
+    { key: "last_week", label: "Tuần trước" },
+    { key: "last_month", label: "Tháng trước" },
+    { key: "last_year", label: "Năm trước" },
+    { key: "last_7", label: "Trong vòng 7 ngày" },
+    { key: "last_10", label: "Trong vòng 10 ngày" },
+    { key: "last_30", label: "Trong vòng 30 ngày" },
+];
+
+const getDateRange = (preset) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    switch (preset) {
+        case "today": return { from: today, to: tomorrow };
+        case "yesterday": { const f = new Date(today); f.setDate(f.getDate() - 1); return { from: f, to: today }; }
+        case "this_week": { const d = today.getDay(); const f = new Date(today); f.setDate(today.getDate() - (d === 0 ? 6 : d - 1)); return { from: f, to: tomorrow }; }
+        case "this_month": return { from: new Date(today.getFullYear(), today.getMonth(), 1), to: tomorrow };
+        case "this_year": return { from: new Date(today.getFullYear(), 0, 1), to: tomorrow };
+        case "last_week": { const d = today.getDay(); const f = new Date(today); f.setDate(today.getDate() - (d === 0 ? 6 : d - 1) - 7); const t = new Date(f); t.setDate(f.getDate() + 7); return { from: f, to: t }; }
+        case "last_month": return { from: new Date(today.getFullYear(), today.getMonth() - 1, 1), to: new Date(today.getFullYear(), today.getMonth(), 1) };
+        case "last_year": return { from: new Date(today.getFullYear() - 1, 0, 1), to: new Date(today.getFullYear(), 0, 1) };
+        case "last_7": { const f = new Date(today); f.setDate(f.getDate() - 7); return { from: f, to: tomorrow }; }
+        case "last_10": { const f = new Date(today); f.setDate(f.getDate() - 10); return { from: f, to: tomorrow }; }
+        case "last_30": { const f = new Date(today); f.setDate(f.getDate() - 30); return { from: f, to: tomorrow }; }
+        default: return { from: null, to: null };
+    }
+};
+
 const ROWS_PER_PAGE = 20;
 
 export default function PhieuThuPage() {
     const dispatch = useDispatch();
     const { danhSach, pagination, loading } = useSelector((s) => s.phieuThu);
+    const nhaKhoaList = useSelector((s) => s.nhaKhoa.data);
 
     const [page, setPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState("");
@@ -30,63 +75,306 @@ export default function PhieuThuPage() {
     const [openModal, setOpenModal] = useState(false);
     const [selectedPhieuThu, setSelectedPhieuThu] = useState(null);
 
+    // Applied filter (drives API calls)
+    const [appliedDatePreset, setAppliedDatePreset] = useState(null);
+    const [appliedCustomFrom, setAppliedCustomFrom] = useState("");
+    const [appliedCustomTo, setAppliedCustomTo] = useState("");
+    const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(null); // { _id, name }
+
+    // Filter panel UI
+    const [showFilter, setShowFilter] = useState(false);
+    const [draftDatePreset, setDraftDatePreset] = useState(null);
+    const [draftCustomFrom, setDraftCustomFrom] = useState("");
+    const [draftCustomTo, setDraftCustomTo] = useState("");
+    const [draftNhaKhoa, setDraftNhaKhoa] = useState(null);
+    const [openDateSection, setOpenDateSection] = useState(false);
+    const [openCustomerSection, setOpenCustomerSection] = useState(false);
+    const [customerSearch, setCustomerSearch] = useState("");
+    const filterRef = useRef(null);
+
+    useEffect(() => { dispatch(fetchNhaKhoa()); }, [dispatch]);
+
     useEffect(() => {
         const t = setTimeout(() => { setDebouncedSearch(searchTerm); setPage(1); }, 500);
         return () => clearTimeout(t);
     }, [searchTerm]);
 
+    useEffect(() => {
+        const handleClick = (e) => {
+            if (filterRef.current && !filterRef.current.contains(e.target)) setShowFilter(false);
+        };
+        document.addEventListener("mousedown", handleClick);
+        return () => document.removeEventListener("mousedown", handleClick);
+    }, []);
+
+    const handleOpenFilter = () => {
+        setDraftDatePreset(appliedDatePreset);
+        setDraftCustomFrom(appliedCustomFrom);
+        setDraftCustomTo(appliedCustomTo);
+        setDraftNhaKhoa(appliedNhaKhoa);
+        setOpenDateSection(false);
+        setOpenCustomerSection(false);
+        setCustomerSearch("");
+        setShowFilter(true);
+    };
+
+    const getApiDates = useCallback((preset, from, to) => {
+        if (!preset) return { dateFrom: "", dateTo: "" };
+        if (preset === "custom") {
+            return {
+                dateFrom: from ? new Date(from).toISOString() : "",
+                dateTo: to ? new Date(to + "T23:59:59").toISOString() : "",
+            };
+        }
+        const { from: f, to: t } = getDateRange(preset);
+        return { dateFrom: f ? f.toISOString() : "", dateTo: t ? t.toISOString() : "" };
+    }, []);
+
     const loadData = useCallback(() => {
-        dispatch(fetchAllPhieuThu({ page, limit: ROWS_PER_PAGE, search: debouncedSearch }));
-    }, [dispatch, page, debouncedSearch]);
+        const { dateFrom, dateTo } = getApiDates(appliedDatePreset, appliedCustomFrom, appliedCustomTo);
+        dispatch(fetchAllPhieuThu({
+            page, limit: ROWS_PER_PAGE, search: debouncedSearch,
+            nhaKhoaId: appliedNhaKhoa?._id || "",
+            dateFrom, dateTo,
+        }));
+    }, [dispatch, page, debouncedSearch, appliedDatePreset, appliedCustomFrom, appliedCustomTo, appliedNhaKhoa, getApiDates]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
-    const handleRefresh = () => { setSearchTerm(""); setDebouncedSearch(""); setPage(1); };
-
-    const handleRowClick = (pt) => {
-        setSelectedPhieuThu((prev) => (prev?._id === pt._id ? null : pt));
+    const handleRefresh = () => {
+        setSearchTerm(""); setDebouncedSearch("");
+        setAppliedDatePreset(null); setAppliedCustomFrom(""); setAppliedCustomTo(""); setAppliedNhaKhoa(null);
+        setPage(1);
     };
 
-    // When an update happens from the edit modal, sync the selected record
+    const handleApplyFilters = () => {
+        setAppliedDatePreset(draftDatePreset);
+        setAppliedCustomFrom(draftCustomFrom);
+        setAppliedCustomTo(draftCustomTo);
+        setAppliedNhaKhoa(draftNhaKhoa);
+        setPage(1);
+        setShowFilter(false);
+    };
+
+    const handleResetDraft = () => {
+        setDraftDatePreset(null); setDraftCustomFrom(""); setDraftCustomTo(""); setDraftNhaKhoa(null);
+    };
+
+    const handleRowClick = (pt) => setSelectedPhieuThu((prev) => (prev?._id === pt._id ? null : pt));
+
     const handlePanelUpdated = (updated) => {
-        if (updated) {
-            setSelectedPhieuThu((prev) => prev ? { ...prev, ...updated } : prev);
-        }
+        if (updated) setSelectedPhieuThu((prev) => prev ? { ...prev, ...updated } : prev);
         loadData();
     };
 
+    const filteredCustomers = nhaKhoaList.filter((nk) => {
+        if (!customerSearch.trim()) return true;
+        const s = customerSearch.toLowerCase();
+        return (nk.hoVaTen || "").toLowerCase().includes(s) || (nk.tenGiaoDich || "").toLowerCase().includes(s);
+    });
+
+    const appliedDateLabel = DATE_PRESETS.find((p) => p.key === appliedDatePreset)?.label || "";
+    const isFiltered = !!appliedDatePreset || !!appliedNhaKhoa;
     const totalPages = pagination.totalPages || 1;
 
     return (
         <div className="p-4 bg-gray-100 min-h-screen">
             {/* Toolbar */}
-            <div className="flex justify-between items-center mb-4 bg-white p-3 rounded shadow-sm border">
-                <h2 className="text-base font-semibold text-gray-700">Phiếu Thu</h2>
-                <div className="flex gap-2 items-center">
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Tìm phiếu thu, khách hàng..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="border bg-gray-50 pl-8 pr-8 py-1.5 rounded-full w-72 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                        />
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"
-                            className="w-4 h-4 absolute left-2.5 top-2 text-gray-400">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                        </svg>
-                        {searchTerm && (
-                            <button onClick={() => setSearchTerm("")} className="absolute right-2.5 top-1.5 text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
+            <div className="mb-4 bg-white rounded shadow-sm border">
+                <div className="flex justify-between items-center p-3">
+
+                    {/* Left: filter icon + title */}
+                    <div className="flex items-center gap-2">
+                        <div className="relative" ref={filterRef}>
+                            <button
+                                onClick={handleOpenFilter}
+                                title="Bộ lọc"
+                                className={`relative p-1.5 rounded transition ${isFiltered ? "text-blue-600 bg-blue-50 hover:bg-blue-100" : "text-gray-500 hover:bg-gray-100"}`}
+                            >
+                                <FilterAltIcon sx={{ fontSize: 20 }} />
+
+                                {isFiltered && <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-blue-500 rounded-full" />}
+                            </button>
+
+                            {/* Filter dropdown */}
+                            {showFilter && (
+                                <div className="absolute left-0 top-full mt-1 z-50 w-80 bg-white rounded-xl shadow-2xl border border-gray-200">
+
+                                    {/* Ngày thu */}
+                                    <div className="border-b border-gray-100">
+                                        <button
+                                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
+                                            onClick={() => setOpenDateSection((v) => !v)}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <CalendarTodayIcon sx={{ fontSize: 15, color: "#6b7280" }} />
+                                                <span className="text-gray-700 font-medium">Ngày thu</span>
+                                                {draftDatePreset && (
+                                                    <span className="text-blue-600 text-xs font-semibold">
+                                                        {DATE_PRESETS.find((p) => p.key === draftDatePreset)?.label}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <ExpandMoreIcon sx={{ fontSize: 18, color: "#9ca3af", transform: openDateSection ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+                                        </button>
+                                        {openDateSection && (
+                                            <div className="border-t border-gray-100 max-h-64 overflow-y-auto pb-1">
+                                                {DATE_PRESETS.map((p) => (
+                                                    <div key={p.key}>
+                                                        <button
+                                                            onClick={() => setDraftDatePreset((prev) => prev === p.key ? null : p.key)}
+                                                            className={`w-full text-left px-6 py-2 text-sm flex items-center gap-2 transition ${draftDatePreset === p.key ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
+                                                        >
+                                                            {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 13 }} />}
+                                                            {p.label}
+                                                        </button>
+                                                        {p.isCalendar && draftDatePreset === "custom" && (
+                                                            <div className="px-6 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-xs text-gray-500 w-8 shrink-0">Từ</span>
+                                                                    <input type="date" value={draftCustomFrom}
+                                                                        onChange={(e) => setDraftCustomFrom(e.target.value)}
+                                                                        className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-xs text-gray-500 w-8 shrink-0">Đến</span>
+                                                                    <input type="date" value={draftCustomTo}
+                                                                        onChange={(e) => setDraftCustomTo(e.target.value)}
+                                                                        className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Khách hàng */}
+                                    <div className="border-b border-gray-100">
+                                        <button
+                                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
+                                            onClick={() => setOpenCustomerSection((v) => !v)}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <StoreIcon sx={{ fontSize: 15, color: "#6b7280" }} />
+                                                <span className="text-gray-700 font-medium">Khách hàng</span>
+                                                {draftNhaKhoa && (
+                                                    <span className="text-blue-600 text-xs font-semibold truncate max-w-[140px]">{draftNhaKhoa.name}</span>
+                                                )}
+                                            </div>
+                                            <ExpandMoreIcon sx={{ fontSize: 18, color: "#9ca3af", transform: openCustomerSection ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+                                        </button>
+                                        {openCustomerSection && (
+                                            <div className="border-t border-gray-100">
+                                                <div className="px-4 py-2">
+                                                    <div className="relative flex items-center">
+                                                        <span className="absolute left-2.5 text-gray-400 flex items-center">
+                                                            <SearchIcon sx={{ fontSize: 15 }} />
+                                                        </span>
+                                                        <input
+                                                            type="text"
+                                                            value={customerSearch}
+                                                            onChange={(e) => setCustomerSearch(e.target.value)}
+                                                            placeholder="Tìm khách hàng..."
+                                                            className="w-full border border-gray-200 rounded-lg pl-7 pr-3 py-1.5 text-sm focus:outline-none focus:border-blue-400"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="max-h-44 overflow-y-auto pb-1">
+                                                    {filteredCustomers.map((nk) => (
+                                                        <button key={nk._id}
+                                                            onClick={() => setDraftNhaKhoa(draftNhaKhoa?._id === nk._id ? null : { _id: nk._id, name: nk.hoVaTen || nk.tenGiaoDich })}
+                                                            className={`w-full text-left px-4 py-2 text-sm transition ${draftNhaKhoa?._id === nk._id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}>
+                                                            {nk.hoVaTen || nk.tenGiaoDich}
+                                                        </button>
+                                                    ))}
+                                                    {filteredCustomers.length === 0 && (
+                                                        <p className="text-center text-xs text-gray-400 py-4">Không tìm thấy</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Bottom buttons */}
+                                    <div className="flex items-center justify-between px-4 py-3">
+                                        <button onClick={handleResetDraft} className="text-sm text-gray-500 hover:text-red-500 transition font-medium">
+                                            Reset lọc
+                                        </button>
+                                        <button onClick={handleApplyFilters}
+                                            className="px-4 py-1.5 bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-semibold rounded-lg transition shadow-sm">
+                                            Lưu lọc
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <h2 className="text-base font-semibold text-gray-700">Phiếu Thu</h2>
+                    </div>
+
+                    {/* Right: search + add + refresh */}
+                    <div className="flex gap-2 items-center">
+                        <div className="relative flex items-center">
+                            <span className="absolute left-2.5 text-gray-400 flex items-center pointer-events-none">
+                                <SearchIcon sx={{ fontSize: 16 }} />
+                            </span>
+                            <input
+                                type="text"
+                                placeholder="Tìm phiếu thu, khách hàng..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="border bg-gray-50 pl-8 pr-8 py-1.5 rounded-full w-72 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                            />
+                            {searchTerm && (
+                                <button onClick={() => setSearchTerm("")} className="absolute right-2.5 text-gray-400 hover:text-gray-600 flex items-center">
+                                    <CloseIcon sx={{ fontSize: 15 }} />
+                                </button>
+                            )}
+                        </div>
+                        <button onClick={() => setOpenModal(true)} title="Thêm phiếu thu"
+                            className="bg-green-500 text-white rounded-full hover:bg-green-600 flex items-center justify-center w-8 h-8 shadow-sm">
+                            <AddIcon sx={{ fontSize: 20 }} />
+                        </button>
+                        <button onClick={handleRefresh} title="Tải lại" className="text-gray-600 hover:bg-gray-100 p-1.5 rounded">
+                            <RefreshIcon sx={{ fontSize: 20 }} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Active filter chips */}
+                {isFiltered && (
+                    <div className="flex items-center gap-2 px-3 pb-2.5 flex-wrap">
+                        {appliedDatePreset && (
+                            <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                                <CalendarTodayIcon sx={{ fontSize: 11 }} />
+                                {appliedDateLabel}
+                                {appliedDatePreset === "custom" && appliedCustomFrom && ` ${appliedCustomFrom}`}
+                                {appliedDatePreset === "custom" && appliedCustomTo && ` → ${appliedCustomTo}`}
+                                <button
+                                    onClick={() => { setAppliedDatePreset(null); setAppliedCustomFrom(""); setAppliedCustomTo(""); setPage(1); }}
+                                    className="ml-0.5 hover:text-blue-900 flex items-center"
+                                >
+                                    <CloseIcon sx={{ fontSize: 12 }} />
+                                </button>
+                            </span>
+                        )}
+                        {appliedNhaKhoa && (
+                            <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                                <StoreIcon sx={{ fontSize: 11 }} />
+                                {appliedNhaKhoa.name}
+                                <button
+                                    onClick={() => { setAppliedNhaKhoa(null); setPage(1); }}
+                                    className="ml-0.5 hover:text-blue-900 flex items-center"
+                                >
+                                    <CloseIcon sx={{ fontSize: 12 }} />
+                                </button>
+                            </span>
                         )}
                     </div>
-                    <button onClick={() => setOpenModal(true)} title="Thêm phiếu thu"
-                        className="bg-green-500 text-white rounded-full hover:bg-green-600 flex items-center justify-center w-8 h-8 font-bold text-lg shadow-sm">+</button>
-                    <button onClick={handleRefresh} title="Tải lại" className="text-gray-600 hover:bg-gray-100 p-1.5 rounded">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                        </svg>
-                    </button>
-                </div>
+                )}
             </div>
 
             {/* Table */}
@@ -122,11 +410,11 @@ export default function PhieuThuPage() {
                                         <td className="px-4 py-3 text-right font-semibold text-green-700">{formatCurrency(pt.soTienThu)}</td>
                                         <td className="px-4 py-3 max-w-[200px] truncate" title={pt.noiDung}>{pt.noiDung || "-"}</td>
                                         <td className="px-4 py-3">
-                                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pt.phuongThucThanhToan === "Chuy?n kho?n" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pt.phuongThucThanhToan === "Chuyển khoản" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
                                                 {pt.phuongThucThanhToan || "-"}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">{pt.nguoiTaoInfo?.hoVaTen || "-"}</td>
+                                        <td className="px-4 py-3">{pt.nguoiTaoInfo?.HoTenNV || "-"}</td>
                                     </tr>
                                 ))
                             )}

@@ -5,6 +5,9 @@ import {
     fetchHoaDonChuaThanhToan,
 } from "../../redux/slices/phieuThuSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
+import CloseIcon from "@mui/icons-material/Close";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 
 const toLocalDatetimeInput = (d) => {
     const dt = d ? new Date(d) : new Date();
@@ -26,6 +29,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
     const dispatch = useDispatch();
     const nhaKhoaList = useSelector((s) => s.nhaKhoa.data);
     const { hoaDonChuaThanhToan, loadingHoaDon, loading } = useSelector((s) => s.phieuThu);
+    const currentUser = useSelector((s) => s.auth.user);
 
     const [selectedNhaKhoa, setSelectedNhaKhoa] = useState("");
     const [search, setSearch] = useState("");
@@ -128,6 +132,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
                     soTienThu: soTienThanhToan,
                     noiDung,
                     phuongThucThanhToan: phuongThuc,
+                    nguoiTao: currentUser?._id,
                 })).unwrap();
             }
             setSubmitSuccess(true);
@@ -161,9 +166,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
                 <div className="flex items-center justify-between px-6 py-3.5 bg-[#29b6f6] rounded-t-2xl shrink-0">
                     <h2 className="text-white font-semibold text-base tracking-wide">Lập phiếu thu</h2>
                     <button onClick={handleClose} className="text-white hover:bg-white/20 rounded-full p-1 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <CloseIcon sx={{ fontSize: 20 }} />
                     </button>
                 </div>
 
@@ -322,9 +325,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
                             <div className="bg-[#e3f2fd] rounded-xl p-4">
                                 <p className="text-sm text-gray-500 mb-3">Tài liệu</p>
                                 <div className="flex flex-col items-center justify-center py-4 text-gray-400">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                    </svg>
+                                    <CloudUploadOutlinedIcon sx={{ fontSize: 32, color: "#9ca3af", marginBottom: "4px" }} />
                                     <p className="text-xs">Thả file vào đây để upload</p>
                                 </div>
                             </div>
@@ -355,9 +356,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                             </svg>
                         )}
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                        </svg>
+                        <SaveOutlinedIcon sx={{ fontSize: 17 }} />
                         Lưu (F3)
                     </button>
                 </div>

@@ -15,6 +15,12 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import DownloadIcon from "@mui/icons-material/Download";
 import { api } from "../../config/api";
 import { exportPhieuThuToExcel } from "../../utils/exportToExcel";
+import ExportDateSelector from "../common/ExportDateSelector";
+import {
+    EMPTY_EXPORT_DATE_FILTER,
+    toISODateRange,
+    isValidExportDateFilter,
+} from "../../utils/exportDatePresets";
 
 const formatCurrency = (value) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value || 0);
@@ -95,8 +101,7 @@ export default function PhieuThuPage() {
     const [customerSearch, setCustomerSearch] = useState("");
     const filterRef = useRef(null);
     const [openExport, setOpenExport] = useState(false);
-    const [exportFrom, setExportFrom] = useState("");
-    const [exportTo, setExportTo] = useState("");
+    const [exportDateFilter, setExportDateFilter] = useState(EMPTY_EXPORT_DATE_FILTER);
     const [exportNhaKhoa, setExportNhaKhoa] = useState("");
     const [exporting, setExporting] = useState(false);
 
@@ -176,15 +181,14 @@ export default function PhieuThuPage() {
     };
 
     const handleExportExcel = async () => {
-        if (!exportFrom || !exportTo) {
-            alert("Vui lòng chọn khoảng thời gian xuất phiếu thu.");
+        if (!isValidExportDateFilter(exportDateFilter)) {
+            alert("Vui lòng chọn thời gian bằng preset hoặc Chọn trên lịch.");
             return;
         }
 
         try {
             setExporting(true);
-            const dateFrom = new Date(exportFrom).toISOString();
-            const dateTo = new Date(`${exportTo}T23:59:59`).toISOString();
+            const { fromISO, toISO } = toISODateRange(exportDateFilter);
 
             const res = await api.get("/phieu-thu", {
                 params: {
@@ -192,8 +196,8 @@ export default function PhieuThuPage() {
                     limit: 5000,
                     search: "",
                     nhaKhoaId: exportNhaKhoa || "",
-                    dateFrom,
-                    dateTo,
+                    dateFrom: fromISO,
+                    dateTo: toISO,
                 },
             });
 
@@ -201,8 +205,8 @@ export default function PhieuThuPage() {
             const selectedNk = nhaKhoaList.find((nk) => nk._id === exportNhaKhoa);
 
             await exportPhieuThuToExcel(data, {
-                fromDate: new Date(exportFrom).toLocaleDateString("vi-VN"),
-                toDate: new Date(exportTo).toLocaleDateString("vi-VN"),
+                fromDate: fromISO,
+                toDate: toISO,
                 nhaKhoaName: selectedNk?.hoVaTen || selectedNk?.tenGiaoDich || "Tất cả",
             });
 
@@ -497,9 +501,9 @@ export default function PhieuThuPage() {
             />
 
             {openExport && (
-                <div className="fixed inset-0 z-[1400] flex items-start justify-center pt-12">
+                <div className="fixed inset-0 z-[1200] flex items-start justify-center pt-24">
                     <div className="fixed inset-0 bg-black/40" onClick={() => setOpenExport(false)} />
-                    <div className="relative w-full max-w-3xl bg-gray-50 rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+                    <div className="relative w-full max-w-3xl bg-gray-50 rounded-2xl shadow-2xl border border-gray-200 overflow-visible">
                         <div className="bg-[#1ea4e8] px-6 py-4 flex items-center justify-between">
                             <h3 className="text-white text-base font-semibold">Xuất excel</h3>
                             <button className="text-white" onClick={() => setOpenExport(false)}>
@@ -508,24 +512,13 @@ export default function PhieuThuPage() {
                         </div>
 
                         <div className="p-6">
-                            <div className="grid grid-cols-2 gap-6 mb-6">
+                            <div className="grid grid-cols-1 gap-6 mb-6">
                                 <div>
-                                    <p className="text-sm text-gray-500 mb-1">Khoảng thời gian</p>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="date"
-                                            value={exportFrom}
-                                            onChange={(e) => setExportFrom(e.target.value)}
-                                            className="w-full border-b border-gray-300 bg-transparent py-2 outline-none"
-                                        />
-                                        <span className="text-gray-500">-</span>
-                                        <input
-                                            type="date"
-                                            value={exportTo}
-                                            onChange={(e) => setExportTo(e.target.value)}
-                                            className="w-full border-b border-gray-300 bg-transparent py-2 outline-none"
-                                        />
-                                    </div>
+                                    <ExportDateSelector
+                                        title="Khoảng thời gian"
+                                        value={exportDateFilter}
+                                        onChange={setExportDateFilter}
+                                    />
                                 </div>
 
                                 <div>

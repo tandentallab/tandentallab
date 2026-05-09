@@ -12,6 +12,14 @@ const applyBorder = (cell, style = 'thin') => {
   };
 };
 
+const formatDateSafe = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('vi-VN');
+};
+
+const toFileDateSafe = (value) => formatDateSafe(value).replaceAll('/', '-');
+
 export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Hóa Đơn');
@@ -261,7 +269,10 @@ export const exportPhieuThuToExcel = async (
     };
   });
 
-  worksheet.getCell("A5").value = `Từ ngày: ${fromDate || ""}   Đến ngày: ${toDate || ""}`;
+  const fromDateLabel = formatDateSafe(fromDate);
+  const toDateLabel = formatDateSafe(toDate);
+
+  worksheet.getCell("A5").value = `Từ ngày: ${fromDateLabel || ""}   Đến ngày: ${toDateLabel || ""}`;
   worksheet.getCell("A5").font = { bold: true, size: 11 };
   worksheet.getCell("A6").value = `Nha khoa: ${nhaKhoaName || "Tất cả"}`;
   worksheet.getCell("A6").font = { bold: true, size: 11 };
@@ -325,7 +336,7 @@ export const exportPhieuThuToExcel = async (
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const fileName = `Danh sach phieu thu ${fromDate || ""}-${toDate || ""}.xlsx`;
+  const fileName = `Danh sach phieu thu ${toFileDateSafe(fromDate) || ""}-${toFileDateSafe(toDate) || ""}.xlsx`;
   saveAs(new Blob([buffer]), fileName);
 };
 
@@ -359,7 +370,10 @@ export const exportHoaDonListToExcel = async (
   worksheet.getCell('A3').value = 'Điện thoại: 0842 312 828';
   worksheet.getCell('A4').value = 'Email: tandentallab@gmail.com';
 
-  worksheet.getCell('A6').value = `Từ ngày: ${fromDate || ''}   Đến ngày: ${toDate || ''}`;
+  const fromDateLabel = formatDateSafe(fromDate);
+  const toDateLabel = formatDateSafe(toDate);
+
+  worksheet.getCell('A6').value = `Từ ngày: ${fromDateLabel || ''}   Đến ngày: ${toDateLabel || ''}`;
   worksheet.getCell('A7').value = `Nha khoa: ${nhaKhoaName || 'Tất cả'}`;
 
   const headerRow = 9;
@@ -426,7 +440,7 @@ export const exportHoaDonListToExcel = async (
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const fileName = `Danh sach hoa don ${fromDate || ''}-${toDate || ''}.xlsx`;
+  const fileName = `Danh sach hoa don ${toFileDateSafe(fromDate) || ''}-${toFileDateSafe(toDate) || ''}.xlsx`;
   saveAs(new Blob([buffer]), fileName);
 };
 
@@ -437,10 +451,28 @@ export const exportDonHangListToExcel = async (
     ngayNhanTo = "",
     yeuCauGiaoFrom = "",
     yeuCauGiaoTo = "",
+    daHoanThanhFrom = "",
+    daHoanThanhTo = "",
     nhaKhoaName = "Tất cả",
     benhNhanName = "Tất cả",
   } = {}
 ) => {
+  const pickRangeLabel = () => {
+    const ranges = [
+      { from: ngayNhanFrom, to: ngayNhanTo },
+      { from: yeuCauGiaoFrom, to: yeuCauGiaoTo },
+      { from: daHoanThanhFrom, to: daHoanThanhTo },
+    ];
+
+    const active = ranges.find((range) => range.from || range.to);
+    if (!active) return "";
+
+    const from = formatDateSafe(active.from);
+    const to = formatDateSafe(active.to);
+    if (from && to) return `${from}-${to}`;
+    return from || to;
+  };
+
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Danh sách đơn hàng");
 
@@ -478,16 +510,18 @@ export const exportDonHangListToExcel = async (
     };
   });
 
-  worksheet.getCell("A5").value = `Ngày nhận: ${ngayNhanFrom || ""} - ${ngayNhanTo || ""}`;
-  worksheet.getCell("A6").value = `Ngày yêu cầu giao: ${yeuCauGiaoFrom || ""} - ${yeuCauGiaoTo || ""}`;
+  worksheet.getCell("A5").value = `Ngày nhận: ${formatDateSafe(ngayNhanFrom)} - ${formatDateSafe(ngayNhanTo)}`;
+  worksheet.getCell("A6").value = `Ngày yêu cầu giao: ${formatDateSafe(yeuCauGiaoFrom)} - ${formatDateSafe(yeuCauGiaoTo)}`;
+  worksheet.getCell("A8").value = `Ngày hoàn thành: ${formatDateSafe(daHoanThanhFrom)} - ${formatDateSafe(daHoanThanhTo)}`;
   worksheet.getCell("A7").value = `Nha khoa: ${nhaKhoaName || "Tất cả"}`;
   worksheet.getCell("E7").value = `Bệnh nhân: ${benhNhanName || "Tất cả"}`;
   worksheet.getCell("A5").font = { bold: true, size: 11 };
   worksheet.getCell("A6").font = { bold: true, size: 11 };
   worksheet.getCell("A7").font = { bold: true, size: 11 };
   worksheet.getCell("E7").font = { bold: true, size: 11 };
+  worksheet.getCell("A8").font = { bold: true, size: 11 };
 
-  const headerRow = 9;
+  const headerRow = 10;
   const headers = [
     "Số",
     "Nhận lúc",
@@ -582,6 +616,6 @@ export const exportDonHangListToExcel = async (
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const fileName = `Danh sach don hang ${ngayNhanFrom || ""}-${ngayNhanTo || ""}.xlsx`;
+  const fileName = `Danh sach don hang ${pickRangeLabel() || ""}.xlsx`;
   saveAs(new Blob([buffer]), fileName);
 };

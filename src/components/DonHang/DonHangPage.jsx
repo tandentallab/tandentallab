@@ -4,13 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { fetchDonHang } from "../../redux/slices/donHangSlice";
 import DonHangTable from "./DonHangTable";
 import DonHangDetailPanel from "./DonHangDetailPanel";
+import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice"; 
+import { fetchBenhNhan } from "../../redux/slices/benhNhanSlice";
 import {
   Modal,
   Box,
   Typography,
   Divider,
   Grid,
-  TextField,
   FormControl,
   Select,
   MenuItem,
@@ -30,6 +31,12 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import DownloadIcon from "@mui/icons-material/Download";
 import { exportDonHangListToExcel } from "../../utils/exportToExcel";
+import ExportDateSelector from "../common/ExportDateSelector";
+import {
+  EMPTY_EXPORT_DATE_FILTER,
+  toISODateRange,
+  isValidExportDateFilter,
+} from "../../utils/exportDatePresets";
 
 const DATE_PRESETS = [
   { key: "custom", label: "Chọn trên Lịch", isCalendar: true },
@@ -111,7 +118,8 @@ const DonHangPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { data: donHangs, loading, error } = useSelector((state) => state.donHang);
-
+  const nhaKhoaState = useSelector((state) => state.nhaKhoa); 
+  const benhNhanState = useSelector((state) => state.benhNhan);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDonHangId, setSelectedDonHangId] = useState(null);
 
@@ -141,17 +149,18 @@ const DonHangPage = () => {
   // Export state
   const [openExport, setOpenExport] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [exportNgayNhanFrom, setExportNgayNhanFrom] = useState("");
-  const [exportNgayNhanTo, setExportNgayNhanTo] = useState("");
-  const [exportYeuCauGiaoFrom, setExportYeuCauGiaoFrom] = useState("");
-  const [exportYeuCauGiaoTo, setExportYeuCauGiaoTo] = useState("");
-  const [exportDaHoanThanhFrom, setExportDaHoanThanhFrom] = useState("");
-  const [exportDaHoanThanhTo, setExportDaHoanThanhTo] = useState("");
+  const [exportNgayNhan, setExportNgayNhan] = useState(EMPTY_EXPORT_DATE_FILTER);
+  const [exportYeuCauGiao, setExportYeuCauGiao] = useState(EMPTY_EXPORT_DATE_FILTER);
+  const [exportNgayHoanThanh, setExportNgayHoanThanh] = useState(EMPTY_EXPORT_DATE_FILTER);
   const [exportTrangThai, setExportTrangThai] = useState([]);
   const [exportNhaKhoa, setExportNhaKhoa] = useState("");
   const [exportBenhNhan, setExportBenhNhan] = useState("");
 
-  useEffect(() => { dispatch(fetchDonHang()); }, [dispatch]);
+  useEffect(() => { 
+    dispatch(fetchDonHang());
+    dispatch(fetchNhaKhoa());
+    dispatch(fetchBenhNhan());
+  }, [dispatch]);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -162,20 +171,20 @@ const DonHangPage = () => {
   }, []);
 
   const nhaKhoaOptions = useMemo(() => {
-    const map = new Map();
-    donHangs.forEach((dh) => {
-      if (dh.nhaKhoa?._id) map.set(dh.nhaKhoa._id, { _id: dh.nhaKhoa._id, name: dh.nhaKhoa.tenGiaoDich || dh.nhaKhoa.hoVaTen || "" });
-    });
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [donHangs]);
+    const data = nhaKhoaState?.data || [];
+    return Array.isArray(data) ? data.map(nk => ({
+      _id: nk._id,
+      name: nk.tenGiaoDich || nk.hoVaTen || ""
+    })).sort((a, b) => a.name.localeCompare(b.name)) : [];
+  }, [nhaKhoaState?.data]);
 
   const benhNhanOptions = useMemo(() => {
-    const map = new Map();
-    donHangs.forEach((dh) => {
-      if (dh.benhNhan?._id) map.set(dh.benhNhan._id, { _id: dh.benhNhan._id, name: dh.benhNhan.hoVaTen || "" });
-    });
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [donHangs]);
+    const data = benhNhanState?.data || [];
+    return Array.isArray(data) ? data.map(bn => ({
+      _id: bn._id,
+      name: bn.hoVaTen || ""
+    })).sort((a, b) => a.name.localeCompare(b.name)) : [];
+  }, [benhNhanState?.data]);
 
   const filteredNhaKhoaOpts = useMemo(() => {
     if (!nhaKhoaSearch.trim()) return nhaKhoaOptions;
@@ -233,11 +242,17 @@ const DonHangPage = () => {
     setDraftTrangThai((prev) => prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]);
   };
 
-  const isDateInRangeForExport = (dateValue, from, to) => {
+  const hasExportDateValue = () =>
+    [exportNgayNhan, exportYeuCauGiao, exportNgayHoanThanh].some((item) =>
+      isValidExportDateFilter(item)
+    );
+
+  const isDateInRangeForExport = (dateValue, fromISO, toISO) => {
+    if (!fromISO && !toISO) return true;
     if (!dateValue) return false;
     const date = new Date(dateValue);
-    const fromDate = from ? new Date(from) : null;
-    const toDate = to ? new Date(`${to}T23:59:59`) : null;
+    const fromDate = fromISO ? new Date(fromISO) : null;
+    const toDate = toISO ? new Date(toISO) : null;
 
     if (fromDate && date < fromDate) return false;
     if (toDate && date > toDate) return false;
@@ -246,43 +261,40 @@ const DonHangPage = () => {
 
   const handleCloseExport = () => {
     setOpenExport(false);
-    setExportNgayNhanFrom("");
-    setExportNgayNhanTo("");
-    setExportYeuCauGiaoFrom("");
-    setExportYeuCauGiaoTo("");
-    setExportDaHoanThanhFrom("");
-    setExportDaHoanThanhTo("");
+    setExportNgayNhan(EMPTY_EXPORT_DATE_FILTER);
+    setExportYeuCauGiao(EMPTY_EXPORT_DATE_FILTER);
+    setExportNgayHoanThanh(EMPTY_EXPORT_DATE_FILTER);
     setExportTrangThai([]);
     setExportNhaKhoa("");
     setExportBenhNhan("");
   };
 
   const handleExportExcel = async () => {
-    if (!exportNgayNhanFrom || !exportNgayNhanTo) {
-      alert("Vui lòng nhập đầy đủ Ngày nhận đơn (Từ - Đến).");
-      return;
-    }
-    if (!exportYeuCauGiaoFrom || !exportYeuCauGiaoTo) {
-      alert("Vui lòng nhập đầy đủ Ngày yêu cầu giao (Từ - Đến).");
+    if (!hasExportDateValue()) {
+      alert("Vui lòng nhập ít nhất 1 trong 3 nhóm ngày: Ngày nhận đơn, Ngày yêu cầu giao hoặc Ngày hoàn thành.");
       return;
     }
 
     try {
       setExporting(true);
 
+      const ngayNhanRange = toISODateRange(exportNgayNhan);
+      const yeuCauGiaoRange = toISODateRange(exportYeuCauGiao);
+      const ngayHoanThanhRange = toISODateRange(exportNgayHoanThanh);
+
       const data = donHangs.filter((dh) => {
-        if (!isDateInRangeForExport(dh.ngayNhan, exportNgayNhanFrom, exportNgayNhanTo)) {
+        if (!isDateInRangeForExport(dh.ngayNhan, ngayNhanRange.fromISO, ngayNhanRange.toISO)) {
           return false;
         }
 
-        if (!isDateInRangeForExport(dh.yeuCauHoanThanh, exportYeuCauGiaoFrom, exportYeuCauGiaoTo)) {
+        if (!isDateInRangeForExport(dh.yeuCauHoanThanh, yeuCauGiaoRange.fromISO, yeuCauGiaoRange.toISO)) {
           return false;
         }
 
-        if (exportDaHoanThanhFrom || exportDaHoanThanhTo) {
+        if (isValidExportDateFilter(exportNgayHoanThanh)) {
           const completedStatus = dh.trangThai === "Hoàn thành" || dh.trangThai === "Đã giao";
           if (!completedStatus) return false;
-          if (!isDateInRangeForExport(dh.updatedAt, exportDaHoanThanhFrom, exportDaHoanThanhTo)) {
+          if (!isDateInRangeForExport(dh.updatedAt, ngayHoanThanhRange.fromISO, ngayHoanThanhRange.toISO)) {
             return false;
           }
         }
@@ -306,10 +318,12 @@ const DonHangPage = () => {
       const selectedBenhNhan = benhNhanOptions.find((bn) => bn._id === exportBenhNhan);
 
       await exportDonHangListToExcel(data, {
-        ngayNhanFrom: new Date(exportNgayNhanFrom).toLocaleDateString("vi-VN"),
-        ngayNhanTo: new Date(exportNgayNhanTo).toLocaleDateString("vi-VN"),
-        yeuCauGiaoFrom: new Date(exportYeuCauGiaoFrom).toLocaleDateString("vi-VN"),
-        yeuCauGiaoTo: new Date(exportYeuCauGiaoTo).toLocaleDateString("vi-VN"),
+        ngayNhanFrom: ngayNhanRange.fromISO,
+        ngayNhanTo: ngayNhanRange.toISO,
+        yeuCauGiaoFrom: yeuCauGiaoRange.fromISO,
+        yeuCauGiaoTo: yeuCauGiaoRange.toISO,
+        daHoanThanhFrom: ngayHoanThanhRange.fromISO,
+        daHoanThanhTo: ngayHoanThanhRange.toISO,
         nhaKhoaName: selectedNhaKhoa?.name || "Tất cả",
         benhNhanName: selectedBenhNhan?.name || "Tất cả",
       });
@@ -551,9 +565,10 @@ const DonHangPage = () => {
             <button
               onClick={() => setOpenExport(true)}
               title="Xuất excel"
-              className="bg-blue-500 text-white rounded-full hover:bg-blue-600 flex items-center justify-center w-8 h-8 shadow-sm"
+              className="px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1"
             >
-              <DownloadIcon sx={{ fontSize: 18 }} />
+              <DownloadIcon sx={{ fontSize: 17 }} />
+              Xuất excel
             </button>
             <button onClick={handleRefresh} title="Tải lại" className="text-gray-600 hover:bg-gray-100 p-1.5 rounded">
               <RefreshIcon sx={{ fontSize: 20 }} />
@@ -639,59 +654,22 @@ const DonHangPage = () => {
               <Typography variant="subtitle2" className="font-semibold text-gray-800 mb-4 border-b pb-1">
                 Lọc theo khoảng thời gian
               </Typography>
-              <Stack spacing={3}>
-                
-                {/* Ngày nhận đơn */}
-                <Box>
-                  <Typography variant="body2" className="font-semibold text-gray-700 mb-2">
-                    1. Ngày nhận đơn
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6} sm={6}>
-                      <Typography variant="caption" className="text-gray-500 mb-1 block">Từ ngày</Typography>
-                      <TextField type="date" size="small" fullWidth value={exportNgayNhanFrom} onChange={(e) => setExportNgayNhanFrom(e.target.value)} />
-                    </Grid>
-                    <Grid item xs={6} sm={6}>
-                      <Typography variant="caption" className="text-gray-500 mb-1 block">Đến ngày</Typography>
-                      <TextField type="date" size="small" fullWidth value={exportNgayNhanTo} onChange={(e) => setExportNgayNhanTo(e.target.value)} />
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                {/* Ngày yêu cầu giao */}
-                <Box>
-                  <Typography variant="body2" className="font-semibold text-gray-700 mb-2">
-                    2. Ngày yêu cầu giao
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6} sm={6}>
-                      <Typography variant="caption" className="text-gray-500 mb-1 block">Từ ngày</Typography>
-                      <TextField type="date" size="small" fullWidth value={exportYeuCauGiaoFrom} onChange={(e) => setExportYeuCauGiaoFrom(e.target.value)} />
-                    </Grid>
-                    <Grid item xs={6} sm={6}>
-                      <Typography variant="caption" className="text-gray-500 mb-1 block">Đến ngày</Typography>
-                      <TextField type="date" size="small" fullWidth value={exportYeuCauGiaoTo} onChange={(e) => setExportYeuCauGiaoTo(e.target.value)} />
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                {/* Ngày đã hoàn thành */}
-                <Box>
-                  <Typography variant="body2" className="font-semibold text-gray-700 mb-2">
-                    3. Ngày hoàn thành
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6} sm={6}>
-                      <Typography variant="caption" className="text-gray-500 mb-1 block">Từ ngày</Typography>
-                      <TextField type="date" size="small" fullWidth value={exportDaHoanThanhFrom} onChange={(e) => setExportDaHoanThanhFrom(e.target.value)} />
-                    </Grid>
-                    <Grid item xs={6} sm={6}>
-                      <Typography variant="caption" className="text-gray-500 mb-1 block">Đến ngày</Typography>
-                      <TextField type="date" size="small" fullWidth value={exportDaHoanThanhTo} onChange={(e) => setExportDaHoanThanhTo(e.target.value)} />
-                    </Grid>
-                  </Grid>
-                </Box>
-
+              <Stack spacing={2.5}>
+                <ExportDateSelector
+                  title="1. Ngày nhận đơn"
+                  value={exportNgayNhan}
+                  onChange={setExportNgayNhan}
+                />
+                <ExportDateSelector
+                  title="2. Ngày yêu cầu giao"
+                  value={exportYeuCauGiao}
+                  onChange={setExportYeuCauGiao}
+                />
+                <ExportDateSelector
+                  title="3. Ngày hoàn thành"
+                  value={exportNgayHoanThanh}
+                  onChange={setExportNgayHoanThanh}
+                />
               </Stack>
             </Box>
 
@@ -739,11 +717,13 @@ const DonHangPage = () => {
                       value={exportNhaKhoa}
                       onChange={(e) => setExportNhaKhoa(e.target.value)}
                       displayEmpty
+                      MenuProps={{ PaperProps: { style: { maxHeight: 300 } }, container: typeof document !== 'undefined' ? document.body : undefined }}
                     >
                       <MenuItem value=""><span className="text-gray-500">-- Tất cả nha khoa --</span></MenuItem>
                       {nhaKhoaOptions.map((nk) => (
                         <MenuItem key={nk._id} value={nk._id}>{nk.name}</MenuItem>
                       ))}
+
                     </Select>
                   </FormControl>
                 </Box>
@@ -756,6 +736,7 @@ const DonHangPage = () => {
                       value={exportBenhNhan}
                       onChange={(e) => setExportBenhNhan(e.target.value)}
                       displayEmpty
+                      MenuProps={{ PaperProps: { style: { maxHeight: 300 } }, container: typeof document !== 'undefined' ? document.body : undefined }}
                     >
                       <MenuItem value=""><span className="text-gray-500">-- Tất cả bệnh nhân --</span></MenuItem>
                       {benhNhanOptions.map((bn) => (

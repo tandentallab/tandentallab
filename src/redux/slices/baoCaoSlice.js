@@ -4,9 +4,9 @@ import { api } from "../../config/api";
 /* ================= GET BAO CAO ================= */
 export const fetchTopProductsBaoCao = createAsyncThunk(
     "baoCao/fetchTopProducts",
-    async ({ timeRange, dateType }, { rejectWithValue }) => {
+    async (params, { rejectWithValue }) => {
         try {
-            const res = await api.get(`/baocao/top-products?timeRange=${timeRange}&dateType=${dateType}`);
+            const res = await api.get("/baocao/top-products", { params });
             return res.data.data;
         } catch (err) {
             return rejectWithValue(err.response?.data?.message || "Lỗi lấy báo cáo");

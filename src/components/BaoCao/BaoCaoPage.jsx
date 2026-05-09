@@ -9,6 +9,74 @@ import PrintTemplate from './PrintTemplate';
 import FilterBar from './FilterBar';
 import PrintPreviewDialog from './PrintPreviewDialog';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SINGLE SOURCE OF TRUTH: Tính startDate / endDate duy nhất tại đây,
+// truyền xuống cho cả Chart, Table và PrintTemplate qua props.
+// Format: 'YYYY-MM-DD' — Backend sẽ tự chuẩn hóa 00:00:00 / 23:59:59.
+// ─────────────────────────────────────────────────────────────────────────────
+const computeDateRange = (filter, customDates) => {
+    if (filter === 'custom') {
+        return {
+            startDate: customDates.start,
+            endDate: customDates.end,
+        };
+    }
+
+    const now = dayjs();
+    let start = now;
+    let end = now;
+
+    switch (filter) {
+        case 'today':
+            start = now.startOf('day');
+            end = now;
+            break;
+        case 'yesterday':
+            start = now.subtract(1, 'day').startOf('day');
+            end = now.subtract(1, 'day');
+            break;
+        case 'this_week':
+            // Tuần bắt đầu Thứ Hai (add 1 ngày so với startOf('week') = CN)
+            start = now.startOf('week').add(1, 'day');
+            end = now;
+            break;
+        case 'last_week':
+            start = now.subtract(1, 'week').startOf('week').add(1, 'day');
+            end = now.subtract(1, 'week').endOf('week').add(1, 'day');
+            break;
+        case 'last_7_days':
+            start = now.subtract(7, 'day').startOf('day');
+            end = now;
+            break;
+        case 'last_10_days':
+            start = now.subtract(10, 'day').startOf('day');
+            end = now;
+            break;
+        case 'this_month':
+            start = now.startOf('month');
+            end = now;
+            break;
+        case 'last_month':
+            start = now.subtract(1, 'month').startOf('month');
+            end = now.subtract(1, 'month').endOf('month');
+            break;
+        case 'last_30_days':
+            start = now.subtract(30, 'day').startOf('day');
+            end = now;
+            break;
+        default:
+            start = now.startOf('month');
+            end = now;
+    }
+
+    return {
+        startDate: start.format('YYYY-MM-DD'),
+        endDate: end.format('YYYY-MM-DD'),
+    };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const BaoCaoSanLuongPage = () => {
     const [selectedFilter, setSelectedFilter] = useState('this_month');
     const [dateType, setDateType] = useState('ngayNhan');
@@ -20,48 +88,12 @@ const BaoCaoSanLuongPage = () => {
 
     const { detailedData } = useSelector((state) => state.baoCao);
 
-    // ── TÍNH KHOẢNG NGÀY THEO BỘ LỌC ────────────────────────────────────
-    const dateRange = useMemo(() => {
-        if (selectedFilter === 'custom') {
-            return { start: customDates.start, end: customDates.end };
-        }
-
-        let start = dayjs();
-        let end = dayjs();
-
-        switch (selectedFilter) {
-            case 'today':
-                start = dayjs().startOf('day');
-                break;
-            case 'yesterday':
-                start = dayjs().subtract(1, 'day').startOf('day');
-                end = dayjs().subtract(1, 'day').endOf('day');
-                break;
-            case 'this_week':
-                start = dayjs().startOf('week');
-                break;
-            case 'this_month':
-                start = dayjs().startOf('month');
-                break;
-            case 'last_month':
-                start = dayjs().subtract(1, 'month').startOf('month');
-                end = dayjs().subtract(1, 'month').endOf('month');
-                break;
-            case 'last_7_days':
-                start = dayjs().subtract(7, 'days');
-                break;
-            case 'last_30_days':
-                start = dayjs().subtract(30, 'days');
-                break;
-            default:
-                break;
-        }
-
-        return {
-            start: start.format('YYYY-MM-DD'),
-            end: end.format('YYYY-MM-DD'),
-        };
-    }, [selectedFilter, customDates]);
+    // ── SINGLE SOURCE OF TRUTH ───────────────────────────────────────────
+    // Mọi component con đều dùng cặp {startDate, endDate} này.
+    const { startDate, endDate } = useMemo(
+        () => computeDateRange(selectedFilter, customDates),
+        [selectedFilter, customDates]
+    );
 
     // ── XUẤT EXCEL ───────────────────────────────────────────────────────
     const handleExportExcel = () => {
@@ -81,7 +113,7 @@ const BaoCaoSanLuongPage = () => {
             { m: 0, s: 0, b: 0, l: 0, t: 0 }
         );
 
-        const fullDateRange = `${dayjs(dateRange.start).format('DD/MM/YYYY')} - ${dayjs(dateRange.end).format('DD/MM/YYYY')}`;
+        const fullDateRange = `${dayjs(startDate).format('DD/MM/YYYY')} - ${dayjs(endDate).format('DD/MM/YYYY')}`;
 
         const rows = [
             ['Công ty TNHH Tấn Dental'],
@@ -111,7 +143,6 @@ const BaoCaoSanLuongPage = () => {
             { wch: 45 }, { wch: 10 }, { wch: 10 },
             { wch: 12 }, { wch: 10 }, { wch: 14 },
         ];
-
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sản lượng');
         XLSX.writeFile(workbook, `Bao_cao_san_luong_${dayjs().format('DD-MM-YYYY')}.xlsx`);
@@ -120,8 +151,6 @@ const BaoCaoSanLuongPage = () => {
     // ── IN ───────────────────────────────────────────────────────────────
     const handlePrintAction = () => {
         setOpenPreview(false);
-        // Đợi modal đóng hoàn toàn rồi mới gọi print
-        // → tránh modal bị capture vào bản in
         setTimeout(() => window.print(), 300);
     };
 
@@ -129,16 +158,15 @@ const BaoCaoSanLuongPage = () => {
     return (
         <div className="p-6 bg-gray-50 min-h-screen w-full">
 
-            {/* ════ GIAO DIỆN WEB (class no-print → ẩn hoàn toàn khi in) ════ */}
+            {/* ════ GIAO DIỆN WEB ════ */}
             <div className="no-print">
 
-                {/* 1. Biểu đồ sản lượng */}
+                {/* 1. Biểu đồ — nhận startDate / endDate đã tính sẵn */}
                 <div className="mb-6">
                     <BaoCaoSanLuongChart
-                        timeRange={selectedFilter}
+                        startDate={startDate}
+                        endDate={endDate}
                         dateType={dateType}
-                        customStart={dateRange.start}
-                        customEnd={dateRange.end}
                     />
                 </div>
 
@@ -154,69 +182,47 @@ const BaoCaoSanLuongPage = () => {
                     onExport={handleExportExcel}
                 />
 
-                {/* 3. Bảng dữ liệu chi tiết */}
+                {/* 3. Bảng chi tiết — nhận startDate / endDate đã tính sẵn */}
                 <BaoCaoChiTietTable
-                    timeRange={selectedFilter}
+                    startDate={startDate}
+                    endDate={endDate}
                     dateType={dateType}
-                    customStart={dateRange.start}
-                    customEnd={dateRange.end}
                 />
             </div>
 
-            {/* ════ MODAL XEM TRƯỚC (bọc no-print → không bị in) ════ */}
+            {/* ════ MODAL XEM TRƯỚC ════ */}
             <div className="no-print">
                 <PrintPreviewDialog
                     open={openPreview}
                     onClose={() => setOpenPreview(false)}
                     onConfirmPrint={handlePrintAction}
                     detailedData={detailedData}
-                    startDate={dateRange.start}
-                    endDate={dateRange.end}
+                    startDate={startDate}
+                    endDate={endDate}
                 />
             </div>
 
-            {/* ════ VÙNG IN — chỉ hiển thị khi @media print ════
-                FIX TRANG TRẮNG:
-                - Dùng display:none / display:block thay vì visibility:hidden
-                  → phần tử bị xoá khỏi luồng layout, không tạo trang trắng thừa.
-                - Bỏ position:absolute → nội dung chảy tự nhiên từ đầu trang.
-            ════ */}
+            {/* ════ VÙNG IN — dùng startDate/endDate để hiển thị "Từ ngày... đến ngày..." ════ */}
             <div className="print-only">
                 <PrintTemplate
                     data={detailedData}
-                    startDate={dateRange.start}
-                    endDate={dateRange.end}
+                    startDate={startDate}
+                    endDate={endDate}
                 />
             </div>
 
             <style>{`
-                /* Mặc định (màn hình): ẩn vùng in */
                 .print-only { display: none; }
 
                 @media print {
-                    /* Ẩn giao diện web bằng display:none
-                       → xoá hẳn khỏi luồng, không để lại trang trắng */
-                    .no-print { display: none !important; }
-
-                    /* Hiện vùng in, chảy tự nhiên từ đầu trang */
+                    .no-print  { display: none !important; }
                     .print-only {
                         display: block !important;
                         font-family: Arial, sans-serif !important;
                     }
-
-                    /* Ẩn sidebar / nav của app */
                     header, nav, aside, .sidebar { display: none !important; }
-
-                    @page {
-                        size: A4 portrait;
-                        margin: 15mm;
-                    }
-
-                    body {
-                        background: white !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                    }
+                    @page { size: A4 portrait; margin: 15mm; }
+                    body { background: white !important; margin: 0 !important; padding: 0 !important; }
                 }
             `}</style>
         </div>

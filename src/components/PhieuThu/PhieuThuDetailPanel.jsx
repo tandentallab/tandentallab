@@ -5,6 +5,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import PrintIcon from "@mui/icons-material/Print";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@mui/material";
 
 const formatNumber = (v) => new Intl.NumberFormat("vi-VN").format(v || 0);
 
@@ -203,9 +204,14 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                   </p>
                   {/* Invoice header row */}
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-bold text-[#29b6f6]">
+                    <Button
+                      variant="text"
+                      onClick={() => {
+                        navigate(`/hoa-don/${hd._id}/edit`);
+                      }}
+                    >
                       {formatSoPhieu(hd._id)}
-                    </span>
+                    </Button>
                     <span className="text-sm text-gray-500">
                       Ngày xuất: {formatDateShort(hd.ngayXuatHoaDon)}
                     </span>

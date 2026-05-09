@@ -416,7 +416,15 @@ const HoaDonTable = () => {
             </TableRow>
             <TableRow className="bg-gray-100">
               <TableCell className="font-bold">Số Hóa Đơn</TableCell>
-              <TableCell className="font-bold">Nha Khoa</TableCell>
+              <TableCell
+                className="font-bold"
+                sx={{
+                  minWidth: 120,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Nha Khoa
+              </TableCell>
               <TableCell className="font-bold">Tổng Tiền</TableCell>
               <TableCell className="font-bold">Tổng Chiếc Khấu</TableCell>
               <TableCell className="font-bold">Phải thanh toán</TableCell>

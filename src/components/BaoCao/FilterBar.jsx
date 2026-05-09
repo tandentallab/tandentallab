@@ -9,7 +9,7 @@ const TIME_FILTERS = [
     { id: 'last_month', label: 'Tháng trước' },
     { id: 'last_7_days', label: '7 ngày qua' },
     { id: 'last_30_days', label: '30 ngày qua' },
-    { id: 'custom', label: 'Tuỳ chọn' },
+    { id: 'custom', label: '📅 Tuỳ chọn...' },
 ];
 
 const FilterBar = ({
@@ -25,10 +25,8 @@ const FilterBar = ({
     return (
         <div className="my-6 space-y-3">
 
-            {/* ══════════════════════════════════════════════════════════════
-                HÀNG 1: Toggle ngày nhận/hẹn giao + Pills bộ lọc + Nút hành động
-            ══════════════════════════════════════════════════════════════ */}
-            <div className="flex flex-wrap items-center gap-3 p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
+            {/* ── HÀNG CHÍNH ─────────────────────────────────────────────── */}
+            <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100">
 
                 {/* Toggle: Ngày nhận / Hẹn giao */}
                 <div className="flex bg-gray-100 rounded-xl p-1 shrink-0">
@@ -40,8 +38,8 @@ const FilterBar = ({
                             key={value}
                             onClick={() => setDateType(value)}
                             className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${dateType === value
-                                    ? 'bg-blue-600 text-white shadow'
-                                    : 'text-gray-500 hover:bg-gray-200'
+                                ? 'bg-blue-600 text-white shadow'
+                                : 'text-gray-500 hover:bg-gray-200'
                                 }`}
                         >
                             {label}
@@ -49,34 +47,23 @@ const FilterBar = ({
                     ))}
                 </div>
 
-                {/* Divider dọc */}
+                {/* Divider */}
                 <div className="h-7 w-px bg-gray-200 shrink-0" />
 
-                {/* Pills bộ lọc thời gian */}
-                <div className="flex flex-wrap gap-1.5 flex-1">
-                    {TIME_FILTERS.map((f) => {
-                        const isActive = selectedFilter === f.id;
-                        const isCustom = f.id === 'custom';
-                        return (
-                            <button
-                                key={f.id}
-                                onClick={() => setSelectedFilter(f.id)}
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap border ${isActive
-                                        ? isCustom
-                                            ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                                            : 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
-                                    }`}
-                            >
-                                {isCustom && <CalendarMonth sx={{ fontSize: 13 }} />}
-                                {f.label}
-                            </button>
-                        );
-                    })}
-                </div>
+                {/* Dropdown bộ lọc thời gian */}
+                <select
+                    value={selectedFilter}
+                    onChange={(e) => setSelectedFilter(e.target.value)}
+                    className="h-9 px-3 pr-8 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl outline-none cursor-pointer hover:border-blue-300 focus:border-blue-400 transition-colors appearance-none"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
+                >
+                    {TIME_FILTERS.map((f) => (
+                        <option key={f.id} value={f.id}>{f.label}</option>
+                    ))}
+                </select>
 
-                {/* Nút hành động */}
-                <div className="flex items-center gap-2 shrink-0 ml-auto">
+                {/* Nút hành động — đẩy sang phải */}
+                <div className="flex items-center gap-2 ml-auto shrink-0">
                     <button
                         onClick={onPrint}
                         className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-all shadow-sm active:scale-95"
@@ -92,9 +79,7 @@ const FilterBar = ({
                 </div>
             </div>
 
-            {/* ══════════════════════════════════════════════════════════════
-                HÀNG 2 (chỉ hiện khi chọn "Tuỳ chọn"): Date range picker
-            ══════════════════════════════════════════════════════════════ */}
+            {/* ── DATE RANGE PICKER (chỉ hiện khi chọn Tuỳ chọn) ────────── */}
             {selectedFilter === 'custom' && (
                 <div className="flex flex-col sm:flex-row items-center gap-4 px-5 py-4 bg-violet-50 border border-violet-200 rounded-2xl shadow-sm">
 
@@ -105,7 +90,7 @@ const FilterBar = ({
 
                     <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
 
-                        {/* Ngày bắt đầu */}
+                        {/* Từ ngày */}
                         <div className="flex flex-col gap-1 flex-1 w-full">
                             <label className="text-[11px] font-semibold text-violet-500 uppercase tracking-wide">
                                 Từ ngày
@@ -114,17 +99,14 @@ const FilterBar = ({
                                 type="date"
                                 value={customDates.start}
                                 max={customDates.end}
-                                onChange={(e) =>
-                                    setCustomDates((prev) => ({ ...prev, start: e.target.value }))
-                                }
+                                onChange={(e) => setCustomDates((p) => ({ ...p, start: e.target.value }))}
                                 className="w-full px-4 py-2.5 text-sm font-medium text-gray-800 bg-white border-2 border-violet-200 rounded-xl outline-none focus:border-violet-500 transition-colors cursor-pointer"
                             />
                         </div>
 
-                        {/* Arrow */}
                         <div className="text-violet-300 font-bold text-xl mt-4 hidden sm:block">→</div>
 
-                        {/* Ngày kết thúc */}
+                        {/* Đến ngày */}
                         <div className="flex flex-col gap-1 flex-1 w-full">
                             <label className="text-[11px] font-semibold text-violet-500 uppercase tracking-wide">
                                 Đến ngày
@@ -133,22 +115,15 @@ const FilterBar = ({
                                 type="date"
                                 value={customDates.end}
                                 min={customDates.start}
-                                onChange={(e) =>
-                                    setCustomDates((prev) => ({ ...prev, end: e.target.value }))
-                                }
+                                onChange={(e) => setCustomDates((p) => ({ ...p, end: e.target.value }))}
                                 className="w-full px-4 py-2.5 text-sm font-medium text-gray-800 bg-white border-2 border-violet-200 rounded-xl outline-none focus:border-violet-500 transition-colors cursor-pointer"
                             />
                         </div>
 
-                        {/* Hiển thị khoảng đã chọn */}
+                        {/* Badge số ngày */}
                         {customDates.start && customDates.end && (
                             <div className="shrink-0 px-4 py-2.5 bg-violet-600 text-white text-xs font-bold rounded-xl whitespace-nowrap mt-4 sm:mt-0 self-end">
-                                {(() => {
-                                    const s = new Date(customDates.start);
-                                    const e = new Date(customDates.end);
-                                    const days = Math.round((e - s) / 86400000) + 1;
-                                    return `${days} ngày`;
-                                })()}
+                                {Math.round((new Date(customDates.end) - new Date(customDates.start)) / 86400000) + 1} ngày
                             </div>
                         )}
                     </div>

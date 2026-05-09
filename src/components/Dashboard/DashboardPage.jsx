@@ -107,11 +107,16 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 gap-6">
         <ChartBox
           chartId="chart3"
-          title="Doanh số thực thu (theo phiếu thu)"
-          data={chart3.data} loading={chart3.loading} config={chart3.config} onConfigSave={handleConfigSave}
-          keys={['Thực thu']} colors={['#059669']} // Màu xanh lá (Emerald) hợp với tài chính
+          title="So sánh doanh số thực thu"
+          data={chart3.data}
+          loading={chart3.loading}
+          config={chart3.config}
+          onConfigSave={handleConfigSave}
+          variant="line" // 👈 Chuyển sang biểu đồ đường
+          keys={['Kì này', 'Kì trước']} // 👈 Định nghĩa 2 đường so sánh
+          colors={['#059669', '#94a3b8']} // Xanh đậm cho kì này, xám cho kì trước
           yAxisLabel="Số tiền (VNĐ)"
-          isCurrency={true} // Truyền prop báo hiệu đây là chart tiền tệ
+          isCurrency={true}
         />
       </div>
     </div>

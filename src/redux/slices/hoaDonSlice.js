@@ -19,7 +19,17 @@ export const fetchDonHangChuaHoaDon = createAsyncThunk(
 export const fetchAllHoaDonAdmin = createAsyncThunk(
   "hoaDon/fetchAllAdmin",
 
-  async ({ page,limit, nhaKhoaId, search, trangThai } = {}) => {
+  async (
+    {
+      page,
+      limit,
+      nhaKhoaId,
+      search,
+      trangThai,
+      fromDate,
+      toDate,
+    } = {}
+  ) => {
     const res = await api.get(`/hoa-don/all`, {
       params: {
         page,
@@ -27,6 +37,8 @@ export const fetchAllHoaDonAdmin = createAsyncThunk(
         nhaKhoaId,
         search,
         trangThai,
+        fromDate,
+        toDate,
       },
     });
 
@@ -62,13 +74,19 @@ export const fetchHoaDonById = createAsyncThunk(
 export const createHoaDon = createAsyncThunk(
   "hoaDon/create",
 
-  async (payload) => {
-    const res = await api.post(
-      `/hoa-don`,
-      payload
-    );
+  async (payload, { rejectWithValue }) => {
+    try {
+      const res = await api.post(
+        `/hoa-don`,
+        payload
+      );
 
-    return res.data;
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data || err.message
+      );
+    }
   }
 );
 
@@ -76,13 +94,19 @@ export const createHoaDon = createAsyncThunk(
 export const updateHoaDon = createAsyncThunk(
   "hoaDon/update",
 
-  async ({ id, data }) => {
-    const res = await api.put(
-      `/hoa-don/${id}`,
-      data
-    );
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const res = await api.put(
+        `/hoa-don/${id}`,
+        data
+      );
 
-    return res.data;
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data || err.message
+      );
+    }
   }
 );
 
@@ -108,6 +132,31 @@ export const deleteHoaDon = createAsyncThunk(
   }
 );
 
+// 🔥 Thanh toán hóa đơn
+export const thanhToanHoaDon = createAsyncThunk(
+  "hoaDon/thanhToan",
+
+  async (
+    { id, soTienThanhToan },
+    { rejectWithValue }
+  ) => {
+    try {
+      const res = await api.post(
+        `/hoa-don/${id}/thanh-toan`,
+        {
+          soTienThanhToan,
+        }
+      );
+
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data || err.message
+      );
+    }
+  }
+);
+
 // 🔥 Thống kê công nợ hóa đơn
 export const fetchThongKeCongNoHoaDon =
   createAsyncThunk(
@@ -124,6 +173,27 @@ export const fetchThongKeCongNoHoaDon =
       );
 
       return res.data;
+    }
+  );
+
+/* ================= ĐẾM ĐƠN HÀNG CHƯA XUẤT HÓA ĐƠN ================= */
+
+export const fetchCountDonHangChuaXuat =
+  createAsyncThunk(
+    "hoaDon/fetchCountDonHangChuaXuat",
+
+    async (_, { rejectWithValue }) => {
+      try {
+        const res = await api.get(
+          "/hoa-don/count-don-hang-chua-xuat"
+        );
+
+        return res.data.data;
+      } catch (err) {
+        return rejectWithValue(
+          err.response?.data || err.message
+        );
+      }
     }
   );
 
@@ -157,6 +227,8 @@ const slice = createSlice({
       },
     },
 
+    countDonHangChuaXuat: [],
+
     pagination: {},
 
     loading: false,
@@ -164,7 +236,11 @@ const slice = createSlice({
     error: null,
   },
 
-  reducers: {},
+  reducers: {
+    clearChiTietHoaDon: (state) => {
+      state.chiTietHoaDon = null;
+    },
+  },
 
   extraReducers: (builder) => {
     builder
@@ -185,6 +261,17 @@ const slice = createSlice({
 
           state.donHangs =
             action.payload;
+        }
+      )
+
+      .addCase(
+        fetchDonHangChuaHoaDon.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload?.message ||
+            action.error.message;
         }
       )
 
@@ -213,6 +300,7 @@ const slice = createSlice({
           state.loading = false;
 
           state.error =
+            action.payload?.message ||
             action.error.message;
         }
       )
@@ -220,9 +308,16 @@ const slice = createSlice({
       /* ================= TẠO HÓA ĐƠN ================= */
 
       .addCase(
+        createHoaDon.pending,
+        (state) => {
+          state.loading = true;
+        }
+      )
+
+      .addCase(
         createHoaDon.fulfilled,
         (state, action) => {
-          alert("Tạo hóa đơn thành công");
+          state.loading = false;
 
           const createdOrders =
             action.meta.arg
@@ -244,36 +339,82 @@ const slice = createSlice({
               action.payload.data
             );
           }
+
+          alert("Tạo hóa đơn thành công");
+        }
+      )
+
+      .addCase(
+        createHoaDon.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload?.message ||
+            action.error.message;
+
+          alert(
+            action.payload?.message ||
+              "Tạo hóa đơn thất bại"
+          );
         }
       )
 
       /* ================= UPDATE HÓA ĐƠN ================= */
 
       .addCase(
+        updateHoaDon.pending,
+        (state) => {
+          state.loading = true;
+        }
+      )
+
+      .addCase(
         updateHoaDon.fulfilled,
         (state, action) => {
+          state.loading = false;
+
+          const updatedHoaDon =
+            action.payload.data;
+
           const index =
             state.danhSachHoaDon.findIndex(
               (hd) =>
                 hd._id ===
-                action.payload.data._id
+                updatedHoaDon._id
             );
 
           if (index !== -1) {
             state.danhSachHoaDon[index] =
-              action.payload.data;
+              updatedHoaDon;
           }
 
           // 🔥 Update luôn chi tiết hóa đơn nếu đang mở
           if (
             state.chiTietHoaDon?._id ===
-            action.payload.data._id
+            updatedHoaDon._id
           ) {
             state.chiTietHoaDon =
-              action.payload.data;
+              updatedHoaDon;
           }
 
           alert("Cập nhật thành công");
+        }
+      )
+
+      .addCase(
+        updateHoaDon.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload?.message ||
+            action.error.message;
+
+          alert(
+            action.payload?.message ||
+              "Cập nhật thất bại"
+          );
         }
       )
 
@@ -303,6 +444,76 @@ const slice = createSlice({
             currentPage:
               action.payload.currentPage,
           };
+        }
+      )
+
+      .addCase(
+        fetchAllHoaDonAdmin.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload?.message ||
+            action.error.message;
+        }
+      )
+
+      /* ================= THANH TOÁN HÓA ĐƠN ================= */
+
+      .addCase(
+        thanhToanHoaDon.pending,
+        (state) => {
+          state.loading = true;
+        }
+      )
+
+      .addCase(
+        thanhToanHoaDon.fulfilled,
+        (state, action) => {
+          state.loading = false;
+
+          const updatedHoaDon =
+            action.payload.data;
+
+          // update list
+          const index =
+            state.danhSachHoaDon.findIndex(
+              (hd) =>
+                hd._id ===
+                updatedHoaDon._id
+            );
+
+          if (index !== -1) {
+            state.danhSachHoaDon[index] =
+              updatedHoaDon;
+          }
+
+          // update detail
+          if (
+            state.chiTietHoaDon?._id ===
+            updatedHoaDon._id
+          ) {
+            state.chiTietHoaDon =
+              updatedHoaDon;
+          }
+
+          alert("Thanh toán thành công");
+        }
+      )
+
+      .addCase(
+        thanhToanHoaDon.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload?.message ||
+            action.error.message;
+
+          alert(
+            action.payload?.message ||
+              "Thanh toán thất bại"
+          );
         }
       )
 
@@ -368,7 +579,41 @@ const slice = createSlice({
             action.error.message;
         }
       )
+
+      /* ================= ĐẾM ĐƠN HÀNG CHƯA XUẤT HÓA ĐƠN ================= */
+
+      .addCase(
+        fetchCountDonHangChuaXuat.pending,
+        (state) => {
+          state.loading = true;
+        }
+      )
+
+      .addCase(
+        fetchCountDonHangChuaXuat.fulfilled,
+        (state, action) => {
+          state.loading = false;
+
+          state.countDonHangChuaXuat =
+            action.payload;
+        }
+      )
+
+      .addCase(
+        fetchCountDonHangChuaXuat.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload?.message ||
+            action.error.message;
+        }
+      );
   },
 });
+
+export const {
+  clearChiTietHoaDon,
+} = slice.actions;
 
 export default slice.reducer;

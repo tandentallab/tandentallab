@@ -28,7 +28,10 @@ import {
   ReceiptLong,
 } from "@mui/icons-material";
 
+import PaymentsIcon from "@mui/icons-material/Payments";
+import BadgeIcon from "@mui/icons-material/Badge";
 import { useNavigate, useLocation } from "react-router-dom";
+import { GroupIcon } from "lucide-react";
 
 const Sidebar = ({ collapsed }) => {
   const navigate = useNavigate();
@@ -65,14 +68,14 @@ const Sidebar = ({ collapsed }) => {
     { name: "Hóa Đơn", router: "/hoa-don", icon: <Receipt /> },
     { name: "Phiếu Thu", router: "/phieu-thu", icon: <Receipt /> },
     { name: "Báo Cáo", router: "/bao-cao", icon: <BarChart /> },
+    { name: "Nhân viên", router: "/nhan-vien", icon: <BadgeIcon /> },
+    { name: "Bảng lương", router: "/bang-luong", icon: <PaymentsIcon /> },
 
     // Kho will be rendered as a dropdown with sub-items
   ];
 
   const settingMenu = [
     { name: "Tài khoản", router: "/tai-khoan", icon: <People /> },
-    { name: "Nhân viên", router: "/nhan-vien", icon: <People /> },
-    { name: "Bảng lương", router: "/bang-luong", icon: <People /> },
     { name: "Nhập dữ liệu", router: "/nhap-du-lieu", icon: <Assignment /> },
     { name: "Công ty", router: "/cong-ty", icon: <LocalHospital /> },
     { name: "Quyền sử dụng", router: "/quyen-su-dung", icon: <People /> },

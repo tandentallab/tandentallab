@@ -10,3 +10,5 @@ export const getDonHangSelector = state => state.donHang
 export const getHoaDonSelector = state => state.hoaDon
 export const getBaoCaoSelector = state => state.baoCao
 export const getDashboardSelecor = state => state.dashboard
+export const getNhanVienSelector = state => state.getNhanVienSelector
+export const getBangLuongSelector = state => state.getBangLuongSelector

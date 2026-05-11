@@ -11,6 +11,8 @@ import {
   parseISO,
 } from "date-fns";
 import ThongKeKeHoachGiaoHang from "./ThongKeKeHoachGiaoHang";
+import { Button } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
@@ -31,6 +33,8 @@ const KeHoachGiaoHangTable = () => {
 
   const todayStart = startOfDay(new Date());
   const todayEnd = endOfDay(new Date());
+
+  const navigate = useNavigate();
 
   // ================= FILTER LOGIC =================
   const filteredOrders = useMemo(() => {
@@ -142,6 +146,7 @@ const KeHoachGiaoHangTable = () => {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-100">
               <tr>
+                <th className="p-3 text-left">Số đơn hàng</th>
                 <th className="p-3 text-left">Khách hàng</th>
                 <th className="p-3 text-left">Bác sĩ</th>
                 <th className="p-3 text-left">Bệnh nhân</th>
@@ -162,6 +167,20 @@ const KeHoachGiaoHangTable = () => {
 
                 return (
                   <tr key={order._id} className="border-t hover:bg-gray-50">
+                    <td className="p-3 font-medium">
+                      <Button
+                        variant="text"
+                        onClick={() => {
+                          navigate(`/donhang/${order._id}/edit`);
+                        }}
+                      >
+                        TAN
+                        {order._id
+                          .substring(order._id.length - 8)
+                          .toUpperCase()}
+                      </Button>
+                    </td>
+
                     <td className="p-3 font-medium">
                       {order.nhaKhoa?.hoVaTen}
                     </td>

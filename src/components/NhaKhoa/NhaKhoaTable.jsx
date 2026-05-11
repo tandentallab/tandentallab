@@ -15,6 +15,10 @@ import {
   Box,
   Tooltip,
   CircularProgress,
+  Card,
+  CardContent,
+  Typography,
+  Divider,
 } from "@mui/material";
 
 import {
@@ -22,7 +26,6 @@ import {
   Star,
   StarBorder,
   Edit,
-  Close,
 } from "@mui/icons-material";
 
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -47,10 +50,11 @@ export default function NhaKhoaTable() {
     dispatch(fetchNhaKhoa());
   }, [dispatch]);
 
-  // ===== DANH SÁCH TỈNH THÀNH  =====
+  // ===== DANH SÁCH TỈNH THÀNH =====
   const provinces = useMemo(() => {
     return [...new Set(data?.map((i) => i.tinh).filter(Boolean))];
   }, [data]);
+
   // ===== FILTER =====
   const filteredData = useMemo(() => {
     return data.filter((item) => {
@@ -77,22 +81,53 @@ export default function NhaKhoaTable() {
     );
   };
 
-  //UPDATE
+  // ===== UPDATE =====
   const [openEdit, setOpenEdit] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
 
   return (
     <Box>
-      {/* ===== FILTER BAR (GIỐNG NGƯỜI LIÊN HỆ) ===== */}
-      <Box className="flex justify-between items-center mb-4">
+      {/* ===== FILTER BAR ===== */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: {
+            xs: "stretch",
+            md: "center",
+          },
+          flexDirection: {
+            xs: "column",
+            md: "row",
+          },
+          gap: 2,
+          mb: 3,
+        }}
+      >
         {/* LEFT */}
-        <Box className="flex items-center gap-3">
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: {
+              xs: "stretch",
+              sm: "center",
+            },
+            flexDirection: {
+              xs: "column",
+              sm: "row",
+            },
+            gap: 2,
+            width: {
+              xs: "100%",
+              md: "auto",
+            },
+          }}
+        >
           {/* CHIP */}
           {selectedProvince && (
             <Chip
               label={`Tỉnh/Thành: ${selectedProvince}`}
               onDelete={() => setSelectedProvince("")}
-              className="bg-gray-200"
             />
           )}
 
@@ -103,7 +138,12 @@ export default function NhaKhoaTable() {
             size="small"
             value={selectedProvince}
             onChange={(e) => setSelectedProvince(e.target.value)}
-            className="w-52"
+            sx={{
+              minWidth: {
+                xs: "100%",
+                sm: 220,
+              },
+            }}
             InputLabelProps={{
               shrink: true,
             }}
@@ -119,13 +159,31 @@ export default function NhaKhoaTable() {
         </Box>
 
         {/* RIGHT */}
-        <Box className="flex items-center gap-2">
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            flexWrap: "wrap",
+            width: {
+              xs: "100%",
+              md: "auto",
+            },
+          }}
+        >
           {/* SEARCH */}
           <TextField
             size="small"
             placeholder="Tìm nha khoa..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            sx={{
+              flex: 1,
+              minWidth: {
+                xs: "100%",
+                sm: 250,
+              },
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -135,7 +193,7 @@ export default function NhaKhoaTable() {
             }}
           />
 
-          <NhaKhoaModal></NhaKhoaModal>
+          <NhaKhoaModal />
 
           {/* REFRESH */}
           <IconButton onClick={() => dispatch(fetchNhaKhoa())}>
@@ -149,58 +207,206 @@ export default function NhaKhoaTable() {
         </Box>
       </Box>
 
-      {/* ===== TABLE ===== */}
-      <TableContainer component={Paper} className="rounded-2xl shadow-lg">
-        <Table>
-          <TableHead>
-            <TableRow className="bg-gray-100">
-              <TableCell></TableCell>
-              <TableCell>
-                <b>Tên</b>
-              </TableCell>
-              <TableCell>
-                <b>Liên hệ</b>
-              </TableCell>
-              <TableCell>
-                <b>Địa chỉ</b>
-              </TableCell>
-              <TableCell>
-                <b>Website</b>
-              </TableCell>
-              <TableCell>
-                <b>Mô tả</b>
-              </TableCell>
-              <TableCell>
-                <b>Ngày tạo</b>
-              </TableCell>
-              <TableCell align="center">
-                <b>Hành động</b>
-              </TableCell>
-            </TableRow>
-          </TableHead>
+      {/* ===== DESKTOP TABLE ===== */}
+      <Box
+        sx={{
+          display: {
+            xs: "none",
+            lg: "block",
+          },
+        }}
+      >
+        <TableContainer component={Paper} className="rounded-2xl shadow-lg">
+          <Table>
+            <TableHead>
+              <TableRow className="bg-gray-100">
+                <TableCell></TableCell>
 
-          <TableBody>
-            {/* 🔥 LOADING */}
-            {loading && (
-              <TableRow>
-                <TableCell colSpan={8} align="center">
-                  <CircularProgress />
-                </TableCell>
-              </TableRow>
-            )}
-
-            {!loading && filteredData.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} align="center">
-                  Không có dữ liệu
-                </TableCell>
-              </TableRow>
-            )}
-
-            {filteredData.map((item) => (
-              <TableRow key={item._id} hover>
-                {/* ⭐ FAVORITE */}
                 <TableCell>
+                  <b>Tên</b>
+                </TableCell>
+
+                <TableCell>
+                  <b>Liên hệ</b>
+                </TableCell>
+
+                <TableCell>
+                  <b>Địa chỉ</b>
+                </TableCell>
+
+                <TableCell>
+                  <b>Website</b>
+                </TableCell>
+
+                <TableCell>
+                  <b>Mô tả</b>
+                </TableCell>
+
+                <TableCell>
+                  <b>Ngày tạo</b>
+                </TableCell>
+
+                <TableCell align="center">
+                  <b>Hành động</b>
+                </TableCell>
+              </TableRow>
+            </TableHead>
+
+            <TableBody>
+              {/* LOADING */}
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!loading && filteredData.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    Không có dữ liệu
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {filteredData.map((item) => (
+                <TableRow key={item._id} hover>
+                  {/* FAVORITE */}
+                  <TableCell>
+                    <IconButton
+                      size="small"
+                      onClick={() => toggleFavorite(item._id)}
+                    >
+                      {favorites.includes(item._id) ? (
+                        <Star className="text-yellow-400" />
+                      ) : (
+                        <StarBorder className="text-gray-400" />
+                      )}
+                    </IconButton>
+                  </TableCell>
+
+                  {/* TÊN */}
+                  <TableCell>
+                    <div className="font-semibold text-gray-800">
+                      {item.hoVaTen}
+                    </div>
+
+                    <div className="text-xs text-gray-500">
+                      ID: {item._id.slice(-6)}
+                    </div>
+                  </TableCell>
+
+                  {/* LIÊN HỆ */}
+                  <TableCell>
+                    <div>{item.soDienThoai}</div>
+
+                    <div className="text-xs text-blue-500">{item.email}</div>
+                  </TableCell>
+
+                  {/* ĐỊA CHỈ */}
+                  <TableCell>
+                    <div className="text-sm">{item.diaChiCuThe}</div>
+
+                    <div className="text-xs text-gray-500">
+                      {item.tinh}, {item.quocGia}
+                    </div>
+                  </TableCell>
+
+                  {/* WEBSITE */}
+                  <TableCell>
+                    <a
+                      href={`https://${item.website}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {item.website}
+                    </a>
+                  </TableCell>
+
+                  {/* MÔ TẢ */}
+                  <TableCell>
+                    <div className="max-w-[200px] truncate">{item.moTa}</div>
+                  </TableCell>
+
+                  {/* NGÀY */}
+                  <TableCell>
+                    <Chip
+                      label={new Date(item.createdAt).toLocaleDateString(
+                        "vi-VN"
+                      )}
+                      color="success"
+                      size="small"
+                    />
+                  </TableCell>
+
+                  {/* ACTION */}
+                  <TableCell align="center">
+                    <div className="flex items-center justify-center">
+                      <Tooltip title="Chỉnh sửa">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedRow(item);
+                            setOpenEdit(true);
+                          }}
+                        >
+                          <Edit className="text-blue-500" />
+                        </IconButton>
+                      </Tooltip>
+
+                      <NhaKhoaDetailModal nhaKhoaData={item} />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+
+      {/* ===== MOBILE CARD ===== */}
+      <Box
+        sx={{
+          display: {
+            xs: "flex",
+            lg: "none",
+          },
+          flexDirection: "column",
+          gap: 2,
+        }}
+      >
+        {loading && (
+          <Box className="flex justify-center py-10">
+            <CircularProgress />
+          </Box>
+        )}
+
+        {!loading && filteredData.length === 0 && (
+          <Paper className="p-5 text-center">Không có dữ liệu</Paper>
+        )}
+
+        {!loading &&
+          filteredData.map((item) => (
+            <Card
+              key={item._id}
+              sx={{
+                borderRadius: "18px",
+                boxShadow: 3,
+              }}
+            >
+              <CardContent>
+                {/* HEADER */}
+                <Box className="flex justify-between items-start">
+                  <Box>
+                    <Typography fontWeight={700}>{item.hoVaTen}</Typography>
+
+                    <Typography variant="caption" color="text.secondary">
+                      ID: {item._id.slice(-6)}
+                    </Typography>
+                  </Box>
+
                   <IconButton
                     size="small"
                     onClick={() => toggleFavorite(item._id)}
@@ -211,61 +417,78 @@ export default function NhaKhoaTable() {
                       <StarBorder className="text-gray-400" />
                     )}
                   </IconButton>
-                </TableCell>
+                </Box>
 
-                {/* TÊN */}
-                <TableCell>
-                  <div className="font-semibold text-gray-800">
-                    {item.hoVaTen}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    ID: {item._id.slice(-6)}
-                  </div>
-                </TableCell>
+                <Divider sx={{ my: 1.5 }} />
 
-                {/* LIÊN HỆ */}
-                <TableCell>
-                  <div>{item.soDienThoai}</div>
-                  <div className="text-xs text-blue-500">{item.email}</div>
-                </TableCell>
+                {/* CONTACT */}
+                <Box mb={1}>
+                  <Typography variant="body2" fontWeight={600}>
+                    Liên hệ
+                  </Typography>
 
-                {/* ĐỊA CHỈ */}
-                <TableCell>
-                  <div className="text-sm">{item.diaChiCuThe}</div>
-                  <div className="text-xs text-gray-500">
+                  <Typography variant="body2">{item.soDienThoai}</Typography>
+
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "#1976d2",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {item.email}
+                  </Typography>
+                </Box>
+
+                {/* ADDRESS */}
+                <Box mb={1}>
+                  <Typography variant="body2" fontWeight={600}>
+                    Địa chỉ
+                  </Typography>
+
+                  <Typography variant="body2">{item.diaChiCuThe}</Typography>
+
+                  <Typography variant="caption" color="text.secondary">
                     {item.tinh}, {item.quocGia}
-                  </div>
-                </TableCell>
+                  </Typography>
+                </Box>
 
                 {/* WEBSITE */}
-                <TableCell>
+                <Box mb={1}>
+                  <Typography variant="body2" fontWeight={600}>
+                    Website
+                  </Typography>
+
                   <a
                     href={`https://${item.website}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="text-blue-600 break-all"
                   >
                     {item.website}
                   </a>
-                </TableCell>
+                </Box>
 
-                {/* MÔ TẢ */}
-                <TableCell>
-                  <div className="max-w-[200px] truncate">{item.moTa}</div>
-                </TableCell>
+                {/* DESCRIPTION */}
+                <Box mb={2}>
+                  <Typography variant="body2" fontWeight={600}>
+                    Mô tả
+                  </Typography>
 
-                {/* NGÀY */}
-                <TableCell>
+                  <Typography variant="body2">
+                    {item.moTa || "Không có mô tả"}
+                  </Typography>
+                </Box>
+
+                {/* FOOTER */}
+                <Box className="flex justify-between items-center flex-wrap gap-2">
                   <Chip
                     label={new Date(item.createdAt).toLocaleDateString("vi-VN")}
                     color="success"
                     size="small"
                   />
-                </TableCell>
 
-                {/* ACTION */}
-                <TableCell align="center">
-                  <div className="flex items-center">
+                  <Box className="flex items-center">
                     <Tooltip title="Chỉnh sửa">
                       <IconButton
                         size="small"
@@ -277,14 +500,16 @@ export default function NhaKhoaTable() {
                         <Edit className="text-blue-500" />
                       </IconButton>
                     </Tooltip>
-                    <NhaKhoaDetailModal nhaKhoaData={item}></NhaKhoaDetailModal>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+
+                    <NhaKhoaDetailModal nhaKhoaData={item} />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          ))}
+      </Box>
+
+      {/* UPDATE MODAL */}
       <NhaKhoaUpdateModal
         open={openEdit}
         setOpen={setOpenEdit}

@@ -65,13 +65,68 @@ export default function NguoiLienHeUpdateModal({ open, setOpen, data }) {
 
   return (
     <Modal open={open} onClose={() => setOpen(false)}>
-      <Box className="bg-white w-[600px] p-6 mx-auto mt-20 rounded-2xl shadow-xl">
-        <div className="bg-[#0091ea] px-4 py-2 my-4 flex justify-between items-center shrink-0 text-white">
-          <Typography variant="h6" className="font-medium text-[16px]">
+      <Box
+        sx={{
+          backgroundColor: "white",
+          width: {
+            xs: "95%",
+            sm: "90%",
+            md: 600,
+          },
+          maxHeight: "90vh",
+          overflowY: "auto",
+          p: {
+            xs: 2,
+            sm: 3,
+          },
+          mx: "auto",
+          mt: {
+            xs: 3,
+            sm: 6,
+          },
+          borderRadius: "20px",
+          boxShadow: 24,
+        }}
+      >
+        {/* HEADER */}
+        <Box
+          sx={{
+            backgroundColor: "#0091ea",
+            px: 2,
+            py: 1.5,
+            mb: 3,
+            borderRadius: "10px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            color: "white",
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 600,
+              fontSize: {
+                xs: "16px",
+                sm: "20px",
+              },
+            }}
+          >
             Cập Nhật Người Liên Hệ
           </Typography>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
+        </Box>
+
+        {/* FORM */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr 1fr",
+            },
+            gap: 2,
+          }}
+        >
           <TextField
             label="Họ tên"
             value={form.hoVaTen}
@@ -107,25 +162,69 @@ export default function NguoiLienHeUpdateModal({ open, setOpen, data }) {
             ))}
           </TextField>
 
-          <TextField
-            label="Mô tả"
-            value={form.moTa}
-            onChange={(e) => handleChange("moTa", e.target.value)}
-            fullWidth
-            multiline
-            rows={3}
-            className="col-span-2"
-          />
-        </div>
+          {/* MÔ TẢ */}
+          <Box
+            sx={{
+              gridColumn: {
+                xs: "span 1",
+                sm: "span 2",
+              },
+            }}
+          >
+            <TextField
+              label="Mô tả"
+              value={form.moTa}
+              onChange={(e) => handleChange("moTa", e.target.value)}
+              fullWidth
+              multiline
+              rows={3}
+            />
+          </Box>
+        </Box>
 
         {/* ACTION */}
-        <div className="flex justify-end mt-4 gap-3">
-          <Button onClick={() => setOpen(false)}>Hủy</Button>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: {
+              xs: "stretch",
+              sm: "flex-end",
+            },
+            flexDirection: {
+              xs: "column",
+              sm: "row",
+            },
+            gap: 2,
+            mt: 4,
+          }}
+        >
+          <Button
+            variant="outlined"
+            onClick={() => setOpen(false)}
+            sx={{
+              width: {
+                xs: "100%",
+                sm: "auto",
+              },
+            }}
+          >
+            Hủy
+          </Button>
 
-          <Button variant="contained" onClick={handleSubmit} disabled={loading}>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={loading}
+            sx={{
+              width: {
+                xs: "100%",
+                sm: "auto",
+              },
+            }}
+          >
             {loading ? <CircularProgress size={20} /> : "Cập nhật"}
           </Button>
-        </div>
+        </Box>
       </Box>
     </Modal>
   );

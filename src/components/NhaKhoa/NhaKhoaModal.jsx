@@ -10,26 +10,22 @@ import {
   Tooltip,
   IconButton,
 } from "@mui/material";
+
 import AddIcon from "@mui/icons-material/Add";
-import {
-  Group,
-  Assignment,
-  Description,
-  Download,
-  Upload,
-  Business,
-  Add,
-} from "@mui/icons-material";
+
+import { Group } from "@mui/icons-material";
 
 import vietnamAddress from "../../data/vietNameAddress";
 
 // 🔥 REDUX
 import { useDispatch, useSelector } from "react-redux";
 import { createNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
+
 import vietnamProvinces from "../../utils/vietNamProvinces";
 
 export default function NhaKhoaModal({ isQuickMenu }) {
   const dispatch = useDispatch();
+
   const { loading } = useSelector((state) => state.nhaKhoa);
 
   const [open, setOpen] = useState(false);
@@ -93,6 +89,7 @@ export default function NhaKhoaModal({ isQuickMenu }) {
           <span className="mr-3 text-gray-500">
             <Group fontSize="small" />
           </span>
+
           <span className="font-medium">Thêm Nha Khoa</span>
         </button>
       ) : (
@@ -106,14 +103,70 @@ export default function NhaKhoaModal({ isQuickMenu }) {
         </Tooltip>
       )}
 
+      {/* MODAL */}
       <Modal open={open} onClose={() => setOpen(false)}>
-        <Box className="bg-white w-[800px] max-h-[90vh] overflow-y-auto mx-auto mt-10 p-6 rounded-2xl shadow-xl">
-          <div className="bg-[#0091ea] px-4 py-2 my-2 flex justify-between items-center shrink-0 text-white">
-            <Typography variant="h6" className="font-medium text-[16px]">
+        <Box
+          sx={{
+            backgroundColor: "white",
+            width: {
+              xs: "95%",
+              sm: "90%",
+              md: 800,
+            },
+            maxHeight: "90vh",
+            overflowY: "auto",
+            mx: "auto",
+            mt: {
+              xs: 3,
+              sm: 5,
+            },
+            p: {
+              xs: 2,
+              sm: 3,
+            },
+            borderRadius: "20px",
+            boxShadow: 24,
+          }}
+        >
+          {/* HEADER */}
+          <Box
+            sx={{
+              backgroundColor: "#0091ea",
+              px: 2,
+              py: 1.5,
+              mb: 3,
+              borderRadius: "10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              color: "white",
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                fontSize: {
+                  xs: "16px",
+                  sm: "20px",
+                },
+              }}
+            >
               Tạo Nha Khoa
             </Typography>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+          </Box>
+
+          {/* FORM */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr 1fr",
+              },
+              gap: 2,
+            }}
+          >
             <TextField
               label="Họ và tên"
               fullWidth
@@ -162,6 +215,7 @@ export default function NhaKhoaModal({ isQuickMenu }) {
             <TextField
               select
               label="Tỉnh / Thành phố"
+              fullWidth
               value={form.tinh}
               onChange={(e) => handleChange("tinh", e.target.value)}
             >
@@ -171,18 +225,20 @@ export default function NhaKhoaModal({ isQuickMenu }) {
                 </MenuItem>
               ))}
             </TextField>
-          </div>
+          </Box>
 
-          <div className="mt-4">
+          {/* ĐỊA CHỈ */}
+          <Box mt={3}>
             <TextField
               label="Địa chỉ cụ thể"
               fullWidth
               value={form.diaChiCuThe}
               onChange={(e) => handleChange("diaChiCuThe", e.target.value)}
             />
-          </div>
+          </Box>
 
-          <div className="mt-4">
+          {/* MÔ TẢ */}
+          <Box mt={3}>
             <TextField
               label="Mô tả"
               fullWidth
@@ -191,19 +247,51 @@ export default function NhaKhoaModal({ isQuickMenu }) {
               value={form.moTa}
               onChange={(e) => handleChange("moTa", e.target.value)}
             />
-          </div>
+          </Box>
 
-          <div className="flex justify-end gap-3 mt-6">
-            <Button onClick={() => setOpen(false)}>Hủy</Button>
+          {/* ACTION */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: {
+                xs: "stretch",
+                sm: "flex-end",
+              },
+              flexDirection: {
+                xs: "column",
+                sm: "row",
+              },
+              gap: 2,
+              mt: 4,
+            }}
+          >
+            <Button
+              variant="outlined"
+              onClick={() => setOpen(false)}
+              sx={{
+                width: {
+                  xs: "100%",
+                  sm: "auto",
+                },
+              }}
+            >
+              Hủy
+            </Button>
 
             <Button
               variant="contained"
               onClick={handleSubmit}
               disabled={loading}
+              sx={{
+                width: {
+                  xs: "100%",
+                  sm: "auto",
+                },
+              }}
             >
               {loading ? <CircularProgress size={20} /> : "Lưu"}
             </Button>
-          </div>
+          </Box>
         </Box>
       </Modal>
     </>

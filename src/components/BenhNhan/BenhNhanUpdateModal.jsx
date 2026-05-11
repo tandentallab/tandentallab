@@ -87,26 +87,84 @@ export default function BenhNhanUpdateModal({ open, setOpen, data }) {
 
   return (
     <Modal open={open} onClose={() => setOpen(false)}>
-      <Box className="bg-white w-[700px] p-6 mx-auto mt-20 rounded-2xl shadow-xl">
-        <div className="bg-[#0091ea] px-4 py-2 my-4 flex justify-between items-center shrink-0 text-white">
-          <Typography variant="h6" className="font-medium text-[16px]">
+      <Box
+        sx={{
+          backgroundColor: "white",
+          width: {
+            xs: "95%",
+            sm: "90%",
+            md: 700,
+          },
+          maxHeight: "90vh",
+          overflowY: "auto",
+          p: {
+            xs: 2,
+            sm: 3,
+          },
+          mx: "auto",
+          mt: {
+            xs: 3,
+            sm: 6,
+          },
+          borderRadius: "20px",
+          boxShadow: 24,
+        }}
+      >
+        {/* HEADER */}
+        <Box
+          sx={{
+            backgroundColor: "#0091ea",
+            px: 2,
+            py: 1.5,
+            mb: 3,
+            borderRadius: "10px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            color: "white",
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 600,
+              fontSize: {
+                xs: "16px",
+                sm: "20px",
+              },
+            }}
+          >
             Cập Nhật Bệnh Nhân
           </Typography>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
+        </Box>
+
+        {/* FORM */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr 1fr",
+            },
+            gap: 2,
+          }}
+        >
           <TextField
+            fullWidth
             label="Tên"
             value={form.hoVaTen}
             onChange={(e) => handleChange("hoVaTen", e.target.value)}
           />
 
           <TextField
+            fullWidth
             label="Số hồ sơ"
             value={form.soHoSo}
             onChange={(e) => handleChange("soHoSo", e.target.value)}
           />
 
           <TextField
+            fullWidth
             select
             label="Giới tính"
             value={form.gioiTinh}
@@ -116,7 +174,9 @@ export default function BenhNhanUpdateModal({ open, setOpen, data }) {
             <MenuItem value="Nữ">Nữ</MenuItem>
           </TextField>
 
+          {/* NHA KHOA */}
           <TextField
+            fullWidth
             select
             label="Nha khoa"
             value={form.nhaKhoa}
@@ -129,7 +189,9 @@ export default function BenhNhanUpdateModal({ open, setOpen, data }) {
             ))}
           </TextField>
 
+          {/* TỈNH */}
           <TextField
+            fullWidth
             select
             label="Tỉnh"
             value={form.tinh}
@@ -142,7 +204,9 @@ export default function BenhNhanUpdateModal({ open, setOpen, data }) {
             ))}
           </TextField>
 
+          {/* QUẬN */}
           <TextField
+            fullWidth
             select
             label="Quận"
             value={form.quanHuyen}
@@ -155,16 +219,51 @@ export default function BenhNhanUpdateModal({ open, setOpen, data }) {
               </MenuItem>
             ))}
           </TextField>
-        </div>
+        </Box>
 
         {/* ACTION */}
-        <div className="flex justify-end mt-4 gap-3">
-          <Button onClick={() => setOpen(false)}>Hủy</Button>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: {
+              xs: "stretch",
+              sm: "flex-end",
+            },
+            flexDirection: {
+              xs: "column",
+              sm: "row",
+            },
+            gap: 2,
+            mt: 4,
+          }}
+        >
+          <Button
+            variant="outlined"
+            onClick={() => setOpen(false)}
+            sx={{
+              width: {
+                xs: "100%",
+                sm: "auto",
+              },
+            }}
+          >
+            Hủy
+          </Button>
 
-          <Button variant="contained" onClick={handleSubmit} disabled={loading}>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={loading}
+            sx={{
+              width: {
+                xs: "100%",
+                sm: "auto",
+              },
+            }}
+          >
             {loading ? <CircularProgress size={20} /> : "Cập nhật"}
           </Button>
-        </div>
+        </Box>
       </Box>
     </Modal>
   );

@@ -19,6 +19,7 @@ import vietnamAddress from "../../data/vietNameAddress";
 import { useDispatch, useSelector } from "react-redux";
 import { createBenhNhan } from "../../redux/slices/benhNhanSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
+
 import AddIcon from "@mui/icons-material/Add";
 import vietnamProvinces from "../../utils/vietNamProvinces";
 
@@ -97,6 +98,7 @@ export default function BenhNhanModal({ isQuickMenu }) {
           <span className="mr-3 text-gray-500">
             <Group fontSize="small" />
           </span>
+
           <span className="font-medium">Thêm Bệnh Nhân</span>
         </button>
       ) : (
@@ -109,27 +111,86 @@ export default function BenhNhanModal({ isQuickMenu }) {
           </IconButton>
         </Tooltip>
       )}
+
       <Modal open={open} onClose={() => setOpen(false)}>
-        <Box className="bg-white w-[700px] p-6 mx-auto mt-20 rounded-2xl shadow-xl">
-          <div className="bg-[#0091ea] px-4 py-2 my-2 flex justify-between items-center shrink-0 text-white">
-            <Typography variant="h6" className="font-medium text-[16px]">
+        <Box
+          sx={{
+            backgroundColor: "white",
+            width: {
+              xs: "95%",
+              sm: "90%",
+              md: 700,
+            },
+            maxHeight: "90vh",
+            overflowY: "auto",
+            p: {
+              xs: 2,
+              sm: 3,
+            },
+            mx: "auto",
+            mt: {
+              xs: 3,
+              sm: 6,
+            },
+            borderRadius: "20px",
+            boxShadow: 24,
+          }}
+        >
+          {/* HEADER */}
+          <Box
+            sx={{
+              backgroundColor: "#0091ea",
+              px: 2,
+              py: 1.5,
+              mb: 3,
+              borderRadius: "10px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              color: "white",
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                fontSize: {
+                  xs: "16px",
+                  sm: "20px",
+                },
+              }}
+            >
               Tạo Bệnh Nhân
             </Typography>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+          </Box>
+
+          {/* FORM */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr 1fr",
+              },
+              gap: 2,
+            }}
+          >
             <TextField
+              fullWidth
               label="Tên"
               value={form.hoVaTen}
               onChange={(e) => handleChange("hoVaTen", e.target.value)}
             />
 
             <TextField
+              fullWidth
               label="Số hồ sơ"
               value={form.soHoSo}
               onChange={(e) => handleChange("soHoSo", e.target.value)}
             />
 
             <TextField
+              fullWidth
               select
               label="Giới tính"
               value={form.gioiTinh}
@@ -139,8 +200,9 @@ export default function BenhNhanModal({ isQuickMenu }) {
               <MenuItem value="Nữ">Nữ</MenuItem>
             </TextField>
 
-            {/* 🔥 NHA KHOA */}
+            {/* NHA KHOA */}
             <TextField
+              fullWidth
               select
               label="Nha khoa"
               value={form.nhaKhoa}
@@ -153,12 +215,16 @@ export default function BenhNhanModal({ isQuickMenu }) {
               ))}
             </TextField>
 
-            {/* 🔥 TỈNH */}
+            {/* TỈNH */}
             <TextField
+              fullWidth
               select
               label="Tỉnh / Thành phố"
               value={form.tinh}
-              onChange={(e) => handleChange("tinh", e.target.value)}
+              onChange={(e) => {
+                handleProvince(e);
+                handleChange("tinh", e.target.value);
+              }}
             >
               {vietnamProvinces.map((item) => (
                 <MenuItem key={item} value={item}>
@@ -166,20 +232,41 @@ export default function BenhNhanModal({ isQuickMenu }) {
                 </MenuItem>
               ))}
             </TextField>
-          </div>
+          </Box>
 
           {/* ACTION */}
-          <div className="flex justify-end mt-4 gap-3">
-            <Button onClick={() => setOpen(false)}>Hủy</Button>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: {
+                xs: "stretch",
+                sm: "flex-end",
+              },
+              flexDirection: {
+                xs: "column",
+                sm: "row",
+              },
+              gap: 2,
+              mt: 4,
+            }}
+          >
+            <Button
+              fullWidth={window.innerWidth < 600}
+              onClick={() => setOpen(false)}
+              variant="outlined"
+            >
+              Hủy
+            </Button>
 
             <Button
+              fullWidth={window.innerWidth < 600}
               variant="contained"
               onClick={handleSubmit}
               disabled={loading}
             >
               {loading ? <CircularProgress size={20} /> : "Lưu"}
             </Button>
-          </div>
+          </Box>
         </Box>
       </Modal>
     </>

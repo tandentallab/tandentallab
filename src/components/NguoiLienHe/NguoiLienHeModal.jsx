@@ -10,20 +10,14 @@ import {
   Tooltip,
   IconButton,
 } from "@mui/material";
-import {
-  Group,
-  Assignment,
-  Description,
-  Download,
-  Upload,
-  Business,
-  Add,
-} from "@mui/icons-material";
+
+import { Group } from "@mui/icons-material";
 
 // 🔥 REDUX
 import { useDispatch, useSelector } from "react-redux";
 import { createNguoiLienHe } from "../../redux/slices/nguoiLienHeSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
+
 import AddIcon from "@mui/icons-material/Add";
 
 export default function NguoiLienHeModal({ isQuickMenu }) {
@@ -87,6 +81,7 @@ export default function NguoiLienHeModal({ isQuickMenu }) {
           <span className="mr-3 text-gray-500">
             <Group fontSize="small" />
           </span>
+
           <span className="font-medium">Thêm Người Liên Hệ</span>
         </button>
       ) : (
@@ -102,14 +97,68 @@ export default function NguoiLienHeModal({ isQuickMenu }) {
 
       {/* MODAL */}
       <Modal open={open} onClose={() => setOpen(false)}>
-        <Box className="bg-white w-[700px] max-h-[90vh] overflow-y-auto mx-auto mt-10 p-6 rounded-2xl shadow-xl">
-          <div className="bg-[#0091ea] px-4 py-2 my-2 flex justify-between items-center shrink-0 text-white">
-            <Typography variant="h6" className="font-medium text-[16px]">
+        <Box
+          sx={{
+            backgroundColor: "white",
+            width: {
+              xs: "95%",
+              sm: "90%",
+              md: 700,
+            },
+            maxHeight: "90vh",
+            overflowY: "auto",
+            mx: "auto",
+            mt: {
+              xs: 3,
+              sm: 6,
+            },
+            p: {
+              xs: 2,
+              sm: 3,
+            },
+            borderRadius: "20px",
+            boxShadow: 24,
+          }}
+        >
+          {/* HEADER */}
+          <Box
+            sx={{
+              backgroundColor: "#0091ea",
+              px: 2,
+              py: 1.5,
+              mb: 3,
+              borderRadius: "10px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              color: "white",
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                fontSize: {
+                  xs: "16px",
+                  sm: "20px",
+                },
+              }}
+            >
               Tạo Người Liên Hệ
             </Typography>
-          </div>
+          </Box>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* FORM */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr 1fr",
+              },
+              gap: 2,
+            }}
+          >
             <TextField
               label="Họ và tên"
               fullWidth
@@ -138,7 +187,7 @@ export default function NguoiLienHeModal({ isQuickMenu }) {
               onChange={(e) => handleChange("tieuDe", e.target.value)}
             />
 
-            {/* 🔥 SELECT NHA KHOA */}
+            {/* SELECT NHA KHOA */}
             <TextField
               select
               label="Nha khoa"
@@ -152,10 +201,10 @@ export default function NguoiLienHeModal({ isQuickMenu }) {
                 </MenuItem>
               ))}
             </TextField>
-          </div>
+          </Box>
 
           {/* MÔ TẢ */}
-          <div className="mt-4">
+          <Box mt={3}>
             <TextField
               label="Mô tả"
               fullWidth
@@ -164,20 +213,51 @@ export default function NguoiLienHeModal({ isQuickMenu }) {
               value={form.moTa}
               onChange={(e) => handleChange("moTa", e.target.value)}
             />
-          </div>
+          </Box>
 
           {/* ACTION */}
-          <div className="flex justify-end gap-3 mt-6">
-            <Button onClick={() => setOpen(false)}>Hủy</Button>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: {
+                xs: "stretch",
+                sm: "flex-end",
+              },
+              flexDirection: {
+                xs: "column",
+                sm: "row",
+              },
+              gap: 2,
+              mt: 4,
+            }}
+          >
+            <Button
+              variant="outlined"
+              onClick={() => setOpen(false)}
+              sx={{
+                width: {
+                  xs: "100%",
+                  sm: "auto",
+                },
+              }}
+            >
+              Hủy
+            </Button>
 
             <Button
               variant="contained"
               onClick={handleSubmit}
               disabled={loading}
+              sx={{
+                width: {
+                  xs: "100%",
+                  sm: "auto",
+                },
+              }}
             >
               {loading ? <CircularProgress size={20} /> : "Lưu"}
             </Button>
-          </div>
+          </Box>
         </Box>
       </Modal>
     </>

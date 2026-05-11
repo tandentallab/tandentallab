@@ -29,6 +29,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchNhanVien } from "../../redux/slices/nhanVienSlice";
 
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import DownloadIcon from "@mui/icons-material/Download";
 
 import {
   createBangLuong,
@@ -42,6 +43,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import BangLuongRow from "./BangLuongRow";
 
 import { tinhLuong } from "../../utils/tinhLuong";
+import { exportBangLuongToExcel } from "../../utils/exportToExcel";
 
 import { FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -284,6 +286,15 @@ const BangLuongPage = () => {
 
   const handleUpdate = () => {};
 
+  const handleExport = async () => {
+    try {
+      await exportBangLuongToExcel(salaryData, thang, nam);
+    } catch (err) {
+      console.log("Export error:", err);
+      alert("Xuất Excel thất bại");
+    }
+  };
+
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
   const currentYear = new Date().getFullYear();
@@ -366,6 +377,17 @@ const BangLuongPage = () => {
                 ? "Cập nhật bảng lương"
                 : "Tạo bảng lương"}
             </Button>
+
+            {salaryData?.length > 0 && (
+              <Button
+                variant="contained"
+                color="success"
+                onClick={handleExport}
+                startIcon={<DownloadIcon />}
+              >
+                Xuất Excel
+              </Button>
+            )}
 
             {bangLuongData?.length > 0 && (
               <Button

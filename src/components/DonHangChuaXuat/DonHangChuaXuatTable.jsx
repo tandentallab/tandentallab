@@ -62,6 +62,11 @@ export default function DonHangChuaXuatTable({
   const [discounts, setDiscounts] = useState({});
   const [dateFilter, setDateFilter] = useState("all");
 
+  const today = new Date().toISOString().split("T")[0];
+
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
+
   /* ================= CALL API ================= */
   useEffect(() => {
     if (selectedClinic) {
@@ -126,6 +131,12 @@ export default function DonHangChuaXuatTable({
         start = subDays(now, 30);
         end = now;
         break;
+      case "custom":
+        if (!fromDate || !toDate) return donHangs;
+
+        start = startOfDay(new Date(fromDate));
+        end = endOfDay(new Date(toDate));
+        break;
       default:
         return donHangs;
     }
@@ -134,7 +145,7 @@ export default function DonHangChuaXuatTable({
       const orderDate = new Date(order.ngayNhan);
       return isWithinInterval(orderDate, { start, end });
     });
-  }, [donHangs, dateFilter]);
+  }, [donHangs, dateFilter, fromDate, toDate]);
 
   /* ================= MAP DATA ================= */
   const mapGia = useMemo(() => buildPriceMap(bangGia), [bangGia]);
@@ -210,12 +221,22 @@ export default function DonHangChuaXuatTable({
   };
 
   return (
-    <Paper className="rounded-2xl shadow p-4 space-y-4">
+    <Paper className="rounded-2xl shadow p-3 sm:p-4 space-y-4 overflow-hidden">
       {/* ===== TOOLBAR ===== */}
-      <Box className="flex flex-wrap justify-between items-center gap-4">
-        <Box className="flex items-center gap-4">
-          <FormControl size="small" sx={{ minWidth: 200 }}>
+      <Box className="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-4">
+        {/* LEFT */}
+        <Box className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full">
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: {
+                xs: "100%",
+                sm: 240,
+              },
+            }}
+          >
             <InputLabel>Lọc theo ngày nhận</InputLabel>
+
             <Select
               value={dateFilter}
               label="Lọc theo ngày nhận"
@@ -223,158 +244,255 @@ export default function DonHangChuaXuatTable({
             >
               <MenuItem value="all">Tất cả đơn hàng</MenuItem>
               <hr />
+
+              <MenuItem value="custom">Chọn khoảng ngày</MenuItem>
+
+              <hr />
+
               <MenuItem value="today">Hôm nay</MenuItem>
               <MenuItem value="yesterday">Hôm qua</MenuItem>
+
               <hr />
+
               <MenuItem value="thisWeek">Tuần này</MenuItem>
               <MenuItem value="lastWeek">Tuần trước</MenuItem>
+
               <hr />
+
               <MenuItem value="thisMonth">Tháng này</MenuItem>
               <MenuItem value="lastMonth">Tháng trước</MenuItem>
+
               <hr />
+
               <MenuItem value="thisYear">Năm này</MenuItem>
               <MenuItem value="lastYear">Năm trước</MenuItem>
+
               <hr />
+
               <MenuItem value="7days">7 ngày gần đây</MenuItem>
+
               <MenuItem value="10days">10 ngày gần đây</MenuItem>
+
               <MenuItem value="30days">30 ngày gần đây</MenuItem>
             </Select>
           </FormControl>
+          {dateFilter === "custom" && (
+            <Box className="flex flex-col sm:flex-row gap-3">
+              <TextField
+                label="Từ ngày"
+                type="date"
+                size="small"
+                variant="outlined"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  minWidth: 210,
+                  backgroundColor: "#fff",
+                }}
+              />
 
-          <Typography color="textSecondary" variant="body2">
+              <TextField
+                label="Đến ngày"
+                type="date"
+                size="small"
+                variant="outlined"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  minWidth: 210,
+                  backgroundColor: "#fff",
+                }}
+              />
+            </Box>
+          )}
+
+          <Typography
+            color="textSecondary"
+            variant="body2"
+            className="whitespace-nowrap"
+          >
             Hiển thị: <b>{filteredDonHangs.length}</b> đơn hàng
           </Typography>
         </Box>
 
-        <Box className="flex items-center gap-4">
-          <Typography fontWeight={600} color="primary">
+        {/* RIGHT */}
+        <Box className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full xl:w-auto">
+          <Typography
+            fontWeight={600}
+            color="primary"
+            className="whitespace-nowrap"
+          >
             Tổng chọn: {totalAll.toLocaleString()} đ
           </Typography>
+
           <Button
             variant="contained"
             onClick={handleCreateHoaDon}
             disabled={selectedOrders.length === 0}
+            className="whitespace-nowrap"
           >
             Tạo hóa đơn ({selectedOrders.length})
           </Button>
         </Box>
       </Box>
 
-      <Table>
-        <TableHead>
-          <TableRow className="bg-gray-100">
-            <TableCell padding="checkbox">
-              <Checkbox
-                indeterminate={
-                  selectedOrders.length > 0 &&
-                  selectedOrders.length < filteredDonHangs.length
-                }
-                checked={
-                  filteredDonHangs.length > 0 &&
-                  selectedOrders.length === filteredDonHangs.length
-                }
-                onChange={toggleAll}
-              />
-            </TableCell>
-            <TableCell>Đơn hàng</TableCell>
-            <TableCell>Nhận lúc</TableCell>
-            <TableCell>Bác sĩ</TableCell>
-            <TableCell>Sản phẩm</TableCell>
-            <TableCell>Thành tiền</TableCell>
-            <TableCell>Chiết khấu</TableCell>
-          </TableRow>
-        </TableHead>
+      {/* ===== TABLE ===== */}
+      <Box className="overflow-x-auto">
+        <Table className="min-w-[1100px]">
+          <TableHead>
+            <TableRow className="bg-gray-100">
+              <TableCell padding="checkbox">
+                <Checkbox
+                  indeterminate={
+                    selectedOrders.length > 0 &&
+                    selectedOrders.length < filteredDonHangs.length
+                  }
+                  checked={
+                    filteredDonHangs.length > 0 &&
+                    selectedOrders.length === filteredDonHangs.length
+                  }
+                  onChange={toggleAll}
+                />
+              </TableCell>
 
-        <TableBody>
-          {loading ? (
-            <TableRow>
-              <TableCell colSpan={7} align="center">
-                <CircularProgress size={24} />
-              </TableCell>
+              <TableCell className="whitespace-nowrap">Đơn hàng</TableCell>
+
+              <TableCell className="whitespace-nowrap">Nhận lúc</TableCell>
+
+              <TableCell className="whitespace-nowrap">Bác sĩ</TableCell>
+
+              <TableCell className="whitespace-nowrap">Sản phẩm</TableCell>
+
+              <TableCell className="whitespace-nowrap">Thành tiền</TableCell>
+
+              <TableCell className="whitespace-nowrap">Chiết khấu</TableCell>
             </TableRow>
-          ) : filteredDonHangs.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={7} align="center">
-                Không có đơn hàng nào trong khoảng thời gian này
-              </TableCell>
-            </TableRow>
-          ) : (
-            filteredDonHangs.map((order) => (
-              <TableRow key={order._id} hover>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedOrders.some((o) => o._id === order._id)}
-                    onChange={() => toggleOrder(order)}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button
-                    size="small"
-                    onClick={() => navigate(`/donhang/${order._id}/edit`)}
-                  >
-                    TAN{order._id.slice(-8).toUpperCase()}
-                  </Button>
-                </TableCell>
-                <TableCell>{formatDate(order?.ngayNhan)}</TableCell>
-                <TableCell>{order.bacSi?.hoVaTen || "-"}</TableCell>
-                <TableCell>
-                  <Box className="flex flex-col gap-1">
-                    {order.danhSachSanPham.map((sp, i) => (
-                      <Chip
-                        key={i}
-                        label={`${
-                          mapTen[sp.sanPham?.toString()] || "SP"
-                        } | SL: ${sp.soLuong}`}
-                        size="small"
-                        variant="outlined"
-                      />
-                    ))}
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Typography fontWeight={600}>
-                    {calcTotal(order).toLocaleString()} đ
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Box className="flex gap-1">
-                    <TextField
-                      size="small"
-                      placeholder="%"
-                      type="number"
-                      sx={{ width: 70 }}
-                      onChange={(e) =>
-                        setDiscounts({
-                          ...discounts,
-                          [order._id]: {
-                            type: "%",
-                            value: Number(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                    <TextField
-                      size="small"
-                      placeholder="đ"
-                      type="number"
-                      sx={{ width: 100 }}
-                      onChange={(e) =>
-                        setDiscounts({
-                          ...discounts,
-                          [order._id]: {
-                            type: "VND",
-                            value: Number(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </Box>
+          </TableHead>
+
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  <CircularProgress size={24} />
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : filteredDonHangs.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  Không có đơn hàng nào trong khoảng thời gian này
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredDonHangs.map((order) => (
+                <TableRow key={order._id} hover>
+                  {/* CHECKBOX */}
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedOrders.some((o) => o._id === order._id)}
+                      onChange={() => toggleOrder(order)}
+                    />
+                  </TableCell>
+
+                  {/* ĐƠN HÀNG */}
+                  <TableCell className="whitespace-nowrap">
+                    <Button
+                      size="small"
+                      onClick={() => navigate(`/donhang/${order._id}/edit`)}
+                    >
+                      TAN
+                      {order._id.slice(-8).toUpperCase()}
+                    </Button>
+                  </TableCell>
+
+                  {/* NGÀY */}
+                  <TableCell className="whitespace-nowrap">
+                    {formatDate(order?.ngayNhan)}
+                  </TableCell>
+
+                  {/* BÁC SĨ */}
+                  <TableCell className="min-w-[160px]">
+                    <div className="break-words">
+                      {order.bacSi?.hoVaTen || "-"}
+                    </div>
+                  </TableCell>
+
+                  {/* SẢN PHẨM */}
+                  <TableCell className="min-w-[260px]">
+                    <Box className="flex flex-col gap-1">
+                      {order.danhSachSanPham.map((sp, i) => (
+                        <Chip
+                          key={i}
+                          label={`${
+                            mapTen[sp.sanPham?.toString()] || "SP"
+                          } | SL: ${sp.soLuong}`}
+                          size="small"
+                          variant="outlined"
+                        />
+                      ))}
+                    </Box>
+                  </TableCell>
+
+                  {/* THÀNH TIỀN */}
+                  <TableCell className="whitespace-nowrap">
+                    <Typography fontWeight={600}>
+                      {calcTotal(order).toLocaleString()} đ
+                    </Typography>
+                  </TableCell>
+
+                  {/* CHIẾT KHẤU */}
+                  <TableCell>
+                    <Box className="flex flex-col sm:flex-row gap-2">
+                      <TextField
+                        size="small"
+                        placeholder="%"
+                        type="number"
+                        sx={{
+                          width: {
+                            xs: "100%",
+                            sm: 70,
+                          },
+                        }}
+                        onChange={(e) =>
+                          setDiscounts({
+                            ...discounts,
+                            [order._id]: {
+                              type: "%",
+                              value: Number(e.target.value),
+                            },
+                          })
+                        }
+                      />
+
+                      <TextField
+                        size="small"
+                        placeholder="đ"
+                        type="number"
+                        sx={{
+                          width: {
+                            xs: "100%",
+                            sm: 100,
+                          },
+                        }}
+                        onChange={(e) =>
+                          setDiscounts({
+                            ...discounts,
+                            [order._id]: {
+                              type: "VND",
+                              value: Number(e.target.value),
+                            },
+                          })
+                        }
+                      />
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Box>
     </Paper>
   );
 }

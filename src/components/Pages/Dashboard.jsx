@@ -26,6 +26,8 @@ import HoaDonPrintPreview from "../HoaDon/HoaDonPrintPreview";
 import BaoCaoPage from "../BaoCao/BaoCaoPage";
 import PhieuThuPage from "../PhieuThu/PhieuThuPage";
 import PhieuThuPrintPreview from "../PhieuThu/PhieuThuPrintPreview";
+import NhanVienTable from "../NhanVien/NhanVienTable";
+import BangLuongPage from "../BangLuong/BangLuongPage";
 const Dashboard = () => {
   const [collapsed, setCollapsed] = useState(false);
   return (
@@ -74,7 +76,18 @@ const Dashboard = () => {
           ></Route>
           <Route path="/hoa-don/:id/print" element={<HoaDonPrintPreview />} />
           <Route path="/phieu-thu" element={<PhieuThuPage />} />
-          <Route path="/phieu-thu/:id/print" element={<PhieuThuPrintPreview />} />
+          <Route
+            path="/phieu-thu/:id/print"
+            element={<PhieuThuPrintPreview />}
+          />
+          <Route
+            path="/nhan-vien"
+            element={<NhanVienTable></NhanVienTable>}
+          ></Route>
+          <Route
+            path="/bang-luong"
+            element={<BangLuongPage></BangLuongPage>}
+          ></Route>
         </Routes>
       </Box>
     </Box>

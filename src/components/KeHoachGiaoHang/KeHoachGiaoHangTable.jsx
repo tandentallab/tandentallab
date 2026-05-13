@@ -11,6 +11,8 @@ import {
   parseISO,
 } from "date-fns";
 import ThongKeKeHoachGiaoHang from "./ThongKeKeHoachGiaoHang";
+import { Button } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
@@ -31,6 +33,8 @@ const KeHoachGiaoHangTable = () => {
 
   const todayStart = startOfDay(new Date());
   const todayEnd = endOfDay(new Date());
+
+  const navigate = useNavigate();
 
   // ================= FILTER LOGIC =================
   const filteredOrders = useMemo(() => {
@@ -138,90 +142,137 @@ const KeHoachGiaoHangTable = () => {
         </div>
 
         {/* ================= TABLE ================= */}
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-3 text-left">Khách hàng</th>
-                <th className="p-3 text-left">Bác sĩ</th>
-                <th className="p-3 text-left">Bệnh nhân</th>
-                <th className="p-3 text-left">Hẹn giao</th>
-                <th className="p-3 text-left">Trạng thái</th>
-              </tr>
-            </thead>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          {/* 🔥 Responsive wrapper */}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-3 text-left whitespace-nowrap">
+                    Số đơn hàng
+                  </th>
 
-            <tbody>
-              {filteredOrders.map((order) => {
-                const date = parseISO(order.henGiao);
+                  <th className="p-3 text-left whitespace-nowrap">
+                    Khách hàng
+                  </th>
 
-                const overdue =
-                  isBefore(date, todayStart) &&
-                  order.trangThai !== "Hoàn thành";
+                  <th className="p-3 text-left whitespace-nowrap">Bác sĩ</th>
 
-                const today = isToday(date);
+                  <th className="p-3 text-left whitespace-nowrap">Bệnh nhân</th>
 
-                return (
-                  <tr key={order._id} className="border-t hover:bg-gray-50">
-                    <td className="p-3 font-medium">
-                      {order.nhaKhoa?.hoVaTen}
-                    </td>
+                  <th className="p-3 text-left whitespace-nowrap">Hẹn giao</th>
 
-                    <td className="p-3">{order.bacSi?.hoVaTen}</td>
+                  <th className="p-3 text-left whitespace-nowrap">
+                    Trạng thái
+                  </th>
+                </tr>
+              </thead>
 
-                    <td className="p-3">{order.benhNhan?.hoVaTen}</td>
+              <tbody>
+                {filteredOrders.map((order) => {
+                  const date = parseISO(order.henGiao);
 
-                    <td className="p-3">
-                      <div className="flex flex-col">
+                  const overdue =
+                    isBefore(date, todayStart) &&
+                    order.trangThai !== "Hoàn thành";
+
+                  const today = isToday(date);
+
+                  return (
+                    <tr key={order._id} className="border-t hover:bg-gray-50">
+                      {/* SỐ ĐƠN */}
+                      <td className="p-3 font-medium whitespace-nowrap">
+                        <Button
+                          variant="text"
+                          onClick={() => {
+                            navigate(`/donhang/${order._id}/edit`);
+                          }}
+                        >
+                          TAN
+                          {order._id
+                            .substring(order._id.length - 8)
+                            .toUpperCase()}
+                        </Button>
+                      </td>
+
+                      {/* KHÁCH HÀNG */}
+                      <td className="p-3 min-w-[180px]">
+                        <div className="font-medium break-words">
+                          {order.nhaKhoa?.hoVaTen}
+                        </div>
+                      </td>
+
+                      {/* BÁC SĨ */}
+                      <td className="p-3 min-w-[150px]">
+                        <div className="break-words">
+                          {order.bacSi?.hoVaTen}
+                        </div>
+                      </td>
+
+                      {/* BỆNH NHÂN */}
+                      <td className="p-3 min-w-[150px]">
+                        <div className="break-words">
+                          {order.benhNhan?.hoVaTen}
+                        </div>
+                      </td>
+
+                      {/* HẸN GIAO */}
+                      <td className="p-3 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span
+                            className={`font-bold ${
+                              overdue
+                                ? "text-red-600"
+                                : today
+                                ? "text-orange-500"
+                                : ""
+                            }`}
+                          >
+                            {format(date, "dd/MM/yyyy HH:mm")}
+                          </span>
+
+                          {overdue && (
+                            <span className="text-xs text-red-600">
+                              Trễ hẹn
+                            </span>
+                          )}
+
+                          {today && (
+                            <span className="text-xs text-orange-500">
+                              Hôm nay
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* TRẠNG THÁI */}
+                      <td className="p-3 whitespace-nowrap">
                         <span
-                          className={`font-bold ${
-                            overdue
-                              ? "text-red-600"
-                              : today
-                              ? "text-orange-500"
-                              : ""
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            order.trangThai === "Hoàn thành"
+                              ? "bg-green-100 text-green-700"
+                              : order.trangThai === "Đang sản xuất"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-yellow-100 text-yellow-700"
                           }`}
                         >
-                          {format(date, "dd/MM/yyyy HH:mm")}
+                          {order.trangThai}
                         </span>
+                      </td>
+                    </tr>
+                  );
+                })}
 
-                        {overdue && (
-                          <span className="text-xs text-red-600">Trễ hẹn</span>
-                        )}
-
-                        {today && (
-                          <span className="text-xs text-orange-500">
-                            Hôm nay
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    <td className="p-3">
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          order.trangThai === "Hoàn thành"
-                            ? "bg-green-100 text-green-700"
-                            : order.trangThai === "Đang sản xuất"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {order.trangThai}
-                      </span>
+                {filteredOrders.length === 0 && (
+                  <tr>
+                    <td colSpan="6" className="text-center p-6 text-gray-400">
+                      Không có dữ liệu
                     </td>
                   </tr>
-                );
-              })}
-
-              {filteredOrders.length === 0 && (
-                <tr>
-                  <td colSpan="5" className="text-center p-6 text-gray-400">
-                    Không có dữ liệu
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

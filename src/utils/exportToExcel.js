@@ -619,3 +619,187 @@ export const exportDonHangListToExcel = async (
   const fileName = `Danh sach don hang ${pickRangeLabel() || ""}.xlsx`;
   saveAs(new Blob([buffer]), fileName);
 };
+
+export const exportBangLuongToExcel = async (salaryData, thang, nam) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Bảng Lương');
+
+  // Column widths
+  worksheet.columns = [
+    { width: 6 },   // A: STT
+    { width: 20 },  // B: TÊN NHÂN VIÊN
+    { width: 15 },  // C: LƯƠNG CẦN BẢN
+    { width: 14 },  // D: LƯƠNG / 28 CÔNG
+    { width: 13 },  // E: SỐ NGÀY CÔNG
+    { width: 16 },  // F: THÀNH TIỀN CÔNG
+    { width: 12 },  // G: CƠM
+    { width: 12 },  // H: ĐIỆN THOẠI
+    { width: 12 },  // I: THƯỞNG
+    { width: 12 },  // J: ỨNG TRƯỚC
+    { width: 16 },  // K: THÀNH TIỀN
+  ];
+
+  // Row 1: Title (merged A1:K1)
+  worksheet.mergeCells('A1:K1');
+  const titleCell = worksheet.getCell('A1');
+  titleCell.value = `BẢNG LƯƠNG THÁNG ${thang} - ${nam}`;
+  titleCell.font = { bold: true, size: 14 };
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getRow(1).height = 24;
+
+  // Row 2: Summary totals
+  worksheet.getRow(2).height = 18;
+
+  // Calculate totals for row 2
+  let totalLuongCanBan = 0;
+  let totalCom = 0;
+  let totalUngTruoc = 0;
+  let totalThucNhan = 0;
+
+  salaryData.forEach((item) => {
+    totalLuongCanBan += Number(item.luongCanBan || 0);
+    totalCom += Number(item.com || 0);
+    totalUngTruoc += Number(item.ungTruoc || 0);
+    totalThucNhan += Number(item.thucNhan || 0);
+  });
+
+  // Set row 2 values
+  worksheet.getCell('C2').value = totalLuongCanBan;
+  worksheet.getCell('G2').value = totalCom;
+  worksheet.getCell('J2').value = totalUngTruoc;
+  worksheet.getCell('K2').value = totalThucNhan;
+
+  // Format row 2 cells
+  [
+    { col: 3, cell: 'C2' },
+    { col: 7, cell: 'G2' },
+    { col: 10, cell: 'J2' },
+    { col: 11, cell: 'K2' },
+  ].forEach(({ col, cell }) => {
+    const cellObj = worksheet.getCell(cell);
+    cellObj.numFmt = '#,##0';
+    cellObj.alignment = { horizontal: 'right', vertical: 'middle' };
+    cellObj.font = { bold: true };
+    applyBorder(cellObj);
+  });
+
+  // Row 3-4: Headers (with merge for multi-line headers)
+  worksheet.mergeCells('A3:A4');
+  worksheet.mergeCells('B3:B4');
+  worksheet.mergeCells('C3:C4');
+  worksheet.mergeCells('D3:D4');
+  worksheet.mergeCells('E3:E4');
+  worksheet.mergeCells('F3:F4');
+  worksheet.mergeCells('G3:I3'); // Merge PHỤ CẤP
+  worksheet.mergeCells('J3:J4');
+  worksheet.mergeCells('K3:K4');
+
+  // Row 3: First level headers
+  const row3Headers = [
+    'STT',
+    'TÊN NHÂN VIÊN',
+    'LƯƠNG CẦN BẢN',
+    'LƯƠNG / 28 CÔNG',
+    'SỐ NGÀY CÔNG',
+    'THÀNH TIỀN CÔNG',
+    'PHỤ CẤP',           // G3: Merged with H3, I3
+    null,                // H3
+    null,                // I3
+    'ỨNG TRƯỚC',
+    'THÀNH TIỀN',
+  ];
+
+  row3Headers.forEach((header, idx) => {
+    if (header === null) return; // Skip merged cells
+    const cell = worksheet.getCell(3, idx + 1);
+    cell.value = header;
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1976D2' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    applyBorder(cell);
+  });
+
+  // Row 4: Second level headers
+  const row4Headers = [
+    'STT',
+    'TÊN NHÂN VIÊN',
+    'LƯƠNG CẦN BẢN',
+    'LƯƠNG / 28 CÔNG',
+    'SỐ NGÀY CÔNG',
+    'THÀNH TIỀN CÔNG',
+    'CƠM',
+    'ĐIỆN THOẠI',
+    'THƯỞNG',
+    'ỨNG TRƯỚC',
+    'THÀNH TIỀN',
+  ];
+
+  row4Headers.forEach((header, idx) => {
+    const cell = worksheet.getCell(4, idx + 1);
+    cell.value = header;
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1976D2' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    applyBorder(cell);
+  });
+
+  worksheet.getRow(3).height = 24;
+  worksheet.getRow(4).height = 24;
+
+  // Data rows starting from row 5
+  salaryData.forEach((item, idx) => {
+    const rowIdx = 5 + idx;
+    const row = worksheet.getRow(rowIdx);
+
+    const luongCanBan = Number(item.luongCanBan || 0);
+    const soNgayCong = Number(item.soNgayCong || 0);
+    const luongMoiNgay = luongCanBan / 28;
+    const thanhTienCong = luongMoiNgay * soNgayCong;
+    const com = Number(item.com || 0);
+    const dienThoai = Number(item.dienThoai || 0);
+    const thuong = Number(item.thuong || 0);
+    const phat = Number(item.phat || 0);
+    const ungTruoc = Number(item.ungTruoc || 0);
+    const thucNhan = Number(item.thucNhan || 0);
+
+    row.values = [
+      idx + 1,                           // STT
+      item.hoVaTen || '',                // TÊN NHÂN VIÊN
+      luongCanBan,                       // LƯƠNG CẦN BẢN
+      luongMoiNgay,                      // LƯƠNG / 28 CÔNG
+      soNgayCong,                        // SỐ NGÀY CÔNG
+      thanhTienCong,                     // THÀNH TIỀN CÔNG
+      com,                               // CƠM
+      dienThoai,                         // ĐIỆN THOẠI
+      thuong,                            // THƯỞNG
+      ungTruoc,                          // ỨNG TRƯỚC
+      thucNhan,                          // THÀNH TIỀN
+    ];
+
+    // Format currency columns
+    for (let col = 3; col <= 11; col++) {
+      const cell = worksheet.getCell(rowIdx, col);
+      cell.numFmt = '#,##0';
+      cell.alignment = { horizontal: 'right', vertical: 'middle' };
+      applyBorder(cell);
+    }
+
+    // Format text columns
+    worksheet.getCell(rowIdx, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getCell(rowIdx, 2).alignment = { horizontal: 'left', vertical: 'middle' };
+    applyBorder(worksheet.getCell(rowIdx, 1));
+    applyBorder(worksheet.getCell(rowIdx, 2));
+
+    row.height = 20;
+  });
+
+  // Freeze panes at row 5 (freeze rows 1-4)
+  worksheet.views = [
+    { state: 'frozen', ySplit: 4, xSplit: 0 }
+  ];
+
+  // Save file
+  const buffer = await workbook.xlsx.writeBuffer();
+  const fileName = `Bang_luong_thang_${thang}_${nam}.xlsx`;
+  saveAs(new Blob([buffer]), fileName);
+};

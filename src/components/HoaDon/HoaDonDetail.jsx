@@ -260,11 +260,12 @@ const HoaDonDetail = () => {
 
   return (
     <div className="fixed inset-0 z-[1299] bg-[#f0f2f5] flex flex-col w-screen h-screen overflow-hidden">
-      {/* 1. TOP BAR */}
-      <div className="h-10 bg-[#00a8ff] flex justify-between items-center px-4 shrink-0 shadow-sm">
-        <span className="text-white font-medium text-sm">
+      {/* TOP BAR */}
+      <div className="h-12 md:h-10 bg-[#00a8ff] flex justify-between items-center px-3 md:px-4 shrink-0 shadow-sm">
+        <span className="text-white font-medium text-xs md:text-sm truncate">
           Chi tiết hóa đơn: {hoaDon.soHoaDon}
         </span>
+
         <button
           onClick={() => navigate(-1)}
           className="text-white text-2xl hover:opacity-70"
@@ -273,32 +274,37 @@ const HoaDonDetail = () => {
         </button>
       </div>
 
-      {/* 2. BODY CONTENT */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* LEFT AREA: Scrollable Info & Table */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-          {/* SECTION 1: Customer & Invoice Info */}
-          <div className="grid grid-cols-3 gap-4 shrink-0">
-            <div className="col-span-2 bg-white p-4 shadow-sm border border-gray-200 rounded-lg">
+      {/* BODY */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* LEFT */}
+        <div className="flex-1 overflow-y-auto p-2 md:p-4 flex flex-col gap-4">
+          {/* SECTION 1 */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 shrink-0">
+            {/* CUSTOMER */}
+            <div className="xl:col-span-2 bg-white p-3 md:p-4 shadow-sm border border-gray-200 rounded-lg">
               <h3 className="text-blue-600 font-bold mb-3 border-b pb-2 uppercase text-[11px]">
                 Thông tin khách hàng
               </h3>
-              <div className="flex items-center justify-center gap-x-2">
-                <Avatar>NK</Avatar>{" "}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  <span className="text-gray-500">
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <Avatar>NK</Avatar>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm w-full">
+                  <span className="text-gray-500 break-words">
                     Nha khoa:{" "}
                     <span className="text-gray-900 font-semibold">
                       {nhaKhoaInfo?.hoVaTen || "..."}
                     </span>
                   </span>
-                  <span className="text-gray-500">
+
+                  <span className="text-gray-500 break-all">
                     Email:{" "}
                     <span className="text-gray-900">
                       {nhaKhoaInfo?.email || "---"}
                     </span>
                   </span>
-                  <span className="text-gray-500 col-span-2">
+
+                  <span className="text-gray-500 md:col-span-2 break-words">
                     Địa chỉ:{" "}
                     <span className="text-gray-900">
                       {nhaKhoaInfo
@@ -310,167 +316,195 @@ const HoaDonDetail = () => {
               </div>
             </div>
 
-            <div className="bg-white p-4 shadow-sm border border-gray-200 rounded-lg">
+            {/* CHỨNG TỪ */}
+            <div className="bg-white p-3 md:p-4 shadow-sm border border-gray-200 rounded-lg">
               <h3 className="text-blue-600 font-bold mb-3 border-b pb-2 uppercase text-[11px]">
                 Chứng từ
               </h3>
+
               <div className="flex flex-col gap-2 text-sm">
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-2">
                   <span className="text-gray-500">Mã:</span>
-                  <span className="font-bold text-red-600">
+
+                  <span className="font-bold text-red-600 break-all text-right">
                     TAN{hoaDon._id.slice(-8).toUpperCase()}
                   </span>
                 </div>
-                <div className="flex justify-between">
+
+                <div className="flex justify-between gap-2">
                   <span className="text-gray-500">Ngày xuất:</span>
-                  <span>{formatDate(hoaDon.ngayXuatHoaDon)}</span>
+
+                  <span className="text-right">
+                    {formatDate(hoaDon.ngayXuatHoaDon)}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* SECTION 2: Table - Bọc trong div để kiểm soát overflow */}
-          <div className="bg-white shadow-md border border-gray-200 rounded-lg overflow-hidden overflow-y-auto">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] sticky top-0 z-10 border-b">
-                <tr>
-                  <th className="p-3 text-center w-12">STT</th>
-                  <th className="p-3">Mã đơn hàng</th>
-                  <th className="p-3">Thông tin chung</th>
-                  <th className="p-3">Sản phẩm & Vị trí</th>
-                  <th className="p-3 text-right">Tổng tiền</th>
-                  <th className="p-3 text-center w-32">Chiết khấu</th>
-                  <th className="p-3 text-right">Thành tiền</th>
-                  <th className="p-3 text-center">Xóa</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {hoaDon.danhSachDonHang.map((item, index) => (
-                  <tr
-                    key={item._id}
-                    className="hover:bg-blue-50/40 transition-colors"
-                  >
-                    <td className="p-3 text-center text-gray-400">
-                      {index + 1}
-                    </td>
-                    <td className="p-3">
-                      <button
-                        onClick={() =>
-                          navigate(`/donhang/${item.donHang?._id}/edit`)
-                        }
-                        className="font-bold text-blue-600 hover:underline text-xs"
-                      >
-                        TAN{item.donHang?._id?.slice(-6).toUpperCase()}
-                      </button>
-                    </td>
-                    <td className="p-3">
-                      <div className="text-xs leading-relaxed">
-                        <div>
-                          <span className="text-gray-400">BS:</span>{" "}
-                          {item.donHang?.bacSi?.hoVaTen}
-                        </div>
-                        <div className="font-medium">
-                          <span className="text-gray-400">BN:</span>{" "}
-                          {item.donHang?.benhNhan?.hoVaTen}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="space-y-1">
-                        {item.donHang?.danhSachSanPham?.map((sp, i) => (
-                          <div
-                            key={i}
-                            className="text-[12px] bg-gray-50 p-1 rounded border border-gray-100"
-                          >
-                            <span className="font-medium text-blue-700">
-                              {sp.sanPham?.tenSanPham}
-                            </span>
-                            <div className="text-[10px] text-gray-500 mt-0.5">
-                              {sp.viTri
-                                ?.map((v) => `${v.kieu}: ${v.soRang.join(",")}`)
-                                .join(" | ")}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="p-3 text-right text-gray-600 font-medium">
-                      {formatCurrency(item.tongTien)}
-                    </td>
-                    <td className="p-3">
-                      <div className="flex border rounded overflow-hidden h-8">
-                        <input
-                          type="number"
-                          value={item.chietKhau || 0}
-                          onChange={(e) =>
-                            handleDiscountChange(
-                              index,
-                              "chietKhau",
-                              Number(e.target.value)
-                            )
+          {/* TABLE */}
+          <div className="bg-white shadow-md border border-gray-200 rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-[1100px] w-full text-sm text-left border-collapse">
+                <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] sticky top-0 z-10 border-b">
+                  <tr>
+                    <th className="p-3 text-center w-12">STT</th>
+                    <th className="p-3 min-w-[140px]">Mã đơn hàng</th>
+                    <th className="p-3 min-w-[180px]">Thông tin chung</th>
+                    <th className="p-3 min-w-[300px]">Sản phẩm & Vị trí</th>
+                    <th className="p-3 text-right min-w-[120px]">Tổng tiền</th>
+                    <th className="p-3 text-center min-w-[150px]">
+                      Chiết khấu
+                    </th>
+                    <th className="p-3 text-right min-w-[140px]">Thành tiền</th>
+                    <th className="p-3 text-center min-w-[80px]">Xóa</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-gray-100">
+                  {hoaDon.danhSachDonHang.map((item, index) => (
+                    <tr
+                      key={item._id}
+                      className="hover:bg-blue-50/40 transition-colors"
+                    >
+                      <td className="p-3 text-center text-gray-400">
+                        {index + 1}
+                      </td>
+
+                      <td className="p-3">
+                        <button
+                          onClick={() =>
+                            navigate(`/donhang/${item.donHang?._id}/edit`)
                           }
-                          className="w-full text-center text-xs outline-none border-r"
-                        />
-                        <select
-                          value={item.loaiChietKhau}
-                          onChange={(e) =>
-                            handleDiscountChange(
-                              index,
-                              "loaiChietKhau",
-                              e.target.value
-                            )
-                          }
-                          className="bg-gray-50 text-[10px] px-1 outline-none font-bold"
+                          className="font-bold text-blue-600 hover:underline text-xs whitespace-nowrap"
                         >
-                          <option value="phanTram">%</option>
-                          <option value="tienMat">đ</option>
-                        </select>
-                      </div>
-                    </td>
-                    <td className="p-3 text-right font-bold text-gray-800">
-                      {formatCurrency(item.thanhTienSauCK)}
-                    </td>
-                    <td className="p-3 text-center">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDelete(index)}
+                          TAN{item.donHang?._id?.slice(-6).toUpperCase()}
+                        </button>
+                      </td>
+
+                      <td className="p-3">
+                        <div className="text-xs leading-relaxed min-w-[160px]">
+                          <div className="break-words">
+                            <span className="text-gray-400">BS:</span>{" "}
+                            {item.donHang?.bacSi?.hoVaTen}
+                          </div>
+
+                          <div className="font-medium break-words">
+                            <span className="text-gray-400">BN:</span>{" "}
+                            {item.donHang?.benhNhan?.hoVaTen}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="p-3">
+                        <div className="space-y-1">
+                          {item.donHang?.danhSachSanPham?.map((sp, i) => (
+                            <div
+                              key={i}
+                              className="text-[12px] bg-gray-50 p-1 rounded border border-gray-100"
+                            >
+                              <span className="font-medium text-blue-700 break-words">
+                                {sp.sanPham?.tenSanPham}
+                              </span>
+
+                              <div className="text-[10px] text-gray-500 mt-0.5 break-words">
+                                {sp.viTri
+                                  ?.map(
+                                    (v) => `${v.kieu}: ${v.soRang.join(",")}`
+                                  )
+                                  .join(" | ")}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+
+                      <td className="p-3 text-right text-gray-600 font-medium whitespace-nowrap">
+                        {formatCurrency(item.tongTien)}
+                      </td>
+
+                      <td className="p-3">
+                        <div className="flex border rounded overflow-hidden h-8 min-w-[120px]">
+                          <input
+                            type="number"
+                            value={item.chietKhau || 0}
+                            onChange={(e) =>
+                              handleDiscountChange(
+                                index,
+                                "chietKhau",
+                                Number(e.target.value)
+                              )
+                            }
+                            className="w-full text-center text-xs outline-none border-r"
+                          />
+
+                          <select
+                            value={item.loaiChietKhau}
+                            onChange={(e) =>
+                              handleDiscountChange(
+                                index,
+                                "loaiChietKhau",
+                                e.target.value
+                              )
+                            }
+                            className="bg-gray-50 text-[10px] px-1 outline-none font-bold"
+                          >
+                            <option value="phanTram">%</option>
+                            <option value="tienMat">đ</option>
+                          </select>
+                        </div>
+                      </td>
+
+                      <td className="p-3 text-right font-bold text-gray-800 whitespace-nowrap">
+                        {formatCurrency(item.thanhTienSauCK)}
+                      </td>
+
+                      <td className="p-3 text-center">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(index)}
+                        >
+                          <TrashIcon size={16} />
+                        </IconButton>
+                      </td>
+                    </tr>
+                  ))}
+
+                  <tr>
+                    <td colSpan={8} className="p-3">
+                      <Button
+                        variant="outlined"
+                        startIcon={<AddIcon />}
+                        onClick={() => setIsModalOpen(true)}
+                        fullWidth={window.innerWidth < 640}
                       >
-                        <TrashIcon size={16} />
-                      </IconButton>
+                        Thêm đơn hàng chưa xuất hóa đơn
+                      </Button>
+
+                      <DonHangChuaXuatModal
+                        open={isModalOpen}
+                        onClose={() => setIsModalOpen(false)}
+                        selectedClinic={nhaKhoaInfo?._id}
+                        selectedOrders={selectedOrders}
+                        setSelectedOrders={setSelectedOrders}
+                        onAddOrders={handleAddOrders}
+                      />
                     </td>
                   </tr>
-                ))}
-                <tr>
-                  <td colSpan={8}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<AddIcon></AddIcon>}
-                      onClick={() => setIsModalOpen(true)}
-                    >
-                      Thêm đơn hàng chưa xuất hóa đơn
-                    </Button>
-                    <DonHangChuaXuatModal
-                      open={isModalOpen}
-                      onClose={() => setIsModalOpen(false)}
-                      selectedClinic={nhaKhoaInfo?._id} // ✅ fix crash
-                      selectedOrders={selectedOrders}
-                      setSelectedOrders={setSelectedOrders}
-                      onAddOrders={handleAddOrders} // ✅ thêm dòng này
-                    />{" "}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
 
-            <div className="grid grid-cols-12 gap-6 bg-white p-6 shadow-sm  rounded-lg mb-24">
-              {/* Cột trái: Chính sách & Ghi chú */}
-              <div className="col-span-7 space-y-6">
-                {/* Select Chính sách thanh toán */}
-                <div className="w-1/2">
+            {/* NOTES + POLICY */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white p-4 md:p-6 shadow-sm rounded-lg mb-24">
+              {/* LEFT */}
+              <div className="lg:col-span-7 space-y-6">
+                <div className="w-full lg:w-1/2">
                   <label className="text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1 block">
                     Chính sách thanh toán
                   </label>
+
                   <select
                     value={chinhSachThanhToan}
                     onChange={(e) => setChinhSachThanhToan(e.target.value)}
@@ -479,81 +513,91 @@ const HoaDonDetail = () => {
                     <option value="Thanh toán cuối tháng">
                       Thanh toán cuối tháng
                     </option>
+
                     <option value="Thanh toán ngay">Thanh toán ngay</option>
-                    <option value="Thanh toán trong 10 ngày">
+
+                    <option value="Thanh toán trong 7 ngày">
                       Thanh toán trong 7 ngày
                     </option>
+
                     <option value="Thanh toán trong 10 ngày">
                       Thanh toán trong 10 ngày
                     </option>
+
                     <option value="Thanh toán trong 30 ngày">
                       Thanh toán trong 30 ngày
                     </option>
+
                     <option value="Thanh toán trong 60 ngày">
                       Thanh toán trong 60 ngày
                     </option>
+
                     <option value="Thanh toán trong 90 ngày">
                       Thanh toán trong 90 ngày
                     </option>
                   </select>
                 </div>
 
-                {/* Ghi chú cho khách hàng */}
                 <div>
                   <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
                     Ghi chú cho khách hàng
                   </label>
+
                   <textarea
                     value={ghiChuChoKhachHang}
                     onChange={(e) => setGhiChuChoKhachHang(e.target.value)}
-                    className="w-full mt-1 border-b border-gray-200 focus:border-blue-400 outline-none text-sm py-2 resize-none h-16 transition-all"
+                    className="w-full mt-1 border-b border-gray-200 focus:border-blue-400 outline-none text-sm py-2 resize-none h-20 transition-all"
                     placeholder="Nội dung này sẽ hiển thị trên bản in hóa đơn..."
                   />
                 </div>
-
-                {/* Ghi chú nội bộ */}
               </div>
 
-              {/* Cột phải: Tài liệu & Con số tài chính */}
-              <div className="col-span-5 flex flex-col justify-between">
-                {/* Box Upload Tài liệu (Dựa theo ảnh image_1d329f.png) */}
-                <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
-                    Ghi chú nội bộ
-                  </label>
-                  <textarea
-                    value={ghiChuNoiBo}
-                    onChange={(e) => setGhiChuNoiBo(e.target.value)}
-                    className="w-full mt-1 border-b border-gray-200 focus:border-blue-400 outline-none text-sm py-2 resize-none h-16 transition-all"
-                    placeholder="Chỉ nhân viên nội bộ mới nhìn thấy ghi chú này..."
-                  />
-                </div>
+              {/* RIGHT */}
+              <div className="lg:col-span-5">
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+                  Ghi chú nội bộ
+                </label>
+
+                <textarea
+                  value={ghiChuNoiBo}
+                  onChange={(e) => setGhiChuNoiBo(e.target.value)}
+                  className="w-full mt-1 border-b border-gray-200 focus:border-blue-400 outline-none text-sm py-2 resize-none h-20 transition-all"
+                  placeholder="Chỉ nhân viên nội bộ mới nhìn thấy ghi chú này..."
+                />
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT AREA: Summary Sidebar */}
-        <div className="w-80 bg-white border-l shadow-xl flex flex-col shrink-0">
+        {/* RIGHT SIDEBAR */}
+        <div className="w-full lg:w-80 bg-white border-t lg:border-t-0 lg:border-l shadow-xl flex flex-col shrink-0 max-h-[420px] lg:max-h-full">
           <div className="p-4 border-b bg-gray-50 shrink-0">
             <h4 className="font-bold text-gray-700 uppercase text-xs">
               Tổng kết tài chính
             </h4>
           </div>
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
-            <div className="flex justify-between text-sm">
+
+          <div className="flex-1 overflow-y-auto p-4 md:p-5 flex flex-col gap-4">
+            <div className="flex justify-between text-sm gap-3">
               <span className="text-gray-500">Tổng tiền hàng</span>
-              <span className="font-medium">
+
+              <span className="font-medium text-right">
                 {formatCurrency(hoaDon.tongTien)}
               </span>
             </div>
-            <div className="flex justify-between text-sm text-red-500 italic">
+
+            <div className="flex justify-between text-sm text-red-500 italic gap-3">
               <span>Giảm giá</span>
-              <span>- {formatCurrency(hoaDon.tongChietKhau)}</span>
+
+              <span className="text-right">
+                - {formatCurrency(hoaDon.tongChietKhau)}
+              </span>
             </div>
-            <div className="flex justify-between items-center text-sm px-2">
+
+            <div className="flex justify-between items-center text-sm px-2 gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-gray-500">Thuế</span>
+
                 <div className="flex items-center border-b border-gray-200 focus-within:border-blue-400 w-16">
                   <input
                     type="number"
@@ -561,14 +605,15 @@ const HoaDonDetail = () => {
                     onChange={(e) => setThuePhanTram(Number(e.target.value))}
                     className="w-full text-center outline-none text-xs p-1 bg-transparent"
                   />
+
                   <span className="text-[10px] text-gray-400">% =</span>
                 </div>
               </div>
             </div>
 
-            {/* CHI PHÍ KHÁC (VNĐ) - Ô nhập liệu */}
-            <div className="flex justify-between items-center text-sm px-2">
+            <div className="flex justify-between items-center text-sm px-2 gap-3">
               <span className="text-gray-500">Chi phí khác</span>
+
               <div className="border-b border-gray-200 focus-within:border-blue-400 w-32">
                 <input
                   type="number"
@@ -581,20 +626,29 @@ const HoaDonDetail = () => {
                 />
               </div>
             </div>
+
             <div className="h-px bg-gray-200 my-2" />
-            <div className="flex justify-between">
+
+            <div className="flex justify-between gap-3">
               <span className="font-bold">Thành tiền</span>
-              <span className="font-bold text-blue-600 text-lg">
+
+              <span className="font-bold text-blue-600 text-lg text-right">
                 {formatCurrency(hoaDon.thanhTien)}
               </span>
             </div>
-            <div className="flex justify-between text-sm text-green-600">
+
+            <div className="flex justify-between text-sm text-green-600 gap-3">
               <span>Đã thanh toán</span>
-              <span>{formatCurrency(hoaDon.daThanhToan || 0)}</span>
+
+              <span className="text-right">
+                {formatCurrency(hoaDon.daThanhToan || 0)}
+              </span>
             </div>
-            <div className="flex justify-between pt-4 border-t-2 border-dashed">
+
+            <div className="flex justify-between pt-4 border-t-2 border-dashed gap-3">
               <span className="font-black text-gray-700">CÒN LẠI</span>
-              <span className="font-black text-red-600 text-xl">
+
+              <span className="font-black text-red-600 text-xl text-right">
                 {formatCurrency(hoaDon.conLai)}
               </span>
             </div>
@@ -602,16 +656,18 @@ const HoaDonDetail = () => {
             <div className="mt-6 space-y-2">
               <button
                 onClick={handleUpdateHoaDon}
-                className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold shadow-md hover:bg-blue-700 active:scale-95 transition"
+                className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold shadow-md hover:bg-blue-700 active:scale-95 transition text-sm"
               >
                 CẬP NHẬT HÓA ĐƠN
               </button>
+
               <button
                 onClick={() => exportHoaDonToExcel(hoaDon, nhaKhoaInfo)}
                 className="w-full bg-emerald-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
               >
                 Xuất file Excel
               </button>
+
               <button
                 onClick={() => navigate(`/hoa-don/${hoaDon._id}/print`)}
                 className="w-full border border-blue-600 text-blue-600 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition"
@@ -623,11 +679,11 @@ const HoaDonDetail = () => {
         </div>
       </div>
 
-      {/* 3. FOOTER */}
-      <div className="h-12 bg-white border-t px-6 flex justify-end items-center shrink-0">
+      {/* FOOTER */}
+      <div className="h-14 md:h-12 bg-white border-t px-4 md:px-6 flex justify-end items-center shrink-0">
         <button
           onClick={() => navigate(-1)}
-          className="bg-gray-200 text-gray-700 px-6 py-1.5 rounded font-medium text-sm hover:bg-gray-300 transition"
+          className="bg-gray-200 text-gray-700 px-6 py-2 md:py-1.5 rounded font-medium text-sm hover:bg-gray-300 transition"
         >
           Thoát
         </button>

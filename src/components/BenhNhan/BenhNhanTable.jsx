@@ -15,6 +15,10 @@ import {
   InputAdornment,
   MenuItem,
   Tooltip,
+  Card,
+  CardContent,
+  Typography,
+  Divider,
 } from "@mui/material";
 
 import SearchIcon from "@mui/icons-material/Search";
@@ -72,6 +76,7 @@ export default function BenhNhanTable() {
   // ===== EDIT =====
   const [openEdit, setOpenEdit] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+
   const handleEdit = (item) => {
     setSelectedRow(item);
     setOpenEdit(true);
@@ -80,15 +85,46 @@ export default function BenhNhanTable() {
   return (
     <Box>
       {/* ===== HEADER ===== */}
-      <Box className="flex justify-between items-center mb-4">
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: {
+            xs: "stretch",
+            md: "center",
+          },
+          flexDirection: {
+            xs: "column",
+            md: "row",
+          },
+          gap: 2,
+          mb: 3,
+        }}
+      >
         {/* LEFT */}
-        <Box className="flex items-center gap-3">
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: {
+              xs: "stretch",
+              sm: "center",
+            },
+            flexDirection: {
+              xs: "column",
+              sm: "row",
+            },
+            gap: 2,
+            width: {
+              xs: "100%",
+              md: "auto",
+            },
+          }}
+        >
           {/* CHIP */}
           {selectedClinic && (
             <Chip
               label={`Khách hàng: ${selectedClinic}`}
               onDelete={() => setSelectedClinic("")}
-              className="bg-gray-200"
             />
           )}
 
@@ -99,10 +135,16 @@ export default function BenhNhanTable() {
             size="small"
             value={selectedClinic}
             onChange={(e) => setSelectedClinic(e.target.value)}
-            className="w-52"
+            sx={{
+              minWidth: {
+                xs: "100%",
+                sm: 220,
+              },
+            }}
             InputLabelProps={{ shrink: true }}
           >
             <MenuItem value="">Tất cả</MenuItem>
+
             {clinicList.map((c, index) => (
               <MenuItem key={index} value={c}>
                 {c}
@@ -112,13 +154,30 @@ export default function BenhNhanTable() {
         </Box>
 
         {/* RIGHT */}
-        <Box className="flex items-center gap-2">
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            flexWrap: "wrap",
+            width: {
+              xs: "100%",
+              md: "auto",
+            },
+          }}
+        >
           <TextField
             size="small"
             placeholder="Tìm kiếm liên hệ"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-gray-100 rounded-full"
+            sx={{
+              flex: 1,
+              minWidth: {
+                xs: "100%",
+                sm: 250,
+              },
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -128,7 +187,7 @@ export default function BenhNhanTable() {
             }}
           />
 
-          <BenhNhanModal></BenhNhanModal>
+          <BenhNhanModal />
 
           <IconButton onClick={() => dispatch(fetchBenhNhan())}>
             <RefreshIcon />
@@ -140,110 +199,249 @@ export default function BenhNhanTable() {
         </Box>
       </Box>
 
-      {/* ===== TABLE ===== */}
-      <TableContainer component={Paper} className="rounded-2xl shadow-lg">
-        <Table>
-          <TableHead>
-            <TableRow className="bg-gray-100">
-              <TableCell width={50}></TableCell>
-              <TableCell>
-                <b>Tên</b>
-              </TableCell>
-              <TableCell>
-                <b>Số hồ sơ</b>
-              </TableCell>
-              <TableCell>
-                <b>Giới tính</b>
-              </TableCell>
-              <TableCell>
-                <b>Nha khoa</b>
-              </TableCell>
-              <TableCell width={80}></TableCell>
-            </TableRow>
-          </TableHead>
+      {/* ===== DESKTOP TABLE ===== */}
+      <Box
+        sx={{
+          display: {
+            xs: "none",
+            lg: "block",
+          },
+        }}
+      >
+        <TableContainer component={Paper} className="rounded-2xl shadow-lg">
+          <Table>
+            <TableHead>
+              <TableRow className="bg-gray-100">
+                <TableCell width={50}></TableCell>
 
-          <TableBody>
-            {/* LOADING */}
-            {loading && (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <CircularProgress />
+                <TableCell>
+                  <b>Tên</b>
                 </TableCell>
-              </TableRow>
-            )}
 
-            {/* ERROR */}
-            {error && (
-              <TableRow>
-                <TableCell colSpan={6} align="center" className="text-red-500">
-                  {error}
+                <TableCell>
+                  <b>Số hồ sơ</b>
                 </TableCell>
-              </TableRow>
-            )}
 
-            {/* EMPTY */}
-            {!loading && filteredData.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  Không có dữ liệu
+                <TableCell>
+                  <b>Giới tính</b>
                 </TableCell>
+
+                <TableCell>
+                  <b>Nha khoa</b>
+                </TableCell>
+
+                <TableCell width={80}></TableCell>
               </TableRow>
-            )}
+            </TableHead>
 
-            {/* DATA */}
-            {!loading &&
-              filteredData.map((item) => {
-                const isFav = favorites.includes(item._id);
+            <TableBody>
+              {/* LOADING */}
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              )}
 
-                return (
-                  <TableRow
-                    key={item._id}
-                    hover
-                    className={isFav ? "bg-yellow-50" : ""}
+              {/* ERROR */}
+              {error && (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    align="center"
+                    className="text-red-500"
                   >
-                    {/* ⭐ */}
-                    <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={() => toggleFavorite(item._id)}
-                      >
-                        {isFav ? (
-                          <StarIcon className="text-yellow-400" />
-                        ) : (
-                          <StarBorderIcon />
-                        )}
-                      </IconButton>
-                    </TableCell>
+                    {error}
+                  </TableCell>
+                </TableRow>
+              )}
 
-                    <TableCell>
-                      <div className="font-semibold text-gray-800">
-                        {item.hoVaTen}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        ID: {item._id.slice(-6)}
-                      </div>
-                    </TableCell>
+              {/* EMPTY */}
+              {!loading && filteredData.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    Không có dữ liệu
+                  </TableCell>
+                </TableRow>
+              )}
 
-                    <TableCell>{item.soHoSo}</TableCell>
+              {/* DATA */}
+              {!loading &&
+                filteredData.map((item) => {
+                  const isFav = favorites.includes(item._id);
 
-                    <TableCell>{item.gioiTinh}</TableCell>
-
-                    <TableCell>{item.nhaKhoa?.hoVaTen || "-"}</TableCell>
-
-                    {/* ✏️ EDIT */}
-                    <TableCell>
-                      <Tooltip title="Chỉnh sửa">
-                        <IconButton onClick={() => handleEdit(item)}>
-                          <EditIcon className="text-blue-500 hover:text-blue-700" />
+                  return (
+                    <TableRow
+                      key={item._id}
+                      hover
+                      className={isFav ? "bg-yellow-50" : ""}
+                    >
+                      {/* FAVORITE */}
+                      <TableCell>
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleFavorite(item._id)}
+                        >
+                          {isFav ? (
+                            <StarIcon className="text-yellow-400" />
+                          ) : (
+                            <StarBorderIcon />
+                          )}
                         </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                      </TableCell>
+
+                      {/* TÊN */}
+                      <TableCell>
+                        <div className="font-semibold text-gray-800">
+                          {item.hoVaTen}
+                        </div>
+
+                        <div className="text-xs text-gray-500">
+                          ID: {item._id.slice(-6)}
+                        </div>
+                      </TableCell>
+
+                      {/* SỐ HỒ SƠ */}
+                      <TableCell>{item.soHoSo}</TableCell>
+
+                      {/* GIỚI TÍNH */}
+                      <TableCell>{item.gioiTinh}</TableCell>
+
+                      {/* NHA KHOA */}
+                      <TableCell>{item.nhaKhoa?.hoVaTen || "-"}</TableCell>
+
+                      {/* EDIT */}
+                      <TableCell>
+                        <Tooltip title="Chỉnh sửa">
+                          <IconButton onClick={() => handleEdit(item)}>
+                            <EditIcon className="text-blue-500 hover:text-blue-700" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+
+      {/* ===== MOBILE CARD ===== */}
+      <Box
+        sx={{
+          display: {
+            xs: "flex",
+            lg: "none",
+          },
+          flexDirection: "column",
+          gap: 2,
+        }}
+      >
+        {/* LOADING */}
+        {loading && (
+          <Box className="flex justify-center py-10">
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* ERROR */}
+        {error && (
+          <Paper className="p-5 text-center text-red-500">{error}</Paper>
+        )}
+
+        {/* EMPTY */}
+        {!loading && filteredData.length === 0 && (
+          <Paper className="p-5 text-center">Không có dữ liệu</Paper>
+        )}
+
+        {/* DATA */}
+        {!loading &&
+          filteredData.map((item) => {
+            const isFav = favorites.includes(item._id);
+
+            return (
+              <Card
+                key={item._id}
+                sx={{
+                  borderRadius: "18px",
+                  boxShadow: 3,
+                  backgroundColor: isFav ? "#FEFCE8" : "#fff",
+                }}
+              >
+                <CardContent>
+                  {/* HEADER */}
+                  <Box className="flex justify-between items-start">
+                    <Box>
+                      <Typography fontWeight={700}>{item.hoVaTen}</Typography>
+
+                      <Typography variant="caption" color="text.secondary">
+                        ID: {item._id.slice(-6)}
+                      </Typography>
+                    </Box>
+
+                    <IconButton
+                      size="small"
+                      onClick={() => toggleFavorite(item._id)}
+                    >
+                      {isFav ? (
+                        <StarIcon className="text-yellow-400" />
+                      ) : (
+                        <StarBorderIcon />
+                      )}
+                    </IconButton>
+                  </Box>
+
+                  <Divider sx={{ my: 1.5 }} />
+
+                  {/* SỐ HỒ SƠ */}
+                  <Box mb={1.5}>
+                    <Typography variant="body2" fontWeight={600}>
+                      Số hồ sơ
+                    </Typography>
+
+                    <Typography variant="body2">
+                      {item.soHoSo || "-"}
+                    </Typography>
+                  </Box>
+
+                  {/* GIỚI TÍNH */}
+                  <Box mb={1.5}>
+                    <Typography variant="body2" fontWeight={600}>
+                      Giới tính
+                    </Typography>
+
+                    <Typography variant="body2">
+                      {item.gioiTinh || "-"}
+                    </Typography>
+                  </Box>
+
+                  {/* NHA KHOA */}
+                  <Box mb={2}>
+                    <Typography variant="body2" fontWeight={600}>
+                      Nha khoa
+                    </Typography>
+
+                    <Typography variant="body2">
+                      {item.nhaKhoa?.hoVaTen || "-"}
+                    </Typography>
+                  </Box>
+
+                  {/* ACTION */}
+                  <Box className="flex justify-end">
+                    <Tooltip title="Chỉnh sửa">
+                      <IconButton onClick={() => handleEdit(item)}>
+                        <EditIcon className="text-blue-500 hover:text-blue-700" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </CardContent>
+              </Card>
+            );
+          })}
+      </Box>
+
+      {/* ===== UPDATE MODAL ===== */}
       <BenhNhanUpdateModal
         open={openEdit}
         setOpen={setOpenEdit}

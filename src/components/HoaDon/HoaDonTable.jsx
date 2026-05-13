@@ -415,7 +415,7 @@ const HoaDonTable = () => {
               </TableCell>
             </TableRow>
             <TableRow className="bg-gray-100">
-              <TableCell className="font-bold">Số Hóa Đơn</TableCell>
+              <TableCell className="font-bold">Số hóa đơn</TableCell>
               <TableCell
                 className="font-bold"
                 sx={{
@@ -454,7 +454,7 @@ const HoaDonTable = () => {
                         navigate(`/hoa-don/${hd._id}/edit`);
                       }}
                     >
-                      TAN{hd._id.substring(hd._id.length - 8).toUpperCase()}
+                      {hd?.soHoaDon}
                     </Button>
                   </TableCell>
                   <TableCell>

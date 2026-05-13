@@ -644,4 +644,5 @@ const NoteBlock = ({ label, value }) => (
   </div>
 );
 
-export default DonHangDetailPanel;
+export default DonHangDetailPanel;  
+}

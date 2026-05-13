@@ -29,6 +29,8 @@ const dashboardSlice = createSlice({
         chart1: { data: [], loading: false, config: { ...defaultFilter } },
         chart2: { data: [], loading: false, config: { ...defaultFilter } },
         chart3: { data: [], loading: false, config: { ...defaultFilter, showDataLabels: true } },
+        chart4: { data: [], loading: false, config: { ...defaultFilter, showDataLabels: false, showLegend: true } },
+
     },
     reducers: {
         updateChartConfig: (state, action) => {

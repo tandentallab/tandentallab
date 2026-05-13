@@ -289,7 +289,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
                                                         className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded" />
                                                 </td>
                                                 <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
-                                                <td className="px-4 py-3 font-medium text-[#29b6f6]">{formatSoHoaDon(hd._id)}</td>
+                                                <td className="px-4 py-3 font-medium text-[#29b6f6]">{hd.soHoaDon || formatSoHoaDon(hd._id)}</td>
                                                 <td className="px-4 py-3 text-gray-600">
                                                     {hd.ngayXuatHoaDon ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN") : "—"}
                                                 </td>

@@ -69,7 +69,7 @@ const PhieuThuPrintPreview = () => {
     return days[d.getDay()];
   };
 
-  const maBaoHanh = `TAN${phieuThu._id.substring(phieuThu._id.length - 8).toUpperCase()}`;
+  const maBaoHanh = phieuThu.soPhieuThu || `TAN${phieuThu._id.substring(phieuThu._id.length - 8).toUpperCase()}`;
   const printDate = phieuThu.ngayThu || phieuThu.ngayTao;
   const soTienText = numberToWords(phieuThu.soTienThu);
 

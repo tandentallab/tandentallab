@@ -56,8 +56,8 @@ const DonHangPrintPreview = () => {
     });
   };
 
-  const maDonHang = `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`;
-  
+  const maDonHang = donHang.maDonHang || `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`;
+
   const bacSi = donHang.bacSi?.hoVaTen || "";
   const benhNhan = donHang.benhNhan?.hoVaTen || "";
   const nhaKhoa =

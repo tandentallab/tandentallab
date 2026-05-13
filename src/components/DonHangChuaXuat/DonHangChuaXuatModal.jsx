@@ -376,7 +376,7 @@ export default function DonHangChuaXuatModal({
                         navigate(`/donhang/${order._id}/edit`);
                       }}
                     >
-                      TAN{order._id.slice(-8).toUpperCase()}
+                      {order.maDonHang || `TAN${order._id.slice(-8).toUpperCase()}`}
                     </Typography>
                   </TableCell>
                   <TableCell>{formatDate(order?.ngayNhan)}</TableCell>
@@ -389,9 +389,8 @@ export default function DonHangChuaXuatModal({
                       {order.danhSachSanPham.map((sp, i) => (
                         <Chip
                           key={i}
-                          label={`${mapTen[sp.sanPham?.toString()] || "SP"} x${
-                            sp.soLuong
-                          }`}
+                          label={`${mapTen[sp.sanPham?.toString()] || "SP"} x${sp.soLuong
+                            }`}
                           size="small"
                           variant="outlined"
                         />

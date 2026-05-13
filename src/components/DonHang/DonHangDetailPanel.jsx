@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { deleteDonHang, updateDonHang } from "../../redux/slices/donHangSlice";
+import { deleteDonHang, updateDonHang, updateCongDoanTrangThai } from "../../redux/slices/donHangSlice";
 import toast from "react-hot-toast";
 import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 
@@ -11,10 +12,23 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
   const [activeTab, setActiveTab] = useState("chitiet");
   const [isPhieuBaoHanhOpen, setIsPhieuBaoHanhOpen] = useState(false);
   const [selectedProductIndex, setSelectedProductIndex] = useState(null);
+  const [openDropdown, setOpenDropdown] = useState(null); // { spIndex, thuTu, top, right }
   const isOpen = !!donHang;
 
+  // Close dropdown on outside click or scroll
+  useEffect(() => {
+    if (!openDropdown) return;
+    const handler = () => setOpenDropdown(null);
+    document.addEventListener("click", handler);
+    document.addEventListener("scroll", handler, true);
+    return () => {
+      document.removeEventListener("click", handler);
+      document.removeEventListener("scroll", handler, true);
+    };
+  }, [openDropdown]);
+
   const maDonHang = donHang
-    ? `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`
+    ? (donHang.maDonHang || `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`)
     : "";
 
   const trangThaiColor = {
@@ -40,7 +54,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
         success: `Đã xóa đơn hàng ${maDonHang}`,
         error: (err) => err || "Xóa đơn hàng thất bại",
       });
-      promise.then(() => onClose()).catch(() => {});
+      promise.then(() => onClose()).catch(() => { });
     }
   };
 
@@ -89,23 +103,40 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
     setIsPhieuBaoHanhOpen(true);
   };
 
+  const CONG_DOAN_TRANG_THAI_OPTIONS = ["Chưa sẵn sàng", "Chờ sản xuất"];
+
+  const CONG_DOAN_TRANG_THAI_STYLE = {
+    "Chưa sẵn sàng": "text-gray-500",
+    "Chờ sản xuất": "text-cyan-600 font-medium",
+  };
+
+  const getCongDoanTrangThai = (sp, thuTu) => {
+    const found = sp.trangThaiCongDoan?.find((cd) => cd.thuTu === thuTu);
+    return found?.trangThai || "Chưa sẵn sàng";
+  };
+
+  const handleCongDoanStatusChange = (spIndex, thuTu, trangThai) => {
+    setOpenDropdown(null);
+    dispatch(updateCongDoanTrangThai({ id: donHang._id, spIndex, thuTu, trangThai }))
+      .unwrap()
+      .catch((err) => toast.error(err || "Cập nhật thất bại"));
+  };
+
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${
-          isOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${isOpen
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
+          }`}
         onClick={onClose}
       />
 
       {/* Slide-out panel */}
       <div
-        className={`fixed right-0 top-0 pt-16 h-full w-[440px] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed right-0 top-0 pt-16 h-full w-[440px] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         {/* Header */}
         <div className="bg-teal-700 text-white px-4 py-3 flex items-center justify-between shrink-0">
@@ -113,10 +144,9 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
             <span className="font-bold text-base truncate">{maDonHang}</span>
             {donHang && (
               <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                  trangThaiColor[donHang.trangThai] ||
+                className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${trangThaiColor[donHang.trangThai] ||
                   "bg-gray-200 text-gray-800"
-                }`}
+                  }`}
               >
                 {donHang.trangThai || "Chờ xử lý"}
               </span>
@@ -199,11 +229,10 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-5 py-2.5 text-sm font-medium transition border-b-2 ${
-                activeTab === tab.key
-                  ? "border-teal-600 text-teal-700"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
+              className={`px-5 py-2.5 text-sm font-medium transition border-b-2 ${activeTab === tab.key
+                ? "border-teal-600 text-teal-700"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
             >
               {tab.label}
             </button>
@@ -340,11 +369,10 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
               <button
                 onClick={handleMarkComplete}
                 disabled={donHang.trangThai === "Hoàn thành"}
-                className={`w-full py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 mt-1 ${
-                  donHang.trangThai === "Hoàn thành"
-                    ? "bg-green-100 text-green-700 cursor-default border border-green-200"
-                    : "bg-green-500 hover:bg-green-600 text-white shadow-sm"
-                }`}
+                className={`w-full py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 mt-1 ${donHang.trangThai === "Hoàn thành"
+                  ? "bg-green-100 text-green-700 cursor-default border border-green-200"
+                  : "bg-green-500 hover:bg-green-600 text-white shadow-sm"
+                  }`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -372,41 +400,108 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
               <h4 className="text-sm font-semibold text-gray-700 mb-3">
                 Quy trình sản xuất
               </h4>
-              {donHang.danhSachSanPham?.map((sp, idx) => (
-                <div
-                  key={idx}
-                  className="mb-4 border rounded-lg overflow-hidden"
-                >
-                  <div className="bg-blue-600 text-white px-3 py-2 text-sm font-medium">
-                    {sp.sanPham?.tenSanPham || `Sản phẩm ${idx + 1}`}
+              {donHang.danhSachSanPham?.map((sp, spIdx) => {
+                const quyTrinh = sp.sanPham?.quyTrinh
+                  ? [...sp.sanPham.quyTrinh].sort((a, b) => a.thuTu - b.thuTu)
+                  : [];
+                return (
+                  <div key={spIdx} className="mb-4 border rounded-lg overflow-hidden shadow-sm">
+                    {/* Product header */}
+                    <div className="bg-gray-50 border-b px-3 py-2">
+                      <div className="font-semibold text-gray-800 text-sm">
+                        {sp.sanPham?.tenSanPham || `Sản phẩm ${spIdx + 1}`}
+                      </div>
+                      {(sp.viTri?.length > 0 || sp.mau) && (
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {sp.viTri?.length > 0 && (
+                            <span>{sp.soLuong} răng: {renderViTriText(sp.viTri)}</span>
+                          )}
+                          {sp.mau && (
+                            <span className="ml-1">– Màu răng: {sp.mau}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Công đoạn list */}
+                    <div className="divide-y">
+                      {quyTrinh.length > 0 ? (
+                        quyTrinh.map((cd, i) => {
+                          const currentStatus = getCongDoanTrangThai(sp, cd.thuTu);
+                          const dropKey = `${spIdx}-${cd.thuTu}`;
+                          const isDropOpen =
+                            openDropdown?.spIndex === spIdx &&
+                            openDropdown?.thuTu === cd.thuTu;
+                          return (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between px-3 py-2.5 text-sm hover:bg-gray-50"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold shrink-0">
+                                  {cd.thuTu}
+                                </span>
+                                <span className="text-gray-700">{cd.tenCongDoan}</span>
+                              </div>
+                              {/* Status dropdown */}
+                              <div className="relative shrink-0">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isDropOpen) {
+                                      setOpenDropdown(null);
+                                    } else {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      setOpenDropdown({
+                                        spIndex: spIdx,
+                                        thuTu: cd.thuTu,
+                                        top: rect.bottom + 4,
+                                        right: window.innerWidth - rect.right,
+                                      });
+                                    }
+                                  }}
+                                  className={`text-xs px-2 py-1 rounded hover:bg-gray-100 transition ${CONG_DOAN_TRANG_THAI_STYLE[currentStatus]}`}
+                                >
+                                  {currentStatus}
+                                </button>
+                                {isDropOpen && ReactDOM.createPortal(
+                                  <div
+                                    style={{ top: openDropdown.top, right: openDropdown.right }}
+                                    className="fixed bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] min-w-[150px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {CONG_DOAN_TRANG_THAI_OPTIONS.map((opt) => (
+                                      <button
+                                        key={opt}
+                                        onClick={() => handleCongDoanStatusChange(spIdx, cd.thuTu, opt)}
+                                        className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition ${opt === currentStatus ? "font-semibold text-cyan-600" : "text-gray-700"
+                                          }`}
+                                      >
+                                        {opt}
+                                      </button>
+                                    ))}
+                                  </div>,
+                                  document.body
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="px-3 py-3 text-sm text-gray-400 italic">
+                          Chưa có thông tin công đoạn
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="p-3 text-sm text-gray-500 italic">
-                    {sp.sanPham?.congDoan?.length > 0 ? (
-                      <ul className="flex flex-col gap-2">
-                        {sp.sanPham.congDoan.map((cd, i) => (
-                          <li
-                            key={i}
-                            className="flex items-center gap-2 text-gray-700"
-                          >
-                            <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold shrink-0">
-                              {i + 1}
-                            </span>
-                            {cd.tenCongDoan || cd}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <span>Chưa có thông tin công đoạn</span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {(!donHang.danhSachSanPham ||
                 donHang.danhSachSanPham.length === 0) && (
-                <div className="text-gray-400 text-sm italic text-center mt-8">
-                  Chưa có sản phẩm
-                </div>
-              )}
+                  <div className="text-gray-400 text-sm italic text-center mt-8">
+                    Chưa có sản phẩm
+                  </div>
+                )}
             </div>
           )}
 
@@ -457,12 +552,12 @@ const DateCard = ({ label, value, colorClass, format }) => {
   const formatted = value
     ? format === "datetime"
       ? new Date(value).toLocaleString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
       : new Date(value).toLocaleDateString("vi-VN")
     : "--";
   return (

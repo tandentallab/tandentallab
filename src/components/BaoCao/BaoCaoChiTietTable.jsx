@@ -158,9 +158,10 @@ const BaoCaoChiTietTable = ({ startDate, endDate, dateType }) => {
             <TableContainer
                 component={Paper}
                 className="rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
-                sx={{ maxHeight: '100vh', overflowY: 'auto', scrollbarGutter: 'stable' }}
+                sx={{ maxHeight: '100vh', overflowY: 'auto', overflowX: 'auto', scrollbarGutter: 'stable' }}
             >
-                <Table stickyHeader size="small" sx={{ tableLayout: 'fixed' }}>
+                {/* 🌟 Responsive: Thêm minWidth: 900 để kích hoạt scroll ngang trên mobile */}
+                <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', minWidth: 900 }}>
 
                     {/* ── HEADER ── */}
                     <TableHead>

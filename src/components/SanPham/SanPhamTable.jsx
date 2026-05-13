@@ -81,14 +81,14 @@ export default function SanPhamTable() {
   }, [data, searchTerm, filterLoaiTinh, filterNhom]);
 
   return (
-    <Box className="p-6">
-      {/* 👉 THANH CÔNG CỤ TÌM KIẾM VÀ LỌC */}
-      <Box className="flex gap-4 mb-5 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+    <Box className="p-0 sm:p-2">
+      {/* THANH CÔNG CỤ TÌM KIẾM VÀ LỌC */}
+      <Box className="flex flex-col md:flex-row flex-wrap gap-4 mb-5 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <TextField
           size="small"
           placeholder="Tìm kiếm theo tên sản phẩm..."
           variant="outlined"
-          className="flex-1 bg-gray-50"
+          className="flex-1 w-full md:w-auto bg-gray-50"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           slotProps={{
@@ -100,90 +100,83 @@ export default function SanPhamTable() {
               ),
             }
           }}
-
           sx={{ "& fieldset": { border: "none" } }}
         />
 
-        <TextField
-          select
-          size="small"
-          label="Loại tính"
-          value={filterLoaiTinh}
-          onChange={(e) => setFilterLoaiTinh(e.target.value)}
-          className="w-[200px]"
-        >
-          <MenuItem value="Tất cả" className="font-medium text-blue-600">
-            Tất cả
-          </MenuItem>
-          {LOAI_TINH_OPTIONS.map((o) => (
-            <MenuItem key={o} value={o}>
-              {o}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        <TextField
-          select
-          size="small"
-          label="Nhóm sản phẩm"
-          value={filterNhom}
-          onChange={(e) => setFilterNhom(e.target.value)}
-          className="w-[250px]"
-        >
-          <MenuItem value="Tất cả" className="font-medium text-blue-600">
-            Tất cả
-          </MenuItem>
-          {NHOM_SAN_PHAM_OPTIONS.map((o) => (
-            <MenuItem key={o} value={o}>
-              {o}
-            </MenuItem>
-          ))}
-        </TextField>
-        <Tooltip title="Thêm nha khoa">
-          <IconButton
-            onClick={handleAdd}
-            className="bg-green-500 text-white hover:bg-green-600"
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          <TextField
+            select
+            size="small"
+            label="Loại tính"
+            value={filterLoaiTinh}
+            onChange={(e) => setFilterLoaiTinh(e.target.value)}
+            className="w-full sm:w-[200px]"
           >
-            <AddIcon />
+            <MenuItem value="Tất cả" className="font-medium text-blue-600">
+              Tất cả
+            </MenuItem>
+            {LOAI_TINH_OPTIONS.map((o) => (
+              <MenuItem key={o} value={o}>
+                {o}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            size="small"
+            label="Nhóm sản phẩm"
+            value={filterNhom}
+            onChange={(e) => setFilterNhom(e.target.value)}
+            className="w-full sm:w-[250px]"
+          >
+            <MenuItem value="Tất cả" className="font-medium text-blue-600">
+              Tất cả
+            </MenuItem>
+            {NHOM_SAN_PHAM_OPTIONS.map((o) => (
+              <MenuItem key={o} value={o}>
+                {o}
+              </MenuItem>
+            ))}
+          </TextField>
+        </div>
+
+        <div className="flex justify-end gap-2 w-full md:w-auto mt-2 md:mt-0">
+          <Tooltip title="Thêm nha khoa">
+            <IconButton
+              onClick={handleAdd}
+              className="bg-green-500 text-white hover:bg-green-600"
+            >
+              <AddIcon />
+            </IconButton>
+          </Tooltip>
+          <IconButton
+            onClick={() => dispatch(fetchSanPham())}
+            disabled={loading}
+            className="bg-white shadow-sm border border-gray-200"
+          >
+            <Refresh
+              className={loading ? "animate-spin text-blue-500" : "text-gray-600"}
+            />
           </IconButton>
-        </Tooltip>
-        <IconButton
-          onClick={() => dispatch(fetchSanPham())}
-          disabled={loading}
-          className="bg-white shadow-sm border border-gray-200"
-        >
-          <Refresh
-            className={loading ? "animate-spin text-blue-500" : "text-gray-600"}
-          />
-        </IconButton>
+        </div>
       </Box>
 
       <TableContainer
         component={Paper}
-        className="rounded-xl shadow-md border border-gray-100"
+        className="rounded-xl shadow-md border border-gray-100 overflow-x-auto"
       >
-        <Table>
+        <Table sx={{ minWidth: 800 }}>
           <TableHead className="bg-gray-50">
             <TableRow>
-              <TableCell>
-                <b>Tên sản phẩm</b>
-              </TableCell>
-              <TableCell>
-                <b>Loại tính</b>
-              </TableCell>
-              <TableCell>
-                <b>Nhóm</b>
-              </TableCell>
-              <TableCell>
-                <b>Đơn giá</b>
-              </TableCell>
-              <TableCell align="center">
-                <b>Thao tác</b>
-              </TableCell>
+              <TableCell><b>Tên sản phẩm</b></TableCell>
+              <TableCell><b>Loại tính</b></TableCell>
+              <TableCell><b>Nhóm</b></TableCell>
+              <TableCell><b>Đơn giá</b></TableCell>
+              <TableCell align="center"><b>Thao tác</b></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {/* 👉 DÙNG filteredData THAY VÌ data */}
             {filteredData.map((item) => (
               <TableRow key={item._id} hover>
                 <TableCell className="font-medium text-gray-800">
@@ -225,13 +218,8 @@ export default function SanPhamTable() {
                   className="text-gray-400 py-10"
                 >
                   <div className="flex flex-col items-center">
-                    <Search
-                      style={{ fontSize: 40 }}
-                      className="text-gray-300 mb-2"
-                    />
-                    <Typography>
-                      Không tìm thấy sản phẩm nào phù hợp!
-                    </Typography>
+                    <Search style={{ fontSize: 40 }} className="text-gray-300 mb-2" />
+                    <Typography>Không tìm thấy sản phẩm nào phù hợp!</Typography>
                   </div>
                 </TableCell>
               </TableRow>

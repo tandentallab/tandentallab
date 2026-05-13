@@ -69,8 +69,8 @@ const PhieuThuPrintPreview = () => {
     return days[d.getDay()];
   };
 
-  const maBaoHanh = phieuThu.soPhieuThu || `TAN${phieuThu._id.substring(phieuThu._id.length - 8).toUpperCase()}`;
-  const printDate = phieuThu.ngayThu || phieuThu.ngayTao;
+  const maPhieuThu = phieuThu.soPhieuThu || `PT${phieuThu._id.substring(phieuThu._id.length - 8).toUpperCase()}`;
+  const printDate = phieuThu.ngayThu || phieuThu.ngayTao || new Date(); // Thêm new Date() làm dự phòng
   const soTienText = numberToWords(phieuThu.soTienThu);
 
   return (

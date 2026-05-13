@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { deleteDonHang, updateDonHang, updateCongDoanTrangThai } from "../../redux/slices/donHangSlice";
 import { toast } from "sonner"; 
-import axios from "axios";
+import { api } from "../../config/api";
 import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 import WarrantyCardPrint from "./WarrantyCardPrint";
 
@@ -38,7 +38,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
   // Fetch warranty when donHang changes
   useEffect(() => {
     if (donHang?._id) {
-      axios
+      api
         .get(`/api/phieu-bao-hanh/don-hang/${donHang._id}`)
         .then((res) => {
           console.log("Warranty Response:", res.data);
@@ -124,6 +124,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
 
   const handleOpenPrintWarranty = () => {
     setOpenPrintWarranty(true);
+  };
   const CONG_DOAN_TRANG_THAI_OPTIONS = ["Chưa sẵn sàng", "Chờ sản xuất"];
 
   const CONG_DOAN_TRANG_THAI_STYLE = {
@@ -587,7 +588,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
           onSuccess={() => {
             toast.success("Đã tạo phiếu bảo hành");
             // Refresh warranty
-            axios.get(`/api/phieu-bao-hanh/don-hang/${donHang._id}`).then((res) => {
+            api.get(`/api/phieu-bao-hanh/don-hang/${donHang._id}`).then((res) => {
               setWarranty(res.data.data || res.data);
             });
           }}
@@ -645,4 +646,3 @@ const NoteBlock = ({ label, value }) => (
 );
 
 export default DonHangDetailPanel;  
-}

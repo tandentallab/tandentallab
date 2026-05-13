@@ -340,7 +340,7 @@ const DonHangPage = () => {
     return donHangs.filter((dh) => {
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase().trim();
-        const ma = `TAN${dh._id.substring(dh._id.length - 8)}`.toLowerCase();
+        const ma = (dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8)}`).toLowerCase();
         const nk = (dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen || "").toLowerCase();
         const bs = (dh.bacSi?.hoVaTen || "").toLowerCase();
         const bn = (dh.benhNhan?.hoVaTen || "").toLowerCase();

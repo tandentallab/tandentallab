@@ -37,10 +37,12 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchDonHangChuaHoaDon,
+  fetchDonHangChuaHoaDonAll,
   createHoaDon,
 } from "../../redux/slices/hoaDonSlice";
-import { fetchBangGiaByNhaKhoa } from "../../redux/slices/bangGiaSlice";
+import { fetchBangGiaByNhaKhoa, fetchAllBangGia } from "../../redux/slices/bangGiaSlice";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 import {
   buildPriceMap,
@@ -69,7 +71,10 @@ export default function DonHangChuaXuatTable({
 
   /* ================= CALL API ================= */
   useEffect(() => {
-    if (selectedClinic) {
+    if (selectedClinic === "all") {
+      dispatch(fetchDonHangChuaHoaDonAll());
+      dispatch(fetchAllBangGia());
+    } else if (selectedClinic) {
       dispatch(fetchDonHangChuaHoaDon(selectedClinic));
       dispatch(fetchBangGiaByNhaKhoa(selectedClinic));
     }
@@ -194,11 +199,35 @@ export default function DonHangChuaXuatTable({
     else setSelectedOrders(filteredDonHangs);
   };
 
-  const handleCreateHoaDon = () => {
-    if (!selectedClinic || selectedOrders.length === 0) {
-      alert("Chọn nha khoa và ít nhất 1 đơn hàng");
+  const handleCreateHoaDon = async () => {
+    if (selectedOrders.length === 0) {
+      toast.error("Vui lòng chọn ít nhất 1 đơn hàng");
       return;
     }
+
+    let nhaKhoaId = selectedClinic;
+
+    // Nếu chọn "Tất cả nha khoa", validate tất cả order từ cùng 1 nha khoa
+    if (selectedClinic === "all") {
+      const uniqueClinicIds = new Set(
+        selectedOrders.map((o) => o.nhaKhoa?._id || o.nhaKhoa)
+      );
+
+      if (uniqueClinicIds.size > 1) {
+        toast.error(
+          "Các đơn hàng phải từ cùng 1 nha khoa. Vui lòng chọn lại!"
+        );
+        return;
+      }
+
+      nhaKhoaId = selectedOrders[0].nhaKhoa?._id || selectedOrders[0].nhaKhoa;
+
+      if (!nhaKhoaId) {
+        toast.error("Không xác định được nha khoa của đơn hàng");
+        return;
+      }
+    }
+
     const danhSachDonHang = selectedOrders.map((order) => ({
       donHangId: order._id,
       chietKhau: discounts[order._id]?.value || 0,
@@ -206,7 +235,25 @@ export default function DonHangChuaXuatTable({
         discounts[order._id]?.type === "VND" ? "tienMat" : "phanTram",
     }));
 
-    dispatch(createHoaDon({ nhaKhoaId: selectedClinic, danhSachDonHang }));
+    try {
+      const result = await dispatch(
+        createHoaDon({ nhaKhoaId, danhSachDonHang })
+      ).unwrap();
+
+      toast.success(`Tạo hóa đơn thành công! Mã: ${result.data?.soHoaDon}`);
+
+      // Refetch dữ liệu
+      if (selectedClinic === "all") {
+        dispatch(fetchDonHangChuaHoaDonAll());
+      } else {
+        dispatch(fetchDonHangChuaHoaDon(selectedClinic));
+      }
+
+      setSelectedOrders([]);
+      setDiscounts({});
+    } catch (err) {
+      toast.error(err?.message || "Tạo hóa đơn thất bại");
+    }
   };
 
   const formatDate = (dateTime) => {
@@ -401,8 +448,7 @@ export default function DonHangChuaXuatTable({
                       size="small"
                       onClick={() => navigate(`/donhang/${order._id}/edit`)}
                     >
-                      TAN
-                      {order._id.slice(-8).toUpperCase()}
+                      {order.maDonHang || `TAN${order._id.slice(-8).toUpperCase()}`}
                     </Button>
                   </TableCell>
 

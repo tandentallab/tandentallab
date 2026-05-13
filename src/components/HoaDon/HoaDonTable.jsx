@@ -493,8 +493,8 @@ const HoaDonTable = () => {
                             ? "#22c55e" // xanh lá
                             : "#9ca3af", // mặc định
                       }}
-                    />{" "}
-                  </TableCell>{" "}
+                    />
+                  </TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
                       <Tooltip title="In hóa đơn">

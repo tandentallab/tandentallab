@@ -376,7 +376,7 @@ export default function DonHangChuaXuatModal({
                         navigate(`/donhang/${order._id}/edit`);
                       }}
                     >
-                      TAN{order._id.slice(-8).toUpperCase()}
+                      {order.maDonHang || `TAN${order._id.slice(-8).toUpperCase()}`}
                     </Typography>
                   </TableCell>
                   <TableCell>{formatDate(order?.ngayNhan)}</TableCell>

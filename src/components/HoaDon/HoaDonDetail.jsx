@@ -327,7 +327,7 @@ const HoaDonDetail = () => {
                   <span className="text-gray-500">Mã:</span>
 
                   <span className="font-bold text-red-600 break-all text-right">
-                    TAN{hoaDon._id.slice(-8).toUpperCase()}
+                    {hoaDon.soHoaDon || "---"}
                   </span>
                 </div>
 
@@ -378,7 +378,7 @@ const HoaDonDetail = () => {
                           }
                           className="font-bold text-blue-600 hover:underline text-xs whitespace-nowrap"
                         >
-                          TAN{item.donHang?._id?.slice(-6).toUpperCase()}
+                          {item.donHang?.maDonHang || (item.donHang?._id ? `TAN${item.donHang._id.slice(-8).toUpperCase()}` : "---")}
                         </button>
                       </td>
 

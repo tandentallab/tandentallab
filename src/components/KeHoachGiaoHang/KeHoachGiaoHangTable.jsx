@@ -188,10 +188,9 @@ const KeHoachGiaoHangTable = () => {
                             navigate(`/donhang/${order._id}/edit`);
                           }}
                         >
-                          TAN
-                          {order._id
+                          {order.maDonHang || `TAN${order._id
                             .substring(order._id.length - 8)
-                            .toUpperCase()}
+                            .toUpperCase()}`}
                         </Button>
                       </td>
 

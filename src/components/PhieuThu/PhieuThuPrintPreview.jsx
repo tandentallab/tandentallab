@@ -69,7 +69,8 @@ const PhieuThuPrintPreview = () => {
     return days[d.getDay()];
   };
 
-  const maBaoHanh = `TAN${phieuThu._id.substring(phieuThu._id.length - 8).toUpperCase()}`;
+  const maPhieuThu = phieuThu.soPhieuThu || "---";
+  const maHoaDon = hoaDon.soHoaDon || "---";
   const printDate = phieuThu.ngayThu || phieuThu.ngayTao;
   const soTienText = numberToWords(phieuThu.soTienThu);
 
@@ -98,7 +99,7 @@ const PhieuThuPrintPreview = () => {
             <div className="space-y-2 text-sm">
               <div className="flex gap-2">
                 <span className="font-bold min-w-24">Mã số:</span>
-                <span className="font-bold text-blue-600">{maBaoHanh}</span>
+                <span className="font-bold text-blue-600">{maPhieuThu}</span>
               </div>
               <div className="flex gap-2">
                 <span className="font-bold min-w-24">Ngày:</span>
@@ -180,9 +181,7 @@ const PhieuThuPrintPreview = () => {
               <tbody>
                 <tr>
                   <td className="border border-gray-400 p-2">
-                    {hoaDon._id
-                      ? `TAN${hoaDon._id.substring(hoaDon._id.length - 8).toUpperCase()}`
-                      : "---"}
+                    {maHoaDon}
                   </td>
                   <td className="border border-gray-400 p-2 text-right">
                     {formatCurrency(hoaDon.tongTien || 0)}

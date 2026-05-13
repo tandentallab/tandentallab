@@ -571,7 +571,7 @@ export const exportDonHangListToExcel = async (
 
   donHangList.forEach((dh, idx) => {
     const rowIndex = headerRow + 1 + idx;
-    const so = dh?._id ? `TAN${dh._id.toString().slice(-8).toUpperCase()}` : "";
+    const so = dh?.maDonHang || (dh?._id ? `TAN${dh._id.toString().slice(-8).toUpperCase()}` : "");
     const loaiDonHang = Array.from(
       new Set((dh?.danhSachSanPham || []).map((sp) => sp?.loaiDon).filter(Boolean))
     ).join(", ");

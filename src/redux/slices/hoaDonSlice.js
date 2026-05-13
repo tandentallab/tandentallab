@@ -15,6 +15,18 @@ export const fetchDonHangChuaHoaDon = createAsyncThunk(
   }
 );
 
+// 🔥 Lấy đơn hàng chưa xuất hóa đơn - tất cả nha khoa
+export const fetchDonHangChuaHoaDonAll = createAsyncThunk(
+  "hoaDon/fetchDonHangChuaHoaDonAll",
+  async () => {
+    const res = await api.get(
+      `/hoa-don/don-hang-chua-xuat/all`
+    );
+
+    return res.data;
+  }
+);
+
 // 🔥 Admin lấy tất cả hóa đơn
 export const fetchAllHoaDonAdmin = createAsyncThunk(
   "hoaDon/fetchAllAdmin",
@@ -275,6 +287,36 @@ const slice = createSlice({
         }
       )
 
+      /* ================= ĐƠN HÀNG CHƯA XUẤT HÓA ĐƠN - TẤT CẢ NHA KHOA ================= */
+
+      .addCase(
+        fetchDonHangChuaHoaDonAll.pending,
+        (state) => {
+          state.loading = true;
+        }
+      )
+
+      .addCase(
+        fetchDonHangChuaHoaDonAll.fulfilled,
+        (state, action) => {
+          state.loading = false;
+
+          state.donHangs =
+            action.payload;
+        }
+      )
+
+      .addCase(
+        fetchDonHangChuaHoaDonAll.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload?.message ||
+            action.error.message;
+        }
+      )
+
       /* ================= LẤY CHI TIẾT HÓA ĐƠN ================= */
 
       .addCase(
@@ -339,8 +381,6 @@ const slice = createSlice({
               action.payload.data
             );
           }
-
-          alert("Tạo hóa đơn thành công");
         }
       )
 
@@ -352,11 +392,6 @@ const slice = createSlice({
           state.error =
             action.payload?.message ||
             action.error.message;
-
-          alert(
-            action.payload?.message ||
-              "Tạo hóa đơn thất bại"
-          );
         }
       )
 

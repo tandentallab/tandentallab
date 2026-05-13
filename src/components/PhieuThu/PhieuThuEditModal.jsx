@@ -18,7 +18,7 @@ const formatDateDisplay = (d) => {
     if (!d) return "";
     return new Date(d).toLocaleString("vi-VN", { day: "2-digit", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
 };
-const formatSoHoaDon = (id) => (id ? "TAN" + id.toString().slice(-8).toUpperCase() : "â€”");
+const formatSoHoaDon = (hd) => (hd?.soHoaDon || "—");
 
 const getInitials = (name) => {
     if (!name) return "?";
@@ -158,7 +158,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                 <tbody>
                                     <tr className="border-b border-gray-50">
                                         <td className="px-4 py-3 text-gray-500">1</td>
-                                        <td className="px-4 py-3 font-medium text-[#29b6f6]">{formatSoHoaDon(hd._id)}</td>
+                                        <td className="px-4 py-3 font-medium text-[#29b6f6]">{formatSoHoaDon(hd)}</td>
                                         <td className="px-4 py-3 text-gray-600">{hd.ngayXuatHoaDon ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN") : "â€”"}</td>
                                         <td className="px-4 py-3 text-right text-gray-700">{fmt(hd.thanhTien)}</td>
                                         <td className="px-4 py-3 text-right text-gray-500">{fmt(hd.daThanhToan)}</td>

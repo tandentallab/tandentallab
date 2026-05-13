@@ -37,6 +37,10 @@ const formatDateShort = (d) => {
 const formatSoPhieu = (id) =>
   id ? "TAN" + id.toString().slice(-8).toUpperCase() : "—";
 
+// Helper to display soPhieuThu, falling back to _id-based format for old records
+const displaySoPhieu = (phieuThu) =>
+  phieuThu?.soPhieuThu || formatSoPhieu(phieuThu?._id);
+
 const getInitials = (name) => {
   if (!name) return "?";
   const parts = name.trim().split(" ").filter(Boolean);
@@ -62,7 +66,8 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
 
   const nk = phieuThu?.nhaKhoaInfo || {};
   const ngt = phieuThu?.nguoiTaoInfo || {};
-  const hd = phieuThu?.hoaDonInfo || {};
+
+  const danhSachHoaDon = phieuThu?.danhSachHoaDon || [];
 
   const tenKhach = nk.hoVaTen || nk.tenGiaoDich || "";
   const address = [nk.diaChiCuThe, nk.quanHuyen, nk.tinh]
@@ -73,25 +78,23 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${
-          isOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${isOpen
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
+          }`}
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
-        className={`fixed right-0 top-0 pt-16 h-full w-[480px] bg-gray-100 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed right-0 top-0 pt-16 h-full w-[480px] bg-gray-100 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         {/* ── HEADER ── */}
         <div className="bg-[#29b6f6] text-white px-4 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-bold text-base tracking-wide truncate">
-              {formatSoPhieu(phieuThu?._id)}
+              {displaySoPhieu(phieuThu)}
             </span>
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -197,65 +200,58 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
               </div>
 
               {/* ── Card 3: Hóa đơn ── */}
-              {hd._id && (
+              {danhSachHoaDon.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-sm px-4 py-4">
                   <p className="font-semibold text-gray-800 text-sm mb-3">
-                    Hóa đơn
+                    Hóa đơn {danhSachHoaDon.length > 1 ? `(${danhSachHoaDon.length})` : ""}
                   </p>
-                  {/* Invoice header row */}
-                  <div className="flex justify-between items-center mb-3">
-                    <Button
-                      variant="text"
-                      onClick={() => {
-                        navigate(`/hoa-don/${hd._id}/edit`);
-                      }}
-                    >
-                      {formatSoPhieu(hd._id)}
-                    </Button>
-                    <span className="text-sm text-gray-500">
-                      Ngày xuất: {formatDateShort(hd.ngayXuatHoaDon)}
-                    </span>
+                  <div className="space-y-3">
+                    {danhSachHoaDon.map((item, idx) => {
+                      const hd = item.hoaDon || {};
+                      const soTienThanhToan = item.soTienThanhToan ?? (idx === 0 ? phieuThu?.soTienThu : 0);
+                      return (
+                        <div key={hd._id || idx} className={`${idx > 0 ? "border-t pt-3" : ""}`}>
+                          <div className="flex justify-between items-center mb-2">
+                            <Button
+                              variant="text"
+                              size="small"
+                              sx={{ minWidth: 0, p: 0, fontSize: "0.875rem" }}
+                              onClick={() => { navigate(`/hoa-don/${hd._id}/edit`); }}
+                            >
+                              {hd.soHoaDon || formatSoPhieu(hd._id)}
+                            </Button>
+                            <span className="text-xs text-gray-500">
+                              {formatDateShort(hd.ngayXuatHoaDon)}
+                            </span>
+                          </div>
+                          <div className="space-y-0">
+                            <InfoRow label="Giá trị hóa đơn:" value={formatNumber(hd.thanhTien)} />
+                            <InfoRow label="Đã thanh toán:" value={formatNumber(hd.daThanhToan)} />
+                            <InfoRow
+                              label="Còn lại:"
+                              value={formatNumber(hd.conLai)}
+                              valueClass={(hd.conLai || 0) > 0 ? "text-orange-500" : "text-green-600"}
+                            />
+                            <InfoRow
+                              label="Thanh toán lần này:"
+                              value={formatNumber(soTienThanhToan)}
+                              valueClass="text-gray-900 font-bold"
+                            />
+                          </div>
+                          {hd.trangThai && (
+                            <div className="mt-2 flex justify-end">
+                              <span className={`text-xs px-3 py-1 rounded-full font-medium ${hd.trangThai === "Đã thanh toán" ? "bg-green-100 text-green-700"
+                                : hd.trangThai === "Thanh toán một phần" ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-red-100 text-red-700"
+                                }`}>
+                                {hd.trangThai}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                  {/* Invoice detail rows */}
-                  <div className="space-y-0">
-                    <InfoRow
-                      label="Giá trị hóa đơn:"
-                      value={formatNumber(hd.thanhTien)}
-                    />
-                    <InfoRow
-                      label="Đã thanh toán:"
-                      value={formatNumber(hd.daThanhToan)}
-                    />
-                    <InfoRow
-                      label="Số tiền còn lại:"
-                      value={formatNumber(hd.conLai)}
-                      valueClass={
-                        (hd.conLai || 0) > 0
-                          ? "text-orange-500"
-                          : "text-green-600"
-                      }
-                    />
-                    <InfoRow
-                      label="Số tiền thanh toán:"
-                      value={formatNumber(phieuThu.soTienThu)}
-                      valueClass="text-gray-900 font-bold"
-                    />
-                  </div>
-                  {hd.trangThai && (
-                    <div className="mt-3 flex justify-end">
-                      <span
-                        className={`text-xs px-3 py-1 rounded-full font-medium ${
-                          hd.trangThai === "Đã thanh toán"
-                            ? "bg-green-100 text-green-700"
-                            : hd.trangThai === "Thanh toán một phần"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {hd.trangThai}
-                      </span>
-                    </div>
-                  )}
                 </div>
               )}
             </>

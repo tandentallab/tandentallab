@@ -389,9 +389,8 @@ export default function DonHangChuaXuatModal({
                       {order.danhSachSanPham.map((sp, i) => (
                         <Chip
                           key={i}
-                          label={`${mapTen[sp.sanPham?.toString()] || "SP"} x${
-                            sp.soLuong
-                          }`}
+                          label={`${mapTen[sp.sanPham?.toString()] || "SP"} x${sp.soLuong
+                            }`}
                           size="small"
                           variant="outlined"
                         />

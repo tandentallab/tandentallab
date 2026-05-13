@@ -415,7 +415,7 @@ export const exportHoaDonListToExcel = async (
 
   hoaDonList.forEach((hd, idx) => {
     const rowIndex = headerRow + 1 + idx;
-    const so = hd._id ? `TAN${hd._id.toString().slice(-8).toUpperCase()}` : '';
+    const so = hd.soHoaDon || (hd._id ? `TAN${hd._id.toString().slice(-8).toUpperCase()}` : '');
     const nk = hd.nhaKhoa || {};
     worksheet.getRow(rowIndex).values = [
       hd.ngayXuatHoaDon ? new Date(hd.ngayXuatHoaDon).toLocaleDateString('vi-VN') : '',
@@ -432,7 +432,7 @@ export const exportHoaDonListToExcel = async (
       computeDueDate(hd),
     ];
 
-    [4,5,6,7,8].forEach((col) => {
+    [4, 5, 6, 7, 8].forEach((col) => {
       worksheet.getCell(rowIndex, col).numFmt = '#,##0';
       worksheet.getCell(rowIndex, col).alignment = { horizontal: 'right' };
     });
@@ -580,12 +580,12 @@ export const exportDonHangListToExcel = async (
       so,
       dh?.ngayNhan
         ? new Date(dh.ngayNhan).toLocaleString("vi-VN", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
         : "",
       dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
       dh?.bacSi?.hoVaTen || "",
@@ -593,12 +593,12 @@ export const exportDonHangListToExcel = async (
       buildTeethSummary(dh?.danhSachSanPham),
       dh?.henGiao
         ? new Date(dh.henGiao).toLocaleString("vi-VN", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
         : "",
       getProgress(dh?.trangThai),
       dh?.trangThai || "",

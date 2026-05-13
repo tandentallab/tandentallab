@@ -463,7 +463,7 @@ export default function PhieuThuPage() {
                                         onClick={() => handleRowClick(pt)}
                                         className={`border-b cursor-pointer transition-colors ${selectedPhieuThu?._id === pt._id ? "bg-blue-50 ring-1 ring-inset ring-blue-200" : "hover:bg-gray-50"}`}
                                     >
-                                        <td className="px-4 py-3 font-semibold text-blue-700">{formatSoPhieu(pt._id)}</td>
+                                        <td className="px-4 py-3 font-semibold text-blue-700">{pt.soPhieuThu || formatSoPhieu(pt._id)}</td>
                                         <td className="px-4 py-3">{pt.nhaKhoaInfo?.hoVaTen || pt.nhaKhoaInfo?.tenGiaoDich || "-"}</td>
                                         <td className="px-4 py-3">{formatDateTime(pt.ngayThu)}</td>
                                         <td className="px-4 py-3 text-right font-semibold text-green-700">{formatCurrency(pt.soTienThu)}</td>

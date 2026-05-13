@@ -28,9 +28,9 @@ const PhieuThuPrintPreview = () => {
   if (loading) return <div className="p-4">Đang tải...</div>;
   if (!phieuThu) return <div className="p-4">Không tìm thấy phiếu thu</div>;
 
-  // Fetch nested data
-  const hoaDon = phieuThu.hoaDon || phieuThu.hoaDonInfo || {};
-  const nhaKhoa = hoaDon.nhaKhoa || hoaDon.nhaKhoaInfo || {};
+  const danhSachHoaDon = phieuThu.danhSachHoaDon || [];
+  const firstHoaDon = danhSachHoaDon[0]?.hoaDon || {};
+  const nhaKhoa = firstHoaDon.nhaKhoa || {};
   const bacSi = phieuThu.bacSi || {};
   const diaChiNhaKhoa = [
     nhaKhoa.diaChiCuThe,
@@ -69,8 +69,7 @@ const PhieuThuPrintPreview = () => {
     return days[d.getDay()];
   };
 
-  const maPhieuThu = phieuThu.soPhieuThu || "---";
-  const maHoaDon = hoaDon.soHoaDon || "---";
+  const maBaoHanh = phieuThu.soPhieuThu || `TAN${phieuThu._id.substring(phieuThu._id.length - 8).toUpperCase()}`;
   const printDate = phieuThu.ngayThu || phieuThu.ngayTao;
   const soTienText = numberToWords(phieuThu.soTienThu);
 
@@ -179,23 +178,28 @@ const PhieuThuPrintPreview = () => {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="border border-gray-400 p-2">
-                    {maHoaDon}
-                  </td>
-                  <td className="border border-gray-400 p-2 text-right">
-                    {formatCurrency(hoaDon.tongTien || 0)}
-                  </td>
-                  <td className="border border-gray-400 p-2 text-right">
-                    {formatCurrency(hoaDon.daThanhToan || 0)}
-                  </td>
-                  <td className="border border-gray-400 p-2 text-right">
-                    {formatCurrency(hoaDon.conLai || 0)}
-                  </td>
-                  <td className="border border-gray-400 p-2 text-right font-bold">
-                    {formatCurrency(phieuThu.soTienThu || 0)}
-                  </td>
-                </tr>
+                {danhSachHoaDon.map((item, idx) => {
+                  const hd = item.hoaDon || {};
+                  return (
+                    <tr key={hd._id || idx}>
+                      <td className="border border-gray-400 p-2">
+                        {hd.soHoaDon || (hd._id ? `TAN${hd._id.substring(hd._id.length - 8).toUpperCase()}` : "---")}
+                      </td>
+                      <td className="border border-gray-400 p-2 text-right">
+                        {formatCurrency(hd.thanhTien || hd.tongTien || 0)}
+                      </td>
+                      <td className="border border-gray-400 p-2 text-right">
+                        {formatCurrency(hd.daThanhToan || 0)}
+                      </td>
+                      <td className="border border-gray-400 p-2 text-right">
+                        {formatCurrency(hd.conLai || 0)}
+                      </td>
+                      <td className="border border-gray-400 p-2 text-right font-bold">
+                        {formatCurrency(item.soTienThanhToan || 0)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

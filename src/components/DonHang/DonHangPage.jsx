@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { fetchDonHang } from "../../redux/slices/donHangSlice";
+import { api } from "../../config/api";
 import DonHangTable from "./DonHangTable";
 import DonHangDetailPanel from "./DonHangDetailPanel";
-import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice"; 
+import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import { fetchBenhNhan } from "../../redux/slices/benhNhanSlice";
 import {
   Modal,
@@ -54,6 +55,7 @@ const DATE_PRESETS = [
 ];
 
 const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Đang sản xuất", "Hoàn thành", "Đã giao"];
+const ROWS_PER_PAGE = 20;
 
 const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
 const EXPORT_STATUS_OPTIONS = [
@@ -117,10 +119,12 @@ const isDateInRange = (dateValue, filter) => {
 const DonHangPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { data: donHangs, loading, error } = useSelector((state) => state.donHang);
-  const nhaKhoaState = useSelector((state) => state.nhaKhoa); 
+  const { data: donHangs, loading, error, pagination, stats } = useSelector((state) => state.donHang);
+  const nhaKhoaState = useSelector((state) => state.nhaKhoa);
   const benhNhanState = useSelector((state) => state.benhNhan);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [selectedDonHangId, setSelectedDonHangId] = useState(null);
 
   // Applied filters
@@ -156,11 +160,53 @@ const DonHangPage = () => {
   const [exportNhaKhoa, setExportNhaKhoa] = useState("");
   const [exportBenhNhan, setExportBenhNhan] = useState("");
 
-  useEffect(() => { 
-    dispatch(fetchDonHang());
+  useEffect(() => {
     dispatch(fetchNhaKhoa());
     dispatch(fetchBenhNhan());
   }, [dispatch]);
+
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  // Helper: convert filter preset to ISO date range params
+  const getFilterParams = useCallback((filter, fromKey, toKey) => {
+    if (!filter.preset) return {};
+    let from, to;
+    if (filter.preset === "custom") {
+      from = filter.customFrom ? new Date(filter.customFrom) : null;
+      to = filter.customTo ? new Date(filter.customTo + "T23:59:59.999") : null;
+    } else {
+      const range = getDateRange(filter.preset);
+      from = range.from;
+      to = range.to;
+    }
+    const result = {};
+    if (from) result[fromKey] = from.toISOString();
+    if (to) result[toKey] = to.toISOString();
+    return result;
+  }, []);
+
+  const loadData = useCallback(() => {
+    const params = { page, limit: ROWS_PER_PAGE };
+    if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+    if (appliedNhaKhoa) params.nhaKhoa = appliedNhaKhoa._id;
+    if (appliedBenhNhan) params.benhNhan = appliedBenhNhan._id;
+    if (appliedTrangThai.length > 0) params.trangThai = appliedTrangThai.join(",");
+    Object.assign(params, getFilterParams(appliedNgayNhan, "ngayNhanFrom", "ngayNhanTo"));
+    Object.assign(params, getFilterParams(appliedYcHoanThanh, "ycHoanThanhFrom", "ycHoanThanhTo"));
+    Object.assign(params, getFilterParams(appliedHenGiao, "henGiaoFrom", "henGiaoTo"));
+    dispatch(fetchDonHang(params));
+  }, [dispatch, page, debouncedSearch, appliedNhaKhoa, appliedBenhNhan, appliedTrangThai, appliedNgayNhan, appliedYcHoanThanh, appliedHenGiao, getFilterParams]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -217,6 +263,7 @@ const DonHangPage = () => {
     setAppliedNhaKhoa(draftNhaKhoa);
     setAppliedBenhNhan(draftBenhNhan);
     setAppliedTrangThai([...draftTrangThai]);
+    setPage(1);
     setShowFilter(false);
   };
 
@@ -226,10 +273,10 @@ const DonHangPage = () => {
   };
 
   const handleRefresh = () => {
-    dispatch(fetchDonHang());
     setSearchTerm("");
     setAppliedNgayNhan(EMPTY_DATE); setAppliedYcHoanThanh(EMPTY_DATE); setAppliedHenGiao(EMPTY_DATE);
     setAppliedNhaKhoa(null); setAppliedBenhNhan(null); setAppliedTrangThai([]);
+    setPage(1);
   };
 
   const handleOpenAdd = () => navigate("/donhang/create");
@@ -282,37 +329,27 @@ const DonHangPage = () => {
       const yeuCauGiaoRange = toISODateRange(exportYeuCauGiao);
       const ngayHoanThanhRange = toISODateRange(exportNgayHoanThanh);
 
-      const data = donHangs.filter((dh) => {
-        if (!isDateInRangeForExport(dh.ngayNhan, ngayNhanRange.fromISO, ngayNhanRange.toISO)) {
-          return false;
-        }
+      // Fetch all matching data from server
+      const apiParams = { page: 1, limit: 5000 };
+      if (ngayNhanRange.fromISO) apiParams.ngayNhanFrom = ngayNhanRange.fromISO;
+      if (ngayNhanRange.toISO) apiParams.ngayNhanTo = ngayNhanRange.toISO;
+      if (yeuCauGiaoRange.fromISO) apiParams.ycHoanThanhFrom = yeuCauGiaoRange.fromISO;
+      if (yeuCauGiaoRange.toISO) apiParams.ycHoanThanhTo = yeuCauGiaoRange.toISO;
+      if (exportNhaKhoa) apiParams.nhaKhoa = exportNhaKhoa;
+      if (exportBenhNhan) apiParams.benhNhan = exportBenhNhan;
+      if (exportTrangThai.length > 0) apiParams.trangThai = exportTrangThai.join(",");
 
-        if (!isDateInRangeForExport(dh.yeuCauHoanThanh, yeuCauGiaoRange.fromISO, yeuCauGiaoRange.toISO)) {
-          return false;
-        }
+      const res = await api.get("/donhang", { params: apiParams });
+      let data = res.data.data || [];
 
-        if (isValidExportDateFilter(exportNgayHoanThanh)) {
+      // Apply ngayHoanThanh filter client-side (based on updatedAt)
+      if (isValidExportDateFilter(exportNgayHoanThanh)) {
+        data = data.filter((dh) => {
           const completedStatus = dh.trangThai === "Hoàn thành" || dh.trangThai === "Đã giao";
           if (!completedStatus) return false;
-          if (!isDateInRangeForExport(dh.updatedAt, ngayHoanThanhRange.fromISO, ngayHoanThanhRange.toISO)) {
-            return false;
-          }
-        }
-
-        if (exportTrangThai.length > 0 && !exportTrangThai.includes(dh.trangThai)) {
-          return false;
-        }
-
-        if (exportNhaKhoa && dh.nhaKhoa?._id !== exportNhaKhoa) {
-          return false;
-        }
-
-        if (exportBenhNhan && dh.benhNhan?._id !== exportBenhNhan) {
-          return false;
-        }
-
-        return true;
-      });
+          return isDateInRangeForExport(dh.updatedAt, ngayHoanThanhRange.fromISO, ngayHoanThanhRange.toISO);
+        });
+      }
 
       const selectedNhaKhoa = nhaKhoaOptions.find((nk) => nk._id === exportNhaKhoa);
       const selectedBenhNhan = benhNhanOptions.find((bn) => bn._id === exportBenhNhan);
@@ -358,10 +395,11 @@ const DonHangPage = () => {
 
   const selectedDonHang = donHangs.find((dh) => dh._id === selectedDonHangId) || null;
 
-  const now = new Date();
-  const choXuLy = donHangs.filter((d) => d.trangThai === "Chờ xử lý").length;
-  const dangSanXuat = donHangs.filter((d) => d.trangThai === "Đang sản xuất").length;
-  const treHen = donHangs.filter((d) => d.henGiao && new Date(d.henGiao) < now && d.trangThai !== "Hoàn thành" && d.trangThai !== "Đã giao").length;
+  const choXuLy = stats?.["Chờ xử lý"] || 0;
+  const dangSanXuat = stats?.["Đang sản xuất"] || 0;
+  const treHen = stats?.treHen || 0;
+
+  const totalPages = pagination?.totalPages || 1;
 
   const isFiltered = !!(appliedNgayNhan.preset || appliedYcHoanThanh.preset || appliedHenGiao.preset || appliedNhaKhoa || appliedBenhNhan || appliedTrangThai.length > 0);
   const getDateLabel = (f) => DATE_PRESETS.find((p) => p.key === f.preset)?.label || "";
@@ -585,7 +623,7 @@ const DonHangPage = () => {
                 Nhận: {getDateLabel(appliedNgayNhan)}
                 {appliedNgayNhan.preset === "custom" && appliedNgayNhan.customFrom && ` ${appliedNgayNhan.customFrom}`}
                 {appliedNgayNhan.preset === "custom" && appliedNgayNhan.customTo && ` → ${appliedNgayNhan.customTo}`}
-                <button onClick={() => setAppliedNgayNhan(EMPTY_DATE)} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
+                <button onClick={() => { setAppliedNgayNhan(EMPTY_DATE); setPage(1); }} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
               </span>
             )}
             {appliedYcHoanThanh.preset && (
@@ -594,7 +632,7 @@ const DonHangPage = () => {
                 Y/C HT: {getDateLabel(appliedYcHoanThanh)}
                 {appliedYcHoanThanh.preset === "custom" && appliedYcHoanThanh.customFrom && ` ${appliedYcHoanThanh.customFrom}`}
                 {appliedYcHoanThanh.preset === "custom" && appliedYcHoanThanh.customTo && ` → ${appliedYcHoanThanh.customTo}`}
-                <button onClick={() => setAppliedYcHoanThanh(EMPTY_DATE)} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
+                <button onClick={() => { setAppliedYcHoanThanh(EMPTY_DATE); setPage(1); }} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
               </span>
             )}
             {appliedHenGiao.preset && (
@@ -603,27 +641,27 @@ const DonHangPage = () => {
                 Hẹn giao: {getDateLabel(appliedHenGiao)}
                 {appliedHenGiao.preset === "custom" && appliedHenGiao.customFrom && ` ${appliedHenGiao.customFrom}`}
                 {appliedHenGiao.preset === "custom" && appliedHenGiao.customTo && ` → ${appliedHenGiao.customTo}`}
-                <button onClick={() => setAppliedHenGiao(EMPTY_DATE)} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
+                <button onClick={() => { setAppliedHenGiao(EMPTY_DATE); setPage(1); }} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
               </span>
             )}
             {appliedNhaKhoa && (
               <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
                 <StoreIcon sx={{ fontSize: 11 }} />
                 {appliedNhaKhoa.name}
-                <button onClick={() => setAppliedNhaKhoa(null)} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
+                <button onClick={() => { setAppliedNhaKhoa(null); setPage(1); }} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
               </span>
             )}
             {appliedBenhNhan && (
               <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
                 <PersonIcon sx={{ fontSize: 11 }} />
                 {appliedBenhNhan.name}
-                <button onClick={() => setAppliedBenhNhan(null)} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
+                <button onClick={() => { setAppliedBenhNhan(null); setPage(1); }} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
               </span>
             )}
             {appliedTrangThai.map((status) => (
               <span key={status} className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
                 {status}
-                <button onClick={() => setAppliedTrangThai((prev) => prev.filter((s) => s !== status))} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
+                <button onClick={() => { setAppliedTrangThai((prev) => prev.filter((s) => s !== status)); setPage(1); }} className="ml-0.5 hover:text-blue-900 flex items-center"><CloseIcon sx={{ fontSize: 12 }} /></button>
               </span>
             ))}
           </div>
@@ -635,7 +673,25 @@ const DonHangPage = () => {
       ) : error ? (
         <div className="text-center text-red-500 py-10">Lỗi: {error}</div>
       ) : (
-        <DonHangTable data={filteredDonHangs} selectedId={selectedDonHangId} onRowClick={handleRowClick} />
+        <>
+          <DonHangTable data={donHangs} selectedId={selectedDonHangId} onRowClick={handleRowClick} />
+          <div className="bg-gray-50 border-t p-3 flex justify-between items-center text-sm text-gray-600">
+            <span>Tổng: {pagination?.total || 0} đơn hàng</span>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="px-2 py-1 border rounded text-xs hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >← Trước</button>
+              <span className="text-xs">Trang {page} / {totalPages}</span>
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="px-2 py-1 border rounded text-xs hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >Sau →</button>
+            </div>
+          </div>
+        </>
       )}
 
       <DonHangDetailPanel donHang={selectedDonHang} onClose={() => setSelectedDonHangId(null)} />

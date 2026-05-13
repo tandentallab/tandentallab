@@ -80,10 +80,6 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                     </tbody>
                 </table>
             </div>
-
-            <div className="bg-gray-50 border-t p-3 flex justify-between items-center text-sm text-gray-600">
-                <span>Tổng số: {renderData.length} đơn hàng</span>
-            </div>
         </div>
     );
 };

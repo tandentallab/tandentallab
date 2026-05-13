@@ -470,9 +470,8 @@ export default function DonHangChuaXuatTable({
                       {order.danhSachSanPham.map((sp, i) => (
                         <Chip
                           key={i}
-                          label={`${
-                            mapTen[sp.sanPham?.toString()] || "SP"
-                          } | SL: ${sp.soLuong}`}
+                          label={`${mapTen[sp.sanPham?.toString()] || "SP"
+                            } | SL: ${sp.soLuong}`}
                           size="small"
                           variant="outlined"
                         />

@@ -401,8 +401,7 @@ export default function DonHangChuaXuatTable({
                       size="small"
                       onClick={() => navigate(`/donhang/${order._id}/edit`)}
                     >
-                      TAN
-                      {order._id.slice(-8).toUpperCase()}
+                      {order.maDonHang || `TAN${order._id.slice(-8).toUpperCase()}`}
                     </Button>
                   </TableCell>
 
@@ -424,9 +423,8 @@ export default function DonHangChuaXuatTable({
                       {order.danhSachSanPham.map((sp, i) => (
                         <Chip
                           key={i}
-                          label={`${
-                            mapTen[sp.sanPham?.toString()] || "SP"
-                          } | SL: ${sp.soLuong}`}
+                          label={`${mapTen[sp.sanPham?.toString()] || "SP"
+                            } | SL: ${sp.soLuong}`}
                           size="small"
                           variant="outlined"
                         />

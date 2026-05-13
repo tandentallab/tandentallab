@@ -37,6 +37,10 @@ const formatDateShort = (d) => {
 const formatSoPhieu = (id) =>
   id ? "TAN" + id.toString().slice(-8).toUpperCase() : "—";
 
+// Helper to display soPhieuThu, falling back to _id-based format for old records
+const displaySoPhieu = (phieuThu) =>
+  phieuThu?.soPhieuThu || formatSoPhieu(phieuThu?._id);
+
 const getInitials = (name) => {
   if (!name) return "?";
   const parts = name.trim().split(" ").filter(Boolean);
@@ -73,25 +77,23 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${
-          isOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${isOpen
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
+          }`}
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
-        className={`fixed right-0 top-0 pt-16 h-full w-[480px] bg-gray-100 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed right-0 top-0 pt-16 h-full w-[480px] bg-gray-100 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         {/* ── HEADER ── */}
         <div className="bg-[#29b6f6] text-white px-4 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-bold text-base tracking-wide truncate">
-              {formatSoPhieu(phieuThu?._id)}
+              {displaySoPhieu(phieuThu)}
             </span>
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -210,7 +212,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                         navigate(`/hoa-don/${hd._id}/edit`);
                       }}
                     >
-                      {formatSoPhieu(hd._id)}
+                      {hd.soHoaDon || formatSoPhieu(hd._id)}
                     </Button>
                     <span className="text-sm text-gray-500">
                       Ngày xuất: {formatDateShort(hd.ngayXuatHoaDon)}
@@ -244,13 +246,12 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                   {hd.trangThai && (
                     <div className="mt-3 flex justify-end">
                       <span
-                        className={`text-xs px-3 py-1 rounded-full font-medium ${
-                          hd.trangThai === "Đã thanh toán"
-                            ? "bg-green-100 text-green-700"
-                            : hd.trangThai === "Thanh toán một phần"
+                        className={`text-xs px-3 py-1 rounded-full font-medium ${hd.trangThai === "Đã thanh toán"
+                          ? "bg-green-100 text-green-700"
+                          : hd.trangThai === "Thanh toán một phần"
                             ? "bg-yellow-100 text-yellow-700"
                             : "bg-red-100 text-red-700"
-                        }`}
+                          }`}
                       >
                         {hd.trangThai}
                       </span>

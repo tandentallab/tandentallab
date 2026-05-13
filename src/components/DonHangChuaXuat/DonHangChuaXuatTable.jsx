@@ -62,6 +62,11 @@ export default function DonHangChuaXuatTable({
   const [discounts, setDiscounts] = useState({});
   const [dateFilter, setDateFilter] = useState("all");
 
+  const today = new Date().toISOString().split("T")[0];
+
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
+
   /* ================= CALL API ================= */
   useEffect(() => {
     if (selectedClinic) {
@@ -126,6 +131,12 @@ export default function DonHangChuaXuatTable({
         start = subDays(now, 30);
         end = now;
         break;
+      case "custom":
+        if (!fromDate || !toDate) return donHangs;
+
+        start = startOfDay(new Date(fromDate));
+        end = endOfDay(new Date(toDate));
+        break;
       default:
         return donHangs;
     }
@@ -134,7 +145,7 @@ export default function DonHangChuaXuatTable({
       const orderDate = new Date(order.ngayNhan);
       return isWithinInterval(orderDate, { start, end });
     });
-  }, [donHangs, dateFilter]);
+  }, [donHangs, dateFilter, fromDate, toDate]);
 
   /* ================= MAP DATA ================= */
   const mapGia = useMemo(() => buildPriceMap(bangGia), [bangGia]);
@@ -232,6 +243,9 @@ export default function DonHangChuaXuatTable({
               onChange={(e) => setDateFilter(e.target.value)}
             >
               <MenuItem value="all">Tất cả đơn hàng</MenuItem>
+              <hr />
+
+              <MenuItem value="custom">Chọn khoảng ngày</MenuItem>
 
               <hr />
 
@@ -262,6 +276,37 @@ export default function DonHangChuaXuatTable({
               <MenuItem value="30days">30 ngày gần đây</MenuItem>
             </Select>
           </FormControl>
+          {dateFilter === "custom" && (
+            <Box className="flex flex-col sm:flex-row gap-3">
+              <TextField
+                label="Từ ngày"
+                type="date"
+                size="small"
+                variant="outlined"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  minWidth: 210,
+                  backgroundColor: "#fff",
+                }}
+              />
+
+              <TextField
+                label="Đến ngày"
+                type="date"
+                size="small"
+                variant="outlined"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  minWidth: 210,
+                  backgroundColor: "#fff",
+                }}
+              />
+            </Box>
+          )}
 
           <Typography
             color="textSecondary"

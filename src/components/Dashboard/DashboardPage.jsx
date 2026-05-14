@@ -129,24 +129,6 @@ const DashboardPage = () => {
           isCurrency={true}
         />
       </div>
-
-      {/* ROW 3: Chart 4 — full width */}
-      <div>
-        <ChartBox
-          chartId="chart4"
-          title="Doanh thu ghi nhận, Đã thu & Còn nợ"
-          data={chart4.data}
-          loading={chart4.loading}
-          config={chart4.config}
-          onConfigSave={handleConfigSave}
-          variant="bar"
-          keys={['Doanh thu', 'Đã thu', 'Còn nợ']}
-          colors={['#6366F1', '#10B981', '#EF4444']}
-          yAxisLabel="Số tiền (VNĐ)"
-          isCurrency={true}
-        />
-      </div>
-
     </div>
   );
 };

@@ -18,10 +18,8 @@ import {
   Typography,
   Drawer,
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import StaffModal from "./StaffModal";
 import { api } from "../../config/api";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -138,7 +136,11 @@ export default function StaffTable() {
             {/* ❌ ERROR */}
             {error && (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 8 : 7} align="center" className="text-red-500">
+                <TableCell
+                  colSpan={isAdmin ? 8 : 7}
+                  align="center"
+                  className="text-red-500"
+                >
                   {error}
                 </TableCell>
               </TableRow>
@@ -497,7 +499,9 @@ function StaffEditModal({ staffId, onClose }) {
                   ))}
                 </select>
                 {errors.quyenSuDung && (
-                  <span className="text-red-500 text-xs">{errors.quyenSuDung}</span>
+                  <span className="text-red-500 text-xs">
+                    {errors.quyenSuDung}
+                  </span>
                 )}
               </div>
 

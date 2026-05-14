@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import NhaKhoaTable from "./NhaKhoaTable";
-import NhaKhoaModal from "./NhaKhoaModal";
 
 export default function NhaKhoaPage() {
   // ✅ FAKE DATA (giống backend)

@@ -5,7 +5,6 @@ import {
   format,
   isToday,
   isBefore,
-  isAfter,
   startOfDay,
   endOfDay,
   parseISO,

@@ -47,10 +47,12 @@ const Sidebar = ({ collapsed }) => {
   const { user } = useSelector(getAuthSelector);
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  // Check xem màn hình có đang ở kích thước Mobile/Tablet không
+  const isMobileSize = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const drawerWidth = collapsed ? 64 : 250;
+  // Độ rộng sidebar: Nếu là màn hình nhỏ thì luôn là 250 khi mở, màn hình lớn mới theo biến collapsed
+  const drawerWidth = isMobileSize ? 250 : (collapsed ? 64 : 250);
 
   /* ===== MENU DATA ===== */
   const menu = [
@@ -91,13 +93,11 @@ const Sidebar = ({ collapsed }) => {
   const hasCustomerGroup = filteredCustomerMenu.length > 0;
   const hasSettingGroup = filteredSettingMenu.length > 0;
 
-  /* ===== LOGIC CHECK ACTIVE ===== */
   const checkActive = (path) => {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
 
-  // State đóng/mở group menu
   const [openCustomer, setOpenCustomer] = useState(
     customerMenu.some(item => location.pathname.startsWith(item.router))
   );
@@ -107,22 +107,25 @@ const Sidebar = ({ collapsed }) => {
 
   const handleNavigate = (router) => {
     navigate(router);
-    if (isMobile) setMobileOpen(false);
+    if (isMobileSize) setMobileOpen(false);
   };
 
   /* ===== RENDER MENU ITEM ===== */
   const renderMenuItem = (item, nested = false) => {
     const active = checkActive(item.router);
 
-    // Khi co lại (collapsed), tất cả mục đều căn lề trái như nhau (1.5) để icon thẳng hàng
-    const paddingLeft = nested && (!collapsed || isMobile) ? 3.5 : 1.5;
+    // QUAN TRỌNG: Nếu là màn hình nhỏ (isMobileSize) thì LUÔN hiện chữ.
+    // Nếu màn hình lớn thì hiện chữ khi KHÔNG collapsed.
+    const showText = isMobileSize ? true : !collapsed;
+
+    const paddingLeft = nested && showText ? 3.5 : 1.5;
 
     return (
       <Tooltip
         key={item.router}
-        title={collapsed && !isMobile ? item.name : ""}
+        title={collapsed && !isMobileSize ? item.name : ""}
         placement="right"
-        disableHoverListener={!collapsed || isMobile}
+        disableHoverListener={!collapsed || isMobileSize}
       >
         <ListItemButton
           onClick={() => handleNavigate(item.router)}
@@ -136,7 +139,6 @@ const Sidebar = ({ collapsed }) => {
             borderRadius: 2,
             minWidth: 48,
             transition: "all 0.2s",
-            // FIX: Chỉ đổi màu nền đậm hơn, không đổi màu chữ/icon
             backgroundColor: active ? "#bfdbfe" : "transparent",
             color: "inherit",
             "&:hover": {
@@ -147,7 +149,7 @@ const Sidebar = ({ collapsed }) => {
           <ListItemIcon
             sx={{
               minWidth: 0,
-              mr: 2,
+              mr: showText ? 2 : 0,
               justifyContent: "center",
               color: "inherit",
             }}
@@ -155,7 +157,7 @@ const Sidebar = ({ collapsed }) => {
             {item.icon}
           </ListItemIcon>
 
-          <ListItemText primary={item.name} />
+          {showText && <ListItemText primary={item.name} />}
         </ListItemButton>
       </Tooltip>
     );
@@ -164,13 +166,9 @@ const Sidebar = ({ collapsed }) => {
   const scrollbarStyles = {
     overflowY: "auto",
     overflowX: "hidden",
-    boxSizing: "border-box",
-    borderRight: "0 !important",
-    boxShadow: "none !important",
     "&::-webkit-scrollbar": { width: "6px" },
     "&::-webkit-scrollbar-track": { background: "transparent" },
     "&::-webkit-scrollbar-thumb": { background: "#d1d5db", borderRadius: "10px" },
-    "&::-webkit-scrollbar-thumb:hover": { background: "#9ca3af" },
   };
 
   const drawerContent = (
@@ -179,7 +177,7 @@ const Sidebar = ({ collapsed }) => {
         <Box sx={{ fontWeight: 700, fontSize: 18, color: "#2563eb", whiteSpace: "nowrap" }}>
           TẤN DENTAL
         </Box>
-        {isMobile && (
+        {isMobileSize && (
           <IconButton onClick={() => setMobileOpen(false)} sx={{ ml: "auto" }}>
             <CloseIcon />
           </IconButton>
@@ -189,35 +187,19 @@ const Sidebar = ({ collapsed }) => {
       <List>
         {filteredMainMenu.map((item) => renderMenuItem(item))}
 
-        {/* --- GROUP: QUẢN LÝ KHÁCH HÀNG (Không Active) --- */}
         {hasCustomerGroup && (
           <>
-            <Tooltip
-              title={collapsed && !isMobile ? "Quản lý khách hàng" : ""}
-              placement="right"
-              disableHoverListener={!collapsed || isMobile}
+            <ListItemButton
+              onClick={() => setOpenCustomer(!openCustomer)}
+              sx={{ pl: 1.5, pr: 1.5, ml: 1, mr: 1, mb: 0.5, borderRadius: 2 }}
             >
-              <ListItemButton
-                onClick={() => setOpenCustomer(!openCustomer)}
-                sx={{
-                  justifyContent: "flex-start",
-                  pl: 1.5, pr: 1.5, ml: 1, mr: 1, mb: 0.5,
-                  borderRadius: 2,
-                  minWidth: 48,
-                  transition: "all 0.2s",
-                  // FIX: Luôn để trong suốt vì không có trang riêng
-                  backgroundColor: "transparent",
-                  color: "inherit",
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 0, mr: 2, justifyContent: "center", color: "inherit" }}>
-                  <People />
-                </ListItemIcon>
-                <ListItemText primary="Quản lý khách hàng" />
-                {openCustomer ? <ExpandLess /> : <ExpandMore />}
-              </ListItemButton>
-            </Tooltip>
-            <Collapse in={openCustomer} timeout="auto" unmountOnExit>
+              <ListItemIcon sx={{ minWidth: 0, mr: (isMobileSize || !collapsed) ? 2 : 0 }}>
+                <People />
+              </ListItemIcon>
+              {(isMobileSize || !collapsed) && <ListItemText primary="Quản lý khách hàng" />}
+              {(isMobileSize || !collapsed) && (openCustomer ? <ExpandLess /> : <ExpandMore />)}
+            </ListItemButton>
+            <Collapse in={openCustomer && (isMobileSize || !collapsed)} timeout="auto" unmountOnExit>
               <List component="div" disablePadding>
                 {filteredCustomerMenu.map((item) => renderMenuItem(item, true))}
               </List>
@@ -227,35 +209,19 @@ const Sidebar = ({ collapsed }) => {
 
         {filteredOtherMenu.map((item) => renderMenuItem(item))}
 
-        {/* --- GROUP: THIẾT LẬP (Không Active) --- */}
         {hasSettingGroup && (
           <>
-            <Tooltip
-              title={collapsed && !isMobile ? "Thiết lập" : ""}
-              placement="right"
-              disableHoverListener={!collapsed || isMobile}
+            <ListItemButton
+              onClick={() => setOpenSetting(!openSetting)}
+              sx={{ pl: 1.5, pr: 1.5, ml: 1, mr: 1, mb: 0.5, borderRadius: 2 }}
             >
-              <ListItemButton
-                onClick={() => setOpenSetting(!openSetting)}
-                sx={{
-                  justifyContent: "flex-start",
-                  pl: 1.5, pr: 1.5, ml: 1, mr: 1, mb: 0.5,
-                  borderRadius: 2,
-                  minWidth: 48,
-                  transition: "all 0.2s",
-                  // FIX: Luôn để trong suốt vì không có trang riêng
-                  backgroundColor: "transparent",
-                  color: "inherit",
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 0, mr: 2, justifyContent: "center", color: "inherit" }}>
-                  <Settings />
-                </ListItemIcon>
-                <ListItemText primary="Thiết lập" />
-                {openSetting ? <ExpandLess /> : <ExpandMore />}
-              </ListItemButton>
-            </Tooltip>
-            <Collapse in={openSetting} timeout="auto" unmountOnExit>
+              <ListItemIcon sx={{ minWidth: 0, mr: (isMobileSize || !collapsed) ? 2 : 0 }}>
+                <Settings />
+              </ListItemIcon>
+              {(isMobileSize || !collapsed) && <ListItemText primary="Thiết lập" />}
+              {(isMobileSize || !collapsed) && (openSetting ? <ExpandLess /> : <ExpandMore />)}
+            </ListItemButton>
+            <Collapse in={openSetting && (isMobileSize || !collapsed)} timeout="auto" unmountOnExit>
               <List component="div" disablePadding>
                 {filteredSettingMenu.map((item) => renderMenuItem(item, true))}
               </List>
@@ -268,33 +234,30 @@ const Sidebar = ({ collapsed }) => {
 
   return (
     <>
-      {isMobile && (
+      {isMobileSize && (
         <IconButton
-          onClick={() => setMobileOpen(true)}
-          sx={{ position: "fixed", top: 12, left: 12, zIndex: 1400, bgcolor: "#fff", boxShadow: 2 }}
+          onClick={() => setMobileOpen(!mobileOpen)}
+          sx={{
+            position: "fixed", top: 12, left: 12,
+            zIndex: 1201, // Đảm bảo bấm ăn 100% trên cả giả lập
+            bgcolor: "#fff", boxShadow: 2,
+            "&:hover": { bgcolor: "#f3f4f6" }
+          }}
         >
           <MenuIcon />
         </IconButton>
       )}
 
       <Drawer
-        variant={isMobile ? "temporary" : "permanent"}
-        open={isMobile ? mobileOpen : true}
+        variant={isMobileSize ? "temporary" : "permanent"}
+        open={isMobileSize ? mobileOpen : true}
         onClose={() => setMobileOpen(false)}
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          whiteSpace: "nowrap",
-          transition: theme.transitions.create("width", {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
           "& .MuiDrawer-paper": {
             width: drawerWidth,
-            transition: theme.transitions.create("width", {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
+            boxSizing: "border-box",
             ...scrollbarStyles,
           },
         }}

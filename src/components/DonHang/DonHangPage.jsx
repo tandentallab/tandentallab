@@ -55,7 +55,7 @@ const DATE_PRESETS = [
 ];
 
 const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Đang sản xuất", "Hoàn thành", "Đã giao"];
-const ROWS_PER_PAGE = 20;
+const ROWS_PER_PAGE = 10;
 
 const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
 const EXPORT_STATUS_OPTIONS = [
@@ -691,7 +691,7 @@ const DonHangPage = () => {
         <div className="text-center text-red-500 py-10">Lỗi: {error}</div>
       ) : (
         <>
-          <DonHangTable data={donHangs} selectedId={selectedDonHangId} onRowClick={handleRowClick} />
+          <DonHangTable data={filteredDonHangs} selectedId={selectedDonHangId} onRowClick={handleRowClick} />
           <div className="bg-gray-50 border-t p-3 flex justify-between items-center text-sm text-gray-600">
             <span>Tổng: {pagination?.total || 0} đơn hàng</span>
             <div className="flex items-center gap-2">

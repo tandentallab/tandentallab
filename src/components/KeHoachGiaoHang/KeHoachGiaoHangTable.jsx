@@ -27,6 +27,9 @@ const KeHoachGiaoHangTable = () => {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   useEffect(() => {
     dispatch(fetchDonHangAll());
   }, [dispatch]);
@@ -48,11 +51,11 @@ const KeHoachGiaoHangTable = () => {
 
       const dueToday = isToday(henGiaoDate);
 
-      const inRange =
-        fromDate &&
-        toDate &&
-        isAfter(henGiaoDate, startOfDay(new Date(fromDate))) &&
-        isBefore(henGiaoDate, endOfDay(new Date(toDate)));
+      const from = fromDate ? startOfDay(new Date(fromDate)) : null;
+
+      const to = toDate ? endOfDay(new Date(toDate)) : null;
+
+      const inRange = from && to && henGiaoDate >= from && henGiaoDate <= to;
 
       // 🔥 FILTER TYPE
       if (filterType === "today") return dueToday;
@@ -77,6 +80,22 @@ const KeHoachGiaoHangTable = () => {
 
     return result;
   }, [data, showUrgentOnly, filterType, fromDate, toDate]);
+
+  // ================= PAGINATION =================
+  const totalPages = Math.ceil(filteredOrders.length / rowsPerPage);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+
+    const end = start + rowsPerPage;
+
+    return filteredOrders.slice(start, end);
+  }, [filteredOrders, page, rowsPerPage]);
+
+  // reset page khi filter đổi
+  useEffect(() => {
+    setPage(1);
+  }, [filterType, fromDate, toDate, showUrgentOnly]);
 
   // ================= COUNT =================
   const countToday = data.filter((o) => isToday(parseISO(o.henGiao))).length;
@@ -169,7 +188,7 @@ const KeHoachGiaoHangTable = () => {
               </thead>
 
               <tbody>
-                {filteredOrders.map((order) => {
+                {paginatedOrders.map((order) => {
                   const date = parseISO(order.henGiao);
 
                   const overdue =
@@ -188,7 +207,10 @@ const KeHoachGiaoHangTable = () => {
                             navigate(`/donhang/${order._id}/edit`);
                           }}
                         >
-                          {order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`}
+                          {order.maDonHang ||
+                            `TAN${order._id
+                              .substring(order._id.length - 8)
+                              .toUpperCase()}`}
                         </Button>
                       </td>
 
@@ -217,12 +239,13 @@ const KeHoachGiaoHangTable = () => {
                       <td className="p-3 whitespace-nowrap">
                         <div className="flex flex-col">
                           <span
-                            className={`font-bold ${overdue
-                              ? "text-red-600"
-                              : today
+                            className={`font-bold ${
+                              overdue
+                                ? "text-red-600"
+                                : today
                                 ? "text-orange-500"
                                 : ""
-                              }`}
+                            }`}
                           >
                             {format(date, "dd/MM/yyyy HH:mm")}
                           </span>
@@ -244,12 +267,13 @@ const KeHoachGiaoHangTable = () => {
                       {/* TRẠNG THÁI */}
                       <td className="p-3 whitespace-nowrap">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${order.trangThai === "Hoàn thành"
-                            ? "bg-green-100 text-green-700"
-                            : order.trangThai === "Đang sản xuất"
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            order.trangThai === "Hoàn thành"
+                              ? "bg-green-100 text-green-700"
+                              : order.trangThai === "Đang sản xuất"
                               ? "bg-blue-100 text-blue-700"
                               : "bg-yellow-100 text-yellow-700"
-                            }`}
+                          }`}
                         >
                           {order.trangThai}
                         </span>
@@ -267,6 +291,62 @@ const KeHoachGiaoHangTable = () => {
                 )}
               </tbody>
             </table>
+            {/* ================= PAGINATION ================= */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3 px-4 py-4 border-t bg-white">
+              {/* LEFT */}
+              <div className="flex items-center gap-2 text-sm">
+                <span>Hiển thị</span>
+
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setRowsPerPage(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="border rounded px-2 py-1"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+
+                <span>/ {filteredOrders.length} đơn</span>
+              </div>
+
+              {/* RIGHT */}
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                  className={`px-3 py-1 rounded border ${
+                    page === 1
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  Trước
+                </button>
+
+                <span className="text-sm">
+                  Trang {page} / {totalPages || 1}
+                </span>
+
+                <button
+                  disabled={page === totalPages || totalPages === 0}
+                  onClick={() =>
+                    setPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  className={`px-3 py-1 rounded border ${
+                    page === totalPages || totalPages === 0
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

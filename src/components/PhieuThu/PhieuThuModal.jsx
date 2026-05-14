@@ -16,8 +16,7 @@ const toLocalDatetimeInput = (d) => {
 };
 
 const fmt = (v) => new Intl.NumberFormat("vi-VN").format(v || 0);
-const formatSoHoaDon = (hd) => (hd?.soHoaDon || "—");
-
+const formatSoHoaDon = (hd) => (hd?.soHoaDon || "-");
 const getInitials = (name) => {
     if (!name) return "?";
     const parts = name.trim().split(" ").filter(Boolean);
@@ -182,6 +181,18 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
         setNoiDung(""); setSubmitError(""); setSubmitSuccess(false);
         onClose();
     };
+
+    const handleSubmitRef = useRef(null);
+    handleSubmitRef.current = handleSubmit;
+
+    useEffect(() => {
+        if (!open) return;
+        const handleKeyDown = (e) => {
+            if (e.key === "F3") { e.preventDefault(); handleSubmitRef.current(); }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [open]);
 
     if (!open) return null;
 

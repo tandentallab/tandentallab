@@ -453,18 +453,36 @@ const DonHangPage = () => {
   return (
     <div className="p-4 bg-gray-100 min-h-screen">
       <div className="mb-4 bg-white rounded shadow-sm border">
-        <div className="flex justify-between items-center p-3">
-          {/* Left: status badges & filters */}
-          <div className="flex gap-3">
-            <div className="relative" ref={filterRef}>
-              <button onClick={handleOpenFilter} title="Bộ lọc"
-                className={`relative p-1.5 rounded transition ${isFiltered ? "text-blue-600 bg-blue-50 hover:bg-blue-100" : "text-gray-500 hover:bg-gray-100"}`}>
+        <div className="p-3 space-y-3">
+          <div className="grid grid-cols-3 overflow-hidden rounded-md text-white text-sm font-semibold">
+            <div className="bg-teal-700 px-2 py-2 leading-tight">
+              <div className="text-2xl font-bold">{choXuLy}</div>
+              <div>Chờ sản xuất</div>
+            </div>
+            <div className="bg-green-600 px-2 py-2 leading-tight">
+              <div className="text-2xl font-bold">{dangSanXuat}</div>
+              <div>Đang sản xuất</div>
+            </div>
+            <div className="bg-red-500 px-2 py-2 leading-tight">
+              <div className="text-2xl font-bold">{treHen}</div>
+              <div>Trễ giờ hẹn giao</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2 md:flex-1">
+              <div className="relative" ref={filterRef}>
+              <button
+                onClick={handleOpenFilter}
+                title="Bộ lọc"
+                className={`relative p-2 rounded-md transition ${isFiltered ? "text-blue-600 bg-blue-50 hover:bg-blue-100" : "text-gray-500 hover:bg-gray-100"}`}
+              >
                 <FilterAltIcon sx={{ fontSize: 20 }} />
                 {isFiltered && <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-blue-500 rounded-full" />}
               </button>
 
               {showFilter && (
-                <div className="absolute left-0 top-full mt-1 z-50 w-80 bg-white rounded-xl shadow-2xl border border-gray-200">
+                <div className="absolute left-0 top-full mt-1 z-50 w-80 max-w-[92vw] bg-white rounded-xl shadow-2xl border border-gray-200">
                   {renderDateSection("Ngày nhận", "ngayNhan", draftNgayNhan, setDraftNgayNhan)}
                   {renderDateSection("Y/C Hoàn thành", "ycHoanThanh", draftYcHoanThanh, setDraftYcHoanThanh)}
                   {renderDateSection("Hẹn giao", "henGiao", draftHenGiao, setDraftHenGiao)}
@@ -570,47 +588,46 @@ const DonHangPage = () => {
                   </div>
                 </div>
               )}
-            </div>
-            <div className="flex gap-1 items-center font-medium text-sm">
-              <div className="bg-teal-700 text-white px-3 py-1.5 flex items-center gap-2 rounded-l">
-                <span>{choXuLy}</span> Chờ sản xuất
               </div>
-              <div className="bg-green-600 text-white px-3 py-1.5 flex items-center gap-2">
-                <span>{dangSanXuat}</span> Đang sản xuất
-              </div>
-              <div className="bg-red-500 text-white px-3 py-1.5 flex items-center gap-2 rounded-r">
-                <span>{treHen}</span> Trễ giờ hẹn giao
-              </div>
-            </div>
-          </div>
 
-          {/* Right: search + add + refresh */}
-          <div className="flex gap-2 items-center">
-            <div className="relative flex items-center">
-              <span className="absolute left-2.5 text-gray-400 flex items-center pointer-events-none"><SearchIcon sx={{ fontSize: 16 }} /></span>
-              <input type="text" placeholder="Tìm kiếm mã, nha khoa, bác sĩ, bệnh nhân..."
-                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                className="border bg-gray-50 pl-8 pr-8 py-1.5 rounded-full w-72 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm" />
-              {searchTerm && (
-                <button onClick={() => setSearchTerm("")} className="absolute right-2.5 text-gray-400 hover:text-gray-600 flex items-center">
-                  <CloseIcon sx={{ fontSize: 15 }} />
-                </button>
-              )}
+              <div className="relative flex-1 md:flex-none md:w-[220px] flex items-center">
+                <span className="absolute left-2.5 text-gray-400 flex items-center pointer-events-none">
+                  <SearchIcon sx={{ fontSize: 16 }} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full border bg-gray-50 pl-8 pr-8 py-2 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2.5 text-gray-400 hover:text-gray-600 flex items-center"
+                  >
+                    <CloseIcon sx={{ fontSize: 15 }} />
+                  </button>
+                )}
+              </div>
             </div>
-            <button onClick={handleOpenAdd} className="bg-green-500 text-white rounded-full hover:bg-green-600 flex items-center justify-center w-8 h-8 shadow-sm">
+
+            <div className="flex items-center gap-2">
+              <button onClick={handleOpenAdd} className="bg-green-500 text-white rounded-full hover:bg-green-600 flex items-center justify-center w-11 h-11 shadow-sm shrink-0">
               <AddIcon sx={{ fontSize: 20 }} />
-            </button>
-            <button
-              onClick={() => setOpenExport(true)}
-              title="Xuất excel"
-              className="px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1"
-            >
-              <DownloadIcon sx={{ fontSize: 17 }} />
-              Xuất excel
-            </button>
-            <button onClick={handleRefresh} title="Tải lại" className="text-gray-600 hover:bg-gray-100 p-1.5 rounded">
-              <RefreshIcon sx={{ fontSize: 20 }} />
-            </button>
+              </button>
+              <button
+                onClick={() => setOpenExport(true)}
+                title="Xuất excel"
+                className="px-3 py-2 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1.5"
+              >
+                <DownloadIcon sx={{ fontSize: 17 }} />
+                Xuất excel
+              </button>
+              <button onClick={handleRefresh} title="Tải lại" className="text-gray-600 hover:bg-gray-100 p-2 rounded-md border border-gray-200 bg-white">
+                <RefreshIcon sx={{ fontSize: 20 }} />
+              </button>
+            </div>
           </div>
         </div>
 

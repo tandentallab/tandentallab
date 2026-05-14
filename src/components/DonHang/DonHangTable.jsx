@@ -1,31 +1,73 @@
 import React from 'react';
 
 const DonHangTable = ({ data, selectedId, onRowClick }) => {
-    // Hàm helper render tóm tắt vị trí răng
-    const renderTomTatRang = (danhSachSanPham) => {
-        if (!danhSachSanPham || danhSachSanPham.length === 0) return "Chưa có SP";
-
-        const sp = danhSachSanPham[0];
-        const tenSp = sp.sanPham?.tenSanPham || "SP";
-        const soLuong = sp.soLuong || 0;
-
-        let viTriStr = "R";
-        if (sp.viTri && sp.viTri.length > 0) {
-            // Tạm thời hiển thị text mẫu, bạn có thể custom logic gộp mảng sau
-            viTriStr = "R11->13";
-        }
-
-        return `${soLuong} ${tenSp} ${viTriStr}`;
-    };
-
     // Đảm bảo data luôn là một mảng để tránh lỗi .map is not a function
     const isDataValid = Array.isArray(data);
-    // Tính toán mảng để render, nếu data lỗi thì trả về mảng rỗng
     const renderData = isDataValid ? data : [];
 
+    const formatDateTime = (value) => {
+        if (!value) return "";
+        return new Date(value).toLocaleString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    };
+
+    const formatDate = (value) => {
+        if (!value) return "";
+        return new Date(value).toLocaleDateString("vi-VN");
+    };
+
+    const renderTomTatRang = (danhSachSanPham) => {
+        if (!Array.isArray(danhSachSanPham) || danhSachSanPham.length === 0) return "";
+        const first = danhSachSanPham[0];
+        const soLuong = first?.soLuong || 0;
+        const tenSanPham = first?.sanPham?.tenSanPham || "";
+        return `${soLuong} ${tenSanPham}`.trim();
+    };
+
+    const rows = (dh) => [
+        {
+            label: "Số",
+            value: dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8).toUpperCase()}`,
+        },
+        {
+            label: "Nhận lúc",
+            value: formatDateTime(dh.ngayNhan),
+        },
+        {
+            label: "Nha khoa",
+            value: dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen || "",
+        },
+        {
+            label: "Bác sĩ",
+            value: dh.bacSi?.hoVaTen || "",
+        },
+        {
+            label: "Bệnh nhân",
+            value: dh.benhNhan?.hoVaTen || "",
+        },
+        {
+            label: "Răng",
+            value: renderTomTatRang(dh.danhSachSanPham),
+        },
+        {
+            label: "Hẹn giao",
+            value: formatDate(dh.henGiao),
+        },
+        {
+            label: "Trạng thái",
+            value: <TrangThaiBadge value={dh.trangThai} />,
+        },
+    ];
+
     return (
-        <div className="bg-white rounded shadow-sm overflow-hidden border">
-            <div className="overflow-x-auto">
+        <>
+            <div className="hidden md:block bg-white rounded shadow-sm overflow-hidden border">
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left whitespace-nowrap">
                     <thead className="bg-blue-50 text-blue-600 font-medium border-b sticky top-0 z-10">
                         <tr>
@@ -57,10 +99,7 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                                         {dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8).toUpperCase()}`}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {dh.ngayNhan ? new Date(dh.ngayNhan).toLocaleString('vi-VN', {
-                                            day: '2-digit', month: '2-digit', year: 'numeric',
-                                            hour: '2-digit', minute: '2-digit'
-                                        }) : ''}
+                                        {formatDateTime(dh.ngayNhan)}
                                     </td>
                                     <td className="px-4 py-3">{dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen}</td>
                                     <td className="px-4 py-3">{dh.bacSi?.hoVaTen}</td>
@@ -69,7 +108,7 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                                         {renderTomTatRang(dh.danhSachSanPham)}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {dh.henGiao ? new Date(dh.henGiao).toLocaleDateString('vi-VN') : ''}
+                                        {formatDate(dh.henGiao)}
                                     </td>
                                     <td className="px-4 py-3">
                                         <TrangThaiBadge value={dh.trangThai} />
@@ -80,7 +119,37 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                     </tbody>
                 </table>
             </div>
-        </div>
+            </div>
+
+            <div className="md:hidden space-y-3">
+                {renderData.length === 0 ? (
+                    <div className="bg-white rounded-xl border p-5 text-center text-gray-500">
+                        Không có dữ liệu đơn hàng
+                    </div>
+                ) : (
+                    renderData.map((dh) => (
+                        <div
+                            key={dh._id}
+                            onClick={() => onRowClick(dh)}
+                            className={`bg-white rounded-2xl border overflow-hidden shadow-sm cursor-pointer ${
+                                selectedId === dh._id ? "ring-2 ring-blue-300" : ""
+                            }`}
+                        >
+                            {rows(dh).map((row) => (
+                                <div key={row.label} className="grid grid-cols-[38%_62%] border-b border-gray-100 last:border-b-0">
+                                    <div className="px-3 py-2.5 text-[14px] text-gray-600">
+                                        {row.label}
+                                    </div>
+                                    <div className="px-3 py-2.5 text-[15px] text-gray-800 font-medium text-right truncate">
+                                        {row.value || ""}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ))
+                )}
+            </div>
+        </>
     );
 };
 

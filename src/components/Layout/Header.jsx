@@ -23,39 +23,64 @@ const Header = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
 
   return (
-    <AppBar
-      position="fixed"
-      sx={{
-        zIndex: 1201,
-        background: "#1DA1F2",
-      }}
-    >
-      <Toolbar
+    <>
+      <AppBar
+        position="fixed"
         sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 2,
-          minHeight: {
-            xs: 64,
-            sm: 70,
-          },
-          px: {
-            xs: 1,
-            sm: 2,
-          },
+          zIndex: 1201,
+          background: "#1DA1F2",
+          top: 0,
         }}
       >
+        <Toolbar
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: {
+              xs: 1,
+              sm: 2,
+            },
+            height: {
+              xs: 56,
+              sm: 64,
+              md: 70,
+            },
+            minHeight: {
+              xs: 56,
+              sm: 64,
+              md: 70,
+            },
+            px: {
+              xs: 1.5,
+              sm: 2,
+            },
+            flexWrap: "nowrap",
+          }}
+        >
         {/* LEFT */}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 1,
+            gap: {
+              xs: 0.5,
+              sm: 1,
+            },
             minWidth: 0,
             flexShrink: 0,
           }}
         >
-          <IconButton color="inherit" onClick={onToggleSidebar}>
+          <IconButton 
+            color="inherit" 
+            onClick={onToggleSidebar}
+            sx={{
+              p: {
+                xs: 0.75,
+                sm: 1,
+              },
+            }}
+          >
             <MenuIcon />
           </IconButton>
 
@@ -63,9 +88,13 @@ const Header = ({ onToggleSidebar }) => {
             variant="h6"
             sx={{
               cursor: "pointer",
+              ml: {
+                xs: 0.5,
+                sm: 0.75,
+              },
               fontWeight: 600,
               fontSize: {
-                xs: "14px",
+                xs: "12px",
                 sm: "16px",
                 md: "20px",
               },
@@ -73,8 +102,8 @@ const Header = ({ onToggleSidebar }) => {
               overflow: "hidden",
               textOverflow: "ellipsis",
               maxWidth: {
-                xs: "140px",
-                sm: "250px",
+                xs: "80px",
+                sm: "200px",
                 md: "unset",
               },
             }}
@@ -86,7 +115,7 @@ const Header = ({ onToggleSidebar }) => {
           </Typography>
         </Box>
 
-        {/* SEARCH */}
+        {/* SEARCH - Desktop */}
         <Box
           sx={{
             display: {
@@ -99,13 +128,17 @@ const Header = ({ onToggleSidebar }) => {
             px: 2,
             py: 0.5,
             width: {
-              sm: "35%",
+              sm: "30%",
               md: "40%",
             },
             maxWidth: 500,
+            flex: {
+              sm: 1,
+              md: "0 1 auto",
+            },
           }}
         >
-          <SearchIcon sx={{ color: "#666" }} />
+          <SearchIcon sx={{ color: "#666", fontSize: "20px" }} />
 
           <InputBase
             placeholder="Tìm kiếm..."
@@ -123,7 +156,7 @@ const Header = ({ onToggleSidebar }) => {
             display: "flex",
             alignItems: "center",
             gap: {
-              xs: 0.5,
+              xs: 0.25,
               sm: 1.5,
             },
             flexShrink: 0,
@@ -133,7 +166,7 @@ const Header = ({ onToggleSidebar }) => {
             <>
               <QuickAddMenu />
 
-              <IconButton color="inherit">
+              <IconButton color="inherit" size="small">
                 <NotificationsIcon />
               </IconButton>
 
@@ -144,35 +177,54 @@ const Header = ({ onToggleSidebar }) => {
           )}
         </Box>
       </Toolbar>
+    </AppBar>
 
-      {/* SEARCH MOBILE */}
+    {/* SEARCH MOBILE - shown when xs - OUTSIDE AppBar */}
+    <Box
+      sx={{
+        display: {
+          xs: "flex",
+          sm: "none",
+        },
+        alignItems: "center",
+        backgroundColor: "#1DA1F2",
+        borderRadius: 0,
+        mx: 0,
+        mb: 0,
+        px: 1,
+        py: 1,
+        width: "100%",
+        position: "fixed",
+        top: 56,
+        left: 0,
+        right: 0,
+        zIndex: 1200,
+      }}
+    >
       <Box
         sx={{
-          display: {
-            xs: "flex",
-            sm: "none",
-          },
+          display: "flex",
           alignItems: "center",
           backgroundColor: "white",
           borderRadius: "999px",
-          mx: 2,
-          mb: 1.5,
           px: 2,
           py: 0.5,
+          width: "100%",
         }}
       >
-        <SearchIcon sx={{ color: "#666" }} />
+        <SearchIcon sx={{ color: "#666", fontSize: "18px" }} />
 
         <InputBase
           placeholder="Tìm kiếm..."
           sx={{
             ml: 1,
             width: "100%",
-            fontSize: "14px",
+            fontSize: "13px",
           }}
         />
       </Box>
-    </AppBar>
+    </Box>
+    </>
   );
 };
 

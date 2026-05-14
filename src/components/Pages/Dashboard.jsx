@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box } from "@mui/material";
+import { useTheme, useMediaQuery } from "@mui/material";
 import Sidebar from "../Layout/Sidebar";
 import Header from "../Layout/Header";
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -32,9 +33,32 @@ import PhieuThuPrintPreview from "../PhieuThu/PhieuThuPrintPreview";
 import NhanVienTable from "../NhanVien/NhanVienTable";
 import BangLuongPage from "../BangLuong/BangLuongPage";
 const Dashboard = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useSelector(getAuthSelector);
   const fallbackPath = getDefaultPathForUser(user);
+
+  // Calculate responsive header height
+  const getHeaderMarginTop = () => {
+    // xs: 56px (Toolbar height) + 56px (search mobile) = 112px
+    // sm+: Only Toolbar height (64px or 70px)
+    if (isMobile) {
+      return 112; // 56 (toolbar) + 56 (search mobile)
+    }
+    // On sm: 64px, on md+: 70px
+    return 70;
+  };
+
+  const headerMarginTop = getHeaderMarginTop();
+
+  // Auto-collapse sidebar on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setCollapsed(true);
+    }
+  }, [isMobile]);
 
   const renderProtected = (routePath, element) => {
     if (hasRouteAccess(user, routePath)) {
@@ -45,18 +69,25 @@ const Dashboard = () => {
   };
 
   return (
-    <Box sx={{ display: "flex" }}>
-      <Header onToggleSidebar={() => setCollapsed(!collapsed)} />
-      <Sidebar collapsed={collapsed} />
-      <Box
-        component="main"
-        className="bg-gray-100 min-h-screen w-full"
-        sx={{
-          mt: "66px",
-          ml: collapsed ? "16px" : "60px",
-          transition: "all 0.3s",
-        }}
-      >
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <Box sx={{ flexShrink: 0 }}>
+        <Header onToggleSidebar={() => setCollapsed(!collapsed)} />
+      </Box>
+      
+      <Box sx={{ display: "flex", flex: 1 }}>
+        <Sidebar collapsed={collapsed} />
+        
+        <Box
+          component="main"
+          className="bg-gray-100 w-full"
+          sx={{
+            mt: `${headerMarginTop}px`,
+            flex: 1,
+            transition: "all 0.3s",
+            minHeight: `calc(100vh - ${headerMarginTop}px)`,
+            overflow: "auto",
+          }}
+        >
         <Routes>
           <Route path="/" element={renderProtected("/", <DashboardPage />)} />
           <Route path="/don-hang/*" element={renderProtected("/don-hang", <DonHangPage />)} />
@@ -104,6 +135,7 @@ const Dashboard = () => {
           ></Route>
           <Route path="*" element={<Navigate to={fallbackPath} replace />} />
         </Routes>
+        </Box>
       </Box>
     </Box>
   );

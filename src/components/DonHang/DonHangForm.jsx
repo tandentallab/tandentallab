@@ -449,13 +449,13 @@ const DonHangForm = () => {
       </div>
 
       {/* Body: main form + right side panel */}
-      <div className="flex-1 flex flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Main form (scrollable) */}
         <div className="flex-1 overflow-y-auto pb-16">
           <div className="w-full mt-4 flex flex-col gap-4">
             {/* Section 1: Customer info + clinic info + dates */}
-            <div className="flex gap-0 w-full bg-white border-b border-gray-200 shadow-sm">
-              <div className="w-[30%] p-4 flex flex-col gap-6 border-r">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-0 w-full bg-white border-b border-gray-200 shadow-sm">
+              <div className="xl:col-span-3 p-4 flex flex-col gap-6 border-r-0 xl:border-r border-b xl:border-b-0">
                 <SearchInput
                   label="Nha khoa"
                   options={nhaKhoasList}
@@ -484,38 +484,38 @@ const DonHangForm = () => {
                   }
                 />
               </div>
-              <div className="w-[40%] bg-[#e8f6fc] p-4 text-sm flex flex-col gap-2 pt-6">
-                <div className="flex">
-                  <span className="text-gray-500 w-20">Địa chỉ:</span>{" "}
-                  <span className="font-medium text-gray-800">
+              <div className="xl:col-span-5 bg-[#e8f6fc] p-4 text-sm flex flex-col gap-2 pt-6 border-b xl:border-b-0 xl:border-r">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                  <span className="text-gray-500 w-20 shrink-0">Địa chỉ:</span>
+                  <span className="font-medium text-gray-800 break-words">
                     {selectedNhaKhoaInfo?.diaChiCuThe || ""}
                   </span>
                 </div>
-                <div className="flex">
-                  <span className="text-gray-500 w-20">Điện thoại:</span>{" "}
-                  <span className="font-medium text-gray-800">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                  <span className="text-gray-500 w-20 shrink-0">Điện thoại:</span>
+                  <span className="font-medium text-gray-800 break-words">
                     {selectedNhaKhoaInfo?.soDienThoai || ""}
                   </span>
                 </div>
-                <div className="flex">
-                  <span className="text-gray-500 w-20">Mô tả:</span>{" "}
-                  <span className="font-medium text-gray-800">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                  <span className="text-gray-500 w-20 shrink-0">Mô tả:</span>
+                  <span className="font-medium text-gray-800 break-words">
                     {selectedNhaKhoaInfo?.moTa || ""}
                   </span>
                 </div>
               </div>
-              <div className="w-[30%] p-4 flex flex-col gap-4 pt-6 border-l bg-white">
-                <div className="flex justify-between items-center border-b pb-1">
+              <div className="xl:col-span-4 p-4 flex flex-col gap-4 pt-6 bg-white">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 border-b pb-1">
                   <label className="text-sm text-gray-500">Ngày nhận</label>
                   <input
                     type="datetime-local"
                     name="ngayNhan"
                     value={formData.ngayNhan}
                     onChange={handleInputChange}
-                    className="text-sm outline-none bg-transparent text-gray-700"
+                    className="text-sm outline-none bg-transparent text-gray-700 w-full sm:w-auto"
                   />
                 </div>
-                <div className="flex justify-between items-center border-b pb-1">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 border-b pb-1">
                   <label className="text-sm text-gray-500">
                     Y/c hoàn thành
                   </label>
@@ -524,25 +524,26 @@ const DonHangForm = () => {
                     name="yeuCauHoanThanh"
                     value={formData.yeuCauHoanThanh}
                     onChange={handleInputChange}
-                    className="text-sm outline-none bg-transparent text-gray-700"
+                    className="text-sm outline-none bg-transparent text-gray-700 w-full sm:w-auto"
                   />
                 </div>
-                <div className="flex justify-between items-center border-b pb-1">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 border-b pb-1">
                   <label className="text-sm text-gray-500">Hẹn giao</label>
                   <input
                     type="datetime-local"
                     name="henGiao"
                     value={formData.henGiao}
                     onChange={handleInputChange}
-                    className="text-sm outline-none bg-transparent text-gray-700"
+                    className="text-sm outline-none bg-transparent text-gray-700 w-full sm:w-auto"
                   />
                 </div>
               </div>
             </div>
 
             {/* Section 2: Products table */}
-            <div className="w-full bg-white shadow-sm border-t border-b border-gray-200">
-              <table className="w-full text-sm text-left">
+            <div className="w-full bg-white shadow-sm border-t border-b border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto overflow-y-hidden">
+                <table className="w-full min-w-[980px] text-sm text-left">
                 <thead className="bg-[#f0f9ff] text-gray-600 border-b">
                   <tr>
                     <th className="p-3 w-32 font-medium">Loại</th>
@@ -682,33 +683,36 @@ const DonHangForm = () => {
                   </tr>
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Right side panel: 2 tabs – Sản xuất / Ghi chú */}
-        <RightSidePanel
-          formData={formData}
-          setFormData={setFormData}
-          handleInputChange={handleInputChange}
-          phieuBaoHanhList={phieuBaoHanhList}
-          donHangId={id}
-          onRefreshPhieuBaoHanh={() => {
-            if (id) {
-              api
-                .get(`/phieu-bao-hanh/don-hang/${id}`)
-                .then((res) => {
-                  const warranty = res.data?.data || res.data;
-                  const warrantyArray = warranty ? (Array.isArray(warranty) ? warranty : [warranty]) : [];
-                  setPhieuBaoHanhList(warrantyArray);
-                })
-                .catch((err) => {
-                  console.error("Lỗi fetch phiếu bảo hành:", err);
-                  setPhieuBaoHanhList([]);
-                });
-            }
-          }}
-        />
+        <div className="w-full lg:w-72 border-t lg:border-t-0 lg:border-l bg-white flex flex-col shrink-0 overflow-hidden">
+          <RightSidePanel
+            formData={formData}
+            setFormData={setFormData}
+            handleInputChange={handleInputChange}
+            phieuBaoHanhList={phieuBaoHanhList}
+            donHangId={id}
+            onRefreshPhieuBaoHanh={() => {
+              if (id) {
+                api
+                  .get(`/phieu-bao-hanh/don-hang/${id}`)
+                  .then((res) => {
+                    const warranty = res.data?.data || res.data;
+                    const warrantyArray = warranty ? (Array.isArray(warranty) ? warranty : [warranty]) : [];
+                    setPhieuBaoHanhList(warrantyArray);
+                  })
+                  .catch((err) => {
+                    console.error("Lỗi fetch phiếu bảo hành:", err);
+                    setPhieuBaoHanhList([]);
+                  });
+              }
+            }}
+          />
+        </div>
       </div>
 
       {/* Footer save bar */}

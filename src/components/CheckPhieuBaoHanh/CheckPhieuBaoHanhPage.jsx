@@ -49,13 +49,13 @@ const ToothPositionGrid = ({ positions }) => {
     <div className="space-y-3">
       {/* Upper teeth */}
       <div>
-        <div className="text-xs font-bold text-gray-600 mb-2">Hàm trên</div>
+        <div className="text-[11px] sm:text-xs font-bold text-gray-600 mb-2">Hàm trên</div>
         <div className="flex flex-wrap gap-1">
           {TEETH_GRID.upper.map((tooth) => (
             <div
               key={`upper-${tooth}`}
               className={`
-                w-8 h-8 flex items-center justify-center text-xs font-semibold rounded
+                w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-[10px] sm:text-xs font-semibold rounded
                 border border-gray-300
                 ${positions.includes(tooth) 
                   ? 'bg-blue-600 text-white' 
@@ -71,13 +71,13 @@ const ToothPositionGrid = ({ positions }) => {
 
       {/* Lower teeth */}
       <div>
-        <div className="text-xs font-bold text-gray-600 mb-2">Hàm dưới</div>
+        <div className="text-[11px] sm:text-xs font-bold text-gray-600 mb-2">Hàm dưới</div>
         <div className="flex flex-wrap gap-1">
           {TEETH_GRID.lower.map((tooth) => (
             <div
               key={`lower-${tooth}`}
               className={`
-                w-8 h-8 flex items-center justify-center text-xs font-semibold rounded
+                w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-[10px] sm:text-xs font-semibold rounded
                 border border-gray-300
                 ${positions.includes(tooth) 
                   ? 'bg-blue-600 text-white' 
@@ -158,16 +158,18 @@ const CheckPhieuBaoHanhPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-      <Container maxWidth="md">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 sm:py-8">
+      <Container maxWidth="md" sx={{ px: { xs: 1.5, sm: 2 } }}>
         {/* Header */}
-        <Box className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-blue-600 mb-2">PHIẾU BẢO HÀNH RĂNG SỨ</h1>
-          <p className="text-gray-600 text-lg">Dental Warranty Certificate</p>
+        <Box className="text-center mb-5 sm:mb-8 px-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-600 mb-2 leading-tight">
+            PHIẾU BẢO HÀNH RĂNG SỨ
+          </h1>
+          <p className="text-sm sm:text-base lg:text-lg text-gray-600">Dental Warranty Certificate</p>
         </Box>
 
         {/* Search Card */}
-        <Paper elevation={3} className="p-6 mb-8 bg-white">
+        <Paper elevation={3} className="p-4 sm:p-6 mb-6 sm:mb-8 bg-white rounded-xl">
           <form onSubmit={handleSearch} className="space-y-4">
             <TextField
               fullWidth
@@ -188,7 +190,7 @@ const CheckPhieuBaoHanhPage = () => {
               }}
             />
 
-            <Box className="flex gap-3">
+            <Box className="flex flex-col sm:flex-row gap-3">
               <Button
                 type="submit"
                 variant="contained"
@@ -204,6 +206,7 @@ const CheckPhieuBaoHanhPage = () => {
                   variant="outlined"
                   onClick={handleClear}
                   size="large"
+                  fullWidth
                 >
                   Xóa
                 </Button>
@@ -214,7 +217,7 @@ const CheckPhieuBaoHanhPage = () => {
 
         {/* Loading */}
         {searched && loading && (
-          <Box className="flex justify-center py-12">
+          <Box className="flex justify-center py-10 sm:py-12">
             <CircularProgress />
           </Box>
         )}
@@ -223,38 +226,38 @@ const CheckPhieuBaoHanhPage = () => {
         {searched && !loading && warranty && (
           <Paper elevation={3} className="bg-white">
             {/* Certificate Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-t-lg">
-              <h2 className="text-2xl font-bold text-center">PHIẾU BẢO HÀNH RĂNG SỨ</h2>
-              <p className="text-center text-sm mt-1">Dental Warranty Certificate</p>
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 sm:p-6 rounded-t-lg">
+              <h2 className="text-xl sm:text-2xl font-bold text-center leading-tight">PHIẾU BẢO HÀNH RĂNG SỨ</h2>
+              <p className="text-center text-xs sm:text-sm mt-1">Dental Warranty Certificate</p>
             </div>
 
             {/* Certificate Content */}
-            <div className="p-8 space-y-6">
+            <div className="p-4 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
               {/* Warranty Status */}
               <div className={`p-4 rounded-lg ${warranty.isValid ? 'bg-green-50 border-2 border-green-300' : 'bg-red-50 border-2 border-red-300'}`}>
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold">Trạng thái:</span>
-                  <span className={`text-xl font-bold ${warranty.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <span className="text-base sm:text-lg font-bold">Trạng thái:</span>
+                  <span className={`text-lg sm:text-xl font-bold ${warranty.isValid ? 'text-green-600' : 'text-red-600'}`}>
                     {warranty.isValid ? '✓ Còn hiệu lực' : '✗ Hết hiệu lực'}
                   </span>
                 </div>
                 {warranty.status && (
-                  <div className="text-sm text-gray-700 mt-2">{warranty.status}</div>
+                  <div className="text-xs sm:text-sm text-gray-700 mt-2">{warranty.status}</div>
                 )}
               </div>
 
               {/* Two Column Layout */}
-              <div className="grid grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                 {/* Left Column */}
-                <div className="space-y-6">
+                <div className="space-y-5 sm:space-y-6">
                   {/* Khách hàng */}
                   <div className="border-b-2 pb-4">
-                    <div className="text-sm text-gray-600 mb-2">👤 Khách hàng</div>
-                    <div className="font-bold text-lg">
+                    <div className="text-xs sm:text-sm text-gray-600 mb-2">👤 Khách hàng</div>
+                    <div className="font-bold text-base sm:text-lg break-words">
                       {warranty.benhNhan?.ten || '---'}
                     </div>
                     {warranty.benhNhan?.soDienThoai && (
-                      <div className="text-sm text-gray-600 mt-1">
+                      <div className="text-xs sm:text-sm text-gray-600 mt-1">
                         ☎ {warranty.benhNhan.soDienThoai}
                       </div>
                     )}
@@ -262,12 +265,12 @@ const CheckPhieuBaoHanhPage = () => {
 
                   {/* Nha khoa */}
                   <div className="border-b-2 pb-4">
-                    <div className="text-sm text-gray-600 mb-2">🏥 Nha khoa</div>
-                    <div className="font-bold text-lg">
+                    <div className="text-xs sm:text-sm text-gray-600 mb-2">🏥 Nha khoa</div>
+                    <div className="font-bold text-base sm:text-lg break-words">
                       {warranty.nhaKhoa?.ten || '---'}
                     </div>
                     {warranty.nhaKhoa?.soDienThoai && (
-                      <div className="text-sm text-gray-600 mt-1">
+                      <div className="text-xs sm:text-sm text-gray-600 mt-1">
                         {warranty.nhaKhoa.soDienThoai}
                       </div>
                     )}
@@ -275,14 +278,14 @@ const CheckPhieuBaoHanhPage = () => {
 
                   {/* Danh sách sản phẩm */}
                   <div className="border-b-2 pb-4">
-                    <div className="text-sm text-gray-600 mb-2">🦷 Sản phẩm trong phiếu</div>
+                    <div className="text-xs sm:text-sm text-gray-600 mb-2">🦷 Sản phẩm trong phiếu</div>
                     <div className="space-y-3">
                       {(warranty.danhSachSanPham || []).map((item, index) => (
                         <div key={index} className="rounded-lg border border-blue-100 bg-blue-50 p-3">
-                          <div className="font-bold text-base text-blue-700 mb-1">
+                          <div className="font-bold text-sm sm:text-base text-blue-700 mb-1 break-words">
                             {item.tenSanPham || '---'}
                           </div>
-                          <div className="text-sm text-gray-700 space-y-1">
+                          <div className="text-xs sm:text-sm text-gray-700 space-y-1 break-words">
                             <div>Vị trí: {item.viTriRang || '---'}</div>
                             <div>Số lượng: {item.soLuong || 1}</div>
                             <div>Màu: {item.mau || '---'}</div>
@@ -298,19 +301,19 @@ const CheckPhieuBaoHanhPage = () => {
                 </div>
 
                 {/* Right Column */}
-                <div className="space-y-6">
+                <div className="space-y-5 sm:space-y-6">
                   {/* Mã bảo hành */}
                   <div className="border-b-2 pb-4">
-                    <div className="text-sm text-gray-600 mb-2">📋 Mã bảo hành</div>
-                    <div className="font-bold text-lg font-mono bg-gray-100 p-2 rounded">
+                    <div className="text-xs sm:text-sm text-gray-600 mb-2">📋 Mã bảo hành</div>
+                    <div className="font-bold text-base sm:text-lg font-mono bg-gray-100 p-2 rounded break-all">
                       {warranty.maBaoHanh}
                     </div>
                   </div>
 
                   {/* Mã QR */}
                   <div className="border-b-2 pb-4">
-                    <div className="text-sm text-gray-600 mb-2">📱 Mã QR</div>
-                    <div className="font-bold text-3xl text-orange-600 text-center py-2">
+                    <div className="text-xs sm:text-sm text-gray-600 mb-2">📱 Mã QR</div>
+                    <div className="font-bold text-xl sm:text-2xl lg:text-3xl text-orange-600 text-center py-2 break-all">
                       {warranty.maQR}
                     </div>
                   </div>
@@ -320,11 +323,11 @@ const CheckPhieuBaoHanhPage = () => {
               {/* Vị trí răng - Grid theo từng sản phẩm */}
               {(warranty.danhSachSanPham || []).map((item, index) => (
                 <div key={index} className="border-t-2 pt-6">
-                  <div className="text-sm text-gray-600 mb-3 font-bold"> VỊ TRÍ RĂNG - {item.tenSanPham || `Sản phẩm ${index + 1}`}</div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="text-xs sm:text-sm text-gray-600 mb-3 font-bold break-words"> VỊ TRÍ RĂNG - {item.tenSanPham || `Sản phẩm ${index + 1}`}</div>
+                  <div className="bg-gray-50 p-3 sm:p-4 rounded-lg overflow-x-auto">
                     <ToothPositionGrid positions={parseToothPositions(item.viTriRang)} />
                   </div>
-                  <div className="text-xs text-gray-500 mt-3 italic">
+                  <div className="text-[11px] sm:text-xs text-gray-500 mt-3 italic break-words">
                     <strong>Ghi chú:</strong> {item.viTriRang || 'Không có thông tin vị trí'}
                   </div>
                 </div>
@@ -350,7 +353,7 @@ const CheckPhieuBaoHanhPage = () => {
             </div>
 
             {/* Footer */}
-            <div className="bg-gray-100 px-8 py-4 rounded-b-lg border-t text-center">
+            <div className="bg-gray-100 px-4 sm:px-8 py-4 rounded-b-lg border-t text-center">
               <p className="text-xs text-gray-600">
                 © TanDental - Giải pháp quản lý nha khoa
               </p>
@@ -363,6 +366,8 @@ const CheckPhieuBaoHanhPage = () => {
                 color="primary"
                 onClick={handleClear}
                 size="large"
+                fullWidth
+                sx={{ maxWidth: { sm: 220 } }}
               >
                 Tra cứu khác
               </Button>

@@ -34,7 +34,6 @@ export default function CongTyPage() {
     try {
       setLoading(true);
       const response = await api.get("/cong-ty");
-      console.log("📥 Company data:", response.data.data);
       setCompany(response.data.data);
     } catch (error) {
       console.error("❌ Lỗi tải thông tin công ty:", error);

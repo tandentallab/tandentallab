@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Toolbar,
   Drawer,
@@ -37,6 +37,7 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import BadgeIcon from "@mui/icons-material/Badge";
 
 import { useNavigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const Sidebar = ({ collapsed }) => {
   const navigate = useNavigate();
@@ -47,6 +48,12 @@ const Sidebar = ({ collapsed }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const auth = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    console.log("Quyền sử dụng của bạn là ", auth?.user?.quyenSuDung?.ten);
+  }, []);
 
   const drawerWidth = collapsed ? 72 : 250;
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Box,
@@ -11,13 +11,7 @@ import {
 } from "@mui/material";
 import { Trash2 } from "lucide-react";
 
-import {
-  fetchBangGiaByNhaKhoa,
-  upsertBangGia,
-  deleteBangGia,
-} from "../../redux/slices/bangGiaSlice";
-
-import { fetchSanPham } from "../../redux/slices/sanPhamSlice";
+import { upsertBangGia, deleteBangGia } from "../../redux/slices/bangGiaSlice";
 
 export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
   const dispatch = useDispatch();

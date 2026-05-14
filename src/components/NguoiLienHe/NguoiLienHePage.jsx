@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
 import NguoiLienHeTable from "./NguoiLienHeTable";
-import NguoiLienHeModal from "./NguoiLienHeModal";
 
 export default function NguoiLienHePage() {
   const data = [

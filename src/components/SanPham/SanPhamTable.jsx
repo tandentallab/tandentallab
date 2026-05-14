@@ -8,7 +8,6 @@ import {
   TableRow,
   Paper,
   IconButton,
-  Button,
   Box,
   Tooltip,
   Typography,
@@ -98,7 +97,7 @@ export default function SanPhamTable() {
                   <Search className="text-gray-400" />
                 </InputAdornment>
               ),
-            }
+            },
           }}
           sx={{ "& fieldset": { border: "none" } }}
         />
@@ -156,7 +155,9 @@ export default function SanPhamTable() {
             className="bg-white shadow-sm border border-gray-200"
           >
             <Refresh
-              className={loading ? "animate-spin text-blue-500" : "text-gray-600"}
+              className={
+                loading ? "animate-spin text-blue-500" : "text-gray-600"
+              }
             />
           </IconButton>
         </div>
@@ -169,11 +170,21 @@ export default function SanPhamTable() {
         <Table sx={{ minWidth: 800 }}>
           <TableHead className="bg-gray-50">
             <TableRow>
-              <TableCell><b>Tên sản phẩm</b></TableCell>
-              <TableCell><b>Loại tính</b></TableCell>
-              <TableCell><b>Nhóm</b></TableCell>
-              <TableCell><b>Đơn giá</b></TableCell>
-              <TableCell align="center"><b>Thao tác</b></TableCell>
+              <TableCell>
+                <b>Tên sản phẩm</b>
+              </TableCell>
+              <TableCell>
+                <b>Loại tính</b>
+              </TableCell>
+              <TableCell>
+                <b>Nhóm</b>
+              </TableCell>
+              <TableCell>
+                <b>Đơn giá</b>
+              </TableCell>
+              <TableCell align="center">
+                <b>Thao tác</b>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -218,8 +229,13 @@ export default function SanPhamTable() {
                   className="text-gray-400 py-10"
                 >
                   <div className="flex flex-col items-center">
-                    <Search style={{ fontSize: 40 }} className="text-gray-300 mb-2" />
-                    <Typography>Không tìm thấy sản phẩm nào phù hợp!</Typography>
+                    <Search
+                      style={{ fontSize: 40 }}
+                      className="text-gray-300 mb-2"
+                    />
+                    <Typography>
+                      Không tìm thấy sản phẩm nào phù hợp!
+                    </Typography>
                   </div>
                 </TableCell>
               </TableRow>

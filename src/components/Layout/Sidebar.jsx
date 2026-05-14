@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Toolbar,
   Drawer,
@@ -38,20 +38,22 @@ import BadgeIcon from "@mui/icons-material/Badge";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
+
+// 🚨 QUAN TRỌNG: Phải import 2 dòng này để check quyền
 import { getAuthSelector } from "../../redux/selector";
 import { hasRouteAccess } from "../../config/permissions";
 
 const Sidebar = ({ collapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 🚨 LẤY USER TỪ REDUX: Sidebar sẽ tự render lại khi user thay đổi (lúc đăng nhập)
   const { user } = useSelector(getAuthSelector);
 
   const theme = useTheme();
-  // Check xem màn hình có đang ở kích thước Mobile/Tablet không
   const isMobileSize = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Độ rộng sidebar: Nếu là màn hình nhỏ thì luôn là 250 khi mở, màn hình lớn mới theo biến collapsed
   const drawerWidth = isMobileSize ? 250 : (collapsed ? 64 : 250);
 
   /* ===== MENU DATA ===== */
@@ -85,6 +87,7 @@ const Sidebar = ({ collapsed }) => {
     { name: "Quyền sử dụng", router: "/quyen-su-dung", icon: <People /> },
   ];
 
+  // 🚨 LỌC MENU THEO QUYỀN CỦA USER
   const filteredMainMenu = menu.filter((item) => hasRouteAccess(user, item.router));
   const filteredCustomerMenu = customerMenu.filter((item) => hasRouteAccess(user, item.router));
   const filteredOtherMenu = otherMenu.filter((item) => hasRouteAccess(user, item.router));
@@ -98,26 +101,23 @@ const Sidebar = ({ collapsed }) => {
     return location.pathname.startsWith(path);
   };
 
-  const [openCustomer, setOpenCustomer] = useState(
-    customerMenu.some(item => location.pathname.startsWith(item.router))
-  );
-  const [openSetting, setOpenSetting] = useState(
-    settingMenu.some(item => location.pathname.startsWith(item.router))
-  );
+  const [openCustomer, setOpenCustomer] = useState(false);
+  const [openSetting, setOpenSetting] = useState(false);
+
+  // Tự động mở group nếu đang ở trang con
+  useEffect(() => {
+    if (customerMenu.some(item => location.pathname.startsWith(item.router))) setOpenCustomer(true);
+    if (settingMenu.some(item => location.pathname.startsWith(item.router))) setOpenSetting(true);
+  }, [location.pathname]);
 
   const handleNavigate = (router) => {
     navigate(router);
     if (isMobileSize) setMobileOpen(false);
   };
 
-  /* ===== RENDER MENU ITEM ===== */
   const renderMenuItem = (item, nested = false) => {
     const active = checkActive(item.router);
-
-    // QUAN TRỌNG: Nếu là màn hình nhỏ (isMobileSize) thì LUÔN hiện chữ.
-    // Nếu màn hình lớn thì hiện chữ khi KHÔNG collapsed.
     const showText = isMobileSize ? true : !collapsed;
-
     const paddingLeft = nested && showText ? 3.5 : 1.5;
 
     return (
@@ -131,44 +131,19 @@ const Sidebar = ({ collapsed }) => {
           onClick={() => handleNavigate(item.router)}
           sx={{
             justifyContent: "flex-start",
-            pl: paddingLeft,
-            pr: 1.5,
-            ml: 1,
-            mr: 1,
-            mb: 0.5,
+            pl: paddingLeft, pr: 1.5, ml: 1, mr: 1, mb: 0.5,
             borderRadius: 2,
-            minWidth: 48,
-            transition: "all 0.2s",
             backgroundColor: active ? "#bfdbfe" : "transparent",
-            color: "inherit",
-            "&:hover": {
-              backgroundColor: active ? "#93c5fd" : "rgba(0, 0, 0, 0.04)",
-            }
+            "&:hover": { backgroundColor: active ? "#93c5fd" : "rgba(0, 0, 0, 0.04)" }
           }}
         >
-          <ListItemIcon
-            sx={{
-              minWidth: 0,
-              mr: showText ? 2 : 0,
-              justifyContent: "center",
-              color: "inherit",
-            }}
-          >
+          <ListItemIcon sx={{ minWidth: 0, mr: showText ? 2 : 0, justifyContent: "center", color: "inherit" }}>
             {item.icon}
           </ListItemIcon>
-
           {showText && <ListItemText primary={item.name} />}
         </ListItemButton>
       </Tooltip>
     );
-  };
-
-  const scrollbarStyles = {
-    overflowY: "auto",
-    overflowX: "hidden",
-    "&::-webkit-scrollbar": { width: "6px" },
-    "&::-webkit-scrollbar-track": { background: "transparent" },
-    "&::-webkit-scrollbar-thumb": { background: "#d1d5db", borderRadius: "10px" },
   };
 
   const drawerContent = (
@@ -239,7 +214,7 @@ const Sidebar = ({ collapsed }) => {
           onClick={() => setMobileOpen(!mobileOpen)}
           sx={{
             position: "fixed", top: 12, left: 12,
-            zIndex: 1201, // Đảm bảo bấm ăn 100% trên cả giả lập
+            zIndex: 1201,
             bgcolor: "#fff", boxShadow: 2,
             "&:hover": { bgcolor: "#f3f4f6" }
           }}
@@ -258,7 +233,10 @@ const Sidebar = ({ collapsed }) => {
           "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
-            ...scrollbarStyles,
+            overflowY: "auto",
+            overflowX: "hidden",
+            "&::-webkit-scrollbar": { width: "6px" },
+            "&::-webkit-scrollbar-thumb": { background: "#d1d5db", borderRadius: "10px" },
           },
         }}
       >

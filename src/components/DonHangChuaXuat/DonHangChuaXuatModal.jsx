@@ -40,10 +40,7 @@ import {
 } from "date-fns";
 
 import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchDonHangChuaHoaDon,
-  createHoaDon,
-} from "../../redux/slices/hoaDonSlice";
+import { fetchDonHangChuaHoaDon } from "../../redux/slices/hoaDonSlice";
 import { fetchBangGiaByNhaKhoa } from "../../redux/slices/bangGiaSlice";
 import { useNavigate } from "react-router-dom";
 import { fetchDonHangById } from "../../redux/slices/donHangSlice";
@@ -376,7 +373,8 @@ export default function DonHangChuaXuatModal({
                         navigate(`/donhang/${order._id}/edit`);
                       }}
                     >
-                      {order.maDonHang || `TAN${order._id.slice(-8).toUpperCase()}`}
+                      {order.maDonHang ||
+                        `TAN${order._id.slice(-8).toUpperCase()}`}
                     </Typography>
                   </TableCell>
                   <TableCell>{formatDate(order?.ngayNhan)}</TableCell>
@@ -389,8 +387,9 @@ export default function DonHangChuaXuatModal({
                       {order.danhSachSanPham.map((sp, i) => (
                         <Chip
                           key={i}
-                          label={`${mapTen[sp.sanPham?.toString()] || "SP"} x${sp.soLuong
-                            }`}
+                          label={`${mapTen[sp.sanPham?.toString()] || "SP"} x${
+                            sp.soLuong
+                          }`}
                           size="small"
                           variant="outlined"
                         />

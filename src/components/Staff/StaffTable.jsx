@@ -17,10 +17,11 @@ import {
   Chip,
   Typography,
   Drawer,
+  TextField,
 } from "@mui/material";
+
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { api } from "../../config/api";
 
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -28,15 +29,24 @@ import {
   deleteStaff,
   updateStaff,
 } from "../../redux/slices/staffSlice";
+
 import { APP_ROLES, resolveAppRoleFromUser } from "../../config/permissions";
 
+import { api } from "../../config/api";
+import { Box } from "lucide-react";
+
+/* ================= MAIN TABLE ================= */
 export default function StaffTable() {
   const dispatch = useDispatch();
 
-  const { data, loading, error } = useSelector((state) => state.staff);
+  const {
+    data = [],
+    loading = false,
+    error = null,
+  } = useSelector((state) => state.staff);
+
   const { user } = useSelector((state) => state.auth);
 
-  // Kiểm tra xem user là Admin không
   const isAdmin = resolveAppRoleFromUser(user) === APP_ROLES.ADMIN;
 
   const [openDelete, setOpenDelete] = useState(false);
@@ -48,7 +58,6 @@ export default function StaffTable() {
     dispatch(fetchStaff());
   }, [dispatch]);
 
-  /* ================= HANDLE DELETE ================= */
   const handleDeleteClick = (id) => {
     setSelectedId(id);
     setOpenDelete(true);
@@ -59,42 +68,32 @@ export default function StaffTable() {
       await dispatch(deleteStaff(selectedId)).unwrap();
       setOpenDelete(false);
       setSelectedId(null);
-      // Refetch dữ liệu sau khi xóa
       dispatch(fetchStaff());
     } catch (err) {
-      console.log("Lỗi:", err);
+      console.error(err);
     }
   };
 
-  /* ================= HANDLE EDIT ================= */
   const handleEditClick = (id) => {
     setEditingId(id);
     setShowEditModal(true);
   };
 
-  /* ================= FORMAT DATE ================= */
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString("vi-VN");
-  };
+  const formatDate = (date) =>
+    date ? new Date(date).toLocaleDateString("vi-VN") : "-";
 
-  /* ================= GET STATUS TEXT ================= */
-  const getStatusText = (status) => {
-    return status === 1 ? "Hoạt động" : "Bị khoá";
-  };
+  const getStatusText = (status) => (status === 1 ? "Hoạt động" : "Bị khoá");
 
-  const getStatusColor = (status) => {
-    return status === 1 ? "success" : "error";
-  };
+  const getStatusColor = (status) => (status === 1 ? "success" : "error");
 
   return (
     <>
-      <TableContainer component={Paper} className="rounded-2xl shadow-lg">
+      <TableContainer component={Paper}>
         <Table>
-          {/* HEADER */}
           <TableHead>
-            <TableRow className="bg-gray-100">
+            <TableRow>
               <TableCell>
-                <b>Mã (Code)</b>
+                <b>Mã</b>
               </TableCell>
               <TableCell>
                 <b>Tên</b>
@@ -106,7 +105,7 @@ export default function StaffTable() {
                 <b>Điện thoại</b>
               </TableCell>
               <TableCell>
-                <b>Quyền sử dụng</b>
+                <b>Quyền</b>
               </TableCell>
               <TableCell>
                 <b>Trạng thái</b>
@@ -122,52 +121,40 @@ export default function StaffTable() {
             </TableRow>
           </TableHead>
 
-          {/* BODY */}
           <TableBody>
-            {/* 🔥 LOADING */}
             {loading && (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 8 : 7} align="center">
+                <TableCell colSpan={8} align="center">
                   <CircularProgress />
                 </TableCell>
               </TableRow>
             )}
 
-            {/* ❌ ERROR */}
             {error && (
               <TableRow>
-                <TableCell
-                  colSpan={isAdmin ? 8 : 7}
-                  align="center"
-                  className="text-red-500"
-                >
+                <TableCell colSpan={8} align="center">
                   {error}
                 </TableCell>
               </TableRow>
             )}
 
-            {/* 📭 EMPTY */}
             {!loading && data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 8 : 7} align="center">
+                <TableCell colSpan={8} align="center">
                   Không có dữ liệu
                 </TableCell>
               </TableRow>
             )}
 
-            {/* ✅ DATA */}
             {!loading &&
               data.map((item) => (
                 <TableRow
                   key={item._id}
                   hover
-                  style={{ cursor: "pointer" }}
                   onClick={() => handleEditClick(item._id)}
                 >
                   <TableCell>{item.MSNV || "-"}</TableCell>
-                  <TableCell>
-                    <div className="font-semibold">{item.HoTenNV}</div>
-                  </TableCell>
+                  <TableCell>{item.HoTenNV}</TableCell>
                   <TableCell>{item.Email}</TableCell>
                   <TableCell>{item.DienThoai || "-"}</TableCell>
                   <TableCell>{item.quyenSuDung?.ten || "-"}</TableCell>
@@ -179,18 +166,16 @@ export default function StaffTable() {
                     />
                   </TableCell>
                   <TableCell>{formatDate(item.createdAt)}</TableCell>
+
                   {isAdmin && (
-                    <TableCell
-                      align="center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <TableCell align="center">
                       <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDeleteClick(item._id)}
-                        title="Xóa"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(item._id);
+                        }}
                       >
-                        <DeleteIcon fontSize="small" />
+                        <DeleteIcon />
                       </IconButton>
                     </TableCell>
                   )}
@@ -200,23 +185,23 @@ export default function StaffTable() {
         </Table>
       </TableContainer>
 
-      {/* DIALOG XÓA */}
+      {/* DELETE DIALOG */}
       <Dialog open={openDelete} onClose={() => setOpenDelete(false)}>
-        <DialogTitle>Xác nhận xóa</DialogTitle>
-        <DialogContent>Bạn chắc chắn muốn xóa nhân viên này?</DialogContent>
+        <DialogTitle>Xóa nhân viên</DialogTitle>
+        <DialogContent>Xác nhận xóa nhân viên này?</DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDelete(false)}>Hủy</Button>
           <Button
-            onClick={handleConfirmDelete}
             color="error"
             variant="contained"
+            onClick={handleConfirmDelete}
           >
             Xóa
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* MODAL CHỈNH SỬA */}
+      {/* EDIT DRAWER */}
       {showEditModal && (
         <StaffEditModal
           staffId={editingId}
@@ -230,58 +215,34 @@ export default function StaffTable() {
   );
 }
 
-// Modal chỉnh sửa
+/* ================= EDIT MODAL ================= */
 function StaffEditModal({ staffId, onClose }) {
   const dispatch = useDispatch();
-  const { data } = useSelector((state) => state.staff);
-  const [loading, setLoading] = React.useState(false);
-  const [loadingQuyens, setLoadingQuyens] = React.useState(false);
-  const [quyens, setQuyens] = React.useState([]);
-
-  const [open, setOpen] = React.useState(true);
+  const { data = [] } = useSelector((state) => state.staff);
 
   const staff = data.find((s) => s._id === staffId);
 
-  console.log("🔵 Staff object từ Redux:", staff);
+  const [open, setOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [quyens, setQuyens] = useState([]);
+  const [loadingQuyens, setLoadingQuyens] = useState(false);
 
-  const [form, setForm] = React.useState({
-    MSNV: staff?.MSNV || "",
-    HoTenNV: staff?.HoTenNV || "",
-    Email: staff?.Email || "",
-    quyenSuDung: staff?.quyenSuDung?._id || staff?.quyenSuDung || "",
-    DienThoai: staff?.DienThoai || "",
-    DiaChi: staff?.DiaChi || "",
-    GioiThieu: staff?.GioiThieu || "",
-    Status: staff?.Status !== undefined ? staff.Status : 1,
+  const [form, setForm] = useState({
+    MSNV: "",
+    HoTenNV: "",
+    Email: "",
+    quyenSuDung: "",
+    DienThoai: "",
+    DiaChi: "",
+    GioiThieu: "",
+    Status: 1,
   });
 
-  console.log("🔵 Form state initialized:", form);
+  const [errors, setErrors] = useState({});
 
-  const [errors, setErrors] = React.useState({});
-
-  // 📌 Fetch Quyền sử dụng
-  React.useEffect(() => {
-    const fetchQuyens = async () => {
-      try {
-        setLoadingQuyens(true);
-        const response = await api.get("/quyen-su-dung");
-        setQuyens(response.data.data || []);
-      } catch (error) {
-        console.error("Lỗi lấy quyền sử dụng:", error);
-      } finally {
-        setLoadingQuyens(false);
-      }
-    };
-
-    if (open) {
-      fetchQuyens();
-    }
-  }, [open]);
-
-  // 📌 Update form khi staff object thay đổi
-  React.useEffect(() => {
+  /* LOAD STAFF */
+  useEffect(() => {
     if (staff) {
-      console.log("🔄 Updating form from staff object:", staff);
       setForm({
         MSNV: staff.MSNV || "",
         HoTenNV: staff.HoTenNV || "",
@@ -295,65 +256,37 @@ function StaffEditModal({ staffId, onClose }) {
     }
   }, [staff]);
 
-  const validateForm = () => {
-    const newErrors = {};
+  /* FETCH ROLES */
+  useEffect(() => {
+    const fetchQuyens = async () => {
+      try {
+        setLoadingQuyens(true);
+        const res = await api.get("/quyen-su-dung");
+        setQuyens(res.data.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingQuyens(false);
+      }
+    };
 
-    if (!form.HoTenNV || !form.HoTenNV.trim()) {
-      newErrors.HoTenNV = "Tên nhân viên là bắt buộc";
-    }
+    if (open) fetchQuyens();
+  }, [open]);
 
-    if (!form.Email || !form.Email.trim()) {
-      newErrors.Email = "Email là bắt buộc";
-    } else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(form.Email)) {
-      newErrors.Email = "Email không hợp lệ";
-    }
-
-    if (!form.quyenSuDung) {
-      newErrors.quyenSuDung = "Quyền sử dụng là bắt buộc";
-    }
-
-    console.log("🔍 Validation result:", newErrors);
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    if (errors[key]) {
-      setErrors((prev) => ({ ...prev, [key]: "" }));
-    }
-  };
+  const handleChange = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   const handleSubmit = async () => {
-    console.log("🔵 Form data:", form);
-
-    if (!validateForm()) {
-      console.log("❌ Validation failed:", errors);
-      return;
-    }
-
     try {
       setLoading(true);
-      console.log("📤 Gửi update request:", { id: staffId, data: form });
 
-      const result = await dispatch(
-        updateStaff({ id: staffId, data: form })
-      ).unwrap();
-      console.log("✅ Cập nhật thành công:", result);
+      await dispatch(updateStaff({ id: staffId, data: form })).unwrap();
 
-      // Refetch dữ liệu sau khi update thành công
       await dispatch(fetchStaff());
-      console.log("✅ Refetch dữ liệu thành công");
 
       setOpen(false);
       onClose();
     } catch (err) {
-      console.error("❌ Lỗi cập nhật:", err);
-      const errorMsg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Lỗi cập nhật nhân viên";
-      setErrors({ submit: errorMsg });
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -367,183 +300,27 @@ function StaffEditModal({ staffId, onClose }) {
         setOpen(false);
         onClose();
       }}
-      sx={{
-        zIndex: (theme) => theme.zIndex.drawer + 1,
-        "& .MuiDrawer-paper": {
-          width: 384,
-          top: "66px",
-          height: "calc(100% - 66px)",
-        },
-      }}
     >
-      <div className="w-96 flex flex-col h-full">
-        {/* HEADER */}
-        <div className="bg-[#0091ea] px-4 py-3 text-white flex items-center gap-3 shrink-0">
-          <IconButton
-            size="small"
-            onClick={() => {
-              setOpen(false);
-              onClose();
-            }}
-            className="text-white hover:bg-blue-600"
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" className="font-medium text-[16px]">
-            Chỉnh Sửa Nhân Viên
-          </Typography>
-        </div>
+      <Box p={2} width={350}>
+        <Typography variant="h6">Chỉnh sửa nhân viên</Typography>
 
-        {/* CONTENT */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <div className="space-y-4">
-            {/* ❌ ERROR MESSAGE */}
-            {errors.submit && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
-                {errors.submit}
-              </div>
-            )}
+        {/* form simplified */}
+        <TextField
+          fullWidth
+          label="Tên"
+          value={form.HoTenNV}
+          onChange={(e) => handleChange("HoTenNV", e.target.value)}
+        />
 
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="text-sm font-medium">Mã nhân viên</label>
-                <input
-                  type="text"
-                  placeholder="Mã nhân viên (Code)"
-                  value={form.MSNV}
-                  onChange={(e) => handleChange("MSNV", e.target.value)}
-                  className="border rounded px-3 py-2 w-full text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Tên nhân viên *</label>
-                <input
-                  type="text"
-                  placeholder="Tên nhân viên"
-                  value={form.HoTenNV}
-                  onChange={(e) => handleChange("HoTenNV", e.target.value)}
-                  className={`border rounded px-3 py-2 w-full text-sm ${
-                    errors.HoTenNV ? "border-red-500" : ""
-                  }`}
-                />
-                {errors.HoTenNV && (
-                  <span className="text-red-500 text-xs">{errors.HoTenNV}</span>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Email *</label>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={form.Email}
-                  onChange={(e) => handleChange("Email", e.target.value)}
-                  className={`border rounded px-3 py-2 w-full text-sm ${
-                    errors.Email ? "border-red-500" : ""
-                  }`}
-                />
-                {errors.Email && (
-                  <span className="text-red-500 text-xs">{errors.Email}</span>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Điện thoại</label>
-                <input
-                  type="text"
-                  placeholder="Số điện thoại"
-                  value={form.DienThoai}
-                  onChange={(e) => handleChange("DienThoai", e.target.value)}
-                  className="border rounded px-3 py-2 w-full text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Địa chỉ</label>
-                <input
-                  type="text"
-                  placeholder="Địa chỉ"
-                  value={form.DiaChi}
-                  onChange={(e) => handleChange("DiaChi", e.target.value)}
-                  className="border rounded px-3 py-2 w-full text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Giới thiệu</label>
-                <textarea
-                  placeholder="Giới thiệu bản thân"
-                  value={form.GioiThieu}
-                  onChange={(e) => handleChange("GioiThieu", e.target.value)}
-                  className="border rounded px-3 py-2 w-full text-sm"
-                  rows="3"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Quyền sử dụng</label>
-                <select
-                  value={form.quyenSuDung}
-                  onChange={(e) => handleChange("quyenSuDung", e.target.value)}
-                  className={`border rounded px-3 py-2 w-full text-sm ${
-                    errors.quyenSuDung ? "border-red-500" : ""
-                  }`}
-                  disabled={loadingQuyens}
-                >
-                  <option value="">-- Chọn quyền sử dụng --</option>
-                  {quyens.map((quyen) => (
-                    <option key={quyen._id} value={quyen._id}>
-                      {quyen.ten}
-                    </option>
-                  ))}
-                </select>
-                {errors.quyenSuDung && (
-                  <span className="text-red-500 text-xs">
-                    {errors.quyenSuDung}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Trạng thái</label>
-                <select
-                  value={form.Status}
-                  onChange={(e) =>
-                    handleChange("Status", parseInt(e.target.value))
-                  }
-                  className="border rounded px-3 py-2 w-full text-sm"
-                >
-                  <option value="1">Hoạt động</option>
-                  <option value="0">Bị khoá</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* FOOTER - ACTION BUTTONS */}
-        <div className="border-t px-4 py-3 flex gap-2 shrink-0 bg-gray-50">
-          <Button
-            variant="outlined"
-            fullWidth
-            onClick={() => {
-              setOpen(false);
-              onClose();
-            }}
-          >
-            Hủy
-          </Button>
-          <Button
-            variant="contained"
-            fullWidth
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={20} /> : "Lưu"}
-          </Button>
-        </div>
-      </div>
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={loading}
+        >
+          Lưu
+        </Button>
+      </Box>
     </Drawer>
   );
 }

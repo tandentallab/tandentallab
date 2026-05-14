@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     Box, Paper, Typography, Button, CircularProgress,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -119,10 +119,11 @@ async function exportToExcel(data, thang, nam) {
         const dataRow = ws.addRow([
             row.stt,
             row.tenNhaKhoa,
-            row.noDauKy || null,
-            row.phatSinh || null,
-            row.thanhToan || null,
-            row.conNo || null,
+            // FIX: Dùng ?? 0 để giữ số 0 thay vì biến thành null
+            row.noDauKy ?? 0,
+            row.phatSinh ?? 0,
+            row.thanhToan ?? 0,
+            row.conNo ?? 0,
             '', '', '', '',
         ]);
 
@@ -171,6 +172,11 @@ export default function BaoCaoDoanhThuPage() {
             setLoading(false);
         }
     }, [thang, nam]);
+
+    // FIX: Tự động fetch data lần đầu tiên khi vào trang
+    useEffect(() => {
+        handleSearch();
+    }, [handleSearch]);
 
     const handleExport = () => {
         if (data) exportToExcel(data, thang, nam);

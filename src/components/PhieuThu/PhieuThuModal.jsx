@@ -35,6 +35,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
     const [search, setSearch] = useState("");
     const [showDropdown, setShowDropdown] = useState(false);
     const [selectedHDs, setSelectedHDs] = useState({});
+    const [soTienThuInput, setSoTienThuInput] = useState("");
     const [ngayThu, setNgayThu] = useState(toLocalDatetimeInput(new Date()));
     const [phuongThuc, setPhuongThuc] = useState("Tiền mặt");
     const [noiDung, setNoiDung] = useState("");
@@ -48,6 +49,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
         if (selectedNhaKhoa) {
             dispatch(fetchHoaDonChuaThanhToan(selectedNhaKhoa));
             setSelectedHDs({});
+            setSoTienThuInput("");
         }
     }, [selectedNhaKhoa, dispatch]);
 
@@ -75,35 +77,66 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
         setSelectedNhaKhoa("");
         setSearch("");
         setSelectedHDs({});
+        setSoTienThuInput("");
     };
 
     const handleToggleHD = (hdId) => {
-        setSelectedHDs((prev) => {
-            if (prev[hdId]) { const n = { ...prev }; delete n[hdId]; return n; }
+        let next;
+        if (selectedHDs[hdId]) { next = { ...selectedHDs }; delete next[hdId]; }
+        else {
             const hd = hoaDonChuaThanhToan.find((h) => h._id === hdId);
-            return { ...prev, [hdId]: { soTienThanhToan: hd?.conLai || 0 } };
-        });
+            next = { ...selectedHDs, [hdId]: { soTienThanhToan: hd?.conLai || 0 } };
+        }
+        const total = Object.values(next).reduce((s, v) => s + (v.soTienThanhToan || 0), 0);
+        setSelectedHDs(next);
+        setSoTienThuInput(total > 0 ? String(total) : "");
     };
 
     const handleAmountChange = (hdId, value, maxVal) => {
         const num = Number(value) || 0;
+        let next;
         if (num > 0) {
-            setSelectedHDs((prev) => ({ ...prev, [hdId]: { soTienThanhToan: Math.min(num, maxVal) } }));
+            next = { ...selectedHDs, [hdId]: { soTienThanhToan: Math.min(num, maxVal) } };
         } else {
-            setSelectedHDs((prev) => { const n = { ...prev }; delete n[hdId]; return n; });
+            next = { ...selectedHDs }; delete next[hdId];
         }
+        const total = Object.values(next).reduce((s, v) => s + (v.soTienThanhToan || 0), 0);
+        setSelectedHDs(next);
+        setSoTienThuInput(total > 0 ? String(total) : "");
     };
 
     const allChecked = hoaDonChuaThanhToan.length > 0 && hoaDonChuaThanhToan.every((hd) => !!selectedHDs[hd._id]);
     const someChecked = hoaDonChuaThanhToan.some((hd) => !!selectedHDs[hd._id]) && !allChecked;
 
     const handleToggleAll = () => {
-        if (allChecked) { setSelectedHDs({}); }
-        else {
+        if (allChecked) {
+            setSelectedHDs({});
+            setSoTienThuInput("");
+        } else {
             const next = {};
             hoaDonChuaThanhToan.forEach((hd) => { next[hd._id] = { soTienThanhToan: hd.conLai || 0 }; });
+            const total = Object.values(next).reduce((s, v) => s + (v.soTienThanhToan || 0), 0);
             setSelectedHDs(next);
+            setSoTienThuInput(total > 0 ? String(total) : "");
         }
+    };
+
+    const handleSoTienThuInput = (raw) => {
+        const digits = raw.replace(/[^\d]/g, "");
+        const total = Number(digits) || 0;
+        setSoTienThuInput(digits);
+        // Auto-distribute oldest invoice first
+        const sorted = [...hoaDonChuaThanhToan].sort(
+            (a, b) => new Date(a.ngayXuatHoaDon || 0) - new Date(b.ngayXuatHoaDon || 0)
+        );
+        let remaining = total;
+        const next = {};
+        for (const hd of sorted) {
+            if (remaining <= 0) break;
+            const pay = Math.min(remaining, hd.conLai || 0);
+            if (pay > 0) { next[hd._id] = { soTienThanhToan: pay }; remaining -= pay; }
+        }
+        setSelectedHDs(next);
     };
 
     const tongThuTien = useMemo(
@@ -125,16 +158,15 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
             if (!soTienThanhToan || soTienThanhToan <= 0) { setSubmitError("Số tiền thanh toán phải lớn hơn 0."); return; }
         }
         try {
-            for (const [hdId, { soTienThanhToan }] of entries) {
-                await dispatch(createPhieuThu({
+            await dispatch(createPhieuThu({
+                danhSachHoaDon: entries.map(([hdId, { soTienThanhToan }]) => ({
                     hoaDon: hdId,
-                    ngayThu: new Date(ngayThu).toISOString(),
-                    soTienThu: soTienThanhToan,
-                    noiDung,
-                    phuongThucThanhToan: phuongThuc,
-                    nguoiTao: currentUser?._id,
-                })).unwrap();
-            }
+                    soTienThanhToan,
+                })),
+                ngayThu: new Date(ngayThu).toISOString(),
+                noiDung,
+                phuongThucThanhToan: phuongThuc,
+            })).unwrap();
             setSubmitSuccess(true);
             if (onSuccess) onSuccess();
             setTimeout(() => { setSubmitSuccess(false); handleClose(); }, 800);
@@ -145,6 +177,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
 
     const handleClose = () => {
         setSelectedNhaKhoa(""); setSearch(""); setSelectedHDs({});
+        setSoTienThuInput("");
         setNgayThu(toLocalDatetimeInput(new Date())); setPhuongThuc("Tiền mặt");
         setNoiDung(""); setSubmitError(""); setSubmitSuccess(false);
         onClose();
@@ -233,7 +266,17 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
                         <div className="space-y-4">
                             <div>
                                 <p className="text-xs text-gray-400 mb-0.5">Số tiền thu</p>
-                                <p className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{fmt(tongThuTien)}</p>
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={soTienThuInput}
+                                    onChange={(e) => handleSoTienThuInput(e.target.value)}
+                                    placeholder="Nhập để tự phân bổ..."
+                                    className="w-full text-2xl font-bold text-gray-900 border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent pb-1 outline-none placeholder:text-gray-300 placeholder:text-base placeholder:font-normal"
+                                />
+                                {tongThuTien > 0 && (
+                                    <p className="text-xs text-[#29b6f6] mt-0.5">{fmt(tongThuTien)} ₫</p>
+                                )}
                             </div>
                             <div>
                                 <p className="text-xs text-gray-400 mb-0.5">Ngày thu</p>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { api } from "../../config/api";
 import PhieuBaoHanhPreview from "./PhieuBaoHanhPreview";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 const PhieuBaoHanhList = ({ phieuBaoHanhList, onDelete, donHangId }) => {
   const [expandedId, setExpandedId] = useState(null);
@@ -10,8 +10,8 @@ const PhieuBaoHanhList = ({ phieuBaoHanhList, onDelete, donHangId }) => {
   let warrantyArray = Array.isArray(phieuBaoHanhList)
     ? phieuBaoHanhList
     : phieuBaoHanhList
-    ? [phieuBaoHanhList]
-    : [];
+      ? [phieuBaoHanhList]
+      : [];
 
   // Filter only valid warranties (có danhSachBaoHanh array)
   warrantyArray = warrantyArray.filter(

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import {api} from "../../config/api";
+import { api } from "../../config/api";
 
 /* ================= LOGIN ================= */
 
@@ -11,7 +11,7 @@ export const login = createAsyncThunk(
 
       // Lưu token
       localStorage.setItem("token", res.data.token);
-      
+
       // Lưu user info (backup)
       localStorage.setItem("currentUser", JSON.stringify(res.data.staff));
 
@@ -31,7 +31,7 @@ export const restoreAuth = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
-      
+
       // Nếu không có token → không cần restore
       if (!token) {
         return null;
@@ -75,7 +75,12 @@ const authSlice = createSlice({
     isAuthenticated: false,
   },
 
-  reducers: {},
+  reducers: {
+    setUser(state, action) {
+      state.user = action.payload;
+      localStorage.setItem("currentUser", JSON.stringify(action.payload));
+    },
+  },
 
   extraReducers: (builder) => {
     builder
@@ -132,4 +137,5 @@ const authSlice = createSlice({
   },
 });
 
+export const { setUser } = authSlice.actions;
 export default authSlice.reducer;

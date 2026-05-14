@@ -53,7 +53,6 @@ const Dashboard = () => {
         className="bg-gray-100 min-h-screen w-full"
         sx={{
           mt: "66px",
-          ml: collapsed ? "16px" : "60px",
           transition: "all 0.3s",
         }}
       >

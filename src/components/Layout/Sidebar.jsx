@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Toolbar,
   Drawer,
@@ -38,19 +38,22 @@ import BadgeIcon from "@mui/icons-material/Badge";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { getAuthSelector } from "../../redux/selector";
-import { hasRouteAccess } from "../../config/permissions";
 
 const Sidebar = ({ collapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useSelector(getAuthSelector);
 
   const theme = useTheme();
 
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const auth = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    console.log("Quyền sử dụng của bạn là ", auth?.user?.quyenSuDung?.ten);
+  }, []);
 
   const drawerWidth = collapsed ? 72 : 250;
 
@@ -141,30 +144,14 @@ const Sidebar = ({ collapsed }) => {
     },
   ];
 
-  const filteredMainMenu = menu.filter((item) =>
-    hasRouteAccess(user, item.router)
-  );
-  const filteredCustomerMenu = customerMenu.filter((item) =>
-    hasRouteAccess(user, item.router)
-  );
-  const filteredOtherMenu = otherMenu.filter((item) =>
-    hasRouteAccess(user, item.router)
-  );
-  const filteredSettingMenu = settingMenu.filter((item) =>
-    hasRouteAccess(user, item.router)
-  );
-
-  const hasCustomerGroup = filteredCustomerMenu.length > 0;
-  const hasSettingGroup = filteredSettingMenu.length > 0;
-
   /* ===== ACTIVE ===== */
   const isActive = (path) => location.pathname === path;
 
-  const isCustomerActive = filteredCustomerMenu.some((item) =>
+  const isCustomerActive = customerMenu.some((item) =>
     location.pathname.includes(item.router)
   );
 
-  const isSettingActive = filteredSettingMenu.some((item) =>
+  const isSettingActive = settingMenu.some((item) =>
     location.pathname.includes(item.router)
   );
 
@@ -258,116 +245,104 @@ const Sidebar = ({ collapsed }) => {
 
       <List>
         {/* ===== MENU CHÍNH ===== */}
-        {filteredMainMenu.map((item) => renderMenuItem(item))}
+        {menu.map((item) => renderMenuItem(item))}
 
         {/* ===== CUSTOMER MENU ===== */}
-        {hasCustomerGroup && (
-          <>
-            <Tooltip
-              title={collapsed && !isMobile ? "Quản lý khách hàng" : ""}
-              placement="right"
+        <Tooltip
+          title={collapsed && !isMobile ? "Quản lý khách hàng" : ""}
+          placement="right"
+        >
+          <ListItemButton
+            onClick={() => setOpenCustomer(!openCustomer)}
+            sx={{
+              justifyContent: collapsed && !isMobile ? "center" : "flex-start",
+
+              px: collapsed && !isMobile ? 1 : 2,
+
+              borderRadius: 2,
+              mx: 1,
+              mb: 0.5,
+            }}
+            className={`transition ${
+              isCustomerActive
+                ? "bg-blue-50 text-blue-600"
+                : "hover:bg-gray-100"
+            }`}
+          >
+            <ListItemIcon
+              sx={{
+                minWidth: 0,
+                mr: collapsed && !isMobile ? 0 : 2,
+                justifyContent: "center",
+              }}
             >
-              <ListItemButton
-                onClick={() => setOpenCustomer(!openCustomer)}
-                sx={{
-                  justifyContent:
-                    collapsed && !isMobile ? "center" : "flex-start",
+              <People />
+            </ListItemIcon>
 
-                  px: collapsed && !isMobile ? 1 : 2,
+            {(!collapsed || isMobile) && (
+              <>
+                <ListItemText primary="Quản lý khách hàng" />
 
-                  borderRadius: 2,
-                  mx: 1,
-                  mb: 0.5,
-                }}
-                className={`transition ${
-                  isCustomerActive
-                    ? "bg-blue-50 text-blue-600"
-                    : "hover:bg-gray-100"
-                }`}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 0,
-                    mr: collapsed && !isMobile ? 0 : 2,
-                    justifyContent: "center",
-                  }}
-                >
-                  <People />
-                </ListItemIcon>
+                {openCustomer ? <ExpandLess /> : <ExpandMore />}
+              </>
+            )}
+          </ListItemButton>
+        </Tooltip>
 
-                {(!collapsed || isMobile) && (
-                  <>
-                    <ListItemText primary="Quản lý khách hàng" />
-
-                    {openCustomer ? <ExpandLess /> : <ExpandMore />}
-                  </>
-                )}
-              </ListItemButton>
-            </Tooltip>
-
-            <Collapse in={openCustomer} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding>
-                {filteredCustomerMenu.map((item) => renderMenuItem(item, true))}
-              </List>
-            </Collapse>
-          </>
-        )}
+        <Collapse in={openCustomer} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            {customerMenu.map((item) => renderMenuItem(item, true))}
+          </List>
+        </Collapse>
 
         {/* ===== MENU KHÁC ===== */}
-        {filteredOtherMenu.map((item) => renderMenuItem(item))}
+        {otherMenu.map((item) => renderMenuItem(item))}
 
         {/* ===== SETTING ===== */}
-        {hasSettingGroup && (
-          <>
-            <Tooltip
-              title={collapsed && !isMobile ? "Thiết lập" : ""}
-              placement="right"
+        <Tooltip
+          title={collapsed && !isMobile ? "Thiết lập" : ""}
+          placement="right"
+        >
+          <ListItemButton
+            onClick={() => setOpenSetting(!openSetting)}
+            sx={{
+              justifyContent: collapsed && !isMobile ? "center" : "flex-start",
+
+              px: collapsed && !isMobile ? 1 : 2,
+
+              borderRadius: 2,
+              mx: 1,
+              mb: 0.5,
+            }}
+            className={`transition ${
+              isSettingActive ? "bg-blue-50 text-blue-600" : "hover:bg-gray-100"
+            }`}
+          >
+            <ListItemIcon
+              sx={{
+                minWidth: 0,
+                mr: collapsed && !isMobile ? 0 : 2,
+                justifyContent: "center",
+              }}
             >
-              <ListItemButton
-                onClick={() => setOpenSetting(!openSetting)}
-                sx={{
-                  justifyContent:
-                    collapsed && !isMobile ? "center" : "flex-start",
+              <Settings />
+            </ListItemIcon>
 
-                  px: collapsed && !isMobile ? 1 : 2,
+            {(!collapsed || isMobile) && (
+              <>
+                <ListItemText primary="Thiết lập" />
 
-                  borderRadius: 2,
-                  mx: 1,
-                  mb: 0.5,
-                }}
-                className={`transition ${
-                  isSettingActive
-                    ? "bg-blue-50 text-blue-600"
-                    : "hover:bg-gray-100"
-                }`}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 0,
-                    mr: collapsed && !isMobile ? 0 : 2,
-                    justifyContent: "center",
-                  }}
-                >
-                  <Settings />
-                </ListItemIcon>
+                {openSetting ? <ExpandLess /> : <ExpandMore />}
+              </>
+            )}
+          </ListItemButton>
+        </Tooltip>
 
-                {(!collapsed || isMobile) && (
-                  <>
-                    <ListItemText primary="Thiết lập" />
-
-                    {openSetting ? <ExpandLess /> : <ExpandMore />}
-                  </>
-                )}
-              </ListItemButton>
-            </Tooltip>
-
-            <Collapse in={openSetting} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding>
-                {filteredSettingMenu.map((item) => renderMenuItem(item, true))}
-              </List>
-            </Collapse>
-          </>
-        )}
+        <Collapse in={openSetting} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            {settingMenu.map((item) => renderMenuItem(item, true))}
+          </List>
+        </Collapse>
       </List>
     </>
   );

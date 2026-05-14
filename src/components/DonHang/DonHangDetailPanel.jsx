@@ -399,7 +399,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
               </button>
 
               {/* Print warranty card button */}
-              {warranty && (
+              {warranty && ((warranty.danhSachSanPham && warranty.danhSachSanPham.length > 0) || warranty.isValid) && (
                 <button
                   onClick={handleOpenPrintWarranty}
                   className="w-full py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 mt-1 bg-purple-500 hover:bg-purple-600 text-white shadow-sm"

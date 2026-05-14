@@ -9,6 +9,7 @@ import SanPhamModal from "../SanPham/SanPhamModal";
 import ChonDonHangCuModal from "./ChonDonHangCuModal";
 import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 import PhieuBaoHanhList from "./PhieuBaoHanhList";
+import WarrantyCardPrint from "./WarrantyCardPrint";
 import toast from "react-hot-toast";
 
 const SearchInput = ({
@@ -149,6 +150,8 @@ const DonHangForm = () => {
   // State cho Modal Phiếu Bảo Hành
   const [isPhieuBaoHanhModalOpen, setIsPhieuBaoHanhModalOpen] = useState(false);
   const [phieuBaoHanhList, setPhieuBaoHanhList] = useState([]);
+  const [openPrintWarranty, setOpenPrintWarranty] = useState(false);
+  const [selectedWarranty, setSelectedWarranty] = useState(null);
 
   const [formData, setFormData] = useState({
     nhaKhoa: "",
@@ -156,7 +159,12 @@ const DonHangForm = () => {
     benhNhan: "",
     ngayNhan: new Date().toISOString().slice(0, 16),
     yeuCauHoanThanh: "",
-    henGiao: "",
+    henGiao: (() => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(14, 0, 0, 0);
+      return tomorrow.toISOString().slice(0, 16);
+    })(),
     danhSachSanPham: [
       {
         loaiDon: "Mới",
@@ -267,14 +275,19 @@ const DonHangForm = () => {
 
   // Fetch phiếu bảo hành
   useEffect(() => {
-    if (isEditMode) {
+    if (isEditMode && id) {
       api
         .get(`/phieu-bao-hanh/don-hang/${id}`)
         .then((res) => {
-          setPhieuBaoHanhList(res.data?.data || res.data || []);
+          const warranty = res.data?.data || res.data;
+          // Convert single warranty to array
+          const warrantyArray = warranty ? (Array.isArray(warranty) ? warranty : [warranty]) : [];
+          console.log("Warranty fetched:", warrantyArray, "Length:", warrantyArray.length);
+          setPhieuBaoHanhList(warrantyArray);
         })
         .catch((err) => {
           console.error("Lỗi fetch phiếu bảo hành:", err);
+          setPhieuBaoHanhList([]);
         });
     }
   }, [id, isEditMode]);
@@ -378,9 +391,22 @@ const DonHangForm = () => {
       toast.error("Vui lòng nhập đầy đủ Nha Khoa, Bác Sĩ, Bệnh Nhân!");
       return;
     }
+    if (!formData.henGiao) {
+      toast.error("Vui lòng nhập Hẹn giao!");
+      return;
+    }
+
+    // Convert date strings to ISO format for backend
+    const dataToSend = {
+      ...formData,
+      ngayNhan: formData.ngayNhan ? new Date(formData.ngayNhan).toISOString() : null,
+      yeuCauHoanThanh: formData.yeuCauHoanThanh ? new Date(formData.yeuCauHoanThanh).toISOString() : null,
+      henGiao: formData.henGiao ? new Date(formData.henGiao).toISOString() : null,
+    };
+
     const action = isEditMode
-      ? updateDonHang({ id, data: formData })
-      : createDonHang(formData);
+      ? updateDonHang({ id, data: dataToSend })
+      : createDonHang(dataToSend);
     const promise = dispatch(action).unwrap();
     toast.promise(promise, {
       loading: isEditMode ? "Đang lưu thay đổi..." : "Đang tạo đơn hàng...",
@@ -403,7 +429,10 @@ const DonHangForm = () => {
       )
       .join("; ");
   };
-
+    // Filter only valid warranties for print button
+  const validWarranties = (phieuBaoHanhList || []).filter(
+    (pbh) => pbh && pbh.danhSachBaoHanh && Array.isArray(pbh.danhSachBaoHanh) && pbh.danhSachBaoHanh.length > 0
+  );
   return (
     <div className="fixed inset-0 z-[1299] bg-[#f0f2f5] flex flex-col w-full h-full overflow-hidden">
       {/* Top bar */}
@@ -669,10 +698,13 @@ const DonHangForm = () => {
               api
                 .get(`/phieu-bao-hanh/don-hang/${id}`)
                 .then((res) => {
-                  setPhieuBaoHanhList(res.data?.data || res.data || []);
+                  const warranty = res.data?.data || res.data;
+                  const warrantyArray = warranty ? (Array.isArray(warranty) ? warranty : [warranty]) : [];
+                  setPhieuBaoHanhList(warrantyArray);
                 })
                 .catch((err) => {
                   console.error("Lỗi fetch phiếu bảo hành:", err);
+                  setPhieuBaoHanhList([]);
                 });
             }
           }}
@@ -732,6 +764,31 @@ const DonHangForm = () => {
               + Thêm thẻ bảo hành
             </button>
           )}
+          {isEditMode && validWarranties.length > 0 && (
+            <button
+              onClick={() => {
+                setSelectedWarranty(validWarranties[0]);
+                setOpenPrintWarranty(true);
+              }}
+              className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded text-sm flex items-center gap-1"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.8}
+                stroke="currentColor"
+                className="w-4 h-4"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4"
+                />
+              </svg>
+              In thẻ bảo hành
+            </button>
+          )}
         </div>
         <button
           onClick={handleSave}
@@ -784,7 +841,9 @@ const DonHangForm = () => {
             api
               .get(`/phieu-bao-hanh/don-hang/${id}`)
               .then((res) => {
-                setPhieuBaoHanhList(res.data?.data || res.data || []);
+                const warranty = res.data?.data || res.data;
+                const warrantyArray = warranty ? (Array.isArray(warranty) ? warranty : [warranty]) : [];
+                setPhieuBaoHanhList(warrantyArray);
               })
               .catch((err) => {
                 console.error("Lỗi fetch phiếu bảo hành:", err);
@@ -792,7 +851,14 @@ const DonHangForm = () => {
           }
         }}
       />
-    </div>
+      {selectedWarranty && (
+        <WarrantyCardPrint
+          open={openPrintWarranty}
+          onClose={() => setOpenPrintWarranty(false)}
+          warranty={selectedWarranty}
+          donHang={formData}
+        />
+      )}    </div>
   );
 };
 
@@ -807,6 +873,11 @@ const RightSidePanel = ({
 }) => {
   const [activeTab, setActiveTab] = useState("ghichu");
 
+  // Filter only valid warranties
+  const validWarranties = (phieuBaoHanhList || []).filter(
+    (pbh) => pbh && pbh.danhSachBaoHanh && Array.isArray(pbh.danhSachBaoHanh) && pbh.danhSachBaoHanh.length > 0
+  );
+
   return (
     <div className="w-72 border-l bg-white flex flex-col shrink-0 overflow-hidden">
       {/* Tabs */}
@@ -814,11 +885,11 @@ const RightSidePanel = ({
         {[
           { key: "sanxuat", label: "Sản xuất" },
           { key: "ghichu", label: "Ghi chú" },
-          {
+          ...(validWarranties.length > 0 ? [{
             key: "baohanhc",
             label: "Bảo hành",
-            badge: phieuBaoHanhList.length,
-          },
+            badge: validWarranties.length,
+          }] : []),
         ].map((tab) => (
           <button
             key={tab.key}
@@ -901,7 +972,7 @@ const RightSidePanel = ({
         {activeTab === "baohanhc" && (
           <div className="flex flex-col gap-2">
             <PhieuBaoHanhList
-              phieuBaoHanhList={phieuBaoHanhList}
+              phieuBaoHanhList={validWarranties}
               donHangId={donHangId}
               onDelete={onRefreshPhieuBaoHanh}
             />

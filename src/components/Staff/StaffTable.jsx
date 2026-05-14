@@ -30,6 +30,7 @@ import {
   deleteStaff,
   updateStaff,
 } from "../../redux/slices/staffSlice";
+import { APP_ROLES, resolveAppRoleFromUser } from "../../config/permissions";
 
 export default function StaffTable() {
   const dispatch = useDispatch();
@@ -38,7 +39,7 @@ export default function StaffTable() {
   const { user } = useSelector((state) => state.auth);
 
   // Kiểm tra xem user là Admin không
-  const isAdmin = user?.ChucVu === "Sở hữu";
+  const isAdmin = resolveAppRoleFromUser(user) === APP_ROLES.ADMIN;
 
   const [openDelete, setOpenDelete] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -87,20 +88,6 @@ export default function StaffTable() {
     return status === 1 ? "success" : "error";
   };
 
-  /* ================= GET ROLE COLOR ================= */
-  const getRoleColor = (role) => {
-    switch (role) {
-      case "Sở hữu":
-        return "error";
-      case "Quản lý":
-        return "warning";
-      case "Thành viên":
-        return "info";
-      default:
-        return "default";
-    }
-  };
-
   return (
     <>
       <TableContainer component={Paper} className="rounded-2xl shadow-lg">
@@ -119,9 +106,6 @@ export default function StaffTable() {
               </TableCell>
               <TableCell>
                 <b>Điện thoại</b>
-              </TableCell>
-              <TableCell>
-                <b>Vai trò</b>
               </TableCell>
               <TableCell>
                 <b>Quyền sử dụng</b>
@@ -145,7 +129,7 @@ export default function StaffTable() {
             {/* 🔥 LOADING */}
             {loading && (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={isAdmin ? 8 : 7} align="center">
                   <CircularProgress />
                 </TableCell>
               </TableRow>
@@ -154,7 +138,7 @@ export default function StaffTable() {
             {/* ❌ ERROR */}
             {error && (
               <TableRow>
-                <TableCell colSpan={9} align="center" className="text-red-500">
+                <TableCell colSpan={isAdmin ? 8 : 7} align="center" className="text-red-500">
                   {error}
                 </TableCell>
               </TableRow>
@@ -163,7 +147,7 @@ export default function StaffTable() {
             {/* 📭 EMPTY */}
             {!loading && data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} align="center">
+                <TableCell colSpan={isAdmin ? 8 : 7} align="center">
                   Không có dữ liệu
                 </TableCell>
               </TableRow>
@@ -184,14 +168,6 @@ export default function StaffTable() {
                   </TableCell>
                   <TableCell>{item.Email}</TableCell>
                   <TableCell>{item.DienThoai || "-"}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={item.ChucVu}
-                      color={getRoleColor(item.ChucVu)}
-                      variant="outlined"
-                      size="small"
-                    />
-                  </TableCell>
                   <TableCell>{item.quyenSuDung?.ten || "-"}</TableCell>
                   <TableCell>
                     <Chip
@@ -270,7 +246,6 @@ function StaffEditModal({ staffId, onClose }) {
     MSNV: staff?.MSNV || "",
     HoTenNV: staff?.HoTenNV || "",
     Email: staff?.Email || "",
-    ChucVu: staff?.ChucVu || "Thành viên",
     quyenSuDung: staff?.quyenSuDung?._id || staff?.quyenSuDung || "",
     DienThoai: staff?.DienThoai || "",
     DiaChi: staff?.DiaChi || "",
@@ -309,7 +284,6 @@ function StaffEditModal({ staffId, onClose }) {
         MSNV: staff.MSNV || "",
         HoTenNV: staff.HoTenNV || "",
         Email: staff.Email || "",
-        ChucVu: staff.ChucVu || "Thành viên",
         quyenSuDung: staff.quyenSuDung?._id || staff.quyenSuDung || "",
         DienThoai: staff.DienThoai || "",
         DiaChi: staff.DiaChi || "",
@@ -330,6 +304,10 @@ function StaffEditModal({ staffId, onClose }) {
       newErrors.Email = "Email là bắt buộc";
     } else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(form.Email)) {
       newErrors.Email = "Email không hợp lệ";
+    }
+
+    if (!form.quyenSuDung) {
+      newErrors.quyenSuDung = "Quyền sử dụng là bắt buộc";
     }
 
     console.log("🔍 Validation result:", newErrors);
@@ -502,24 +480,13 @@ function StaffEditModal({ staffId, onClose }) {
               </div>
 
               <div>
-                <label className="text-sm font-medium">Vai trò</label>
-                <select
-                  value={form.ChucVu}
-                  onChange={(e) => handleChange("ChucVu", e.target.value)}
-                  className="border rounded px-3 py-2 w-full text-sm"
-                >
-                  <option value="Sở hữu">Sở hữu (Admin)</option>
-                  <option value="Quản lý">Quản lý</option>
-                  <option value="Thành viên">Thành viên</option>
-                </select>
-              </div>
-
-              <div>
                 <label className="text-sm font-medium">Quyền sử dụng</label>
                 <select
                   value={form.quyenSuDung}
                   onChange={(e) => handleChange("quyenSuDung", e.target.value)}
-                  className="border rounded px-3 py-2 w-full text-sm"
+                  className={`border rounded px-3 py-2 w-full text-sm ${
+                    errors.quyenSuDung ? "border-red-500" : ""
+                  }`}
                   disabled={loadingQuyens}
                 >
                   <option value="">-- Chọn quyền sử dụng --</option>
@@ -529,6 +496,9 @@ function StaffEditModal({ staffId, onClose }) {
                     </option>
                   ))}
                 </select>
+                {errors.quyenSuDung && (
+                  <span className="text-red-500 text-xs">{errors.quyenSuDung}</span>
+                )}
               </div>
 
               <div>

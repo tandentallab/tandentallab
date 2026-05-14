@@ -271,21 +271,6 @@ const BangLuongPage = () => {
     }
   };
 
-  useEffect(() => {
-    setSalaryData([]);
-
-    dispatch(fetchNhanVien());
-
-    dispatch(
-      fetchBangLuong({
-        thang,
-        nam,
-      })
-    );
-  }, [dispatch, thang, nam]);
-
-  const handleUpdate = () => {};
-
   const handleExport = async () => {
     try {
       await exportBangLuongToExcel(salaryData, thang, nam);

@@ -373,6 +373,26 @@ const DonHangPage = () => {
     }
   };
 
+  const filteredDonHangs = useMemo(() => {
+    return donHangs.filter((dh) => {
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase().trim();
+        const ma = (dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8)}`).toLowerCase();
+        const nk = (dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen || "").toLowerCase();
+        const bs = (dh.bacSi?.hoVaTen || "").toLowerCase();
+        const bn = (dh.benhNhan?.hoVaTen || "").toLowerCase();
+        if (!ma.includes(term) && !nk.includes(term) && !bs.includes(term) && !bn.includes(term)) return false;
+      }
+      if (!isDateInRange(dh.ngayNhan, appliedNgayNhan)) return false;
+      if (!isDateInRange(dh.yeuCauHoanThanh, appliedYcHoanThanh)) return false;
+      if (!isDateInRange(dh.henGiao, appliedHenGiao)) return false;
+      if (appliedNhaKhoa && dh.nhaKhoa?._id !== appliedNhaKhoa._id) return false;
+      if (appliedBenhNhan && dh.benhNhan?._id !== appliedBenhNhan._id) return false;
+      if (appliedTrangThai.length > 0 && !appliedTrangThai.includes(dh.trangThai)) return false;
+      return true;
+    });
+  }, [donHangs, searchTerm, appliedNgayNhan, appliedYcHoanThanh, appliedHenGiao, appliedNhaKhoa, appliedBenhNhan, appliedTrangThai]);
+
   const selectedDonHang = donHangs.find((dh) => dh._id === selectedDonHangId) || null;
 
   const choXuLy = stats?.["Chờ xử lý"] || 0;

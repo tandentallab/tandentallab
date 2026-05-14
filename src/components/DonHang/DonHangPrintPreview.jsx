@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../config/api";
-import { QRCodeCanvas } from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 
 const DonHangPrintPreview = () => {
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ const DonHangPrintPreview = () => {
   };
 
   const maDonHang = donHang.maDonHang || `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`;
-
+  
   const bacSi = donHang.bacSi?.hoVaTen || "";
   const benhNhan = donHang.benhNhan?.hoVaTen || "";
   const nhaKhoa =
@@ -102,7 +102,7 @@ const DonHangPrintPreview = () => {
 
             <div className="col-span-2 flex items-center justify-center">
               <div className="w-20 h-20 border border-gray-800 flex items-center justify-center">
-                <QRCodeCanvas value={maDonHang} size={72} level="M" />
+                <QRCodeSVG value={maDonHang} size={72} level="M" />
               </div>
             </div>
 

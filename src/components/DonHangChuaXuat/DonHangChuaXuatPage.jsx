@@ -3,7 +3,7 @@ import DonHangChuaXuatTable from "./DonHangChuaXuatTable";
 import DonHangChuaXuatFilter from "./DonHangChuaXuatFilter";
 
 export default function DonHangChuaXuatPage() {
-  const [selectedClinic, setSelectedClinic] = useState("");
+  const [selectedClinic, setSelectedClinic] = useState("all");
   const [selectedOrders, setSelectedOrders] = useState([]);
 
   return (

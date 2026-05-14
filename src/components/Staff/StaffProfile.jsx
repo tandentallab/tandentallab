@@ -16,7 +16,7 @@ const StaffProfile = () => {
     MSNV: "admin5",
     HoTenNV: "Lâm Hoàng Quân",
     Email: "admin@gmail.com",
-    ChucVu: "Sở hữu",
+    quyenSuDung: "admin",
     Status: 1,
     Permissions: "",
     createdAt: "2026-04-27T12:09:42.431Z",
@@ -84,7 +84,7 @@ const StaffProfile = () => {
             <Typography className="text-gray-500">{staff.Email}</Typography>
 
             <div className="flex justify-center gap-2 mt-2">
-              <Chip label={staff.ChucVu} color="primary" />
+              <Chip label={`Quyền: ${staff.quyenSuDung || "-"}`} color="primary" />
               <Chip
                 label={staff.Status === 1 ? "Hoạt động" : "Ngưng"}
                 color="success"
@@ -104,9 +104,9 @@ const StaffProfile = () => {
             />
 
             <TextField
-              label="Chức vụ"
-              value={staff.ChucVu}
-              onChange={(e) => handleChange("ChucVu", e.target.value)}
+              label="Quyền sử dụng"
+              value={staff.quyenSuDung}
+              onChange={(e) => handleChange("quyenSuDung", e.target.value)}
               fullWidth
               size="small"
               disabled={!isEditing}

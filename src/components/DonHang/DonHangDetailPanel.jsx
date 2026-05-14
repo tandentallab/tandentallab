@@ -3,14 +3,18 @@ import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { deleteDonHang, updateDonHang, updateCongDoanTrangThai } from "../../redux/slices/donHangSlice";
-import toast from "react-hot-toast";
+import { toast } from "sonner"; 
+import { api } from "../../config/api";
 import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
+import WarrantyCardPrint from "./WarrantyCardPrint";
 
 const DonHangDetailPanel = ({ donHang, onClose }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("chitiet");
   const [isPhieuBaoHanhOpen, setIsPhieuBaoHanhOpen] = useState(false);
+  const [warranty, setWarranty] = useState(null);
+  const [openPrintWarranty, setOpenPrintWarranty] = useState(false);
   const [selectedProductIndex, setSelectedProductIndex] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null); // { spIndex, thuTu, top, right }
   const isOpen = !!donHang;
@@ -30,6 +34,22 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
   const maDonHang = donHang
     ? (donHang.maDonHang || `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`)
     : "";
+
+  // Fetch warranty when donHang changes
+  useEffect(() => {
+    if (donHang?._id) {
+      api
+        .get(`/api/phieu-bao-hanh/don-hang/${donHang._id}`)
+        .then((res) => {
+          console.log("Warranty Response:", res.data);
+          setWarranty(res.data.data || res.data);
+        })
+        .catch((err) => {
+          console.log("Warranty Fetch Error:", err.message);
+          setWarranty(null);
+        });
+    }
+  }, [donHang?._id]);
 
   const trangThaiColor = {
     "Chờ xử lý": "bg-yellow-200 text-yellow-900",
@@ -98,11 +118,13 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
     { key: "ghichu", label: "Ghi chú" },
   ];
 
-  const handleOpenPhieuBaoHanh = (productIndex) => {
-    setSelectedProductIndex(productIndex);
+  const handleOpenPhieuBaoHanh = () => {
     setIsPhieuBaoHanhOpen(true);
   };
 
+  const handleOpenPrintWarranty = () => {
+    setOpenPrintWarranty(true);
+  };
   const CONG_DOAN_TRANG_THAI_OPTIONS = ["Chưa sẵn sàng", "Chờ sản xuất"];
 
   const CONG_DOAN_TRANG_THAI_STYLE = {
@@ -299,13 +321,6 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
                           {sp.sanPham?.tenSanPham || "N/A"}
                         </span>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenPhieuBaoHanh(idx)}
-                            className="text-xs px-2 py-1 rounded border border-blue-300 text-blue-700 hover:bg-blue-100 transition"
-                          >
-                            Thêm phiếu BH
-                          </button>
                           <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
                             {sp.loaiDon}
                           </span>
@@ -363,6 +378,48 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {/* Mark complete button */}
+              <button
+                onClick={handleOpenPhieuBaoHanh}
+                className="w-full py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 mt-1 bg-blue-500 hover:bg-blue-600 text-white shadow-sm"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2.5}
+                  stroke="currentColor"
+                  className="w-4 h-4"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h10" />
+                </svg>
+                Tạo phiếu bảo hành
+              </button>
+
+              {/* Print warranty card button */}
+              {warranty && ((warranty.danhSachSanPham && warranty.danhSachSanPham.length > 0) || warranty.isValid) && (
+                <button
+                  onClick={handleOpenPrintWarranty}
+                  className="w-full py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 mt-1 bg-purple-500 hover:bg-purple-600 text-white shadow-sm"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2.5}
+                    stroke="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4"
+                    />
+                  </svg>
+                  In thẻ bảo hành
+                </button>
               )}
 
               {/* Mark complete button */}
@@ -521,18 +578,29 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
         </div>
       </div>
 
-      {donHang && isPhieuBaoHanhOpen && selectedProductIndex !== null && (
+      {donHang && isPhieuBaoHanhOpen && (
         <PhieuBaoHanhModal
           open={isPhieuBaoHanhOpen}
           onClose={() => {
             setIsPhieuBaoHanhOpen(false);
-            setSelectedProductIndex(null);
           }}
           donHang={donHang}
-          productIndex={selectedProductIndex}
           onSuccess={() => {
             toast.success("Đã tạo phiếu bảo hành");
+            // Refresh warranty
+            api.get(`/api/phieu-bao-hanh/don-hang/${donHang._id}`).then((res) => {
+              setWarranty(res.data.data || res.data);
+            });
           }}
+        />
+      )}
+
+      {warranty && (
+        <WarrantyCardPrint
+          open={openPrintWarranty}
+          onClose={() => setOpenPrintWarranty(false)}
+          warranty={warranty}
+          donHang={donHang}
         />
       )}
     </>
@@ -577,4 +645,4 @@ const NoteBlock = ({ label, value }) => (
   </div>
 );
 
-export default DonHangDetailPanel;
+export default DonHangDetailPanel;  

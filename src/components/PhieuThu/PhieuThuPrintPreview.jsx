@@ -164,22 +164,27 @@ const PhieuThuPrintPreview = () => {
                     Hóa đơn
                   </th>
                   <th className="border border-gray-400 p-2 text-right font-bold">
-                    Số tiền ban đầu
+                    Giá trị hóa đơn
                   </th>
                   <th className="border border-gray-400 p-2 text-right font-bold">
                     Đã thanh toán
                   </th>
                   <th className="border border-gray-400 p-2 text-right font-bold">
-                    Số tiền còn lại
+                    Thanh toán lần này
                   </th>
                   <th className="border border-gray-400 p-2 text-right font-bold">
-                    Thanh toán
+                    Tổng cộng
+                  </th>
+                  <th className="border border-gray-400 p-2 text-right font-bold">
+                    Còn lại
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {danhSachHoaDon.map((item, idx) => {
                   const hd = item.hoaDon || {};
+                  const soTienThanhToan = item.soTienThanhToan || 0;
+                  const daTTruocLanNay = (hd.daThanhToan || 0) - soTienThanhToan;
                   return (
                     <tr key={hd._id || idx}>
                       <td className="border border-gray-400 p-2">
@@ -189,13 +194,16 @@ const PhieuThuPrintPreview = () => {
                         {formatCurrency(hd.thanhTien || hd.tongTien || 0)}
                       </td>
                       <td className="border border-gray-400 p-2 text-right">
+                        {formatCurrency(daTTruocLanNay)}
+                      </td>
+                      <td className="border border-gray-400 p-2 text-right font-bold">
+                        {formatCurrency(soTienThanhToan)}
+                      </td>
+                      <td className="border border-gray-400 p-2 text-right">
                         {formatCurrency(hd.daThanhToan || 0)}
                       </td>
                       <td className="border border-gray-400 p-2 text-right">
                         {formatCurrency(hd.conLai || 0)}
-                      </td>
-                      <td className="border border-gray-400 p-2 text-right font-bold">
-                        {formatCurrency(item.soTienThanhToan || 0)}
                       </td>
                     </tr>
                   );

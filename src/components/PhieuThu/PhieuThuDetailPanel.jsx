@@ -226,16 +226,24 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                           </div>
                           <div className="space-y-0">
                             <InfoRow label="Giá trị hóa đơn:" value={formatNumber(hd.thanhTien)} />
-                            <InfoRow label="Đã thanh toán:" value={formatNumber(hd.daThanhToan)} />
                             <InfoRow
-                              label="Còn lại:"
-                              value={formatNumber(hd.conLai)}
-                              valueClass={(hd.conLai || 0) > 0 ? "text-orange-500" : "text-green-600"}
+                              label="Đã thanh toán:"
+                              value={formatNumber((hd.daThanhToan || 0) - (soTienThanhToan || 0))}
                             />
                             <InfoRow
                               label="Thanh toán lần này:"
                               value={formatNumber(soTienThanhToan)}
-                              valueClass="text-gray-900 font-bold"
+                              valueClass="text-blue-600 font-bold"
+                            />
+                            <InfoRow
+                              label="Tổng cộng:"
+                              value={formatNumber(hd.daThanhToan)}
+                              valueClass="font-bold"
+                            />
+                            <InfoRow
+                              label="Còn lại:"
+                              value={formatNumber(hd.conLai)}
+                              valueClass={(hd.conLai || 0) > 0 ? "text-orange-500" : "text-green-600"}
                             />
                           </div>
                           {hd.trangThai && (

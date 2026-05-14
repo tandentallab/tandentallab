@@ -1,176 +1,154 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem } from "@mui/material";
 import { api } from "../../config/api";
+import { toast } from "sonner";
 
-const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess, productIndex = null }) => {
-  const [formData, setFormData] = useState({
-    selectedProducts: [],
-    mauTheTi: "Mẫu in UNC",
-    baoHanhDen: "",
-    namBaoHanh: 1,
-    ghiChu: "",
-  });
+const generateQRCode = () => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let qr = "";
+  for (let i = 0; i < 4; i += 1) {
+    qr += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return qr;
+};
 
+const addYearsToDate = (dateValue, years) => {
+  const start = new Date(dateValue);
+  const result = new Date(start.getFullYear() + years, start.getMonth(), start.getDate());
+  return result.toISOString().slice(0, 10);
+};
+
+const formatDateVN = (dateValue) => {
+  if (!dateValue) return "---";
+  return new Date(dateValue).toLocaleDateString("vi-VN");
+};
+
+const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [fullDonHang, setFullDonHang] = useState(null);
-  const [useCustomDate, setUseCustomDate] = useState(false);
+  const [generatedQR, setGeneratedQR] = useState("");
+  const [selectedProductIndex, setSelectedProductIndex] = useState("");
+  const [selectedYears, setSelectedYears] = useState(1);
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [ghiChu, setGhiChu] = useState("");
+  const [items, setItems] = useState([]);
 
-  // Fetch full donHang data khi modal mở
   useEffect(() => {
-    if (open && donHang?._id) {
-      const fetchFullDonHang = async () => {
-        try {
-          const res = await api.get(`/donhang/${donHang._id}`);
-          setFullDonHang(res.data.data);
+    if (!open || !donHang?._id) return;
 
-          // Auto-set selectedProducts: nếu 1 sản phẩm thì chọn ngay, nếu nhiều để admin chọn
-          const spList = res.data.data?.danhSachSanPham || [];
-          if (productIndex !== null && spList[productIndex]) {
-            setFormData((prev) => ({ ...prev, selectedProducts: [productIndex] }));
-          } else if (spList.length === 1) {
-            setFormData((prev) => ({ ...prev, selectedProducts: [0] }));
-          } else {
-            setFormData((prev) => ({ ...prev, selectedProducts: [] }));
-          }
-
-          // Auto-set bảo hành đến = 1 năm
-          const start = new Date(res.data.data.ngayNhan);
-          const end = new Date(start.getFullYear() + 1, start.getMonth(), start.getDate());
-          setFormData((prev) => ({
-            ...prev,
-            baoHanhDen: end.toISOString().split("T")[0],
-            namBaoHanh: 1,
-          }));
-        } catch (err) {
-          console.error("Lỗi fetch full donHang:", err);
-        }
-      };
-      fetchFullDonHang();
-    }
-  }, [open, donHang?._id, productIndex]);
-
-  // Guard: Không render nếu donHang không có _id hoặc modal chưa mở
-  if (!open || !donHang?._id) {
-    return null;
-  }
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleProductSelect = (index) => {
-    setFormData((prev) => {
-      const selected = [...prev.selectedProducts];
-      if (selected.includes(index)) {
-        // Uncheck
-        return { ...prev, selectedProducts: selected.filter((i) => i !== index) };
-      } else {
-        // Check
-        return { ...prev, selectedProducts: [...selected, index] };
+    const loadDonHang = async () => {
+      try {
+        const res = await api.get(`/donhang/${donHang._id}`);
+        const data = res.data?.data;
+        setFullDonHang(data);
+        setGeneratedQR(generateQRCode());
+        setSelectedProductIndex("");
+        setSelectedYears(1);
+        setCustomEndDate("");
+        setGhiChu("");
+        setItems([]);
+      } catch (error) {
+        toast.error("Lỗi khi tải thông tin đơn hàng");
       }
-    });
+    };
+
+    loadDonHang();
+  }, [open, donHang?._id]);
+
+  const maDonHang = useMemo(() => {
+    if (!fullDonHang) return "";
+    return fullDonHang.maDonHang || `TAN${fullDonHang._id.substring(fullDonHang._id.length - 8).toUpperCase()}`;
+  }, [fullDonHang]);
+
+  const productOptions = fullDonHang?.danhSachSanPham || [];
+  const selectedProduct = selectedProductIndex === "" ? null : productOptions[Number(selectedProductIndex)];
+
+  const handleAddProduct = () => {
+    if (selectedProductIndex === "") {
+      toast.error("Vui lòng chọn sản phẩm");
+      return;
+    }
+
+    const index = Number(selectedProductIndex);
+    const product = productOptions[index];
+    if (!product) {
+      toast.error("Sản phẩm không hợp lệ");
+      return;
+    }
+
+    const endDate = customEndDate || addYearsToDate(fullDonHang.ngayNhan, selectedYears);
+    const exists = items.some((item) => item.sanPhamIndex === index);
+    if (exists) {
+      toast.error("Sản phẩm này đã được thêm vào phiếu");
+      return;
+    }
+
+    setItems((prev) => [
+      ...prev,
+      {
+        sanPhamIndex: index,
+        tenSanPham: product.sanPham?.tenSanPham || "---",
+        viTriRang: product.viTri?.map((v) => `${v.kieu}: ${v.soRang.join(", ")}`).join("; ") || "---",
+        soLuong: product.soLuong || 1,
+        mau: product.mau || "",
+        baoHanhTu: fullDonHang.ngayNhan,
+        baoHanhDen: endDate,
+      },
+    ]);
+
+    setSelectedProductIndex("");
+    setSelectedYears(1);
+    setCustomEndDate("");
   };
 
-  const handleYearChange = (years) => {
-    if (!fullDonHang?.ngayNhan) return;
-    const start = new Date(fullDonHang.ngayNhan);
-    const end = new Date(start.getFullYear() + years, start.getMonth(), start.getDate());
-    setFormData({
-      ...formData,
-      namBaoHanh: years,
-      baoHanhDen: end.toISOString().split("T")[0],
-    });
-    setUseCustomDate(false);
-  };
-
-  const handleDateChange = (e) => {
-    setFormData({ ...formData, baoHanhDen: e.target.value });
-    setUseCustomDate(true);
+  const handleRemoveItem = (sanPhamIndex) => {
+    setItems((prev) => prev.filter((item) => item.sanPhamIndex !== sanPhamIndex));
   };
 
   const handleSubmit = async () => {
     try {
       if (!fullDonHang?._id) {
-        alert("Lỗi: Không tìm thấy mã đơn hàng");
+        toast.error("Không tìm thấy đơn hàng");
         return;
       }
 
-      if (formData.selectedProducts.length === 0) {
-        alert("Vui lòng chọn ít nhất 1 sản phẩm");
+      if (items.length === 0) {
+        toast.error("Vui lòng thêm ít nhất 1 sản phẩm vào phiếu bảo hành");
         return;
       }
 
       setLoading(true);
 
-      const baoHanhDenDate = new Date(formData.baoHanhDen);
-      const createdPhieus = [];
+      const payload = {
+        donHang: fullDonHang._id,
+        danhSachBaoHanh: items.map((item) => ({
+          sanPham: productOptions[item.sanPhamIndex].sanPham?._id || productOptions[item.sanPhamIndex].sanPham,
+          viTriRang: item.viTriRang,
+          soLuong: item.soLuong,
+          mau: item.mau,
+          baoHanhTu: new Date(item.baoHanhTu).toISOString(),
+          baoHanhDen: new Date(item.baoHanhDen).toISOString(),
+        })),
+        mauTheTi: "Mẫu in Lab",
+        ghiChu,
+      };
 
-      const targetProducts =
-        productIndex !== null ? [productIndex] : formData.selectedProducts;
-
-      // Tạo phiếu bảo hành cho mỗi sản phẩm được chọn
-      for (const spIndex of targetProducts) {
-        const selectedSP = fullDonHang.danhSachSanPham[spIndex];
-        if (!selectedSP) continue;
-
-        // Tính vị trí răng từ viTri object
-        const viTriRang = selectedSP.viTri
-          .map((v) => `${v.kieu}: ${v.soRang.join(", ")}`)
-          .join("; ");
-
-        // Convert dates to ISO string format
-        const baoHanhTuDate = new Date(fullDonHang.ngayNhan).toISOString();
-        const baoHanhDenDate = new Date(formData.baoHanhDen).toISOString();
-
-        const payload = {
-          donHang: fullDonHang._id,
-          nhaKhoa: fullDonHang.nhaKhoa?._id || fullDonHang.nhaKhoa,
-          bacSi: fullDonHang.bacSi?._id || fullDonHang.bacSi,
-          benhNhan: fullDonHang.benhNhan?._id || fullDonHang.benhNhan,
-          sanPham: selectedSP.sanPham?._id || selectedSP.sanPham,
-          viTriRang: viTriRang,
-          soLuong: selectedSP.soLuong || 1,
-          mau: selectedSP.mau || "",
-          mauTheTi: formData.mauTheTi,
-          baoHanhTu: baoHanhTuDate,
-          baoHanhDen: baoHanhDenDate,
-          soDienThoai: fullDonHang.benhNhan?.soDienThoai || "",
-          ghiChu: formData.ghiChu || selectedSP.ghiChu || "",
-        };
-
-        const res = await api.post("/phieu-bao-hanh", payload);
-        if (res.data?.success) {
-          createdPhieus.push(selectedSP.sanPham?.tenSanPham || "Sản phẩm");
-        }
-      }
-
-      if (createdPhieus.length > 0) {
-        alert(`Thêm phiếu bảo hành thành công cho: ${createdPhieus.join(", ")}`);
-        setFormData({
-          selectedProducts:
-            productIndex !== null && fullDonHang?.danhSachSanPham?.[productIndex]
-              ? [productIndex]
-              : [],
-          mauTheTi: "Mẫu in UNC",
-          baoHanhDen: "",
-          namBaoHanh: 1,
-          ghiChu: "",
-        });
-        onSuccess();
+      const res = await api.post("/phieu-bao-hanh", payload);
+      if (res.data?.success) {
+        toast.success(`Tạo phiếu bảo hành thành công! Mã: ${res.data.data.maBaoHanh}`);
+        onSuccess?.();
         onClose();
+      } else {
+        toast.error(res.data?.message || "Lỗi khi tạo phiếu bảo hành");
       }
-    } catch (err) {
-      console.error("Lỗi tạo phiếu:", err);
-      alert("Lỗi khi thêm phiếu bảo hành: " + err.message);
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Lỗi khi tạo phiếu bảo hành");
     } finally {
       setLoading(false);
     }
   };
 
-  const baoHanhTu = fullDonHang?.ngayNhan
-    ? new Date(fullDonHang.ngayNhan).toLocaleDateString("vi-VN")
-    : "---";
+  if (!open || !donHang?._id || !fullDonHang) return null;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -179,166 +157,116 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess, productIndex = n
       </DialogTitle>
 
       <DialogContent className="pt-6 flex flex-col gap-4 px-8">
-        {/* Mã bảo hành - Tách riêng, tăng kích thước */}
         <div>
           <label className="text-xs text-gray-600 font-bold block mb-2">Mã bảo hành</label>
           <TextField
             disabled
-            value={fullDonHang?._id ? `TAN${fullDonHang._id.substring(fullDonHang._id.length - 8).toUpperCase()}` : ""}
+            value={maDonHang}
             fullWidth
             size="medium"
             inputProps={{ style: { fontSize: "16px", fontWeight: "bold" } }}
           />
         </div>
 
-        {/* Mã QR */}
-        <TextField label="Mã QR" placeholder="(Để trống)" fullWidth size="small" />
-
-        {productIndex === null && (
-          <div>
-            <label className="text-xs text-gray-600 font-bold block mb-2">Chọn sản phẩm *</label>
-            <div className="border rounded p-3 space-y-2">
-              {fullDonHang?.danhSachSanPham?.length === 1 ? (
-                <div className="bg-blue-50 p-2 rounded">
-                  <div className="font-medium text-sm">
-                    ✓ {fullDonHang.danhSachSanPham[0].sanPham?.tenSanPham || "---"}
-                  </div>
-                </div>
-              ) : (
-                fullDonHang?.danhSachSanPham?.map((sp, idx) => (
-                  <label key={idx} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.selectedProducts.includes(idx)}
-                      onChange={() => handleProductSelect(idx)}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm">{sp.sanPham?.tenSanPham || "---"}</span>
-                  </label>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {productIndex !== null && fullDonHang?.danhSachSanPham?.[productIndex] && (
-          <div className="space-y-3 bg-blue-50 p-3 rounded border border-blue-200">
-            <TextField
-              label="Sản phẩm"
-              disabled
-              value={fullDonHang.danhSachSanPham[productIndex].sanPham?.tenSanPham || "---"}
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Vị trí răng"
-              disabled
-              value={
-                fullDonHang.danhSachSanPham[productIndex].viTri
-                  ?.map((v) => `${v.kieu}: ${v.soRang.join(", ")}`)
-                  .join("; ") || "---"
-              }
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Số lượng"
-              disabled
-              value={fullDonHang.danhSachSanPham[productIndex].soLuong || 1}
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Màu"
-              disabled
-              value={fullDonHang.danhSachSanPham[productIndex].mau || "---"}
-              fullWidth
-              size="small"
-            />
-          </div>
-        )}
-
-        {/* Hiển thị thông tin chi tiết của sản phẩm được chọn */}
-        {productIndex === null && formData.selectedProducts.length > 0 && (
-          <div className="space-y-3 bg-blue-50 p-3 rounded border border-blue-200">
-            {formData.selectedProducts.map((spIndex) => {
-              const sp = fullDonHang.danhSachSanPham[spIndex];
-              return (
-                <div key={spIndex} className="space-y-2 pb-3 border-b last:border-b-0 last:pb-0">
-                  <div className="text-sm font-medium text-blue-700">
-                    {sp.sanPham?.tenSanPham || "---"}
-                  </div>
-                  
-                  {/* Vị trí răng */}
-                  <TextField
-                    label="Vị trí răng"
-                    disabled
-                    value={sp.viTri?.map((v) => `${v.kieu}: ${v.soRang.join(", ")}`).join("; ") || "---"}
-                    fullWidth
-                    size="small"
-                  />
-
-                  {/* Số lượng */}
-                  <TextField
-                    label="Số lượng"
-                    disabled
-                    value={sp.soLuong || 1}
-                    fullWidth
-                    size="small"
-                  />
-
-                  {/* Màu */}
-                  <TextField
-                    label="Màu"
-                    disabled
-                    value={sp.mau || "---"}
-                    fullWidth
-                    size="small"
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Bảo hành từ */}
-        <TextField
-          label="Bảo hành từ"
-          disabled
-          value={fullDonHang?.ngayNhan ? new Date(fullDonHang.ngayNhan).toLocaleDateString("vi-VN") : "---"}
-          fullWidth
-          size="small"
-        />
-
-        {/* Bảo hành đến - Dropdown chọn năm + Date picker */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="bg-blue-50 p-3 rounded border border-blue-200">
+          <label className="text-xs text-gray-600 font-bold block mb-2">Mã QR</label>
           <TextField
-            label="Chọn năm bảo hành"
-            select
-            value={useCustomDate ? "" : formData.namBaoHanh}
-            onChange={(e) => handleYearChange(parseInt(e.target.value))}
+            disabled
+            value={generatedQR}
             fullWidth
             size="small"
-          >
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((year) => (
-              <MenuItem key={year} value={year}>
-                {year} năm
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            type="date"
-            label="Hoặc chọn ngày"
-            value={formData.baoHanhDen}
-            onChange={handleDateChange}
-            size="small"
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-            inputProps={{ style: { fontSize: "12px" } }}
+            inputProps={{ style: { fontSize: "14px", fontWeight: "bold" } }}
           />
+          <p className="text-xs text-gray-600 mt-2">Mã QR 4 ký tự sẽ được sinh tự động khi lưu phiếu.</p>
         </div>
 
-        {/* Tên nha khoa */}
+        <div className="bg-white border rounded-lg p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <TextField
+              select
+              label="Sản phẩm"
+              value={selectedProductIndex}
+              onChange={(e) => setSelectedProductIndex(e.target.value)}
+              fullWidth
+              size="small"
+            >
+              <MenuItem value="">Chọn sản phẩm</MenuItem>
+              {productOptions.map((sp, index) => (
+                <MenuItem key={index} value={String(index)}>
+                  {sp.sanPham?.tenSanPham || `Sản phẩm ${index + 1}`}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              label="Chọn năm bảo hành"
+              value={selectedYears}
+              onChange={(e) => {
+                setSelectedYears(Number(e.target.value));
+                setCustomEndDate("");
+              }}
+              fullWidth
+              size="small"
+            >
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((year) => (
+                <MenuItem key={year} value={year}>
+                  {year} năm
+                </MenuItem>
+              ))}
+            </TextField>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-gray-600 block">
+              Hoặc chọn ngày bảo hành
+            </label>
+            <TextField
+              type="date"
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+              fullWidth
+              size="small"
+              inputProps={{ style: { minHeight: 40 } }}
+            />
+          </div>
+
+          {selectedProduct && (
+            <div className="rounded bg-blue-50 border border-blue-200 p-3 text-sm text-gray-700 space-y-1">
+              <div><span className="font-medium">Sản phẩm:</span> {selectedProduct.sanPham?.tenSanPham || "---"}</div>
+              <div><span className="font-medium">Vị trí:</span> {selectedProduct.viTri?.map((v) => `${v.kieu}: ${v.soRang.join(", ")}`).join("; ") || "---"}</div>
+              <div><span className="font-medium">Số lượng:</span> {selectedProduct.soLuong || 1}</div>
+              <div><span className="font-medium">Màu:</span> {selectedProduct.mau || "---"}</div>
+              <div><span className="font-medium">Bảo hành đến:</span> {customEndDate ? formatDateVN(customEndDate) : `${selectedYears} năm từ ngày nhận`}</div>
+            </div>
+          )}
+
+          <Button variant="outlined" onClick={handleAddProduct} fullWidth>
+            Thêm sản phẩm vào phiếu
+          </Button>
+        </div>
+
+        <div>
+          <div className="text-sm font-semibold text-gray-700 mb-2">Danh sách sản phẩm trong phiếu</div>
+          <div className="space-y-2 max-h-56 overflow-y-auto">
+            {items.length > 0 ? items.map((item) => (
+              <div key={item.sanPhamIndex} className="border rounded-lg p-3 bg-gray-50 flex items-start justify-between gap-3">
+                <div className="text-sm space-y-1">
+                  <div className="font-medium text-gray-800">{item.tenSanPham}</div>
+                  <div className="text-gray-600">Vị trí: {item.viTriRang}</div>
+                  <div className="text-gray-600">SL: {item.soLuong} | Màu: {item.mau || "---"}</div>
+                  <div className="text-gray-600">BH: {formatDateVN(item.baoHanhTu)} - {formatDateVN(item.baoHanhDen)}</div>
+                </div>
+                <Button color="error" size="small" onClick={() => handleRemoveItem(item.sanPhamIndex)}>
+                  Xóa
+                </Button>
+              </div>
+            )) : (
+              <div className="text-sm text-gray-400 italic">Chưa có sản phẩm nào được thêm vào phiếu</div>
+            )}
+          </div>
+        </div>
+
         <TextField
           label="Tên nha khoa trên thẻ"
           disabled
@@ -347,7 +275,6 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess, productIndex = n
           size="small"
         />
 
-        {/* Bác sĩ */}
         <TextField
           label="Bác sĩ"
           disabled
@@ -356,7 +283,6 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess, productIndex = n
           size="small"
         />
 
-        {/* Tên bệnh nhân */}
         <TextField
           label="Tên bệnh nhân"
           disabled
@@ -365,36 +291,26 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess, productIndex = n
           size="small"
         />
 
-        {/* Điện thoại - từ bệnh nhân */}
         <TextField
           label="Điện thoại"
           disabled
-          value={fullDonHang?.benhNhan?.soDienThoai || "---"}
+          value={fullDonHang?.nhaKhoa?.soDienThoai || "---"}
           fullWidth
           size="small"
         />
 
-        {/* Mẫu thẻ */}
         <TextField
           label="Mẫu thẻ"
-          name="mauTheTi"
-          select
-          value={formData.mauTheTi}
-          onChange={handleChange}
+          disabled
+          value="Mẫu in Lab"
           fullWidth
           size="small"
-        >
-          <MenuItem value="Mẫu in Dbio">Mẫu in Dbio</MenuItem>
-          <MenuItem value="Mẫu in UNC">Mẫu in UNC</MenuItem>
-          <MenuItem value="Mẫu thẻ Lab">Mẫu thẻ Lab</MenuItem>
-        </TextField>
+        />
 
-        {/* Ghi chú */}
         <TextField
           label="Ghi chú"
-          name="ghiChu"
-          value={formData.ghiChu}
-          onChange={handleChange}
+          value={ghiChu}
+          onChange={(e) => setGhiChu(e.target.value)}
           fullWidth
           multiline
           rows={2}

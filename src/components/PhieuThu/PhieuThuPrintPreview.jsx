@@ -69,8 +69,8 @@ const PhieuThuPrintPreview = () => {
     return days[d.getDay()];
   };
 
-  const maBaoHanh = phieuThu.soPhieuThu || `TAN${phieuThu._id.substring(phieuThu._id.length - 8).toUpperCase()}`;
-  const printDate = phieuThu.ngayThu || phieuThu.ngayTao;
+  const maPhieuThu = phieuThu.soPhieuThu || `PT${phieuThu._id.substring(phieuThu._id.length - 8).toUpperCase()}`;
+  const printDate = phieuThu.ngayThu || phieuThu.ngayTao || new Date(); // Thêm new Date() làm dự phòng
   const soTienText = numberToWords(phieuThu.soTienThu);
 
   return (
@@ -98,7 +98,7 @@ const PhieuThuPrintPreview = () => {
             <div className="space-y-2 text-sm">
               <div className="flex gap-2">
                 <span className="font-bold min-w-24">Mã số:</span>
-                <span className="font-bold text-blue-600">{maBaoHanh}</span>
+                <span className="font-bold text-blue-600">{maPhieuThu}</span>
               </div>
               <div className="flex gap-2">
                 <span className="font-bold min-w-24">Ngày:</span>

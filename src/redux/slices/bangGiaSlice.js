@@ -3,6 +3,21 @@ import { api } from "../../config/api";
 
 /* ================= API ================= */
 
+// 📄 Lấy tất cả bảng giá từ tất cả nha khoa
+export const fetchAllBangGia = createAsyncThunk(
+  "bangGia/fetchAll",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`/bang-gia`);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Lấy bảng giá thất bại"
+      );
+    }
+  }
+);
+
 // 📄 Lấy bảng giá theo nha khoa
 export const fetchBangGiaByNhaKhoa = createAsyncThunk(
   "bangGia/fetchByNhaKhoa",
@@ -72,6 +87,20 @@ const bangGiaSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
+
+      /* ================= FETCH ALL ================= */
+      .addCase(fetchAllBangGia.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllBangGia.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data = action.payload;
+      })
+      .addCase(fetchAllBangGia.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
       /* ================= FETCH ================= */
       .addCase(fetchBangGiaByNhaKhoa.pending, (state) => {

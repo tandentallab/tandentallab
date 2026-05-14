@@ -52,6 +52,9 @@ export default function DonHangChuaXuatFilter({
     });
   };
 
+  // Calculate total count for "Tất cả" option
+  const totalCount = Object.values(infoMap).reduce((sum, item) => sum + item.count, 0);
+
   return (
     <TextField
       select
@@ -61,6 +64,27 @@ export default function DonHangChuaXuatFilter({
       className="w-96"
       size="small"
     >
+      {/* Tất cả nha khoa option */}
+      <MenuItem value="all">
+        <Box className="flex items-center justify-between w-full gap-3">
+          <Box className="flex flex-col">
+            <Typography fontSize={14} fontWeight={600}>
+              Tất cả nha khoa
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Hiển thị tất cả đơn chưa xuất
+            </Typography>
+          </Box>
+          <Chip
+            size="small"
+            color={totalCount > 0 ? "warning" : "success"}
+            variant={totalCount > 0 ? "filled" : "outlined"}
+            label={`${totalCount} đơn`}
+          />
+        </Box>
+      </MenuItem>
+
+      {/* Individual clinics */}
       {data.map((nk) => {
         const info = infoMap[nk._id] || {
           count: 0,

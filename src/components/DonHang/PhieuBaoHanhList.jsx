@@ -6,6 +6,18 @@ import toast from "react-hot-toast";
 const PhieuBaoHanhList = ({ phieuBaoHanhList, onDelete, donHangId }) => {
   const [expandedId, setExpandedId] = useState(null);
 
+  // Convert to array if it's an object
+  let warrantyArray = Array.isArray(phieuBaoHanhList)
+    ? phieuBaoHanhList
+    : phieuBaoHanhList
+    ? [phieuBaoHanhList]
+    : [];
+
+  // Filter only valid warranties (có danhSachBaoHanh array)
+  warrantyArray = warrantyArray.filter(
+    (pbh) => pbh && pbh.danhSachBaoHanh && Array.isArray(pbh.danhSachBaoHanh) && pbh.danhSachBaoHanh.length > 0
+  );
+
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn chắc chắn muốn xóa phiếu bảo hành này?")) {
       return;
@@ -20,7 +32,7 @@ const PhieuBaoHanhList = ({ phieuBaoHanhList, onDelete, donHangId }) => {
     }
   };
 
-  if (!phieuBaoHanhList || phieuBaoHanhList.length === 0) {
+  if (!warrantyArray || warrantyArray.length === 0) {
     return (
       <div className="text-center py-4 text-gray-500 italic">
         Chưa có thẻ bảo hành nào
@@ -30,7 +42,7 @@ const PhieuBaoHanhList = ({ phieuBaoHanhList, onDelete, donHangId }) => {
 
   return (
     <div className="space-y-2">
-      {phieuBaoHanhList.map((pbh) => (
+      {warrantyArray.map((pbh) => (
         <div key={pbh._id} className="border rounded bg-white shadow-sm">
           <div
             className="p-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center"
@@ -41,6 +53,9 @@ const PhieuBaoHanhList = ({ phieuBaoHanhList, onDelete, donHangId }) => {
             <div className="flex items-center gap-3 flex-1">
               <div className="text-sm font-medium">
                 {pbh.maBaoHanh} - {pbh.sanPham?.tenSanPham}
+              </div>
+              <div className="text-xs text-gray-500 bg-yellow-50 px-2 py-1 rounded">
+                QR: <span className="font-semibold text-yellow-700">{pbh.maQR}</span>
               </div>
               <div className="text-xs text-gray-500">
                 Bảo hành: {new Date(pbh.baoHanhTu).toLocaleDateString("vi-VN")} đến{" "}

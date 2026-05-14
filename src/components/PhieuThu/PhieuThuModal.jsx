@@ -16,7 +16,7 @@ const toLocalDatetimeInput = (d) => {
 };
 
 const fmt = (v) => new Intl.NumberFormat("vi-VN").format(v || 0);
-const formatSoHoaDon = (id) => (id ? "TAN" + id.toString().slice(-8).toUpperCase() : "—");
+const formatSoHoaDon = (hd) => (hd?.soHoaDon || "—");
 
 const getInitials = (name) => {
     if (!name) return "?";

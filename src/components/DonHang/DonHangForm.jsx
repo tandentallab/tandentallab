@@ -10,7 +10,7 @@ import ChonDonHangCuModal from "./ChonDonHangCuModal";
 import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 import PhieuBaoHanhList from "./PhieuBaoHanhList";
 import WarrantyCardPrint from "./WarrantyCardPrint";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 const SearchInput = ({
   value,
@@ -158,7 +158,12 @@ const DonHangForm = () => {
     bacSi: "",
     benhNhan: "",
     ngayNhan: new Date().toISOString().slice(0, 16),
-    yeuCauHoanThanh: "",
+    yeuCauHoanThanh: (() => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(14, 0, 0, 0);
+      return tomorrow.toISOString().slice(0, 16);
+    })(),
     henGiao: (() => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -307,7 +312,7 @@ const DonHangForm = () => {
     const handleKeyDown = (e) => {
       if (e.key === "F3") {
         e.preventDefault();
-        handleSave();
+        handleSaveRef.current();
       } else if (e.key === "F4" && isEditMode) {
         e.preventDefault();
         navigate(`/donhang/${id}/print`);
@@ -387,12 +392,38 @@ const DonHangForm = () => {
   };
 
   const handleSave = () => {
-    if (!formData.nhaKhoa || !formData.bacSi || !formData.benhNhan) {
-      toast.error("Vui lòng nhập đầy đủ Nha Khoa, Bác Sĩ, Bệnh Nhân!");
-      return;
+    const errors = [];
+
+    if (!formData.nhaKhoa) errors.push("Chưa chọn Nha Khoa");
+    if (!formData.bacSi) errors.push("Chưa chọn Bác Sĩ");
+    if (!formData.benhNhan) errors.push("Chưa chọn Bệnh Nhân");
+
+    if (!formData.ngayNhan) {
+      errors.push("Chưa nhập Ngày nhận");
     }
     if (!formData.henGiao) {
-      toast.error("Vui lòng nhập Hẹn giao!");
+      errors.push("Chưa nhập Hẹn giao");
+    } else if (formData.ngayNhan && new Date(formData.henGiao) <= new Date(formData.ngayNhan)) {
+      errors.push("Hẹn giao phải sau Ngày nhận");
+    }
+    if (
+      formData.yeuCauHoanThanh &&
+      formData.ngayNhan &&
+      new Date(formData.yeuCauHoanThanh) <= new Date(formData.ngayNhan)
+    ) {
+      errors.push("Y/c hoàn thành phải sau Ngày nhận");
+    }
+
+    if (formData.danhSachSanPham.length === 0) {
+      errors.push("Chưa có sản phẩm nào trong đơn hàng");
+    } else {
+      formData.danhSachSanPham.forEach((sp, i) => {
+        if (!sp.sanPham) errors.push(`Dòng ${i + 1}: Chưa chọn sản phẩm`);
+      });
+    }
+
+    if (errors.length > 0) {
+      toast.error(errors[0], { duration: 4000 });
       return;
     }
 
@@ -410,14 +441,22 @@ const DonHangForm = () => {
     const promise = dispatch(action).unwrap();
     toast.promise(promise, {
       loading: isEditMode ? "Đang lưu thay đổi..." : "Đang tạo đơn hàng...",
-      success: isEditMode
-        ? "Cập nhật đơn hàng thành công!"
-        : "Tạo đơn hàng thành công!",
+      success: (result) =>
+        isEditMode
+          ? `Cập nhật đơn hàng thành công!`
+          : `Tạo đơn hàng thành công! Mã: ${result?.maDonHang || ""}`,
       error: (err) =>
-        err || (isEditMode ? "Cập nhật thất bại" : "Tạo đơn hàng thất bại"),
+        typeof err === "string"
+          ? err
+          : isEditMode
+            ? "Cập nhật thất bại"
+            : "Tạo đơn hàng thất bại",
     });
     promise.then(() => navigate(-1)).catch(() => { });
   };
+
+  const handleSaveRef = useRef(null);
+  handleSaveRef.current = handleSave;
 
   const renderViTriText = (viTriArr) => {
     if (!viTriArr || viTriArr.length === 0) return "";

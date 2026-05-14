@@ -667,11 +667,11 @@ const DonHangPage = () => {
   };
 
   return (
-    <div className="p-4 bg-gray-100 min-h-screen">
+    <div className="mt-10 md:mt-0 p-4 bg-gray-100 min-h-screen">
       <div className="mb-4 bg-white rounded shadow-sm border">
-        <div className="flex justify-between items-center p-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3">
           {/* Left: status badges & filters */}
-          <div className="flex gap-3">
+          <div className="flex gap-2 flex-wrap items-center">
             <div className="relative" ref={filterRef}>
               <button
                 onClick={handleOpenFilter}
@@ -689,6 +689,7 @@ const DonHangPage = () => {
               </button>
 
               {showFilter && (
+<<<<<<< HEAD
                 <div className="absolute left-0 top-full mt-1 z-50 w-80 bg-white rounded-xl shadow-2xl border border-gray-200">
                   {renderDateSection(
                     "Ngày nhận",
@@ -708,6 +709,12 @@ const DonHangPage = () => {
                     draftHenGiao,
                     setDraftHenGiao
                   )}
+=======
+                <div className="absolute left-0 top-full mt-1 z-50 w-80 max-w-[90vw] bg-white rounded-xl shadow-2xl border border-gray-200">
+                  {renderDateSection("Ngày nhận", "ngayNhan", draftNgayNhan, setDraftNgayNhan)}
+                  {renderDateSection("Y/C Hoàn thành", "ycHoanThanh", draftYcHoanThanh, setDraftYcHoanThanh)}
+                  {renderDateSection("Hẹn giao", "henGiao", draftHenGiao, setDraftHenGiao)}
+>>>>>>> origin/sang
 
                   {/* Nha khoa */}
                   <div className="border-b border-gray-100">
@@ -961,19 +968,20 @@ const DonHangPage = () => {
               )}
             </div>
             <div className="flex gap-1 items-center font-medium text-sm">
-              <div className="bg-teal-700 text-white px-3 py-1.5 flex items-center gap-2 rounded-l">
-                <span>{choXuLy}</span> Chờ sản xuất
+              <div className="bg-teal-700 text-white px-2 sm:px-3 py-1.5 flex items-center gap-1 sm:gap-2 rounded-l">
+                <span>{choXuLy}</span><span className="hidden sm:inline">Chờ sản xuất</span>
               </div>
-              <div className="bg-green-600 text-white px-3 py-1.5 flex items-center gap-2">
-                <span>{dangSanXuat}</span> Đang sản xuất
+              <div className="bg-green-600 text-white px-2 sm:px-3 py-1.5 flex items-center gap-1 sm:gap-2">
+                <span>{dangSanXuat}</span><span className="hidden sm:inline">Đang sản xuất</span>
               </div>
-              <div className="bg-red-500 text-white px-3 py-1.5 flex items-center gap-2 rounded-r">
-                <span>{treHen}</span> Trễ giờ hẹn giao
+              <div className="bg-red-500 text-white px-2 sm:px-3 py-1.5 flex items-center gap-1 sm:gap-2 rounded-r">
+                <span>{treHen}</span><span className="hidden sm:inline">Trễ giờ hẹn giao</span>
               </div>
             </div>
           </div>
 
           {/* Right: search + add + refresh */}
+<<<<<<< HEAD
           <div className="flex gap-2 items-center">
             <div className="relative flex items-center">
               <span className="absolute left-2.5 text-gray-400 flex items-center pointer-events-none">
@@ -986,6 +994,14 @@ const DonHangPage = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="border bg-gray-50 pl-8 pr-8 py-1.5 rounded-full w-72 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
               />
+=======
+          <div className="flex gap-2 items-center flex-wrap w-full sm:w-auto">
+            <div className="relative flex items-center flex-1 sm:flex-none">
+              <span className="absolute left-2.5 text-gray-400 flex items-center pointer-events-none"><SearchIcon sx={{ fontSize: 16 }} /></span>
+              <input type="text" placeholder="Tìm kiếm mã, nha khoa, bác sĩ, bệnh nhân..."
+                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                className="border bg-gray-50 pl-8 pr-8 py-1.5 rounded-full w-full sm:w-64 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm" />
+>>>>>>> origin/sang
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
@@ -1004,10 +1020,10 @@ const DonHangPage = () => {
             <button
               onClick={() => setOpenExport(true)}
               title="Xuất excel"
-              className="px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1"
+              className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1"
             >
               <DownloadIcon sx={{ fontSize: 17 }} />
-              Xuất excel
+              <span className="hidden sm:inline">Xuất excel</span>
             </button>
             <button
               onClick={handleRefresh}

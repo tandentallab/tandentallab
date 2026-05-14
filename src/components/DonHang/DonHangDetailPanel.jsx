@@ -2,11 +2,15 @@ import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+<<<<<<< HEAD
 import {
   deleteDonHang,
   updateDonHang,
   updateCongDoanTrangThai,
 } from "../../redux/slices/donHangSlice";
+=======
+import { deleteDonHang, updateDonHang, updateCongDoanTrangThai } from "../../redux/slices/donHangSlice";
+>>>>>>> origin/sang
 import { toast } from "sonner";
 import { api } from "../../config/api";
 import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
@@ -164,9 +168,14 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
 
       {/* Slide-out panel */}
       <div
+<<<<<<< HEAD
         className={`fixed right-0 top-0 pt-16 h-full w-[440px] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
+=======
+        className={`fixed right-0 top-10 md:top-0 pt-16 h-full w-full sm:w-[440px] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+>>>>>>> origin/sang
       >
         {/* Header */}
         <div className="bg-teal-700 text-white px-4 py-3 flex items-center justify-between shrink-0">

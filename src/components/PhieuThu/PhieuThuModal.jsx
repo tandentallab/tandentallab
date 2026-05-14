@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo, useRef } from "react";
+﻿﻿import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   createPhieuThu,
@@ -32,6 +32,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
   const { hoaDonChuaThanhToan, loadingHoaDon, loading } = useSelector(
     (s) => s.phieuThu
   );
+  const currentUser = useSelector((s) => s.auth.user);
 
   const [selectedNhaKhoa, setSelectedNhaKhoa] = useState("");
   const [search, setSearch] = useState("");
@@ -303,7 +304,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
           )}
 
           {/* TOP: 2 col */}
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
             {/* LEFT */}
             <div>
               {/* Company autocomplete */}
@@ -446,111 +447,115 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
                 Không có hóa đơn chưa thanh toán
               </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead className="border-b border-gray-100">
-                  <tr className="text-gray-500">
-                    <th className="w-10 px-4 py-3 text-left">
-                      <input
-                        type="checkbox"
-                        checked={allChecked}
-                        ref={(el) => {
-                          if (el) el.indeterminate = someChecked;
-                        }}
-                        onChange={handleToggleAll}
-                        className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium">STT</th>
-                    <th className="px-4 py-3 text-left font-medium">Hóa đơn</th>
-                    <th className="px-4 py-3 text-left font-medium">
-                      Ngày xuất
-                    </th>
-                    <th className="px-4 py-3 text-right font-medium">
-                      Giá trị
-                    </th>
-                    <th className="px-4 py-3 text-right font-medium">
-                      Đã thanh toán
-                    </th>
-                    <th className="px-4 py-3 text-right font-medium">
-                      Còn lại
-                    </th>
-                    <th className="px-4 py-3 text-right font-medium">
-                      Thanh toán
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {hoaDonChuaThanhToan.map((hd, idx) => {
-                    const checked = !!selectedHDs[hd._id];
-                    return (
-                      <tr
-                        key={hd._id}
-                        onClick={() => handleToggleHD(hd._id)}
-                        className={`border-b border-gray-50 last:border-0 cursor-pointer transition-colors ${
-                          checked ? "bg-blue-50/60" : "hover:bg-gray-50"
-                        }`}
-                      >
-                        <td
-                          className="px-4 py-3"
-                          onClick={(e) => e.stopPropagation()}
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[560px] text-sm">
+                  <thead className="border-b border-gray-100">
+                    <tr className="text-gray-500">
+                      <th className="w-10 px-4 py-3 text-left">
+                        <input
+                          type="checkbox"
+                          checked={allChecked}
+                          ref={(el) => {
+                            if (el) el.indeterminate = someChecked;
+                          }}
+                          onChange={handleToggleAll}
+                          className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
+                        />
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium">STT</th>
+                      <th className="px-4 py-3 text-left font-medium">
+                        Hóa đơn
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium">
+                        Ngày xuất
+                      </th>
+                      <th className="px-4 py-3 text-right font-medium">
+                        Giá trị
+                      </th>
+                      <th className="px-4 py-3 text-right font-medium">
+                        Đã thanh toán
+                      </th>
+                      <th className="px-4 py-3 text-right font-medium">
+                        Còn lại
+                      </th>
+                      <th className="px-4 py-3 text-right font-medium">
+                        Thanh toán
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {hoaDonChuaThanhToan.map((hd, idx) => {
+                      const checked = !!selectedHDs[hd._id];
+                      return (
+                        <tr
+                          key={hd._id}
+                          onClick={() => handleToggleHD(hd._id)}
+                          className={`border-b border-gray-50 last:border-0 cursor-pointer transition-colors ${
+                            checked ? "bg-blue-50/60" : "hover:bg-gray-50"
+                          }`}
                         >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => handleToggleHD(hd._id)}
-                            className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
-                        <td className="px-4 py-3 font-medium text-[#29b6f6]">
-                          {hd.soHoaDon || formatSoHoaDon(hd._id)}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">
-                          {hd.ngayXuatHoaDon
-                            ? new Date(hd.ngayXuatHoaDon).toLocaleDateString(
-                                "vi-VN"
-                              )
-                            : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-right text-gray-700">
-                          {fmt(hd.thanhTien)}
-                        </td>
-                        <td className="px-4 py-3 text-right text-gray-500">
-                          {fmt(hd.daThanhToan)}
-                        </td>
-                        <td className="px-4 py-3 text-right text-gray-700">
-                          {fmt(hd.conLai)}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-right"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type="number"
-                            min={0}
-                            max={hd.conLai}
-                            value={selectedHDs[hd._id]?.soTienThanhToan ?? ""}
-                            placeholder="0"
-                            onChange={(e) =>
-                              handleAmountChange(
-                                hd._id,
-                                e.target.value,
-                                hd.conLai
-                              )
-                            }
-                            className="w-28 border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-right text-sm text-gray-800 outline-none py-0.5"
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          <td
+                            className="px-4 py-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => handleToggleHD(hd._id)}
+                              className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
+                          <td className="px-4 py-3 font-medium text-[#29b6f6]">
+                            {hd.soHoaDon || formatSoHoaDon(hd._id)}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {hd.ngayXuatHoaDon
+                              ? new Date(hd.ngayXuatHoaDon).toLocaleDateString(
+                                  "vi-VN"
+                                )
+                              : "—"}
+                          </td>
+                          <td className="px-4 py-3 text-right text-gray-700">
+                            {fmt(hd.thanhTien)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-gray-500">
+                            {fmt(hd.daThanhToan)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-gray-700">
+                            {fmt(hd.conLai)}
+                          </td>
+                          <td
+                            className="px-4 py-3 text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="number"
+                              min={0}
+                              max={hd.conLai}
+                              value={selectedHDs[hd._id]?.soTienThanhToan ?? ""}
+                              placeholder="0"
+                              onChange={(e) =>
+                                handleAmountChange(
+                                  hd._id,
+                                  e.target.value,
+                                  hd.conLai
+                                )
+                              }
+                              className="w-28 border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-right text-sm text-gray-800 outline-none py-0.5"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 
           {/* BOTTOM */}
-          <div className="grid grid-cols-2 gap-8 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 items-start">
             {/* LEFT: Noi dung + Tai lieu */}
             <div className="space-y-4">
               <div>

@@ -724,11 +724,59 @@ const DonHangForm = () => {
               </table>
               </div>
             </div>
+            {/* --- PHẦN THÊM MỚI CHO MOBILE --- */}
+            <div className="md:hidden flex flex-col gap-4 px-0">
+               {/* Đưa Phụ kiện lên thành 1 khối có thể cuộn */}
+               <div className="bg-white border-t border-b border-gray-200 p-4 shadow-sm">
+                  <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">
+                    Phụ kiện đi kèm
+                  </h4>
+                  <DanhSachPhuKien
+                    phuKienDaChon={formData.danhSachPhuKien}
+                    setPhuKienDaChon={(data) =>
+                      setFormData({ ...formData, danhSachPhuKien: data })
+                    }
+                  />
+               </div>
+
+               {/* Đưa các ô Ghi chú lên thành 1 khối */}
+               <div className="bg-white border-t border-b border-gray-200 p-4 shadow-sm flex flex-col gap-4">
+                  <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Ghi chú đơn hàng</h4>
+                  <div className="flex flex-col gap-3">
+                    <label className="text-xs text-gray-500 font-medium">Chỉ định bác sĩ</label>
+                    <textarea
+                      name="chiDinhBacSi"
+                      value={formData.chiDinhBacSi}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full border rounded p-2 text-sm outline-none bg-gray-50"
+                    />
+                    
+                    <label className="text-xs text-gray-500 font-medium">Ghi chú chung</label>
+                    <textarea
+                      name="ghiChuChung"
+                      value={formData.ghiChuChung}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full border rounded p-2 text-sm outline-none bg-gray-50"
+                    />
+                    <label className="text-xs text-gray-500 font-medium">Ghi chú tài chính</label>
+                    <textarea
+                      name="ghiChuTaiChinh"
+                      value={formData.ghiChuTaiChinh}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full border rounded p-2 text-sm outline-none bg-gray-50"
+                      placeholder="Nhập ghi chú tài chính..."
+                    />
+                  </div>
+               </div>
+            </div>
           </div>
         </div>
 
         {/* Right side panel: 2 tabs – Sản xuất / Ghi chú */}
-        <div className="w-full lg:w-72 border-t lg:border-t-0 lg:border-l bg-white flex flex-col shrink-0 overflow-hidden">
+        <div className="hidden md:flex w-[300px] border-l bg-white flex-col shrink-0 overflow-hidden">
           <RightSidePanel
             formData={formData}
             setFormData={setFormData}

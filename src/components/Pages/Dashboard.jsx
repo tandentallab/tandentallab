@@ -2,7 +2,10 @@ import React, { useState } from "react";
 import { Box } from "@mui/material";
 import Sidebar from "../Layout/Sidebar";
 import Header from "../Layout/Header";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { getAuthSelector } from "../../redux/selector";
+import { getDefaultPathForUser, hasRouteAccess } from "../../config/permissions";
 import DonHangPage from "../DonHang/DonHangPage";
 import DonHangForm from "../DonHang/DonHangForm";
 import DonHangPrintPreview from "../DonHang/DonHangPrintPreview";
@@ -30,6 +33,17 @@ import NhanVienTable from "../NhanVien/NhanVienTable";
 import BangLuongPage from "../BangLuong/BangLuongPage";
 const Dashboard = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const { user } = useSelector(getAuthSelector);
+  const fallbackPath = getDefaultPathForUser(user);
+
+  const renderProtected = (routePath, element) => {
+    if (hasRouteAccess(user, routePath)) {
+      return element;
+    }
+
+    return <Navigate to={fallbackPath} replace />;
+  };
+
   return (
     <Box sx={{ display: "flex" }}>
       <Header onToggleSidebar={() => setCollapsed(!collapsed)} />
@@ -44,50 +58,51 @@ const Dashboard = () => {
         }}
       >
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/don-hang/*" element={<DonHangPage />} />
-          <Route path="/donhang/create" element={<DonHangForm />} />
-          <Route path="/donhang/:id/edit" element={<DonHangForm />} />
-          <Route path="/donhang/:id/print" element={<DonHangPrintPreview />} />
+          <Route path="/" element={renderProtected("/", <DashboardPage />)} />
+          <Route path="/don-hang/*" element={renderProtected("/don-hang", <DonHangPage />)} />
+          <Route path="/donhang/create" element={renderProtected("/donhang", <DonHangForm />)} />
+          <Route path="/donhang/:id/edit" element={renderProtected("/donhang", <DonHangForm />)} />
+          <Route path="/donhang/:id/print" element={renderProtected("/donhang", <DonHangPrintPreview />)} />
           <Route
             path="/donhang/:id/delivery-note"
-            element={<DonHangDeliveryNotePrintPreview />}
+            element={renderProtected("/donhang", <DonHangDeliveryNotePrintPreview />)}
           />
-          <Route path="/nha-khoa" element={<NhaKhoaPage />} />
-          <Route path="/nguoi-lien-he" element={<NguoiLienHePage />} />
-          <Route path="/benh-nhan" element={<BenhNhanPage />} />
-          <Route path="/tai-khoan" element={<StaffPage />} />
-          <Route path="/nhap-du-lieu" element={<NhapDuLieu />} />
-          <Route path="/cong-ty" element={<CongTy />} />
-          <Route path="/quyen-su-dung" element={<VaiTro />} />
-          <Route path="/ho-so" element={<StaffProfile />} />
-          <Route path="/san-pham" element={<SanPhamPage />} />
-          <Route path="/cong-doan" element={<CongDoanPage />} />
-          <Route path="/cho-xuat-hoa-don" element={<DonHangChuaXuatPage />} />
-          <Route path="/hoa-don" element={<HoaDonTable />} />
-          <Route path="/bao-cao" element={<BaoCaoPage />} />
+          <Route path="/nha-khoa" element={renderProtected("/nha-khoa", <NhaKhoaPage />)} />
+          <Route path="/nguoi-lien-he" element={renderProtected("/nguoi-lien-he", <NguoiLienHePage />)} />
+          <Route path="/benh-nhan" element={renderProtected("/benh-nhan", <BenhNhanPage />)} />
+          <Route path="/tai-khoan" element={renderProtected("/tai-khoan", <StaffPage />)} />
+          <Route path="/nhap-du-lieu" element={renderProtected("/nhap-du-lieu", <NhapDuLieu />)} />
+          <Route path="/cong-ty" element={renderProtected("/cong-ty", <CongTy />)} />
+          <Route path="/quyen-su-dung" element={renderProtected("/quyen-su-dung", <VaiTro />)} />
+          <Route path="/ho-so" element={renderProtected("/ho-so", <StaffProfile />)} />
+          <Route path="/san-pham" element={renderProtected("/san-pham", <SanPhamPage />)} />
+          <Route path="/cong-doan" element={renderProtected("/cong-doan", <CongDoanPage />)} />
+          <Route path="/cho-xuat-hoa-don" element={renderProtected("/cho-xuat-hoa-don", <DonHangChuaXuatPage />)} />
+          <Route path="/hoa-don" element={renderProtected("/hoa-don", <HoaDonTable />)} />
+          <Route path="/bao-cao" element={renderProtected("/bao-cao", <BaoCaoPage />)} />
           <Route
             path="/ke-hoach-giao-hang"
-            element={<KeHoachGiaoHangTable />}
+            element={renderProtected("/ke-hoach-giao-hang", <KeHoachGiaoHangTable />)}
           />
           <Route
             path="/hoa-don/:id/edit"
-            element={<HoaDonDetail></HoaDonDetail>}
+            element={renderProtected("/hoa-don", <HoaDonDetail></HoaDonDetail>)}
           ></Route>
-          <Route path="/hoa-don/:id/print" element={<HoaDonPrintPreview />} />
-          <Route path="/phieu-thu" element={<PhieuThuPage />} />
+          <Route path="/hoa-don/:id/print" element={renderProtected("/hoa-don", <HoaDonPrintPreview />)} />
+          <Route path="/phieu-thu" element={renderProtected("/phieu-thu", <PhieuThuPage />)} />
           <Route
             path="/phieu-thu/:id/print"
-            element={<PhieuThuPrintPreview />}
+            element={renderProtected("/phieu-thu", <PhieuThuPrintPreview />)}
           />
           <Route
             path="/nhan-vien"
-            element={<NhanVienTable></NhanVienTable>}
+            element={renderProtected("/nhan-vien", <NhanVienTable></NhanVienTable>)}
           ></Route>
           <Route
             path="/bang-luong"
-            element={<BangLuongPage></BangLuongPage>}
+            element={renderProtected("/bang-luong", <BangLuongPage></BangLuongPage>)}
           ></Route>
+          <Route path="*" element={<Navigate to={fallbackPath} replace />} />
         </Routes>
       </Box>
     </Box>

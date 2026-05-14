@@ -40,7 +40,6 @@ export default function StaffModal({
     HoTenNV: "",
     Email: "",
     Password: "",
-    ChucVu: "Thành viên",
     quyenSuDung: "",
     DienThoai: "",
     DiaChi: "",
@@ -95,6 +94,10 @@ export default function StaffModal({
       newErrors.Password = "Mật khẩu là bắt buộc";
     }
 
+    if (!form.quyenSuDung) {
+      newErrors.quyenSuDung = "Quyền sử dụng là bắt buộc";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -133,7 +136,6 @@ export default function StaffModal({
         HoTenNV: "",
         Email: "",
         Password: "",
-        ChucVu: "Thành viên",
         quyenSuDung: "",
         DienThoai: "",
         DiaChi: "",
@@ -249,19 +251,6 @@ export default function StaffModal({
               size="small"
             />
 
-            {/* VAI TRÒ */}
-            <TextField
-              select
-              label="Vai trò"
-              value={form.ChucVu}
-              onChange={(e) => handleChange("ChucVu", e.target.value)}
-              size="small"
-            >
-              <MenuItem value="Sở hữu">Sở hữu (Admin)</MenuItem>
-              <MenuItem value="Quản lý">Quản lý</MenuItem>
-              <MenuItem value="Thành viên">Thành viên</MenuItem>
-            </TextField>
-
             {/* QUYỀN SỬ DỤNG */}
             <TextField
               select
@@ -270,6 +259,9 @@ export default function StaffModal({
               onChange={(e) => handleChange("quyenSuDung", e.target.value)}
               size="small"
               disabled={loadingQuyens}
+              required
+              error={!!errors.quyenSuDung}
+              helperText={errors.quyenSuDung}
             >
               <MenuItem value="">-- Chọn quyền sử dụng --</MenuItem>
               {quyens.map((quyen) => (

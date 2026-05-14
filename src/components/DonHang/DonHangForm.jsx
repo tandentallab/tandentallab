@@ -429,7 +429,10 @@ const DonHangForm = () => {
       )
       .join("; ");
   };
-
+    // Filter only valid warranties for print button
+  const validWarranties = (phieuBaoHanhList || []).filter(
+    (pbh) => pbh && pbh.danhSachBaoHanh && Array.isArray(pbh.danhSachBaoHanh) && pbh.danhSachBaoHanh.length > 0
+  );
   return (
     <div className="fixed inset-0 z-[1299] bg-[#f0f2f5] flex flex-col w-full h-full overflow-hidden">
       {/* Top bar */}
@@ -761,10 +764,10 @@ const DonHangForm = () => {
               + Thêm thẻ bảo hành
             </button>
           )}
-          {isEditMode && phieuBaoHanhList.length > 0 && (
+          {isEditMode && validWarranties.length > 0 && (
             <button
               onClick={() => {
-                setSelectedWarranty(phieuBaoHanhList[0]);
+                setSelectedWarranty(validWarranties[0]);
                 setOpenPrintWarranty(true);
               }}
               className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded text-sm flex items-center gap-1"

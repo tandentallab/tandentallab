@@ -14,10 +14,20 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
     printWindow.print();
   };
 
-  const qrValue = `http://localhost:3000/warranty/?qrcode=${warranty.maQR}`;
+  const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
+  const qrValue = `http://${host}:3000/warranty/?qrcode=${warranty.maQR}`;
+  const warrantyCodeNumber = String(warranty.maBaoHanh || "").match(/\d+/g)?.join("") || warranty.maBaoHanh || "---";
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="md" 
+      fullWidth
+      PaperProps={{
+        sx: { maxHeight: "90vh", height: "auto" }
+      }}
+    >
       <DialogTitle className="bg-blue-600 text-white font-bold">
         In thẻ bảo hành
       </DialogTitle>
@@ -26,34 +36,75 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
         {/* Card Preview */}
         <div
           ref={printRef}
-          className="bg-white border-2 border-gray-300 p-6"
-          style={{ width: "100%", maxWidth: "450px", margin: "0 auto", height: "200px" }}
+          style={{
+            width: "100%",
+            maxWidth: "450px",
+            margin: "0 auto",
+            height: "500px",
+            background: "#ffffff",
+            border: "2px solid #e5e7eb",
+            boxSizing: "border-box",
+            position: "relative",
+            overflow: "hidden",
+            padding: 0,
+            fontFamily: "sans-serif",
+          }}
         >
-          <div className="flex h-full gap-6">
-            {/* Left side: Phone + Name */}
-            <div className="flex flex-col justify-between flex-1">
-              {/* Phone */}
-              <div className="text-2xl font-bold text-gray-800">
-                {warranty.soDienThoai || "---"}
-              </div>
-
-              {/* Customer Name */}
-              <div className="text-lg font-semibold text-gray-700">
-                {warranty.benhNhan?.hoVaTen || "---"}
-              </div>
+          <div style={{ position: "relative", width: "100%", height: "100%" }}>
+            {/* Tên nha khoa: top 37mm, left 10mm, size 12pt bold */}
+            <div
+              style={{
+                position: "absolute",
+                left: "8mm",
+                top: "36mm",
+                fontSize: "10pt",
+                fontWeight: 700,
+                color: "#111827",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {warranty.nhaKhoa?.tenGiaoDich || warranty.nhaKhoa?.hoVaTen || "---"}
             </div>
 
-            {/* Right side: QR + Code */}
-            <div className="flex flex-col items-center justify-between">
-              {/* QR Code */}
-              <div>
-                <QRCodeSVG value={qrValue} size={100} level="H" includeMargin={false} />
-              </div>
+            {/* Bệnh nhân: top 47mm, left 10mm, size 12pt bold */}
+            <div
+              style={{
+                position: "absolute",
+                left: "8mm",
+                top: "46mm",
+                fontSize: "10pt",
+                fontWeight: 700,
+                color: "#111827",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {warranty.benhNhan?.hoVaTen || "---"}
+            </div>
 
-              {/* Warranty Code */}
-              <div className="text-sm font-semibold text-gray-800 text-center">
-                {warranty.maBaoHanh}
-              </div>
+            {/* Mã thẻ: top 47mm, left 60mm, size 12pt bold */}
+            <div
+              style={{
+                position: "absolute",
+                left: "59mm",
+                top: "46mm",
+                fontSize: "10pt",
+                fontWeight: 700,
+                color: "#111827",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {warrantyCodeNumber}
+            </div>
+
+            {/* Mã QR: top 33mm, left 60mm */}
+            <div
+              style={{
+                position: "absolute",
+                left: "59mm",
+                top: "31mm",
+              }}
+            >
+              <QRCodeSVG value={qrValue} size={53} level="H" includeMargin={false} />
             </div>
           </div>
         </div>

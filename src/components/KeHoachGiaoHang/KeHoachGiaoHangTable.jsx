@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchDonHang } from "../../redux/slices/donHangSlice";
+import { fetchDonHangAll } from "../../redux/slices/donHangSlice";
 import {
   format,
   isToday,
@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 
 const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
-  const { data, loading } = useSelector((state) => state.donHang);
+  const { allData: data, loading } = useSelector((state) => state.donHang);
 
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
 
@@ -28,7 +28,7 @@ const KeHoachGiaoHangTable = () => {
   const [toDate, setToDate] = useState("");
 
   useEffect(() => {
-    dispatch(fetchDonHang());
+    dispatch(fetchDonHangAll());
   }, [dispatch]);
 
   const todayStart = startOfDay(new Date());
@@ -188,10 +188,7 @@ const KeHoachGiaoHangTable = () => {
                             navigate(`/donhang/${order._id}/edit`);
                           }}
                         >
-                          TAN
-                          {order._id
-                            .substring(order._id.length - 8)
-                            .toUpperCase()}
+                          {order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`}
                         </Button>
                       </td>
 
@@ -220,13 +217,12 @@ const KeHoachGiaoHangTable = () => {
                       <td className="p-3 whitespace-nowrap">
                         <div className="flex flex-col">
                           <span
-                            className={`font-bold ${
-                              overdue
-                                ? "text-red-600"
-                                : today
+                            className={`font-bold ${overdue
+                              ? "text-red-600"
+                              : today
                                 ? "text-orange-500"
                                 : ""
-                            }`}
+                              }`}
                           >
                             {format(date, "dd/MM/yyyy HH:mm")}
                           </span>
@@ -248,13 +244,12 @@ const KeHoachGiaoHangTable = () => {
                       {/* TRẠNG THÁI */}
                       <td className="p-3 whitespace-nowrap">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            order.trangThai === "Hoàn thành"
-                              ? "bg-green-100 text-green-700"
-                              : order.trangThai === "Đang sản xuất"
+                          className={`px-2 py-1 rounded text-xs font-medium ${order.trangThai === "Hoàn thành"
+                            ? "bg-green-100 text-green-700"
+                            : order.trangThai === "Đang sản xuất"
                               ? "bg-blue-100 text-blue-700"
                               : "bg-yellow-100 text-yellow-700"
-                          }`}
+                            }`}
                         >
                           {order.trangThai}
                         </span>

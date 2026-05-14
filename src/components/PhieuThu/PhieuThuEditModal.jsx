@@ -18,7 +18,7 @@ const formatDateDisplay = (d) => {
     if (!d) return "";
     return new Date(d).toLocaleString("vi-VN", { day: "2-digit", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
 };
-const formatSoHoaDon = (id) => (id ? "TAN" + id.toString().slice(-8).toUpperCase() : "â€”");
+const formatSoHoaDon = (id) => (id ? "TAN" + id.toString().slice(-8).toUpperCase() : "—");
 
 const getInitials = (name) => {
     if (!name) return "?";
@@ -67,9 +67,10 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
 
     const nk = phieuThu.nhaKhoaInfo || {};
     const ngt = phieuThu.nguoiTaoInfo || {};
-    const hd = phieuThu.hoaDonInfo || {};
     const tenKhach = nk.hoVaTen || nk.tenGiaoDich || "";
     const address = [nk.diaChiCuThe, nk.quanHuyen, nk.tinh].filter(Boolean).join(", ");
+
+    const danhSachHoaDon = phieuThu.danhSachHoaDon || [];
 
     return (
         <div className="fixed inset-0 z-[1400] flex items-start justify-center pt-4 pb-4 overflow-y-auto">
@@ -141,7 +142,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                     </div>
 
                     {/* INVOICE TABLE (read-only) */}
-                    {hd._id && (
+                    {danhSachHoaDon.length > 0 && (
                         <div className="rounded-xl overflow-hidden border border-gray-200 bg-white">
                             <table className="w-full text-sm">
                                 <thead className="border-b border-gray-100">
@@ -156,19 +157,25 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr className="border-b border-gray-50">
-                                        <td className="px-4 py-3 text-gray-500">1</td>
-                                        <td className="px-4 py-3 font-medium text-[#29b6f6]">{formatSoHoaDon(hd._id)}</td>
-                                        <td className="px-4 py-3 text-gray-600">{hd.ngayXuatHoaDon ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN") : "â€”"}</td>
-                                        <td className="px-4 py-3 text-right text-gray-700">{fmt(hd.thanhTien)}</td>
-                                        <td className="px-4 py-3 text-right text-gray-500">{fmt(hd.daThanhToan)}</td>
-                                        <td className="px-4 py-3 text-right text-gray-700">{fmt(hd.conLai)}</td>
-                                        <td className="px-4 py-3 text-right font-semibold text-gray-900">{fmt(phieuThu.soTienThu)}</td>
-                                    </tr>
+                                    {danhSachHoaDon.map((item, idx) => {
+                                        const hd = item.hoaDon || {};
+                                        return (
+                                            <tr key={hd._id || idx} className="border-b border-gray-50 last:border-0">
+                                                <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
+                                                <td className="px-4 py-3 font-medium text-[#29b6f6]">{hd.soHoaDon || formatSoHoaDon(hd._id)}</td>
+                                                <td className="px-4 py-3 text-gray-600">{hd.ngayXuatHoaDon ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN") : "—"}</td>
+                                                <td className="px-4 py-3 text-right text-gray-700">{fmt(hd.thanhTien)}</td>
+                                                <td className="px-4 py-3 text-right text-gray-500">{fmt(hd.daThanhToan)}</td>
+                                                <td className="px-4 py-3 text-right text-gray-700">{fmt(hd.conLai)}</td>
+                                                <td className="px-4 py-3 text-right font-semibold text-gray-900">{fmt(item.soTienThanhToan)}</td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
                     )}
+
 
                     {/* BOTTOM */}
                     <div className="grid grid-cols-2 gap-8 items-start">

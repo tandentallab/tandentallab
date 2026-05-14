@@ -54,7 +54,7 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                                     onClick={() => onRowClick(dh)}
                                 >
                                     <td className="px-4 py-3 font-medium">
-                                        TAN{dh._id.substring(dh._id.length - 8).toUpperCase()}
+                                        {dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8).toUpperCase()}`}
                                     </td>
                                     <td className="px-4 py-3">
                                         {dh.ngayNhan ? new Date(dh.ngayNhan).toLocaleString('vi-VN', {
@@ -79,10 +79,6 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                         )}
                     </tbody>
                 </table>
-            </div>
-
-            <div className="bg-gray-50 border-t p-3 flex justify-between items-center text-sm text-gray-600">
-                <span>Tổng số: {renderData.length} đơn hàng</span>
             </div>
         </div>
     );

@@ -37,14 +37,14 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
 
   const maDonHang = donHang
     ? donHang.maDonHang ||
-      `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`
+    `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`
     : "";
 
   // Fetch warranty when donHang changes
   useEffect(() => {
     if (donHang?._id) {
       api
-        .get(`/api/phieu-bao-hanh/don-hang/${donHang._id}`)
+        .get(`/phieu-bao-hanh/don-hang/${donHang._id}`)
         .then((res) => {
           console.log("Warranty Response:", res.data);
           setWarranty(res.data.data || res.data);
@@ -79,7 +79,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
         success: `Đã xóa đơn hàng ${maDonHang}`,
         error: (err) => err || "Xóa đơn hàng thất bại",
       });
-      promise.then(() => onClose()).catch(() => {});
+      promise.then(() => onClose()).catch(() => { });
     }
   };
 
@@ -155,19 +155,17 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${
-          isOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${isOpen
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
+          }`}
         onClick={onClose}
       />
 
       {/* Slide-out panel */}
       <div
-        className={`fixed right-0 top-10 md:top-0 pt-16 h-full w-full sm:w-[440px] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed right-0 top-10 md:top-0 pt-16 h-full w-full sm:w-[440px] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         {/* Header */}
         <div className="bg-teal-700 text-white px-4 py-3 flex items-center justify-between shrink-0">
@@ -175,10 +173,9 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
             <span className="font-bold text-base truncate">{maDonHang}</span>
             {donHang && (
               <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                  trangThaiColor[donHang.trangThai] ||
+                className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${trangThaiColor[donHang.trangThai] ||
                   "bg-gray-200 text-gray-800"
-                }`}
+                  }`}
               >
                 {donHang.trangThai || "Chờ xử lý"}
               </span>
@@ -261,11 +258,10 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-5 py-2.5 text-sm font-medium transition border-b-2 ${
-                activeTab === tab.key
-                  ? "border-teal-600 text-teal-700"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
+              className={`px-5 py-2.5 text-sm font-medium transition border-b-2 ${activeTab === tab.key
+                ? "border-teal-600 text-teal-700"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
             >
               {tab.label}
             </button>
@@ -444,11 +440,10 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
               <button
                 onClick={handleMarkComplete}
                 disabled={donHang.trangThai === "Hoàn thành"}
-                className={`w-full py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 mt-1 ${
-                  donHang.trangThai === "Hoàn thành"
-                    ? "bg-green-100 text-green-700 cursor-default border border-green-200"
-                    : "bg-green-500 hover:bg-green-600 text-white shadow-sm"
-                }`}
+                className={`w-full py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 mt-1 ${donHang.trangThai === "Hoàn thành"
+                  ? "bg-green-100 text-green-700 cursor-default border border-green-200"
+                  : "bg-green-500 hover:bg-green-600 text-white shadow-sm"
+                  }`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -572,11 +567,10 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
                                                 opt
                                               )
                                             }
-                                            className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition ${
-                                              opt === currentStatus
-                                                ? "font-semibold text-cyan-600"
-                                                : "text-gray-700"
-                                            }`}
+                                            className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition ${opt === currentStatus
+                                              ? "font-semibold text-cyan-600"
+                                              : "text-gray-700"
+                                              }`}
                                           >
                                             {opt}
                                           </button>
@@ -600,10 +594,10 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
               })}
               {(!donHang.danhSachSanPham ||
                 donHang.danhSachSanPham.length === 0) && (
-                <div className="text-gray-400 text-sm italic text-center mt-8">
-                  Chưa có sản phẩm
-                </div>
-              )}
+                  <div className="text-gray-400 text-sm italic text-center mt-8">
+                    Chưa có sản phẩm
+                  </div>
+                )}
             </div>
           )}
 
@@ -634,7 +628,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
             toast.success("Đã tạo phiếu bảo hành");
             // Refresh warranty
             api
-              .get(`/api/phieu-bao-hanh/don-hang/${donHang._id}`)
+              .get(`/phieu-bao-hanh/don-hang/${donHang._id}`)
               .then((res) => {
                 setWarranty(res.data.data || res.data);
               });
@@ -667,12 +661,12 @@ const DateCard = ({ label, value, colorClass, format }) => {
   const formatted = value
     ? format === "datetime"
       ? new Date(value).toLocaleString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
       : new Date(value).toLocaleDateString("vi-VN")
     : "--";
   return (

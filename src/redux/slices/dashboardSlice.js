@@ -30,12 +30,18 @@ const dashboardSlice = createSlice({
         chart2: { data: [], loading: false, config: { ...defaultFilter } },
         chart3: { data: [], loading: false, config: { ...defaultFilter, showDataLabels: true } },
         chart4: { data: [], loading: false, config: { ...defaultFilter, showDataLabels: false, showLegend: true } },
-
     },
     reducers: {
         updateChartConfig: (state, action) => {
             const { chartId, config } = action.payload;
             state[chartId].config = { ...state[chartId].config, ...config };
+        },
+        // 👇 THÊM: Action resetDashboard để dọn rác sau khi logout
+        resetDashboard: (state) => {
+            state.chart1 = { data: [], loading: false, config: { ...defaultFilter } };
+            state.chart2 = { data: [], loading: false, config: { ...defaultFilter } };
+            state.chart3 = { data: [], loading: false, config: { ...defaultFilter, showDataLabels: true } };
+            state.chart4 = { data: [], loading: false, config: { ...defaultFilter, showDataLabels: false, showLegend: true } };
         }
     },
     extraReducers: (builder) => {
@@ -53,8 +59,10 @@ const dashboardSlice = createSlice({
                 const { chartId } = action.meta.arg;
                 state[chartId].loading = false;
             });
-    },
+    }
 });
 
-export const { updateChartConfig } = dashboardSlice.actions;
+// Nhớ export action resetDashboard ra ngoài
+export const { updateChartConfig, resetDashboard } = dashboardSlice.actions;
+
 export default dashboardSlice.reducer;

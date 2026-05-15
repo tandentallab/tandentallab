@@ -328,43 +328,55 @@ const DonHangForm = () => {
   // <-- THÊM MỚI: Xử lý bật Modal khi chọn Hàng sửa/Làm lại
   const handleSanPhamChange = (index, field, value) => {
     const newDsSp = [...formData.danhSachSanPham];
-    newDsSp[index][field] = value;
-    setFormData({ ...formData, danhSachSanPham: newDsSp });
+    // FIX: Clone object con để tránh mutate state trực tiếp
+    newDsSp[index] = { ...newDsSp[index], [field]: value };
 
-    if (
-      field === "loaiDon" &&
-      ["Hàng sửa", "Hàng làm lại", "Hàng bảo hành"].includes(value)
-    ) {
+    // Nếu đổi loại đơn sang Sửa/Bảo hành/Làm lại
+    if (field === "loaiDon" && ["Hàng sửa", "Hàng làm lại", "Hàng bảo hành"].includes(value)) {
       if (!formData.benhNhan) {
-        alert(
-          "Vui lòng chọn Bệnh nhân ở cột trái trước để hệ thống tìm đơn hàng cũ!"
-        );
-        // Reset về "Mới" nếu chưa có bệnh nhân
-        const resetDsSp = [...formData.danhSachSanPham];
-        resetDsSp[index][field] = "Mới";
-        setFormData({ ...formData, danhSachSanPham: resetDsSp });
+        alert("Vui lòng chọn Bệnh nhân ở cột trái trước để hệ thống tìm đơn hàng cũ!");
+        // Tự động trả UI về "Mới" một cách an toàn
+        newDsSp[index].loaiDon = "Mới";
+        setFormData({ ...formData, danhSachSanPham: newDsSp });
         return;
       }
+
+      // Nếu đã có bệnh nhân -> Cập nhật state và bật Modal
+      setFormData({ ...formData, danhSachSanPham: newDsSp });
       setModalDonHangCuInfo({ isOpen: true, index: index, loaiDon: value });
+      return;
     }
+
+    // Trường hợp cập nhật các field khác (sanPham, soLuong, mau, ghiChu...)
+    setFormData({ ...formData, danhSachSanPham: newDsSp });
   };
 
   // <-- THÊM MỚI: Đắp dữ liệu từ đơn cũ sang dòng hiện tại
   const handleApplyOldOrder = (oldOrder) => {
     const index = modalDonHangCuInfo.index;
     const newDsSp = [...formData.danhSachSanPham];
+    const spCu = oldOrder.danhSachSanPham || [];
 
-    // Lấy sản phẩm đầu tiên của đơn cũ (bạn có thể tuỳ biến thêm nếu 1 đơn có nhiều SP)
-    const oldProduct = oldOrder.danhSachSanPham?.[0] || {};
+    // Lỡ đơn cũ lỗi không có sản phẩm nào thì đóng Modal luôn
+    if (spCu.length === 0) {
+      setModalDonHangCuInfo({ isOpen: false, index: null, loaiDon: "" });
+      return;
+    }
 
-    newDsSp[index] = {
-      ...newDsSp[index],
-      sanPham: oldProduct.sanPham?._id || oldProduct.sanPham || "",
-      viTri: oldProduct.viTri || [],
-      soLuong: oldProduct.soLuong || 1,
-      mau: oldProduct.mau || "",
-      ghiChu: oldProduct.ghiChu || "",
-    };
+    // Map toàn bộ sản phẩm của đơn cũ thành mảng các dòng mới
+    const mappedProducts = spCu.map(sp => ({
+      loaiDon: modalDonHangCuInfo.loaiDon, // 🔥 ÉP CỨNG loại đơn (Sửa/Bảo hành/Làm lại) cho TẤT CẢ
+      donHangCu: oldOrder._id,             // Map ID đơn hàng gốc cho TẤT CẢ
+      sanPham: sp.sanPham?._id || sp.sanPham || "",
+      viTri: sp.viTri || [],
+      soLuong: sp.soLuong || 1,
+      mau: sp.mau || "",
+      ghiChu: sp.ghiChu || "",
+    }));
+
+    // XÓA dòng hiện tại (nơi user vừa bấm mở Modal) 
+    // VÀ CHÈN toàn bộ mảng sản phẩm vừa map được vào đúng vị trí đó
+    newDsSp.splice(index, 1, ...mappedProducts);
 
     setFormData({ ...formData, danhSachSanPham: newDsSp });
     setModalDonHangCuInfo({ isOpen: false, index: null, loaiDon: "" });
@@ -434,6 +446,8 @@ const DonHangForm = () => {
       yeuCauHoanThanh: formData.yeuCauHoanThanh ? new Date(formData.yeuCauHoanThanh).toISOString() : null,
       henGiao: formData.henGiao ? new Date(formData.henGiao).toISOString() : null,
     };
+    console.log("=== CHECK DỮ LIỆU TRƯỚC KHI GỬI API ===");
+    console.log("Danh sách sản phẩm:", JSON.parse(JSON.stringify(dataToSend.danhSachSanPham)));
 
     const action = isEditMode
       ? updateDonHang({ id, data: dataToSend })

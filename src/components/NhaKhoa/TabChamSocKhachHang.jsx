@@ -1,22 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Box,
   Typography,
   Paper,
   Grid,
-  Chip,
-  Tabs,
-  Tab,
   TextField,
   Button,
   MenuItem,
-  Modal,
-  Divider,
-  Card,
   IconButton,
   Stack,
-  Tooltip,
   CircularProgress,
 } from "@mui/material";
 import {
@@ -30,39 +23,13 @@ import {
 } from "@mui/lab";
 
 // Icons
-import {
-  Phone,
-  Mail,
-  Globe,
-  MapPin,
-  Info,
-  Calendar,
-  MessageSquare,
-  Save,
-  X,
-  Trash2,
-} from "lucide-react";
-import CallIcon from "@mui/icons-material/Call";
+import { Phone, Mail, Info, MessageSquare, Save, Trash2 } from "lucide-react";
 
 // Redux Actions (Đảm bảo đường dẫn đúng với cấu trúc dự án của bạn)
 import {
-  fetchChamSocByNhaKhoa,
   createChamSoc,
   deleteChamSoc,
-  clearChamSoc,
 } from "../../redux/slices/chamSocKhachHangSlice";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
-import BusinessIcon from "@mui/icons-material/Business";
-import MapIcon from "@mui/icons-material/Map";
-import DescriptionIcon from "@mui/icons-material/Description";
-import PhoneIcon from "@mui/icons-material/Phone";
-import EmailIcon from "@mui/icons-material/Email";
-import {
-  fetchBangGiaByNhaKhoa,
-  upsertBangGia,
-  deleteBangGia,
-} from "../../redux/slices/bangGiaSlice";
-import TabThongTinNhaKhoa from "./TabThongTinNhaKhoa";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 
 export default function TabChamSocKhachHang({ nhaKhoaData }) {

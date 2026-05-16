@@ -26,7 +26,7 @@ export default function QuyenSuDung() {
   const [openModal, setOpenModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ ten: "", moTa: "" });
-  const [loading, setLoading] = useState(false);
+  const [setLoading] = useState(false);
 
   // 📌 Fetch data
   const fetchQuyens = async () => {
@@ -180,7 +180,12 @@ export default function QuyenSuDung() {
       </Paper>
 
       {/* Modal Thêm/Sửa */}
-      <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth>
+      <Dialog
+        open={openModal}
+        onClose={handleCloseModal}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
           {editingId ? "Sửa Quyền Sử Dụng" : "Thêm Quyền Sử Dụng"}
         </DialogTitle>
@@ -214,4 +219,3 @@ export default function QuyenSuDung() {
     </Box>
   );
 }
-

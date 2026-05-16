@@ -232,10 +232,10 @@ export default function PhieuThuPage() {
         <div className="p-4 bg-gray-100 min-h-screen">
             {/* Toolbar */}
             <div className="mb-4 bg-white rounded shadow-sm border">
-                <div className="flex justify-between items-center p-3">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3">
 
                     {/* Left: filter icon + title */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <div className="relative" ref={filterRef}>
                             <button
                                 onClick={handleOpenFilter}
@@ -249,7 +249,7 @@ export default function PhieuThuPage() {
 
                             {/* Filter dropdown */}
                             {showFilter && (
-                                <div className="absolute left-0 top-full mt-1 z-50 w-80 bg-white rounded-xl shadow-2xl border border-gray-200">
+                                <div className="absolute left-0 top-full mt-1 z-50 w-80 max-w-[90vw] bg-white rounded-xl shadow-2xl border border-gray-200">
 
                                     {/* Ngày thu */}
                                     <div className="border-b border-gray-100">
@@ -367,8 +367,8 @@ export default function PhieuThuPage() {
                     </div>
 
                     {/* Right: search + add + refresh */}
-                    <div className="flex gap-2 items-center">
-                        <div className="relative flex items-center">
+                    <div className="flex gap-2 items-center flex-wrap w-full sm:w-auto">
+                        <div className="relative flex items-center flex-1 sm:flex-none">
                             <span className="absolute left-2.5 text-gray-400 flex items-center pointer-events-none">
                                 <SearchIcon sx={{ fontSize: 16 }} />
                             </span>
@@ -377,7 +377,7 @@ export default function PhieuThuPage() {
                                 placeholder="Tìm phiếu thu, khách hàng..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="border bg-gray-50 pl-8 pr-8 py-1.5 rounded-full w-72 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                className="border bg-gray-50 pl-8 pr-8 py-1.5 rounded-full w-full sm:w-64 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
                             />
                             {searchTerm && (
                                 <button onClick={() => setSearchTerm("")} className="absolute right-2.5 text-gray-400 hover:text-gray-600 flex items-center">
@@ -395,10 +395,10 @@ export default function PhieuThuPage() {
                         <button
                             onClick={() => setOpenExport(true)}
                             title="Xuất excel phiếu thu"
-                            className="px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1"
+                            className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1"
                         >
                             <DownloadIcon sx={{ fontSize: 17 }} />
-                            Xuất excel
+                            <span className="hidden sm:inline">Xuất excel</span>
                         </button>
                     </div>
                 </div>
@@ -438,17 +438,62 @@ export default function PhieuThuPage() {
 
             {/* Table */}
             <div className="bg-white rounded shadow-sm overflow-hidden border">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left whitespace-nowrap">
+                {/* ── MOBILE: Card list (hidden sm+) ── */}
+                <div className="sm:hidden divide-y divide-gray-100">
+                    {loading ? (
+                        <p className="text-center py-10 text-gray-400 text-sm">Đang tải dữ liệu...</p>
+                    ) : danhSach.length === 0 ? (
+                        <p className="text-center py-10 text-gray-400 text-sm">Không có dữ liệu</p>
+                    ) : (
+                        danhSach.map((pt) => (
+                            <div
+                                key={pt._id}
+                                onClick={() => handleRowClick(pt)}
+                                className={`px-4 py-3 cursor-pointer transition-colors ${selectedPhieuThu?._id === pt._id ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                            >
+                                {/* Row 1: số phiếu + số tiền */}
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="font-semibold text-blue-700 text-sm">
+                                        {pt.soPhieuThu || formatSoPhieu(pt._id)}
+                                    </span>
+                                    <span className="font-semibold text-green-700 text-sm">
+                                        {formatCurrency(pt.soTienThu)}
+                                    </span>
+                                </div>
+                                {/* Row 2: khách hàng */}
+                                <p className="text-sm text-gray-800 font-medium truncate">
+                                    {pt.nhaKhoaInfo?.hoVaTen || pt.nhaKhoaInfo?.tenGiaoDich || "—"}
+                                </p>
+                                {/* Row 3: ngày thu · phương thức */}
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-xs text-gray-400">{formatDateTime(pt.ngayThu)}</span>
+                                    {pt.phuongThucThanhToan && (
+                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pt.phuongThucThanhToan === "Chuyển khoản" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
+                                            {pt.phuongThucThanhToan}
+                                        </span>
+                                    )}
+                                </div>
+                                {/* Row 4: nội dung (nếu có) */}
+                                {pt.noiDung && (
+                                    <p className="text-xs text-gray-400 mt-0.5 truncate">{pt.noiDung}</p>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* ── DESKTOP: Table (hidden on mobile) ── */}
+                <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full min-w-[640px] text-sm text-left whitespace-nowrap">
                         <thead className="bg-blue-50 text-blue-600 font-medium border-b sticky top-0 z-10">
                             <tr>
                                 <th className="px-4 py-3">Số phiếu</th>
                                 <th className="px-4 py-3">Khách hàng</th>
                                 <th className="px-4 py-3">Ngày thu</th>
                                 <th className="px-4 py-3 text-right">Số tiền thu</th>
-                                <th className="px-4 py-3">Nội dung thu</th>
-                                <th className="px-4 py-3">Phương thức</th>
-                                <th className="px-4 py-3">Người tạo</th>
+                                <th className="px-4 py-3 hidden md:table-cell">Nội dung thu</th>
+                                <th className="px-4 py-3 hidden sm:table-cell">Phương thức</th>
+                                <th className="px-4 py-3 hidden lg:table-cell">Người tạo</th>
                             </tr>
                         </thead>
                         <tbody className="text-gray-700">
@@ -467,13 +512,13 @@ export default function PhieuThuPage() {
                                         <td className="px-4 py-3">{pt.nhaKhoaInfo?.hoVaTen || pt.nhaKhoaInfo?.tenGiaoDich || "-"}</td>
                                         <td className="px-4 py-3">{formatDateTime(pt.ngayThu)}</td>
                                         <td className="px-4 py-3 text-right font-semibold text-green-700">{formatCurrency(pt.soTienThu)}</td>
-                                        <td className="px-4 py-3 max-w-[200px] truncate" title={pt.noiDung}>{pt.noiDung || "-"}</td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-4 py-3 max-w-[200px] truncate hidden md:table-cell" title={pt.noiDung}>{pt.noiDung || "-"}</td>
+                                        <td className="px-4 py-3 hidden sm:table-cell">
                                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pt.phuongThucThanhToan === "Chuyển khoản" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
                                                 {pt.phuongThucThanhToan || "-"}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">{pt.nguoiTaoInfo?.HoTenNV || "-"}</td>
+                                        <td className="px-4 py-3 hidden lg:table-cell">{pt.nguoiTaoInfo?.HoTenNV || "-"}</td>
                                     </tr>
                                 ))
                             )}

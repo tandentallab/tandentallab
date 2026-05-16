@@ -87,7 +87,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
 
       {/* Panel */}
       <div
-        className={`fixed right-0 top-0 pt-16 h-full w-[480px] bg-gray-100 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed right-0 top-0 pt-16 h-full w-full sm:w-[480px] bg-gray-100 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
           }`}
       >
         {/* ── HEADER ── */}
@@ -226,16 +226,24 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                           </div>
                           <div className="space-y-0">
                             <InfoRow label="Giá trị hóa đơn:" value={formatNumber(hd.thanhTien)} />
-                            <InfoRow label="Đã thanh toán:" value={formatNumber(hd.daThanhToan)} />
                             <InfoRow
-                              label="Còn lại:"
-                              value={formatNumber(hd.conLai)}
-                              valueClass={(hd.conLai || 0) > 0 ? "text-orange-500" : "text-green-600"}
+                              label="Đã thanh toán:"
+                              value={formatNumber((hd.daThanhToan || 0) - (soTienThanhToan || 0))}
                             />
                             <InfoRow
                               label="Thanh toán lần này:"
                               value={formatNumber(soTienThanhToan)}
-                              valueClass="text-gray-900 font-bold"
+                              valueClass="text-blue-600 font-bold"
+                            />
+                            <InfoRow
+                              label="Tổng cộng:"
+                              value={formatNumber(hd.daThanhToan)}
+                              valueClass="font-bold"
+                            />
+                            <InfoRow
+                              label="Còn lại:"
+                              value={formatNumber(hd.conLai)}
+                              valueClass={(hd.conLai || 0) > 0 ? "text-orange-500" : "text-green-600"}
                             />
                           </div>
                           {hd.trangThai && (
@@ -282,6 +290,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
           onSuccess={(updated) => {
             setOpenEdit(false);
             if (onUpdated) onUpdated(updated);
+            if (onClose) onClose();
           }}
         />
       )}

@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
 import BenhNhanTable from "./BenhNhanTable";
-import BenhNhanModal from "./BenhNhanModal";
 
 export default function BenhNhanPage() {
   const data = [

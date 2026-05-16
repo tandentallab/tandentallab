@@ -7,8 +7,6 @@ import {
   MenuItem,
   Button,
   IconButton,
-  Radio,
-  RadioGroup,
   FormControlLabel,
   Checkbox,
   Grid,
@@ -24,7 +22,6 @@ import {
   NHOM_SAN_PHAM_OPTIONS,
 } from "../../data/sanPhamConfig";
 import ChonCongDoanModal from "./ChonCongDoanModal";
-import AddIcon from "@mui/icons-material/Add";
 
 const INITIAL_FORM = {
   tenSanPham: "",
@@ -120,7 +117,12 @@ export default function SanPhamModal({
 
           <div className="p-4 md:p-6 overflow-y-auto">
             <Grid container spacing={4}>
-              <Grid item xs={12} md={8} className="border-b md:border-b-0 md:border-r border-gray-100 pb-6 md:pb-0 pr-0 md:pr-6">
+              <Grid
+                item
+                xs={12}
+                md={8}
+                className="border-b md:border-b-0 md:border-r border-gray-100 pb-6 md:pb-0 pr-0 md:pr-6"
+              >
                 <div className="flex flex-col gap-6">
                   <TextField
                     label="Tên *"
@@ -131,7 +133,10 @@ export default function SanPhamModal({
                     onChange={(e) => handleChange("tenSanPham", e.target.value)}
                     InputLabelProps={{
                       shrink: true,
-                      style: { color: errors.tenSanPham ? "#d32f2f" : "#f57c00", fontWeight: "bold" },
+                      style: {
+                        color: errors.tenSanPham ? "#d32f2f" : "#f57c00",
+                        fontWeight: "bold",
+                      },
                     }}
                   />
                   <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
@@ -145,7 +150,9 @@ export default function SanPhamModal({
                       InputLabelProps={{ shrink: true }}
                     >
                       {LOAI_TINH_OPTIONS.map((o) => (
-                        <MenuItem key={o} value={o}>{o}</MenuItem>
+                        <MenuItem key={o} value={o}>
+                          {o}
+                        </MenuItem>
                       ))}
                     </TextField>
                     <TextField
@@ -161,7 +168,10 @@ export default function SanPhamModal({
                       onChange={handlePriceChange}
                       InputLabelProps={{
                         shrink: true,
-                        style: { color: errors.donGiaChung ? "#d32f2f" : "#03a9f4", fontWeight: "bold" },
+                        style: {
+                          color: errors.donGiaChung ? "#d32f2f" : "#03a9f4",
+                          fontWeight: "bold",
+                        },
                       }}
                       InputProps={{
                         endAdornment: (
@@ -176,12 +186,18 @@ export default function SanPhamModal({
                       control={
                         <Checkbox
                           checked={form.coMauRang || false}
-                          onChange={(e) => handleChange("coMauRang", e.target.checked)}
+                          onChange={(e) =>
+                            handleChange("coMauRang", e.target.checked)
+                          }
                           color="success"
                           size="small"
                         />
                       }
-                      label={<span className="text-[13px] font-medium">Có màu răng</span>}
+                      label={
+                        <span className="text-[13px] font-medium">
+                          Có màu răng
+                        </span>
+                      }
                     />
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
@@ -191,7 +207,9 @@ export default function SanPhamModal({
                       variant="standard"
                       className="w-full sm:w-1/2"
                       value={form.loaiSanPham || "Cố định"}
-                      onChange={(e) => handleChange("loaiSanPham", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("loaiSanPham", e.target.value)
+                      }
                       InputLabelProps={{ shrink: true }}
                     >
                       <MenuItem value="Cố định">Cố định</MenuItem>
@@ -204,11 +222,15 @@ export default function SanPhamModal({
                       variant="standard"
                       className="w-full sm:w-1/2"
                       value={form.nhomSanPham || "Gia Công Sườn"}
-                      onChange={(e) => handleChange("nhomSanPham", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("nhomSanPham", e.target.value)
+                      }
                       InputLabelProps={{ shrink: true }}
                     >
                       {NHOM_SAN_PHAM_OPTIONS.map((o) => (
-                        <MenuItem key={o} value={o}>{o}</MenuItem>
+                        <MenuItem key={o} value={o}>
+                          {o}
+                        </MenuItem>
                       ))}
                     </TextField>
                   </div>
@@ -226,23 +248,38 @@ export default function SanPhamModal({
                 </div>
               </Grid>
 
-              <Grid item xs={12} md={4} className="flex flex-col items-center pt-2 md:pt-4 pl-0 md:pl-4">
+              <Grid
+                item
+                xs={12}
+                md={4}
+                className="flex flex-col items-center pt-2 md:pt-4 pl-0 md:pl-4"
+              >
                 <Typography
-                  className={`font-bold text-[11px] mb-4 text-center ${errors.quyTrinh ? "text-red-500" : "text-[#f57c00]"
-                    }`}
+                  className={`font-bold text-[11px] mb-4 text-center ${
+                    errors.quyTrinh ? "text-red-500" : "text-[#f57c00]"
+                  }`}
                 >
-                  {errors.quyTrinh ? "* Chưa thiết lập quy trình!" : "* Quy trình sản xuất"}
+                  {errors.quyTrinh
+                    ? "* Chưa thiết lập quy trình!"
+                    : "* Quy trình sản xuất"}
                 </Typography>
                 <Box
-                  className={`rounded-xl p-3 cursor-pointer border transition w-full ${errors.quyTrinh ? "bg-red-50 border-red-300" : "bg-blue-50 hover:border-blue-400"
-                    }`}
+                  className={`rounded-xl p-3 cursor-pointer border transition w-full ${
+                    errors.quyTrinh
+                      ? "bg-red-50 border-red-300"
+                      : "bg-blue-50 hover:border-blue-400"
+                  }`}
                   onClick={() => setOpenCD(true)}
                 >
                   <div className="flex justify-between items-center mb-2">
                     <Typography className="text-gray-800 text-[13px] font-bold italic">
                       Công đoạn sản xuất
                     </Typography>
-                    <AddCircleIcon className={errors.quyTrinh ? "text-red-500" : "text-green-500"} />
+                    <AddCircleIcon
+                      className={
+                        errors.quyTrinh ? "text-red-500" : "text-green-500"
+                      }
+                    />
                   </div>
                   <div className="flex flex-col gap-1 max-h-[250px] overflow-y-auto pr-1">
                     {form.quyTrinh?.map((step, idx) => (

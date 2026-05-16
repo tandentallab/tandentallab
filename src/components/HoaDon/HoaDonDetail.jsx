@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchHoaDonById, updateHoaDon } from "../../redux/slices/hoaDonSlice";
@@ -15,6 +15,10 @@ const HoaDonDetail = () => {
   const [loading, setLoading] = useState(true);
   const [hoaDon, setHoaDon] = useState(null);
   const [nhaKhoaInfo, setNhaKhoaInfo] = useState(null);
+
+  const [isDirty, setIsDirty] = useState(false);
+
+  const isInitialLoad = useRef(true);
 
   const dispatch = useDispatch();
   const { data: bangGia = [] } = useSelector((state) => state.bangGia) || {};
@@ -88,6 +92,23 @@ const HoaDonDetail = () => {
     setThuePhanTram(hoaDon?.thue);
     setChiPhiKhac(hoaDon?.chiPhiKhac);
   }, [hoaDon]);
+
+  useEffect(() => {
+    // bỏ qua lần load đầu tiên
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      return;
+    }
+
+    setIsDirty(true);
+  }, [
+    ghiChuChoKhachHang,
+    ghiChuNoiBo,
+    chinhSachThanhToan,
+    thuePhanTram,
+    chiPhiKhac,
+    hoaDon,
+  ]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -249,8 +270,35 @@ const HoaDonDetail = () => {
           },
         })
       );
+      setIsDirty(false);
     }
   };
+  const handleExit = () => {
+    if (isDirty) {
+      const confirmLeave = window.confirm(
+        "Bạn có thay đổi chưa cập nhật. Bạn có chắc muốn thoát?"
+      );
+
+      if (!confirmLeave) return;
+    }
+
+    navigate(-1);
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   if (loading) return <div className="p-4">Đang tải...</div>;
   if (!hoaDon) return <div className="p-4">Không tìm thấy hóa đơn</div>;
@@ -264,7 +312,7 @@ const HoaDonDetail = () => {
         </span>
 
         <button
-          onClick={() => navigate(-1)}
+          onClick={handleExit}
           className="text-white text-2xl hover:opacity-70"
         >
           &times;
@@ -341,8 +389,10 @@ const HoaDonDetail = () => {
           </div>
 
           {/* TABLE */}
-          <div className="bg-white shadow-md border border-gray-200 rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
+          {/* TABLE */}
+          {/* TABLE */}
+          <div className=" bg-white shadow-md border border-gray-200 rounded-lg overflow-auto flex flex-col min-h-0">
+            <div className=" max-[100vh]">
               <table className="min-w-[1100px] w-full text-sm text-left border-collapse">
                 <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] sticky top-0 z-10 border-b">
                   <tr>
@@ -494,7 +544,6 @@ const HoaDonDetail = () => {
                 </tbody>
               </table>
             </div>
-
             {/* NOTES + POLICY */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white p-4 md:p-6 shadow-sm rounded-lg mb-24">
               {/* LEFT */}
@@ -681,7 +730,7 @@ const HoaDonDetail = () => {
       {/* FOOTER */}
       <div className="h-14 md:h-12 bg-white border-t px-4 md:px-6 flex justify-end items-center shrink-0">
         <button
-          onClick={() => navigate(-1)}
+          onClick={handleExit}
           className="bg-gray-200 text-gray-700 px-6 py-2 md:py-1.5 rounded font-medium text-sm hover:bg-gray-300 transition"
         >
           Thoát

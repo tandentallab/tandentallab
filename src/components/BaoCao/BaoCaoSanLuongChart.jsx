@@ -34,8 +34,8 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
                     Top 10 sản phẩm có số lượng cao nhất
                 </p>
 
-                {/* ── Chart ── */}
-                <div className="h-[220px] w-full">
+                {/* ── FIX: Tăng chiều cao từ 220px lên 350px để đủ chỗ cho 10 nhãn sản phẩm ── */}
+                <div className="h-[250px] w-full">
                     {loading ? (
                         <div className="flex items-center justify-center h-full animate-pulse text-blue-400 font-bold italic text-sm">
                             Đang cập nhật biểu đồ...
@@ -49,25 +49,36 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
                             <BarChart
                                 layout="vertical"
                                 data={data}
-                                // barCategoryGap: khoảng cách giữa các nhóm bar (% hoặc px)
-                                // barGap: khoảng cách giữa các bar trong cùng nhóm
-                                barCategoryGap="20%"
-                                margin={{ top: 0, right: 52, left: 0, bottom: 0 }}
+                                barCategoryGap="15%"
+                                // Để margin left một chút để thanh bar không dính sát lề trái, 
+                                // margin right để 0 vì đã có width của YAxis giữ chỗ
+                                margin={{ top: 0, right: 0, left: 10, bottom: 10 }}
                             >
                                 <CartesianGrid
                                     strokeDasharray="3 3"
                                     horizontal={false}
                                     stroke="#f1f5f9"
                                 />
-                                <XAxis type="number" hide />
+                                <XAxis type="number" hide domain={[0, (dataMax) => Math.round(dataMax * 1.25)]} />
+
                                 <YAxis
                                     type="category"
                                     dataKey="name"
+                                    orientation="left"   // 1. Cái "ô" chứa chữ vẫn nằm bên trái
+                                    width={150}          // 2. Độ rộng của ô này (tăng lên nếu tên sản phẩm dài)
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 600 }}
-                                    width={136}
+                                    interval={0}
+                                    tick={{
+                                        fill: '#1e293b',
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        textAnchor: 'end' // 3. CHÍNH LÀ ĐÂY: Chữ sẽ căn lề phải (sát vào thanh bar)
+                                    }}
+                                    // Dịch toàn bộ chữ sang phải một chút để nó "chạm" vào lề thanh Bar
+                                    dx={-10}
                                 />
+
                                 <Tooltip
                                     cursor={{ fill: '#f8fafc' }}
                                     contentStyle={{
@@ -76,12 +87,13 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
                                         fontSize: 12,
                                     }}
                                 />
-                                {/* barSize nhỏ hơn → gap giữa các bar lớn hơn tương đối */}
+
                                 <Bar
                                     dataKey="quantity"
                                     fill="#00a3e0"
+                                    // Bo góc bên phải của thanh bar (vì thanh bar chạy từ trái sang phải)
                                     radius={[0, 4, 4, 0]}
-                                    barSize={11}
+                                    barSize={14}
                                 >
                                     <LabelList
                                         dataKey="quantity"

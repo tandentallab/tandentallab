@@ -69,25 +69,17 @@ const Dashboard = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <Box sx={{ flexShrink: 0 }}>
-        <Header onToggleSidebar={() => setCollapsed(!collapsed)} />
-      </Box>
-      
-      <Box sx={{ display: "flex", flex: 1 }}>
-        <Sidebar collapsed={collapsed} />
-        
-        <Box
-          component="main"
-          className="bg-gray-100 w-full"
-          sx={{
-            mt: `${headerMarginTop}px`,
-            flex: 1,
-            transition: "all 0.3s",
-            minHeight: `calc(100vh - ${headerMarginTop}px)`,
-            overflow: "auto",
-          }}
-        >
+    <Box sx={{ display: "flex" }}>
+      <Header onToggleSidebar={() => setCollapsed(!collapsed)} />
+      <Sidebar collapsed={collapsed} />
+      <Box
+        component="main"
+        className="bg-gray-100 min-h-screen w-full"
+        sx={{
+          mt: "66px",
+          transition: "all 0.3s",
+        }}
+      >
         <Routes>
           <Route path="/" element={renderProtected("/", <DashboardPage />)} />
           <Route path="/don-hang/*" element={renderProtected("/don-hang", <DonHangPage />)} />
@@ -135,7 +127,6 @@ const Dashboard = () => {
           ></Route>
           <Route path="*" element={<Navigate to={fallbackPath} replace />} />
         </Routes>
-        </Box>
       </Box>
     </Box>
   );

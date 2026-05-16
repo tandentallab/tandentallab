@@ -782,7 +782,6 @@ export const exportBangLuongToExcel = async (salaryData, thang, nam) => {
     const com = Number(item.com || 0);
     const dienThoai = Number(item.dienThoai || 0);
     const thuong = Number(item.thuong || 0);
-    const phat = Number(item.phat || 0);
     const ungTruoc = Number(item.ungTruoc || 0);
     const thucNhan = Number(item.thucNhan || 0);
 

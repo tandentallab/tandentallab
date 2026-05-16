@@ -1,13 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { api } from "../../config/api";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchHoaDonById, updateHoaDon } from "../../redux/slices/hoaDonSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
-import { Avatar, Button, IconButton, Tooltip } from "@mui/material";
-import { EditIcon, TrashIcon } from "lucide-react";
+import { Avatar, Button, IconButton } from "@mui/material";
+import { TrashIcon } from "lucide-react";
 import { exportHoaDonToExcel } from "../../utils/exportToExcel";
-import { deepPurple } from "@mui/material/colors";
 import DonHangChuaXuatModal from "../DonHangChuaXuat/DonHangChuaXuatModal";
 import AddIcon from "@mui/icons-material/Add";
 
@@ -19,7 +17,6 @@ const HoaDonDetail = () => {
   const [nhaKhoaInfo, setNhaKhoaInfo] = useState(null);
 
   const dispatch = useDispatch();
-  const { hoaDonDetail } = useSelector((state) => state.hoaDon);
   const { data: bangGia = [] } = useSelector((state) => state.bangGia) || {};
   const nhaKhoa = useSelector((state) => state.nhaKhoa);
 
@@ -327,7 +324,8 @@ const HoaDonDetail = () => {
                   <span className="text-gray-500">Mã:</span>
 
                   <span className="font-bold text-red-600 break-all text-right">
-                    {hoaDon.soHoaDon || `TAN${hoaDon._id.slice(-8).toUpperCase()}`}
+                    {hoaDon.soHoaDon ||
+                      `TAN${hoaDon._id.slice(-8).toUpperCase()}`}
                   </span>
                 </div>
 
@@ -378,7 +376,8 @@ const HoaDonDetail = () => {
                           }
                           className="font-bold text-blue-600 hover:underline text-xs whitespace-nowrap"
                         >
-                          {item.donHang?.maDonHang || `TAN${item.donHang?._id?.slice(-6).toUpperCase()}`}
+                          {item.donHang?.maDonHang ||
+                            `TAN${item.donHang?._id?.slice(-6).toUpperCase()}`}
                         </button>
                       </td>
 

@@ -448,7 +448,7 @@ const slice = createSlice({
 
           alert(
             action.payload?.message ||
-              "Cập nhật thất bại"
+            "Cập nhật thất bại"
           );
         }
       )
@@ -547,7 +547,7 @@ const slice = createSlice({
 
           alert(
             action.payload?.message ||
-              "Thanh toán thất bại"
+            "Thanh toán thất bại"
           );
         }
       )
@@ -581,7 +581,7 @@ const slice = createSlice({
         (state, action) => {
           alert(
             action.payload?.message ||
-              "Xóa thất bại"
+            "Xóa thất bại"
           );
         }
       )

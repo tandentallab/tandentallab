@@ -47,7 +47,6 @@ export const deletePhieuBaoHanh = createAsyncThunk(
   "phieuBaoHanh/delete",
   async (id, { rejectWithValue }) => {
     try {
-      const res = await api.delete(`/phieu-bao-hanh/${id}`);
       return id;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Lỗi xóa");

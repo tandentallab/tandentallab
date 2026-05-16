@@ -50,9 +50,9 @@ const NhaKhoaDetailModal = ({ nhaKhoaData }) => {
   const handleOpen = () => {
     setOpen(true);
     if (nhaKhoaData?._id) {
+      dispatch(fetchSanPham());
       dispatch(fetchChamSocByNhaKhoa(nhaKhoaData._id));
       dispatch(fetchBangGiaByNhaKhoa(nhaKhoaData._id));
-      dispatch(fetchSanPham);
     }
   };
 

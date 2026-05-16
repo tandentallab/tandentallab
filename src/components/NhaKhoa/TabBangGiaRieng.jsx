@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Box,
@@ -11,13 +11,8 @@ import {
 } from "@mui/material";
 import { Trash2 } from "lucide-react";
 
-import {
-  fetchBangGiaByNhaKhoa,
-  upsertBangGia,
-  deleteBangGia,
-} from "../../redux/slices/bangGiaSlice";
-
-import { fetchSanPham } from "../../redux/slices/sanPhamSlice";
+import { upsertBangGia, deleteBangGia } from "../../redux/slices/bangGiaSlice";
+import NhaKhoaSelector from "./NhaKhoaSelector";
 
 export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
   const dispatch = useDispatch();
@@ -36,6 +31,8 @@ export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
         overflow: "hidden",
       }}
     >
+      <NhaKhoaSelector nhaKhoaData={nhaKhoaData}></NhaKhoaSelector>
+
       {/* Loading */}
       {loading ? (
         <Box sx={{ textAlign: "center", py: 4 }}>
@@ -43,6 +40,7 @@ export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
         </Box>
       ) : (
         <Box>
+          {/* <NhaKhoaSelector></NhaKhoaSelector> */}
           {/* HEADER */}
           <Box
             sx={{

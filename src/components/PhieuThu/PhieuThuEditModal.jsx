@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { updatePhieuThu } from "../../redux/slices/phieuThuSlice";
 import CloseIcon from "@mui/icons-material/Close";
@@ -14,6 +14,46 @@ const toLocalDatetimeInput = (d) => {
 };
 
 const fmt = (v) => new Intl.NumberFormat("vi-VN").format(v || 0);
+const docSoTien = (amount) => {
+    if (!amount || amount <= 0) return "";
+    const n = Math.round(amount);
+    const ch = ["kh\u00f4ng", "m\u1ed9t", "hai", "ba", "b\u1ed1n", "n\u0103m", "s\u00e1u", "b\u1ea3y", "t\u00e1m", "ch\u00edn"];
+    const readGroup = (num) => {
+        if (num === 0) return "";
+        const h = Math.floor(num / 100);
+        const t = Math.floor((num % 100) / 10);
+        const u = num % 10;
+        const p = [];
+        if (h > 0) p.push(ch[h] + " tr\u0103m");
+        if (t > 1) {
+            p.push(ch[t] + " m\u01b0\u01a1i");
+            if (u === 1) p.push("m\u1ed1t");
+            else if (u === 4) p.push("t\u01b0");
+            else if (u === 5) p.push("l\u0103m");
+            else if (u > 0) p.push(ch[u]);
+        } else if (t === 1) {
+            p.push("m\u01b0\u1eddi");
+            if (u === 5) p.push("l\u0103m");
+            else if (u > 0) p.push(ch[u]);
+        } else if (u > 0) {
+            if (h > 0) p.push("l\u1ebd");
+            p.push(ch[u]);
+        }
+        return p.join(" ");
+    };
+    const ty = Math.floor(n / 1_000_000_000);
+    const tr = Math.floor((n % 1_000_000_000) / 1_000_000);
+    const ng = Math.floor((n % 1_000_000) / 1_000);
+    const dv = n % 1_000;
+    const parts = [];
+    if (ty > 0) parts.push(readGroup(ty) + " t\u1ef7");
+    if (tr > 0) parts.push(readGroup(tr) + " tri\u1ec7u");
+    if (ng > 0) parts.push(readGroup(ng) + " ngh\u00ecn");
+    if (dv > 0) parts.push(readGroup(dv));
+    if (!parts.length) return "";
+    const text = parts.join(" ");
+    return text.charAt(0).toUpperCase() + text.slice(1) + " \u0111\u1ed3ng";
+};
 const formatDateDisplay = (d) => {
     if (!d) return "";
     return new Date(d).toLocaleString("vi-VN", { day: "2-digit", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -35,6 +75,8 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
     const [ngayThu, setNgayThu] = useState("");
     const [phuongThuc, setPhuongThuc] = useState("Tiền mặt");
     const [noiDung, setNoiDung] = useState("");
+    const [soTienThu, setSoTienThu] = useState("");
+    const [showAmountSuggestions, setShowAmountSuggestions] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
@@ -42,12 +84,17 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
             setNgayThu(toLocalDatetimeInput(phieuThu.ngayThu));
             setPhuongThuc(phieuThu.phuongThucThanhToan || "Tiền mặt");
             setNoiDung(phieuThu.noiDung || "");
+            setSoTienThu(String(phieuThu.soTienThu || 0));
             setError("");
         }
     }, [phieuThu, open]);
 
     const handleSave = async () => {
         setError("");
+        if (amountOverLimit) {
+            setError(`Số tiền thu (${fmt(Number(soTienThu))} ₫) vượt quá tổng giá trị hóa đơn (${fmt(maxSoTien)} ₫).`);
+            return;
+        }
         try {
             const result = await dispatch(updatePhieuThu({
                 id: phieuThu._id,
@@ -55,6 +102,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                     ngayThu: ngayThu ? new Date(ngayThu).toISOString() : undefined,
                     phuongThucThanhToan: phuongThuc,
                     noiDung,
+                    soTienThu: soTienThu !== "" ? Number(soTienThu) : undefined,
                 },
             })).unwrap();
             if (onSuccess) onSuccess(result.data);
@@ -62,6 +110,40 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
             setError(typeof err === "string" ? err : "Cập nhật thất bại");
         }
     };
+
+    const handleSaveRef = useRef(null);
+    handleSaveRef.current = handleSave;
+
+    useEffect(() => {
+        if (!open) return;
+        const onKeyDown = (e) => {
+            if (e.key === "F3") {
+                e.preventDefault();
+                handleSaveRef.current();
+            }
+            if (e.key === "F2") {
+                e.preventDefault();
+                if (phieuThu?._id) navigate(`/phieu-thu/${phieuThu._id}/print`);
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [open, phieuThu, navigate]);
+
+    const amountSuggestions = useMemo(() => {
+        const digits = soTienThu.replace(/[^\d]/g, "");
+        if (!digits) return [];
+        const n = Number(digits);
+        if (!n) return [];
+        return [n * 100_000, n * 1_000_000];
+    }, [soTienThu]);
+
+    const maxSoTien = useMemo(
+        () => (phieuThu?.danhSachHoaDon || []).reduce((s, item) => s + (item.hoaDon?.thanhTien || 0), 0),
+        [phieuThu]
+    );
+
+    const amountOverLimit = maxSoTien > 0 && Number(soTienThu) > maxSoTien;
 
     if (!open || !phieuThu) return null;
 
@@ -116,9 +198,45 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
 
                         {/* RIGHT: editable fields */}
                         <div className="space-y-4">
-                            <div>
+                            <div className="relative">
                                 <p className="text-xs text-gray-400 mb-0.5">Số tiền thu</p>
-                                <p className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{fmt(phieuThu.soTienThu)}</p>
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={soTienThu}
+                                    onChange={(e) => setSoTienThu(e.target.value.replace(/[^\d]/g, ""))}
+                                    onFocus={() => setShowAmountSuggestions(true)}
+                                    onBlur={() => setTimeout(() => setShowAmountSuggestions(false), 150)}
+                                    className={`w-full text-2xl font-bold text-gray-900 border-b-2 ${amountOverLimit ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-[#29b6f6]"} bg-transparent pb-1 outline-none`}
+                                />
+                                {amountOverLimit && (
+                                    <p className="text-xs text-red-500 mt-0.5">
+                                        Vượt quá tổng giá trị hóa đơn {fmt(maxSoTien)} ₫
+                                    </p>
+                                )}
+                                {!amountOverLimit && Number(soTienThu) > 0 && (
+                                    <div className="mt-0.5 space-y-0.5">
+                                        <p className="text-xs text-[#29b6f6]">{fmt(Number(soTienThu))} ₫</p>
+                                        <p className="text-xs text-gray-400 italic">{docSoTien(Number(soTienThu))}</p>
+                                    </div>
+                                )}
+                                {showAmountSuggestions && amountSuggestions.length > 0 && (
+                                    <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                                        {amountSuggestions.map((val) => (
+                                            <div
+                                                key={val}
+                                                onMouseDown={() => {
+                                                    setSoTienThu(String(val));
+                                                    setShowAmountSuggestions(false);
+                                                }}
+                                                className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer flex items-center justify-between"
+                                            >
+                                                <span className="text-sm font-semibold text-gray-800">{fmt(val)}</span>
+                                                <span className="text-xs text-gray-400">₫</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <p className="text-xs text-gray-400 mb-0.5">Ngày thu</p>

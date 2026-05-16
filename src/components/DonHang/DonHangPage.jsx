@@ -312,11 +312,11 @@ const DonHangPage = () => {
     const data = nhaKhoaState?.data || [];
     return Array.isArray(data)
       ? data
-          .map((nk) => ({
-            _id: nk._id,
-            name: nk.tenGiaoDich || nk.hoVaTen || "",
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name))
+        .map((nk) => ({
+          _id: nk._id,
+          name: nk.tenGiaoDich || nk.hoVaTen || "",
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }, [nhaKhoaState?.data]);
 
@@ -324,11 +324,11 @@ const DonHangPage = () => {
     const data = benhNhanState?.data || [];
     return Array.isArray(data)
       ? data
-          .map((bn) => ({
-            _id: bn._id,
-            name: bn.hoVaTen || "",
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name))
+        .map((bn) => ({
+          _id: bn._id,
+          name: bn.hoVaTen || "",
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }, [benhNhanState?.data]);
 
@@ -611,11 +611,10 @@ const DonHangPage = () => {
                       preset: prev.preset === p.key ? null : p.key,
                     }))
                   }
-                  className={`w-full text-left px-6 py-2 text-sm flex items-center gap-2 transition ${
-                    draftFilter.preset === p.key
+                  className={`w-full text-left px-6 py-2 text-sm flex items-center gap-2 transition ${draftFilter.preset === p.key
                       ? "bg-blue-50 text-blue-700 font-semibold"
                       : "text-gray-700 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 13 }} />}
                   {p.label}
@@ -668,7 +667,7 @@ const DonHangPage = () => {
   };
 
   return (
-    <div className="mt-10 md:mt-0 p-4 bg-gray-100 min-h-screen">
+    <div className="p-4 bg-gray-100 min-h-screen">
       <div className="mb-4 bg-white rounded shadow-sm border">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3">
           {/* Left: status badges & filters */}
@@ -677,11 +676,10 @@ const DonHangPage = () => {
               <button
                 onClick={handleOpenFilter}
                 title="Bộ lọc"
-                className={`relative p-1.5 rounded transition ${
-                  isFiltered
+                className={`relative p-1.5 rounded transition ${isFiltered
                     ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
                     : "text-gray-500 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 <FilterAltIcon sx={{ fontSize: 20 }} />
                 {isFiltered && (
@@ -768,11 +766,10 @@ const DonHangPage = () => {
                                   draftNhaKhoa?._id === nk._id ? null : nk
                                 )
                               }
-                              className={`w-full text-left px-4 py-2 text-sm transition ${
-                                draftNhaKhoa?._id === nk._id
+                              className={`w-full text-left px-4 py-2 text-sm transition ${draftNhaKhoa?._id === nk._id
                                   ? "bg-blue-50 text-blue-700 font-semibold"
                                   : "text-gray-700 hover:bg-gray-50"
-                              }`}
+                                }`}
                             >
                               {nk.name}
                             </button>
@@ -847,11 +844,10 @@ const DonHangPage = () => {
                                   draftBenhNhan?._id === bn._id ? null : bn
                                 )
                               }
-                              className={`w-full text-left px-4 py-2 text-sm transition ${
-                                draftBenhNhan?._id === bn._id
+                              className={`w-full text-left px-4 py-2 text-sm transition ${draftBenhNhan?._id === bn._id
                                   ? "bg-blue-50 text-blue-700 font-semibold"
                                   : "text-gray-700 hover:bg-gray-50"
-                              }`}
+                                }`}
                             >
                               {bn.name}
                             </button>
@@ -907,18 +903,16 @@ const DonHangPage = () => {
                           <button
                             key={status}
                             onClick={() => toggleDraftTrangThai(status)}
-                            className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition ${
-                              draftTrangThai.includes(status)
+                            className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition ${draftTrangThai.includes(status)
                                 ? "bg-blue-50 text-blue-700 font-semibold"
                                 : "text-gray-700 hover:bg-gray-50"
-                            }`}
+                              }`}
                           >
                             <span
-                              className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                                draftTrangThai.includes(status)
+                              className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${draftTrangThai.includes(status)
                                   ? "bg-blue-500 border-blue-500"
                                   : "border-gray-300"
-                              }`}
+                                }`}
                             >
                               {draftTrangThai.includes(status) && (
                                 <svg

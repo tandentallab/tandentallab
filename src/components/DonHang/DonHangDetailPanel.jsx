@@ -164,7 +164,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
 
       {/* Slide-out panel */}
       <div
-        className={`fixed right-0 top-10 md:top-0 pt-16 h-full w-full sm:w-[440px] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed right-0 top-0 pt-16 h-full w-full sm:w-[440px] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
           }`}
       >
         {/* Header */}

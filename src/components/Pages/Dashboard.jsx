@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box } from "@mui/material";
+import { useTheme, useMediaQuery } from "@mui/material";
 import Sidebar from "../Layout/Sidebar";
 import Header from "../Layout/Header";
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -32,9 +33,32 @@ import PhieuThuPrintPreview from "../PhieuThu/PhieuThuPrintPreview";
 import NhanVienTable from "../NhanVien/NhanVienTable";
 import BangLuongPage from "../BangLuong/BangLuongPage";
 const Dashboard = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useSelector(getAuthSelector);
   const fallbackPath = getDefaultPathForUser(user);
+
+  // Calculate responsive header height
+  const getHeaderMarginTop = () => {
+    // xs: 56px (Toolbar height) + 56px (search mobile) = 112px
+    // sm+: Only Toolbar height (64px or 70px)
+    if (isMobile) {
+      return 112; // 56 (toolbar) + 56 (search mobile)
+    }
+    // On sm: 64px, on md+: 70px
+    return 70;
+  };
+
+  const headerMarginTop = getHeaderMarginTop();
+
+  // Auto-collapse sidebar on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setCollapsed(true);
+    }
+  }, [isMobile]);
 
   const renderProtected = (routePath, element) => {
     if (hasRouteAccess(user, routePath)) {

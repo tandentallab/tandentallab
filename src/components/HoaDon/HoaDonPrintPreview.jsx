@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../config/api";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchAllHoaDonAdmin } from "../../redux/slices/hoaDonSlice";
+import { useDispatch } from "react-redux";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
-
-const LOGO_URL = "http://localhost:8080/assets/logo.png";
 
 const HoaDonPrintPreview = () => {
   const navigate = useNavigate();
@@ -15,8 +12,6 @@ const HoaDonPrintPreview = () => {
   const [nhaKhoaInfo, setNhaKhoaInfo] = useState(null);
 
   const dispatch = useDispatch();
-  const { danhSachHoaDon } = useSelector((state) => state.hoaDon);
-  const nhaKhoa = useSelector((state) => state.nhaKhoa);
 
   useEffect(() => {
     dispatch(fetchNhaKhoa());
@@ -26,303 +21,276 @@ const HoaDonPrintPreview = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-
-        let found = danhSachHoaDon?.find((hd) => hd._id === id);
-
-        if (!found) {
-          const res = await dispatch(fetchAllHoaDonAdmin()).unwrap();
-          found = res.data.find((hd) => hd._id === id);
-        }
-
-        if (!found) {
-          const res = await api.get(`/hoa-don/${id}`);
-          found = res.data.data;
-        }
+        const res = await api.get(`/hoa-don/${id}`);
+        const found = res.data?.data || res.data;
 
         if (found) {
-          setHoaDon(found);
+          const enriched = { ...found };
+          const wraps = (enriched.danhSachDonHang || []).slice();
 
-          const nhaKhoaId =
-            typeof found.nhaKhoa === "string"
-              ? found.nhaKhoa
-              : found.nhaKhoa?._id;
+          await Promise.all(
+            wraps.map(async (wrap, idx) => {
+              const donHangId = typeof wrap.donHang === "string" ? wrap.donHang : wrap.donHang?._id;
+              if (donHangId) {
+                try {
+                  const dhRes = await api.get(`/donhang/${donHangId}`);
+                  wrap.donHang = dhRes.data?.data || dhRes.data || wrap.donHang;
+                } catch (e) {}
+              }
 
-          const foundNhaKhoa = nhaKhoa?.data?.find(
-            (nk) => nk._id === nhaKhoaId
+              const dh = wrap.donHang || {};
+              const list = dh.danhSachSanPham || [];
+              await Promise.all(
+                list.map(async (spItem) => {
+                  const spId = typeof spItem.sanPham === "string" ? spItem.sanPham : spItem.sanPham?._id;
+                  if (spId) {
+                    try {
+                      const spRes = await api.get(`/sanpham/${spId}`);
+                      spItem.sanPham = spRes.data?.data || spRes.data || spItem.sanPham;
+                    } catch (e) {}
+                  }
+                })
+              );
+              wraps[idx] = wrap;
+            })
           );
 
-          setNhaKhoaInfo(foundNhaKhoa || null);
+          enriched.danhSachDonHang = wraps;
+          setHoaDon(enriched);
+
+          const nhaKhoaId = typeof enriched.nhaKhoa === "string" ? enriched.nhaKhoa : enriched.nhaKhoa?._id;
+          if (nhaKhoaId) {
+            try {
+              const nkRes = await api.get(`/nhakhoa/${nhaKhoaId}`);
+              setNhaKhoaInfo(nkRes.data?.data || nkRes.data);
+            } catch (e) {
+              setNhaKhoaInfo(enriched.nhaKhoa);
+            }
+          }
         }
       } catch (err) {
-        console.error(err);
+        console.error("Lỗi:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [id, dispatch, danhSachHoaDon, nhaKhoa?.data]);
+    if (id) fetchData();
+  }, [id]);
 
-  if (loading) return <div className="p-4">Đang tải...</div>;
-  if (!hoaDon) return <div className="p-4">Không tìm thấy hóa đơn</div>;
+  if (loading) return <div className="p-4 text-center">Đang tải dữ liệu in...</div>;
+  if (!hoaDon) return <div className="p-4 text-center">Không tìm thấy dữ liệu</div>;
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount || 0);
+    if (amount === 0) return "0";
+    if (!amount) return "";
+    return new Intl.NumberFormat("vi-VN").format(amount);
   };
 
   const formatDate = (date) => {
     if (!date) return "";
-    return new Date(date).toLocaleDateString("vi-VN");
+    return new Date(date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+  };
+
+  const formatShortDate = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
   };
 
   const formatDiscount = (value, type) => {
-    if (value === null || value === undefined || value === "") return "";
-
+    if (!value) return "0";
     if (type === "phanTram") {
       const raw = String(value).replace("%", "").trim();
-      return raw ? `${raw}%` : "";
+      return raw ? `${raw}%` : "0";
     }
-
     return formatCurrency(Number(value) || 0);
   };
 
-  const items = hoaDon.danhSachDonHang || [];
-  const buildTeethText = (viTri = []) => {
-    if (!Array.isArray(viTri)) return "";
-    const parts = viTri
-      .map((v) => (Array.isArray(v.soRang) ? v.soRang.join(", ") : ""))
-      .filter(Boolean);
-    return parts.join(" | ");
-  };
-
   const rows = [];
-  items.forEach((wrap) => {
+  (hoaDon.danhSachDonHang || []).forEach((wrap) => {
     const donHang = wrap.donHang || {};
-    const bacSi = donHang.bacSi?.hoVaTen || "";
-    const benhNhan = donHang.benhNhan?.hoVaTen || "";
-    const ngay = donHang.ngayNhan || hoaDon.ngayXuatHoaDon;
     const sanPhamList = donHang.danhSachSanPham || [];
+    const orderNote = wrap.ghiChu || donHang.ghiChuChung || "";
 
     if (sanPhamList.length === 0) {
       rows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        sanPham: "",
-        rang: "",
-        soLuong: "",
+        ngay: donHang.ngayNhan || hoaDon.ngayXuatHoaDon,
+        bacSi: donHang.bacSi?.hoVaTen || "---",
+        benhNhan: donHang.benhNhan?.hoVaTen || "---",
+        sanPham: "", rang: "", soLuong: "",
         donGia: wrap.tongTien || 0,
         giamGia: formatDiscount(wrap.chietKhau, wrap.loaiChietKhau),
         thanhTien: wrap.thanhTienSauCK || 0,
+        ghiChu: orderNote,
       });
       return;
     }
 
-    sanPhamList.forEach((sp, spIndex) => {
+    sanPhamList.forEach((sp, idx) => {
+      const gia = sp.sanPham?.donGiaChung || sp.donGia || 0;
       rows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        sanPham: sp.sanPham?.tenSanPham || "",
-        rang: buildTeethText(sp.viTri),
+        ngay: donHang.ngayNhan || hoaDon.ngayXuatHoaDon,
+        bacSi: donHang.bacSi?.hoVaTen || "---",
+        benhNhan: donHang.benhNhan?.hoVaTen || "---",
+        sanPham: sp.sanPham?.tenSanPham || "---",
+        rang: sp.viTri?.map(v => v.soRang?.join(", ")).filter(Boolean).join(" | "),
         soLuong: sp.soLuong || "",
-        donGia: sp.sanPham?.donGiaChung || "",
-        giamGia:
-          spIndex === 0 && wrap.chietKhau
-            ? formatDiscount(wrap.chietKhau, wrap.loaiChietKhau)
-            : "",
-        thanhTien: spIndex === 0 ? wrap.thanhTienSauCK || 0 : "",
-      });
-    });
-  });
-
-  const tableRows = [];
-  items.forEach((wrap) => {
-    const donHang = wrap.donHang || {};
-    const bacSi = donHang.bacSi?.hoVaTen || "";
-    const benhNhan = donHang.benhNhan?.hoVaTen || "";
-    const ngay = donHang.ngayNhan || hoaDon.ngayXuatHoaDon;
-    const sanPhamList = donHang.danhSachSanPham || [];
-
-    if (sanPhamList.length === 0) {
-      tableRows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        sanPham: "",
-        rang: "",
-        soLuong: "",
-        donGia: wrap.tongTien || 0,
-        giamGia: formatDiscount(wrap.chietKhau, wrap.loaiChietKhau),
-        thanhTien: wrap.thanhTienSauCK || 0,
-      });
-      return;
-    }
-
-    sanPhamList.forEach((sp, spIndex) => {
-      tableRows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        sanPham: sp.sanPham?.tenSanPham || "",
-        rang: buildTeethText(sp.viTri),
-        soLuong: sp.soLuong || "",
-        donGia: sp.sanPham?.donGiaChung || 0,
-        giamGia:
-          spIndex === 0 && wrap.chietKhau
-            ? formatDiscount(wrap.chietKhau, wrap.loaiChietKhau)
-            : "",
-        thanhTien: spIndex === 0 ? wrap.thanhTienSauCK || 0 : "",
+        donGia: gia,
+        giamGia: idx === 0 ? formatDiscount(wrap.chietKhau, wrap.loaiChietKhau) : "",
+        thanhTien: (sp.soLuong || 0) * gia,
+        ghiChu: idx === 0 ? (sp.ghiChu ? `${sp.ghiChu}. ${orderNote}` : orderNote) : sp.ghiChu || "",
       });
     });
   });
 
   return (
-    <div className="min-h-screen bg-gray-200">
-      <div className="h-10 bg-[#00a8ff] flex justify-between items-center px-4">
-        <span className="text-white font-medium text-sm">Hóa đơn</span>
-        <button
-          onClick={() => navigate(-1)}
-          className="text-white text-2xl font-bold leading-none hover:text-gray-200 transition"
-        >
-          &times;
-        </button>
+    <div className="h-screen flex flex-col bg-gray-200 overflow-hidden">
+      {/* Header Bar - Fixed Top */}
+      <div className="h-10 bg-[#00a8ff] flex justify-between items-center px-4 shrink-0 print:hidden z-[1000]">
+        <span className="text-white font-medium text-sm tracking-wide uppercase">Xem trước hóa đơn</span>
+        <button onClick={() => navigate(-1)} className="text-white text-2xl hover:opacity-80 leading-none">&times;</button>
       </div>
 
-      <div className="flex flex-col items-center py-6 px-4">
-        <div className="print-area bg-white w-full max-w-4xl shadow-lg border border-gray-400">
-          {/* Header */}
-          <div className="grid grid-cols-12 border-b border-gray-800">
-            <div className="col-span-2 border-r border-gray-800 flex items-center justify-center p-2">
-              <img src={LOGO_URL} alt="logo" className="max-h-16" />
+      {/* Main Content Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto pt-6 px-4 pb-4 scrollbar-thin">
+        <div className="w-full flex justify-center">
+          <div 
+            className="print-area bg-white w-full max-w-[210mm] shadow-lg p-8 mb-4"
+            style={{ fontFamily: "'Cambria', serif", fontSize: "10.5pt" }}
+          >
+            {/* Header công ty */}
+            <div className="mb-6 leading-tight">
+              <div className="font-bold text-lg mb-1 uppercase">Công ty TNHH Tấn Dental</div>
+              <div>Số 43, đường số 14, KDC Hồng Phát, phường An Bình,</div>
+              <div>TP Cần Thơ</div>
+              <div>Điện thoại: 0842312828</div>
             </div>
-            <div className="col-span-6 border-r border-gray-800 text-center p-2">
-              <div className="font-bold text-lg">CÔNG TY TNHH TẤN DENTAL</div>
-              <div className="text-sm">
-                Địa chỉ: Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ
-              </div>
-              <div className="text-sm">Điện thoại: 0842312828</div>
+
+            <div className="text-center font-bold text-[16pt] mb-6 uppercase">
+              Giấy báo thanh toán
             </div>
-            <div className="col-span-4 text-center p-2">
-              <div className="font-bold text-lg">GIẤY BÁO THANH TOÁN</div>
+
+            <div className="mb-4 leading-tight">
+              <div>Khách hàng: <span className="font-bold uppercase">{nhaKhoaInfo?.hoVaTen || nhaKhoaInfo?.tenGiaoDich || "---"}</span></div>
+              <div>Từ Ngày: {formatDate(hoaDon.ngayXuatHoaDon)} Đến Ngày: {formatDate(hoaDon.ngayXuatHoaDon)}</div>
             </div>
-          </div>
 
-          {/* Customer */}
-          <div className="border-b border-gray-800 text-center font-bold py-2">
-            Khách hàng: {nhaKhoaInfo?.hoVaTen || "---"}
-          </div>
-
-          {/* Date range */}
-          <div className="border-b border-gray-800 text-center font-semibold py-2">
-            Từ ngày: {formatDate(hoaDon.ngayXuatHoaDon)} đến ngày: {formatDate(hoaDon.ngayXuatHoaDon)}
-          </div>
-
-          {/* Table */}
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="border-r border-gray-800 p-2">STT</th>
-                <th className="border-r border-gray-800 p-2">NGÀY</th>
-                <th className="border-r border-gray-800 p-2">BÁC SĨ</th>
-                <th className="border-r border-gray-800 p-2">BỆNH NHÂN</th>
-                <th className="border-r border-gray-800 p-2">SẢN PHẨM</th>
-                <th className="border-r border-gray-800 p-2">RĂNG</th>
-                <th className="border-r border-gray-800 p-2">S.L</th>
-                <th className="border-r border-gray-800 p-2">ĐƠN GIÁ</th>
-                <th className="border-r border-gray-800 p-2">GIẢM GIÁ</th>
-                <th className="border-r border-gray-800 p-2">THÀNH TIỀN</th>
-                <th className="p-2">GHI CHÚ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr key={`${index}-${row.sanPham}`} className="border-b border-gray-800">
-                  <td className="border-r border-gray-800 p-2 text-center">{index + 1}</td>
-                  <td className="border-r border-gray-800 p-2 text-center">
-                    {formatDate(row.ngay)}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-center">
-                    {row.bacSi}
-                  </td>
-                  <td className="border-r border-gray-800 p-2">
-                    {row.benhNhan}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-center">
-                    {row.sanPham}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-center">
-                    {row.rang}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-center">
-                    {row.soLuong}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-right">
-                    {formatCurrency(row.donGia)}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-right">
-                    {row.giamGia}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-right">
-                    {row.thanhTien === "" ? "" : formatCurrency(row.thanhTien)}
-                  </td>
-                  <td className="p-2"></td>
+            <table className="w-full border-collapse border border-black" style={{ fontSize: "10.5pt" }}>
+              <thead>
+                <tr className="font-bold text-center">
+                  <th className="border border-black p-1">STT</th>
+                  <th className="border border-black p-1">NGÀY</th>
+                  <th className="border border-black p-1">BÁC SĨ</th>
+                  <th className="border border-black p-1">BỆNH NHÂN</th>
+                  <th className="border border-black p-1">SẢN PHẨM</th>
+                  <th className="border border-black p-1">RĂNG</th>
+                  <th className="border border-black p-1">S.L</th>
+                  <th className="border border-black p-1">ĐƠN GIÁ</th>
+                  <th className="border border-black p-1">GIẢM GIÁ</th>
+                  <th className="border border-black p-1">THÀNH TIỀN</th>
+                  <th className="border border-black p-1">GHI CHÚ</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => (
+                  <tr key={index}>
+                    <td className="border border-black text-center p-1">{index + 1}</td>
+                    <td className="border border-black text-center p-1">{formatShortDate(row.ngay)}</td>
+                    <td className="border border-black p-1">{row.bacSi}</td>
+                    <td className="border border-black p-1">{row.benhNhan}</td>
+                    <td className="border border-black p-1">{row.sanPham}</td>
+                    <td className="border border-black text-center p-1">{row.rang}</td>
+                    <td className="border border-black text-center p-1">{row.soLuong}</td>
+                    <td className="border border-black text-right p-1">{formatCurrency(row.donGia)}</td>
+                    <td className="border border-black text-center p-1">{row.giamGia}</td>
+                    <td className="border border-black text-right p-1">{row.thanhTien ? formatCurrency(row.thanhTien) : "0"}</td>
+                    <td className="border border-black p-1">{row.ghiChu}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-          {/* Summary */}
-          <div className="grid grid-cols-12 border-t border-gray-800">
-            <div className="col-span-8"></div>
-            <div className="col-span-4 border-l border-gray-800">
-              <div className="border-b border-gray-800 px-2 py-1 flex justify-between font-bold">
-                <span>PHÁT SINH TRONG KỲ</span>
-                <span>{formatCurrency(hoaDon.tongTien)}</span>
+            <div className="flex justify-between mt-6">
+              <div className="w-1/2">
+                {hoaDon.ghiChuChoKhachHang && (
+                  <div>
+                    <span className="font-bold underline">Ghi chú cho khách hàng:</span>
+                    <div className="mt-1 whitespace-pre-wrap">{hoaDon.ghiChuChoKhachHang}</div>
+                  </div>
+                )}
               </div>
-              <div className="border-b border-gray-800 px-2 py-1 flex justify-between font-bold">
-                <span>CHIẾT KHẤU</span>
-                <span>{formatCurrency(hoaDon.tongChietKhau)}</span>
-              </div>
-              <div className="border-b border-gray-800 px-2 py-1 flex justify-between font-bold">
-                <span>NỢ ĐẦU KỲ</span>
-                <span>0</span>
-              </div>
-              <div className="px-2 py-1 flex justify-between font-bold">
-                <span>GIÁ TRỊ THANH TOÁN</span>
-                <span>{formatCurrency(hoaDon.thanhTien)}</span>
+              <div className="w-1/3">
+                <div className="flex justify-between font-bold mb-1">
+                  <span>PHÁT SINH TRONG KỲ:</span>
+                  <span>{formatCurrency(hoaDon.tongTien)}</span>
+                </div>
+                <div className="flex justify-between font-bold mb-1">
+                  <span>CHIẾT KHẤU:</span>
+                  <span>{formatCurrency(hoaDon.tongChietKhau)}</span>
+                </div>
+                <div className="flex justify-between font-bold mb-1">
+                  <span>NỢ ĐẦU KỲ:</span>
+                  <span>0</span>
+                </div>
+                <div className="flex justify-between font-bold border-t border-black pt-1 mt-1">
+                  <span>GIÁ TRỊ THANH TOÁN:</span>
+                  <span>{formatCurrency(hoaDon.thanhTien)}</span>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Notes */}
-          <div className="p-2 text-sm">*Ghi chú:</div>
         </div>
+      </div>
 
-        <div className="mt-4 flex gap-2 print:hidden">
-          <button
-            onClick={() => window.print()}
-            className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700"
-          >
-            In hóa đơn
-          </button>
-          <button
-            onClick={() => navigate(-1)}
-            className="bg-gray-500 text-white px-4 py-2 rounded shadow hover:bg-gray-600"
-          >
-            Đóng
-          </button>
-        </div>
+      {/* Footer Bar - Fixed Bottom (Sửa lỗi nút che nội dung) */}
+      <div className="h-16 bg-white border-t flex justify-center items-center gap-4 shrink-0 print:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+        <button 
+          onClick={() => window.print()} 
+          className="bg-green-600 text-white px-10 py-2 rounded shadow font-bold hover:bg-green-700 transition transform active:scale-95"
+        >
+          IN HÓA ĐƠN
+        </button>
+        <button 
+          onClick={() => navigate(-1)} 
+          className="bg-gray-500 text-white px-10 py-2 rounded shadow font-bold hover:bg-gray-600 transition transform active:scale-95"
+        >
+          QUAY LẠI
+        </button>
       </div>
 
       <style>{`
         @media print {
+          /* Chống nhảy 2 trang */
+          @page { 
+            size: A4; 
+            margin: 15mm; 
+          }
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
           body * { visibility: hidden; }
           .print-area, .print-area * { visibility: visible; }
-          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .print-area { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100% !important; 
+            border: none !important; 
+            margin: 0 !important; 
+            padding: 0 !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+          }
+          table { 
+            width: 100% !important; 
+            border-collapse: collapse !important; 
+            page-break-inside: auto;
+          }
+          tr { page-break-inside: avoid; page-break-after: auto; }
         }
       `}</style>
     </div>

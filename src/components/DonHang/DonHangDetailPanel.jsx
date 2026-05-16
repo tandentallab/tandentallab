@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
+import { useMediaQuery, useTheme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import {
@@ -13,6 +14,10 @@ import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 import WarrantyCardPrint from "./WarrantyCardPrint";
 
 const DonHangDetailPanel = ({ donHang, onClose }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isVerySmall = useMediaQuery("(max-width:450px)");
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("chitiet");
@@ -137,6 +142,10 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
     "Chờ sản xuất": "text-cyan-600 font-medium",
   };
 
+  const panelTop = isMobile ? 112 : 70;
+  const panelWidth = isVerySmall ? "100vw" : "440px";
+  const panelHeight = `calc(100vh - ${panelTop}px)`;
+
   const getCongDoanTrangThai = (sp, thuTu) => {
     const found = sp.trangThaiCongDoan?.find((cd) => cd.thuTu === thuTu);
     return found?.trangThai || "Chưa sẵn sàng";
@@ -155,10 +164,14 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${isOpen
+        className={`fixed left-0 right-0 bottom-0 bg-black/20 transition-opacity duration-300 ${isOpen
           ? "opacity-100 pointer-events-auto"
           : "opacity-0 pointer-events-none"
           }`}
+        style={{
+          zIndex: isVerySmall ? 1499 : 1298,
+          top: `${panelTop}px`,
+        }}
         onClick={onClose}
       />
 
@@ -166,6 +179,13 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
       <div
         className={`fixed right-0 top-0 pt-16 h-full w-full sm:w-[440px] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
           }`}
+        style={{
+          zIndex: isVerySmall ? 1500 : 1300,
+          top: `${panelTop}px`,
+          width: panelWidth,
+          height: panelHeight,
+          maxHeight: panelHeight,
+        }}
       >
         {/* Header */}
         <div className="bg-teal-700 text-white px-4 py-3 flex items-center justify-between shrink-0">

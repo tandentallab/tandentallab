@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-const LOGO_URL = 'http://localhost:8080/assets/logo.png';
+const LOGO_URL = window.location.origin + '/logo_tan_dental.jpg';
 
 const applyBorder = (cell, style = 'thin') => {
   cell.border = {
@@ -68,7 +68,7 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
     const arrayBuffer = await response.arrayBuffer();
     const imageId = workbook.addImage({
       buffer: arrayBuffer,
-      extension: 'png'
+      extension: 'jpge'
     });
     worksheet.addImage(imageId, {
       tl: { col: 0, row: 0 },
@@ -128,7 +128,11 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
     const benhNhan = donHang.benhNhan?.hoVaTen || '';
     const ngay = donHang.ngayNhan || hoaDon.ngayXuatHoaDon;
     const sanPhamList = donHang.danhSachSanPham || [];
+    
+    // Lấy ghi chú của đơn hàng
+    const orderNote = wrap.ghiChu || donHang.ghiChuChung || donHang.ghiChu || "";
 
+    // 1. Trường hợp đơn hàng trống sản phẩm
     if (sanPhamList.length === 0) {
       rows.push({
         ngay,
@@ -142,11 +146,21 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
           ? `${wrap.chietKhau}${wrap.loaiChietKhau === 'phanTram' ? '%' : 'đ'}`
           : '',
         thanhTien: wrap.thanhTienSauCK || 0,
+        ghiChu: orderNote, // Gán ghi chú
       });
       return;
     }
 
+    // 2. Trường hợp đơn hàng có sản phẩm
     sanPhamList.forEach((sp, spIndex) => {
+      // Đặt logic gộp ghi chú vào BÊN TRONG vòng lặp này
+      const productNote = sp.ghiChu || "";
+      let finalNote = productNote;
+      // Chỉ gộp ghi chú của đơn hàng vào dòng sản phẩm đầu tiên
+      if (spIndex === 0 && orderNote) {
+        finalNote = finalNote ? `${finalNote}. ${orderNote}` : orderNote;
+      }
+
       rows.push({
         ngay,
         bacSi,
@@ -154,12 +168,13 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
         loaiPhucHinh: sp.sanPham?.tenSanPham || '',
         rang: buildTeethText(sp.viTri),
         soLuong: sp.soLuong || '',
-        donGia: sp.sanPham?.donGiaChung || '',
+        donGia: sp.sanPham?.donGiaChung || sp.donGia || '',
         giamGia:
           spIndex === 0 && wrap.chietKhau
             ? `${wrap.chietKhau}${wrap.loaiChietKhau === 'phanTram' ? '%' : 'đ'}`
             : '',
         thanhTien: spIndex === 0 ? wrap.thanhTienSauCK || 0 : '',
+        ghiChu: finalNote, // Gán ghi chú
       });
     });
   });
@@ -168,6 +183,8 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
   rows.forEach((rowData, index) => {
     const rowIndex = dataRowStart + index;
     const row = worksheet.getRow(rowIndex);
+    
+    // Đẩy dữ liệu vào mảng Excel, lưu ý thay cột 11 bằng rowData.ghiChu
     row.values = [
       index + 1,
       rowData.ngay ? new Date(rowData.ngay).toLocaleDateString('vi-VN') : '',
@@ -179,13 +196,20 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
       rowData.donGia,
       rowData.giamGia,
       rowData.thanhTien,
-      ''
+      rowData.ghiChu || ''  // Sửa ở đây: Thay '' bằng rowData.ghiChu
     ];
+    
     row.alignment = { vertical: 'middle', horizontal: 'center' };
+    
+    // Format tiền tệ
     [8, 10].forEach((col) => {
       row.getCell(col).numFmt = '#,##0';
       row.getCell(col).alignment = { horizontal: 'right', vertical: 'middle' };
     });
+    
+    // Căn trái và cho phép xuống dòng cho ô Ghi chú
+    row.getCell(11).alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+    
     row.eachCell((cell) => applyBorder(cell, 'thin'));
   });
 

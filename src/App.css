@@ -36,3 +36,41 @@
     transform: rotate(360deg);
   }
 }
+
+/* ===== RESPONSIVE STYLES ===== */
+
+/* Main content wrapper */
+.bg-gray-100.w-full {
+  min-height: calc(100vh - 70px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Prevent horizontal scroll on mobile */
+@media (max-width: 600px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .bg-gray-100.w-full {
+    min-height: calc(100vh - 56px);
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Table responsive */
+  table {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .MuiTableContainer-root {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Card padding adjustment */
+  .p-6 {
+    padding: 1rem;
+  }
+}

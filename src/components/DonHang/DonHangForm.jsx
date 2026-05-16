@@ -544,15 +544,15 @@ const DonHangForm = () => {
                     {selectedNhaKhoaInfo?.diaChiCuThe || ""}
                   </span>
                 </div>
-                <div className="flex">
-                  <span className="text-gray-500 w-20">Điện thoại:</span>{" "}
-                  <span className="font-medium text-gray-800">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                  <span className="text-gray-500 w-20 shrink-0">Điện thoại:</span>
+                  <span className="font-medium text-gray-800 break-words">
                     {selectedNhaKhoaInfo?.soDienThoai || ""}
                   </span>
                 </div>
-                <div className="flex">
-                  <span className="text-gray-500 w-20">Mô tả:</span>{" "}
-                  <span className="font-medium text-gray-800">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                  <span className="text-gray-500 w-20 shrink-0">Mô tả:</span>
+                  <span className="font-medium text-gray-800 break-words">
                     {selectedNhaKhoaInfo?.moTa || ""}
                   </span>
                 </div>
@@ -565,10 +565,10 @@ const DonHangForm = () => {
                     name="ngayNhan"
                     value={formData.ngayNhan}
                     onChange={handleInputChange}
-                    className="text-sm outline-none bg-transparent text-gray-700"
+                    className="text-sm outline-none bg-transparent text-gray-700 w-full sm:w-auto"
                   />
                 </div>
-                <div className="flex justify-between items-center border-b pb-1">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 border-b pb-1">
                   <label className="text-sm text-gray-500">
                     Y/c hoàn thành
                   </label>
@@ -577,17 +577,17 @@ const DonHangForm = () => {
                     name="yeuCauHoanThanh"
                     value={formData.yeuCauHoanThanh}
                     onChange={handleInputChange}
-                    className="text-sm outline-none bg-transparent text-gray-700"
+                    className="text-sm outline-none bg-transparent text-gray-700 w-full sm:w-auto"
                   />
                 </div>
-                <div className="flex justify-between items-center border-b pb-1">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 border-b pb-1">
                   <label className="text-sm text-gray-500">Hẹn giao</label>
                   <input
                     type="datetime-local"
                     name="henGiao"
                     value={formData.henGiao}
                     onChange={handleInputChange}
-                    className="text-sm outline-none bg-transparent text-gray-700"
+                    className="text-sm outline-none bg-transparent text-gray-700 w-full sm:w-auto"
                   />
                 </div>
               </div>
@@ -735,33 +735,83 @@ const DonHangForm = () => {
                   </tr>
                 </tbody>
               </table>
+              </div>
+            {/* --- PHẦN THÊM MỚI CHO MOBILE --- */}
+            <div className="md:hidden flex flex-col gap-4 px-0">
+               {/* Đưa Phụ kiện lên thành 1 khối có thể cuộn */}
+               <div className="bg-white border-t border-b border-gray-200 p-4 shadow-sm">
+                  <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">
+                    Phụ kiện đi kèm
+                  </h4>
+                  <DanhSachPhuKien
+                    phuKienDaChon={formData.danhSachPhuKien}
+                    setPhuKienDaChon={(data) =>
+                      setFormData({ ...formData, danhSachPhuKien: data })
+                    }
+                  />
+               </div>
+
+               {/* Đưa các ô Ghi chú lên thành 1 khối */}
+               <div className="bg-white border-t border-b border-gray-200 p-4 shadow-sm flex flex-col gap-4">
+                  <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Ghi chú đơn hàng</h4>
+                  <div className="flex flex-col gap-3">
+                    <label className="text-xs text-gray-500 font-medium">Chỉ định bác sĩ</label>
+                    <textarea
+                      name="chiDinhBacSi"
+                      value={formData.chiDinhBacSi}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full border rounded p-2 text-sm outline-none bg-gray-50"
+                    />
+                    
+                    <label className="text-xs text-gray-500 font-medium">Ghi chú chung</label>
+                    <textarea
+                      name="ghiChuChung"
+                      value={formData.ghiChuChung}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full border rounded p-2 text-sm outline-none bg-gray-50"
+                    />
+                    <label className="text-xs text-gray-500 font-medium">Ghi chú tài chính</label>
+                    <textarea
+                      name="ghiChuTaiChinh"
+                      value={formData.ghiChuTaiChinh}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full border rounded p-2 text-sm outline-none bg-gray-50"
+                      placeholder="Nhập ghi chú tài chính..."
+                    />
+                  </div>
+               </div>
             </div>
           </div>
         </div>
 
         {/* Right side panel: 2 tabs – Sản xuất / Ghi chú */}
-        <RightSidePanel
-          formData={formData}
-          setFormData={setFormData}
-          handleInputChange={handleInputChange}
-          phieuBaoHanhList={phieuBaoHanhList}
-          donHangId={id}
-          onRefreshPhieuBaoHanh={() => {
-            if (id) {
-              api
-                .get(`/phieu-bao-hanh/don-hang/${id}`)
-                .then((res) => {
-                  const warranty = res.data?.data || res.data;
-                  const warrantyArray = warranty ? (Array.isArray(warranty) ? warranty : [warranty]) : [];
-                  setPhieuBaoHanhList(warrantyArray);
-                })
-                .catch((err) => {
-                  console.error("Lỗi fetch phiếu bảo hành:", err);
-                  setPhieuBaoHanhList([]);
-                });
-            }
-          }}
-        />
+        <div className="hidden md:flex w-[300px] border-l bg-white flex-col shrink-0 overflow-hidden">
+          <RightSidePanel
+            formData={formData}
+            setFormData={setFormData}
+            handleInputChange={handleInputChange}
+            phieuBaoHanhList={phieuBaoHanhList}
+            donHangId={id}
+            onRefreshPhieuBaoHanh={() => {
+              if (id) {
+                api
+                  .get(`/phieu-bao-hanh/don-hang/${id}`)
+                  .then((res) => {
+                    const warranty = res.data?.data || res.data;
+                    const warrantyArray = warranty ? (Array.isArray(warranty) ? warranty : [warranty]) : [];
+                    setPhieuBaoHanhList(warrantyArray);
+                  })
+                  .catch((err) => {
+                    console.error("Lỗi fetch phiếu bảo hành:", err);
+                    setPhieuBaoHanhList([]);
+                  });
+              }
+            }}
+          />
+        </div>
       </div>
 
       {/* Footer save bar */}
@@ -851,37 +901,39 @@ const DonHangForm = () => {
         </button>
       </div>
 
-      <ChonViTriRangModal
-        isOpen={isViTriModalOpen}
-        onClose={() => setIsViTriModalOpen(false)}
-        initialViTri={formData.danhSachSanPham[editingSpIndex]?.viTri || []}
-        onSave={handleSaveViTri}
-      />
-
-      {isSanPhamModalOpen && (
-        <SanPhamModal
-          open={isSanPhamModalOpen}
-          handleClose={() => {
-            setIsSanPhamModalOpen(false);
-            fetchSanPhamData();
-          }}
+      <>
+        <ChonViTriRangModal
+          isOpen={isViTriModalOpen}
+          onClose={() => setIsViTriModalOpen(false)}
+          initialViTri={formData.danhSachSanPham[editingSpIndex]?.viTri || []}
+          onSave={handleSaveViTri}
         />
-      )}
 
-      <ChonDonHangCuModal
-        isOpen={modalDonHangCuInfo.isOpen}
-        onClose={() =>
-          setModalDonHangCuInfo({ isOpen: false, index: null, loaiDon: "" })
-        }
-        onSelect={handleApplyOldOrder}
-        patientId={formData.benhNhan}
-        nhaKhoaName={selectedNhaKhoaInfo?.nameDisplay}
-        bacSiName={bacSiList.find((b) => b._id === formData.bacSi)?.nameDisplay}
-        benhNhanName={
-          benhNhanList.find((b) => b._id === formData.benhNhan)?.nameDisplay
-        }
-        loaiDon={modalDonHangCuInfo.loaiDon}
-      />
+        {isSanPhamModalOpen && (
+          <SanPhamModal
+            open={isSanPhamModalOpen}
+            handleClose={() => {
+              setIsSanPhamModalOpen(false);
+              fetchSanPhamData();
+            }}
+          />
+        )}
+
+        <ChonDonHangCuModal
+          isOpen={modalDonHangCuInfo.isOpen}
+          onClose={() =>
+            setModalDonHangCuInfo({ isOpen: false, index: null, loaiDon: "" })
+          }
+          onSelect={handleApplyOldOrder}
+          patientId={formData.benhNhan}
+          nhaKhoaName={selectedNhaKhoaInfo?.nameDisplay}
+          bacSiName={bacSiList.find((b) => b._id === formData.bacSi)?.nameDisplay}
+          benhNhanName={
+            benhNhanList.find((b) => b._id === formData.benhNhan)?.nameDisplay
+          }
+          loaiDon={modalDonHangCuInfo.loaiDon}
+        />
+      </>
 
       <PhieuBaoHanhModal
         open={isPhieuBaoHanhModalOpen}
@@ -911,7 +963,8 @@ const DonHangForm = () => {
           warranty={selectedWarranty}
           donHang={formData}
         />
-      )}    </div>
+      )}
+    </div>
   );
 };
 

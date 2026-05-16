@@ -50,17 +50,55 @@ const Header = ({ onToggleSidebar }) => {
           position: "relative", // Cần thiết để Slide phủ lên Toolbar
         }}
       >
+        <Toolbar
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: {
+              xs: 1,
+              sm: 2,
+            },
+            height: {
+              xs: 56,
+              sm: 64,
+              md: 70,
+            },
+            minHeight: {
+              xs: 56,
+              sm: 64,
+              md: 70,
+            },
+            px: {
+              xs: 1.5,
+              sm: 2,
+            },
+            flexWrap: "nowrap",
+          }}
+        >
         {/* LEFT */}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 1,
+            gap: {
+              xs: 0.5,
+              sm: 1,
+            },
             minWidth: 0,
             flexShrink: 0,
           }}
         >
-          <IconButton color="inherit" onClick={onToggleSidebar}>
+          <IconButton 
+            color="inherit" 
+            onClick={onToggleSidebar}
+            sx={{
+              p: {
+                xs: 0.75,
+                sm: 1,
+              },
+            }}
+          >
             <MenuIcon />
           </IconButton>
 
@@ -68,9 +106,13 @@ const Header = ({ onToggleSidebar }) => {
             variant="h6"
             sx={{
               cursor: "pointer",
+              ml: {
+                xs: 0.5,
+                sm: 0.75,
+              },
               fontWeight: 600,
               fontSize: {
-                xs: "14px",
+                xs: "12px",
                 sm: "16px",
                 md: "20px",
               },
@@ -78,8 +120,8 @@ const Header = ({ onToggleSidebar }) => {
               overflow: "hidden",
               textOverflow: "ellipsis",
               maxWidth: {
-                xs: "140px",
-                sm: "250px",
+                xs: "80px",
+                sm: "200px",
                 md: "unset",
               },
             }}
@@ -104,13 +146,17 @@ const Header = ({ onToggleSidebar }) => {
             px: 2,
             py: 0.5,
             width: {
-              sm: "35%",
+              sm: "30%",
               md: "40%",
             },
             maxWidth: 500,
+            flex: {
+              sm: 1,
+              md: "0 1 auto",
+            },
           }}
         >
-          <SearchIcon sx={{ color: "#666" }} />
+          <SearchIcon sx={{ color: "#666", fontSize: "20px" }} />
 
           <InputBase
             placeholder="Tìm kiếm..."
@@ -128,7 +174,7 @@ const Header = ({ onToggleSidebar }) => {
             display: "flex",
             alignItems: "center",
             gap: {
-              xs: 0.5,
+              xs: 0.25,
               sm: 1.5,
             },
             flexShrink: 0,
@@ -149,7 +195,7 @@ const Header = ({ onToggleSidebar }) => {
             <>
               <QuickAddMenu />
 
-              <IconButton color="inherit">
+              <IconButton color="inherit" size="small">
                 <NotificationsIcon />
               </IconButton>
 
@@ -212,6 +258,7 @@ const Header = ({ onToggleSidebar }) => {
             </IconButton>
           </Box>
         </Slide>
+      </Toolbar>
       </Toolbar>
     </AppBar>
   );

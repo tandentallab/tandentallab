@@ -826,3 +826,98 @@ export const exportBangLuongToExcel = async (salaryData, thang, nam) => {
   const fileName = `Bang_luong_thang_${thang}_${nam}.xlsx`;
   saveAs(new Blob([buffer]), fileName);
 };
+
+export const exportBangGiaRiengToExcel = async (nhaKhoaInfo, bangGiaData = []) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Bảng Giá Riêng');
+
+  worksheet.columns = [
+    { width: 10 }, 
+    { width: 45 }, 
+    { width: 25 }, 
+  ];
+
+  // ===== PHẦN ĐẦU =====
+  worksheet.mergeCells('A1:C1');
+  worksheet.getCell('A1').value = 'CÔNG TY TNHH TẤN DENTAL';
+  worksheet.getCell('A1').font = { bold: true, size: 16 };
+
+  worksheet.mergeCells('A2:C2');
+  worksheet.getCell('A2').value = 'Địa chỉ: Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ';
+  worksheet.getCell('A2').font = { size: 11 };
+
+  worksheet.mergeCells('A3:C3');
+  worksheet.getCell('A3').value = 'Điện thoại: 0842 312 828';
+  worksheet.getCell('A3').font = { size: 11 };
+
+  worksheet.mergeCells('A4:C4');
+  worksheet.getCell('A4').value = 'Email: tandentallab@gmail.com';
+  worksheet.getCell('A4').font = { size: 11 };
+
+  ['A1', 'A2', 'A3', 'A4'].forEach((ref) => {
+    worksheet.getCell(ref).alignment = { horizontal: 'left', vertical: 'middle' };
+  });
+
+  // ===== TIÊU ĐỀ & TÊN NHA KHOA =====
+  worksheet.mergeCells('A6:C6');
+  worksheet.getCell('A6').value = 'BẢNG GIÁ RIÊNG';
+  worksheet.getCell('A6').font = { bold: true, size: 16 };
+  worksheet.getCell('A6').alignment = { horizontal: 'center', vertical: 'middle' };
+
+  worksheet.mergeCells('A7:C7');
+  const tenNhaKhoa = nhaKhoaInfo?.hoVaTen || nhaKhoaInfo?.tenGiaoDich || 'Chưa xác định';
+  worksheet.getCell('A7').value = `Nha khoa: ${tenNhaKhoa}`;
+  worksheet.getCell('A7').font = { bold: true, size: 12, italic: true };
+  worksheet.getCell('A7').alignment = { horizontal: 'left', vertical: 'middle' };
+
+  // ===== TABLE HEADER =====
+  const headerRow = 8;
+  const headers = ['STT', 'TÊN SẢN PHẨM', 'GIÁ RIÊNG'];
+  worksheet.getRow(headerRow).values = headers;
+  worksheet.getRow(headerRow).font = { bold: true, size: 12 };
+  worksheet.getRow(headerRow).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  headers.forEach((_, idx) => {
+    applyBorder(worksheet.getCell(headerRow, idx + 1), 'medium');
+  });
+
+  // ===== TABLE DATA =====
+  bangGiaData.forEach((item, idx) => {
+    const rowIndex = headerRow + 1 + idx;
+    
+    // MAPPING ĐÚNG VỚI BACKEND (tenSanPham, donGia)
+    const tenSp = item.tenSanPham || '---';
+    const giaRieng = item.donGia || 0;
+
+    worksheet.getRow(rowIndex).values = [
+      idx + 1,
+      tenSp,
+      giaRieng
+    ];
+
+    const sttCell = worksheet.getCell(rowIndex, 1);
+    sttCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    applyBorder(sttCell, 'thin');
+
+    const tenSpCell = worksheet.getCell(rowIndex, 2);
+    tenSpCell.alignment = { horizontal: 'left', vertical: 'middle' };
+    applyBorder(tenSpCell, 'thin');
+
+    const giaCell = worksheet.getCell(rowIndex, 3);
+    giaCell.numFmt = '#,##0'; // Format tiền tệ có dấu phẩy
+    giaCell.alignment = { horizontal: 'right', vertical: 'middle' };
+    applyBorder(giaCell, 'thin');
+    
+    // Nếu thích, bạn có thể làm nổi bật những dòng là "Giá riêng" thực sự
+    // if (item.laGiaRieng) {
+    //   giaCell.font = { color: { argb: 'FFFF0000' } }; // Màu đỏ cho giá riêng
+    // }
+  });
+
+  // ===== XUẤT FILE =====
+  const buffer = await workbook.xlsx.writeBuffer();
+  const safeClinicName = tenNhaKhoa.replace(/[\\/:*?"<>|]/g, '').trim();
+  const fileName = `Bang_Gia_Rieng_${safeClinicName}.xlsx`;
+  
+  saveAs(new Blob([buffer]), fileName);
+};

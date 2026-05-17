@@ -34,48 +34,35 @@ const Header = ({ onToggleSidebar }) => {
         background: "#1DA1F2",
       }}
     >
+      {/* ĐÃ SỬA: Gộp 2 thẻ Toolbar thành 1 thẻ duy nhất */}
       <Toolbar
         sx={{
           display: "flex",
           justifyContent: "space-between",
-          gap: 2,
-          minHeight: {
-            xs: 64,
-            sm: 70,
-          },
-          px: {
+          alignItems: "center",
+          gap: {
             xs: 1,
             sm: 2,
           },
+          height: {
+            xs: 56,
+            sm: 64,
+            md: 70,
+          },
+          minHeight: {
+            xs: 56,
+            sm: 64,
+            md: 70,
+          },
+          px: {
+            xs: 1.5,
+            sm: 2,
+          },
+          flexWrap: "nowrap",
           position: "relative", // Cần thiết để Slide phủ lên Toolbar
+          width: "100%", // Đảm bảo Toolbar chiếm trọn chiều ngang
         }}
       >
-        <Toolbar
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: {
-              xs: 1,
-              sm: 2,
-            },
-            height: {
-              xs: 56,
-              sm: 64,
-              md: 70,
-            },
-            minHeight: {
-              xs: 56,
-              sm: 64,
-              md: 70,
-            },
-            px: {
-              xs: 1.5,
-              sm: 2,
-            },
-            flexWrap: "nowrap",
-          }}
-        >
         {/* LEFT */}
         <Box
           sx={{
@@ -258,7 +245,6 @@ const Header = ({ onToggleSidebar }) => {
             </IconButton>
           </Box>
         </Slide>
-      </Toolbar>
       </Toolbar>
     </AppBar>
   );

@@ -10,7 +10,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { Trash2 } from "lucide-react";
-
+import NhaKhoaSelector from "./NhaKhoaSelector";
 import { upsertBangGia, deleteBangGia } from "../../redux/slices/bangGiaSlice";
 
 export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {

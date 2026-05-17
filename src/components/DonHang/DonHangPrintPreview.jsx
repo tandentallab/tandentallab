@@ -66,9 +66,9 @@ const DonHangPrintPreview = () => {
   const buildTeethText = (viTri = []) => {
     if (!Array.isArray(viTri)) return "";
     const parts = viTri
-      .map((v) => (Array.isArray(v.soRang) ? v.soRang.join(", ") : ""))
+      .map((v) => (Array.isArray(v.soRang) ? v.soRang.join("=>") : ""))
       .filter(Boolean);
-    return parts.join(" | ");
+    return parts.join(" , ");
   };
 
   return (
@@ -106,12 +106,15 @@ const DonHangPrintPreview = () => {
               </div>
             </div>
 
-            <div className="col-span-5">
-              <div className="grid grid-cols-[90px_1fr] gap-y-1">
+            <div className="col-span-5 flex justify-end">
+              {/* Đổi 1fr thành auto để khung không bị kéo giãn, kết hợp flex justify-end ở cha để đẩy nó sang phải */}
+              <div className="grid grid-cols-[90px_auto] gap-y-1">
                 <span className="font-bold">Nhận:</span>
                 <span className="font-bold">{formatDateTime(donHang.ngayNhan)}</span>
+                
                 <span className="font-bold">Giao:</span>
                 <span className="font-bold">{formatDateTime(donHang.henGiao)}</span>
+                
                 <span className="font-bold">Chỉ định giao:</span>
                 <span className="font-bold">{donHang.trangThai || "---"}</span>
               </div>
@@ -229,21 +232,72 @@ const DonHangPrintPreview = () => {
       </div>
 
       <style>{`
+        /* ─────────────────────────────────────────────────────────────────────────────
+           CSS ĐIỀU CHỈNH KHI IN ẤN - HỖ TRỢ MỌI KHỔ GIẤY (A4, A5...)
+           ───────────────────────────────────────────────────────────────────────────── */
         @media print {
-          body {
-            background: white;
+          /* 1. ẨN TUYỆT ĐỐI TOÀN BỘ APP, CHỈ HIỆN FORM IN */
+          body * {
+            visibility: hidden !important;
           }
+          .print-area, .print-area * {
+            visibility: visible !important;
+          }
+
+          /* 2. BÍ QUYẾT AUTO-SCALE (TỰ THU PHÓNG): Ép cứng chiều rộng bằng A4 */
           .print-area {
-            box-shadow: none;
-            border: none;
-            max-width: 100%;
-            padding: 24px;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            /* Thay vì 100%, ta ép cứng form rộng 190mm. 
+               Khi in giấy A5, trình duyệt sẽ tự thu nhỏ toàn bộ form lại vừa khít tờ A5! */
+            width: 190mm !important; 
+            max-width: 190mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: white !important;
           }
-          button {
-            display: none;
+
+          /* 3. CÀI ĐẶT TRANG GIẤY */
+          @page {
+            margin: 10mm; /* Giữ lề giấy chung, cho phép chọn khổ giấy tùy ý */
           }
-          .h-10, .mt-4 {
-            display: none;
+
+          body {
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* 4. ẨN SIDEBAR, HEADER, NÚT BẤM */
+          button, .no-print, .MuiDrawer-root, .MuiAppBar-root, header, nav, aside {
+            display: none !important;
+            visibility: hidden !important;
+          }
+
+          /* 5. GIỮ CẤU TRÚC 2 CỘT LUÔN THẲNG HÀNG */
+          .grid.grid-cols-2 {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            gap: 20px !important;
+          }
+          
+          .grid.grid-cols-2 > div {
+            flex: 1 !important;
+            min-width: 0 !important;
+          }
+
+          table {
+            width: 100% !important;
+            page-break-inside: auto;
+          }
+          tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
           }
         }
       `}</style>

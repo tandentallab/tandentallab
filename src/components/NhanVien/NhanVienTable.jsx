@@ -14,6 +14,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Button,
 } from "@mui/material";
 
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -28,6 +29,8 @@ import {
 } from "../../redux/slices/nhanVienSlice";
 
 import NhanVienFormModal from "./NhanVienFormModal";
+import { useNavigate } from "react-router-dom";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 
 const NhanVienTable = () => {
   const dispatch = useDispatch();
@@ -81,6 +84,8 @@ const NhanVienTable = () => {
 
     dispatch(deleteNhanVien(id));
   };
+
+  const navigate = useNavigate();
 
   return (
     <div className="p-6">
@@ -170,7 +175,16 @@ const NhanVienTable = () => {
             {sortedData?.length > 0 ? (
               sortedData.map((nv) => (
                 <TableRow key={nv._id} hover>
-                  <TableCell>{nv.hoVaTen}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="text"
+                      onClick={() => {
+                        navigate(`/nhan-vien/${nv._id}`);
+                      }}
+                    >
+                      {nv.hoVaTen}
+                    </Button>
+                  </TableCell>
 
                   <TableCell>{nv.chucVu}</TableCell>
 
@@ -203,6 +217,18 @@ const NhanVienTable = () => {
                         }}
                       >
                         <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+
+                    {/* Edit */}
+                    <Tooltip title="Chi tiết">
+                      <IconButton
+                        color="primary"
+                        onClick={() => {
+                          navigate(`/nhan-vien/${nv._id}`);
+                        }}
+                      >
+                        <AssignmentIcon color="success"></AssignmentIcon>
                       </IconButton>
                     </Tooltip>
 

@@ -106,7 +106,12 @@ const BangLuongPage = () => {
 
     // chưa có => tạo mới
     else if (nhanVienData?.length > 0) {
-      const rows = nhanVienData.map((nv) => {
+      // Chỉ lấy nhân viên đang làm
+      const activeNhanVien = nhanVienData.filter(
+        (nv) => nv?.trangThai?.trim() === "Đang làm"
+      );
+
+      const rows = activeNhanVien.map((nv) => {
         const result = tinhLuong({
           luongCoBan: nv.luongCanBan,
 

@@ -102,9 +102,13 @@ export default function NhaKhoaTable() {
     try {
       if (!selectedExportNhaKhoa) return;
 
-      const selectedNhaKhoaInfo = data.find(nk => nk._id === selectedExportNhaKhoa);
+      const selectedNhaKhoaInfo = data.find(
+        (nk) => nk._id === selectedExportNhaKhoa
+      );
 
-      const response = await api.get(`/bang-gia/nha-khoa/${selectedExportNhaKhoa}`);
+      const response = await api.get(
+        `/bang-gia/nha-khoa/${selectedExportNhaKhoa}`
+      );
       const bangGiaData = response.data; // Mảng chứa [{ tenSanPham, donGia, laGiaRieng... }]
 
       await exportBangGiaRiengToExcel(selectedNhaKhoaInfo, bangGiaData); // Hoặc truyền chiXuatGiaRieng
@@ -262,13 +266,27 @@ export default function NhaKhoaTable() {
             <TableHead>
               <TableRow className="bg-gray-100">
                 <TableCell></TableCell>
-                <TableCell><b>Tên</b></TableCell>
-                <TableCell><b>Liên hệ</b></TableCell>
-                <TableCell><b>Địa chỉ</b></TableCell>
-                <TableCell><b>Website</b></TableCell>
-                <TableCell><b>Mô tả</b></TableCell>
-                <TableCell><b>Ngày tạo</b></TableCell>
-                <TableCell align="center"><b>Hành động</b></TableCell>
+                <TableCell>
+                  <b>Tên</b>
+                </TableCell>
+                <TableCell>
+                  <b>Liên hệ</b>
+                </TableCell>
+                <TableCell>
+                  <b>Địa chỉ</b>
+                </TableCell>
+                <TableCell>
+                  <b>Website</b>
+                </TableCell>
+                <TableCell>
+                  <b>Mô tả</b>
+                </TableCell>
+                <TableCell>
+                  <b>Ngày tạo</b>
+                </TableCell>
+                <TableCell align="center">
+                  <b>Hành động</b>
+                </TableCell>
               </TableRow>
             </TableHead>
 
@@ -428,7 +446,9 @@ export default function NhaKhoaTable() {
                 <Divider sx={{ my: 1.5 }} />
 
                 <Box mb={1}>
-                  <Typography variant="body2" fontWeight={600}>Liên hệ</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    Liên hệ
+                  </Typography>
                   <Typography variant="body2">{item.soDienThoai}</Typography>
                   <Typography
                     variant="body2"
@@ -439,7 +459,9 @@ export default function NhaKhoaTable() {
                 </Box>
 
                 <Box mb={1}>
-                  <Typography variant="body2" fontWeight={600}>Địa chỉ</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    Địa chỉ
+                  </Typography>
                   <Typography variant="body2">{item.diaChiCuThe}</Typography>
                   <Typography variant="caption" color="text.secondary">
                     {item.tinh}, {item.quocGia}
@@ -447,7 +469,9 @@ export default function NhaKhoaTable() {
                 </Box>
 
                 <Box mb={1}>
-                  <Typography variant="body2" fontWeight={600}>Website</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    Website
+                  </Typography>
                   <a
                     href={`https://${item.website}`}
                     target="_blank"
@@ -459,7 +483,9 @@ export default function NhaKhoaTable() {
                 </Box>
 
                 <Box mb={2}>
-                  <Typography variant="body2" fontWeight={600}>Mô tả</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    Mô tả
+                  </Typography>
                   <Typography variant="body2">
                     {item.moTa || "Không có mô tả"}
                   </Typography>
@@ -525,11 +551,12 @@ export default function NhaKhoaTable() {
               <MenuItem value="" disabled>
                 -- Chọn Nha Khoa --
               </MenuItem>
-              {data && data.map((nk) => (
-                <MenuItem key={nk._id} value={nk._id}>
-                  {nk.hoVaTen || nk.tenGiaoDich}
-                </MenuItem>
-              ))}
+              {data &&
+                data.map((nk) => (
+                  <MenuItem key={nk._id} value={nk._id}>
+                    {nk.hoVaTen || nk.tenGiaoDich}
+                  </MenuItem>
+                ))}
             </TextField>
           </Box>
         </DialogContent>
@@ -548,7 +575,6 @@ export default function NhaKhoaTable() {
           </Button>
         </DialogActions>
       </Dialog>
-
     </Box>
   );
 }

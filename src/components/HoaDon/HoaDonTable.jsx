@@ -100,16 +100,16 @@ const HoaDonTable = () => {
   const [openUpdate, setOpenUpdate] = useState(false);
 
   const [columnWidths, setColumnWidths] = useState({
-    soHoaDon: 85,
-    nhaKhoa: 100,
-    tongTien: 80,
-    tongChietKhau: 80,
-    thanhTien: 80,
-    daThanhToan: 80,
-    conLai: 80,
-    ngayTao: 80,
-    trangThai: 80,
-    thaoTac: 80,
+    soHoaDon: 70,
+    nhaKhoa: 70,
+    tongTien: 60,
+    tongChietKhau: 60,
+    thanhTien: 60,
+    daThanhToan: 60,
+    conLai: 60,
+    ngayTao: 60,
+    trangThai: 60,
+    thaoTac: 60,
   });
 
   // State cho phân trang và bộ lọc
@@ -579,8 +579,9 @@ const HoaDonTable = () => {
                       maxWidth: columnWidths.soHoaDon,
                     }}
                   >
-                    <Button
+                    <Chip
                       variant="text"
+                      label={hd?.soHoaDon}
                       sx={{
                         fontWeight: 700,
                         textTransform: "none",
@@ -595,9 +596,7 @@ const HoaDonTable = () => {
                             ? "#22c55e" // xanh lá
                             : "#374151",
                       }}
-                    >
-                      {hd?.soHoaDon}
-                    </Button>
+                    ></Chip>
                   </TableCell>
                   <TableCell
                     sx={{

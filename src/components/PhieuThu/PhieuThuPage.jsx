@@ -231,7 +231,7 @@ export default function PhieuThuPage() {
     return (
         <div className="p-4 bg-gray-100 min-h-screen">
             {/* Toolbar */}
-            <div className="mt-10 md:mt-0 mb-4 bg-white rounded shadow-sm border">
+            <div className="mb-4 bg-white rounded shadow-sm border">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3">
 
                     {/* Left: filter icon + title */}

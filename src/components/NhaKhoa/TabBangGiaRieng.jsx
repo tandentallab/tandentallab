@@ -12,6 +12,7 @@ import {
 import { Trash2 } from "lucide-react";
 import NhaKhoaSelector from "./NhaKhoaSelector";
 import { upsertBangGia, deleteBangGia } from "../../redux/slices/bangGiaSlice";
+import NhaKhoaSelector from "./NhaKhoaSelector";
 
 export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
   const dispatch = useDispatch();

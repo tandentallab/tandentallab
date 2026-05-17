@@ -87,7 +87,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
 
       {/* Panel */}
       <div
-        className={`fixed right-0 top-10 md:top-0 pt-16 h-full w-full sm:w-[480px] bg-gray-100 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed right-0 top-0 pt-16 h-full w-full sm:w-[480px] bg-gray-100 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
           }`}
       >
         {/* ── HEADER ── */}
@@ -290,6 +290,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
           onSuccess={(updated) => {
             setOpenEdit(false);
             if (onUpdated) onUpdated(updated);
+            if (onClose) onClose();
           }}
         />
       )}

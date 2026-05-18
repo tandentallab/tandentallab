@@ -1,5 +1,5 @@
 import React from 'react';
-import { Print, Download, CalendarMonth } from '@mui/icons-material';
+import { Print, CalendarMonth } from '@mui/icons-material'; // 👉 Đã xóa icon Download
 
 const TIME_FILTERS = [
     { id: 'today', label: 'Hôm nay' },
@@ -20,7 +20,6 @@ const FilterBar = ({
     customDates,
     setCustomDates,
     onPrint,
-    onExport,
 }) => {
     return (
         <div className="my-6 space-y-3">
@@ -70,12 +69,7 @@ const FilterBar = ({
                     >
                         <Print sx={{ fontSize: 15 }} /> In
                     </button>
-                    <button
-                        onClick={onExport}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-sm active:scale-95"
-                    >
-                        <Download sx={{ fontSize: 15 }} /> Xuất Excel
-                    </button>
+                    {/* 👉 Đã xóa nút Xuất Excel tại đây */}
                 </div>
             </div>
 

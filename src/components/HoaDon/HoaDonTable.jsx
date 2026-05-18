@@ -99,6 +99,19 @@ const HoaDonTable = () => {
   const [openDetail, setOpenDetail] = useState(false);
   const [openUpdate, setOpenUpdate] = useState(false);
 
+  const [columnWidths, setColumnWidths] = useState({
+    soHoaDon: 85,
+    nhaKhoa: 100,
+    tongTien: 80,
+    tongChietKhau: 80,
+    thanhTien: 80,
+    daThanhToan: 80,
+    conLai: 80,
+    ngayTao: 80,
+    trangThai: 80,
+    thaoTac: 80,
+  });
+
   // State cho phân trang và bộ lọc
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -161,29 +174,11 @@ const HoaDonTable = () => {
     setPage(0);
   };
 
-  const handleOpenDetail = (hd) => {
-    setSelectedHD(hd);
-    setOpenDetail(true);
-  };
-
-  const handleOpenUpdate = (hd) => {
-    setSelectedHD(hd);
-    setStatusUpdate(hd.trangThai);
-    setOpenUpdate(true);
-  };
-
   const handleConfirmUpdate = async () => {
     await dispatch(
       updateHoaDon({ id: selectedHD._id, data: { trangThai: statusUpdate } })
     );
     setOpenUpdate(false);
-  };
-
-  const handleResetFilters = () => {
-    setFilterNhaKhoa("");
-    setFilterTrangThai("");
-    setSearchTerm("");
-    setPage(0);
   };
 
   const handleDeleteHoaDon = (id) => {
@@ -261,6 +256,112 @@ const HoaDonTable = () => {
     }
   };
 
+  const handleResize = (columnKey, e) => {
+    e.preventDefault();
+
+    const startX = e.clientX;
+    const startWidth = columnWidths[columnKey];
+
+    const onMouseMove = (moveEvent) => {
+      const newWidth = startWidth + (moveEvent.clientX - startX);
+
+      setColumnWidths((prev) => ({
+        ...prev,
+        [columnKey]: Math.max(newWidth, 80), // width tối thiểu
+      }));
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
+
+  const ResizableHeaderCell = ({ label, columnKey }) => {
+    return (
+      <TableCell
+        sx={{
+          width: columnWidths[columnKey],
+          minWidth: columnWidths[columnKey],
+          maxWidth: columnWidths[columnKey],
+          position: "relative",
+          fontWeight: "bold",
+          whiteSpace: "nowrap",
+          userSelect: "none",
+        }}
+      >
+        {label}
+
+        {/* Thanh resize */}
+        <Box
+          onMouseDown={(e) => handleResize(columnKey, e)}
+          sx={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            width: "12px",
+            height: "100%",
+            cursor: "col-resize",
+            zIndex: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.2s ease",
+
+            "&:hover": {
+              backgroundColor: "#e3f2fd",
+            },
+
+            // Thanh dọc
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              width: "2px",
+              height: "70%",
+              backgroundColor: "#b0b0b0",
+              borderRadius: "2px",
+            },
+          }}
+        />
+      </TableCell>
+    );
+  };
+
+  const getTrangThaiColor = (trangThai) => {
+    switch (trangThai) {
+      case "Chưa thanh toán":
+        return {
+          bg: "#fee2e2",
+          color: "#dc2626",
+          border: "#fecaca",
+        };
+
+      case "Thanh toán một phần":
+        return {
+          bg: "#fef3c7",
+          color: "#d97706",
+          border: "#fde68a",
+        };
+
+      case "Đã thanh toán":
+        return {
+          bg: "#dcfce7",
+          color: "#16a34a",
+          border: "#bbf7d0",
+        };
+
+      default:
+        return {
+          bg: "#f3f4f6",
+          color: "#374151",
+          border: "#d1d5db",
+        };
+    }
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Quản lý Hóa Đơn</h2>
@@ -311,11 +412,18 @@ const HoaDonTable = () => {
                     }}
                   >
                     <MenuItem value="">Tất cả trạng thái</MenuItem>
-                    <MenuItem value="Chưa thanh toán">Chưa thanh toán</MenuItem>
-                    <MenuItem value="Thanh toán một phần">
+                    <MenuItem sx={{ color: "#ef4444" }} value="Chưa thanh toán">
+                      Chưa thanh toán
+                    </MenuItem>
+                    <MenuItem
+                      sx={{ color: "#f59e0b" }}
+                      value="Thanh toán một phần"
+                    >
                       Thanh toán một phần
                     </MenuItem>
-                    <MenuItem value="Đã thanh toán">Đã thanh toán</MenuItem>
+                    <MenuItem sx={{ color: "#22c55e" }} value="Đã thanh toán">
+                      Đã thanh toán
+                    </MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -404,36 +512,47 @@ const HoaDonTable = () => {
         </div>
       </Paper>
 
-      {/* BẢNG DỮ LIỆU */}
-      <TableContainer component={Paper} className="shadow-lg overflow-hidden">
-        <Table>
+      <TableContainer
+        component={Paper}
+        className="shadow-lg"
+        sx={{
+          width: "100%",
+          overflowX: "auto",
+          overflowY: "hidden",
+          maxWidth: "100%",
+        }}
+      >
+        <Table
+          sx={{
+            tableLayout: "fixed",
+            minWidth: "max-content",
+          }}
+        >
           <TableHead>
-            <TableRow>
-              <TableCell colSpan={10}>
-                {/* <ThongKeCongNo></ThongKeCongNo> */}
-              </TableCell>
-            </TableRow>
             <TableRow className="bg-gray-100">
-              <TableCell className="font-bold">Số hóa đơn</TableCell>
-              <TableCell
-                className="font-bold"
-                sx={{
-                  minWidth: 120,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Nha Khoa
-              </TableCell>
-              <TableCell className="font-bold">Tổng Tiền</TableCell>
-              <TableCell className="font-bold">Tổng Chiếc Khấu</TableCell>
-              <TableCell className="font-bold">Phải thanh toán</TableCell>
-              <TableCell className="font-bold">Đã Thanh Toán</TableCell>
-              <TableCell className="font-bold">Còn lại</TableCell>
-              <TableCell className="font-bold">Ngày Tạo</TableCell>
-              <TableCell className="font-bold">Trạng thái</TableCell>
-              <TableCell align="center" className="font-bold">
-                Thao Tác
-              </TableCell>
+              <ResizableHeaderCell label="Số hóa đơn" columnKey="soHoaDon" />
+              <ResizableHeaderCell label="Nha Khoa" columnKey="nhaKhoa" />
+              <ResizableHeaderCell label="Tổng Tiền" columnKey="tongTien" />
+              <ResizableHeaderCell
+                label="Tổng Chiếc Khấu"
+                columnKey="tongChietKhau"
+              />
+              <ResizableHeaderCell
+                label="Phải thanh toán"
+                columnKey="thanhTien"
+              />
+              <ResizableHeaderCell
+                label="Đã Thanh Toán"
+                columnKey="daThanhToan"
+              />
+              <ResizableHeaderCell label="Còn lại" columnKey="conLai" />
+              <ResizableHeaderCell label="Ngày Tạo" columnKey="ngayTao" />
+              <ResizableHeaderCell label="Trạng thái" columnKey="trangThai" />
+              <ResizableHeaderCell
+                label="Thao Tác"
+                columnKey="thaoTac"
+                sticky
+              />
             </TableRow>
           </TableHead>
           <TableBody>
@@ -445,56 +564,127 @@ const HoaDonTable = () => {
               </TableRow>
             ) : danhSachHoaDon?.length > 0 ? (
               danhSachHoaDon.map((hd) => (
-                <TableRow key={hd._id} hover>
-                  <TableCell className="font-semibold text-gray-700">
+                <TableRow
+                  key={hd._id}
+                  hover
+                  sx={{ cursor: "pointer" }}
+                  onClick={() => {
+                    navigate(`/hoa-don/${hd._id}/edit`);
+                  }}
+                >
+                  <TableCell
+                    sx={{
+                      width: columnWidths.soHoaDon,
+                      minWidth: columnWidths.soHoaDon,
+                      maxWidth: columnWidths.soHoaDon,
+                    }}
+                  >
                     <Button
                       variant="text"
-                      onClick={() => {
-                        navigate(`/hoa-don/${hd._id}/edit`);
-                      }}
-                    >
-                      {hd?.soHoaDon}
-                    </Button>
-                  </TableCell>
-                  <TableCell>
-                    <b>{hd.nhaKhoa?.hoVaTen}</b>
-                  </TableCell>
-                  <TableCell className="text-blue-600 font-medium">
-                    {hd.tongTien?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell className="text-blue-600 font-medium">
-                    {hd.tongChietKhau?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell className="text-blue-600 font-medium">
-                    {hd.thanhTien?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell className="text-blue-600 font-medium">
-                    {hd.daThanhToan?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell className="text-blue-600 font-medium">
-                    {hd.conLai?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell>
-                    {new Date(hd.createdAt).toLocaleDateString("vi-VN")}
-                  </TableCell>
-                  <TableCell className="text-blue-600 font-medium">
-                    <Chip
-                      label={hd.trangThai}
                       sx={{
-                        fontWeight: 600,
+                        fontWeight: 700,
+                        textTransform: "none",
                         color: "#fff",
-                        backgroundColor:
+
+                        bgcolor:
                           hd.trangThai === "Chưa thanh toán"
                             ? "#ef4444" // đỏ
                             : hd.trangThai === "Thanh toán một phần"
                             ? "#f59e0b" // vàng
                             : hd.trangThai === "Đã thanh toán"
                             ? "#22c55e" // xanh lá
-                            : "#9ca3af", // mặc định
+                            : "#374151",
                       }}
-                    />
+                    >
+                      {hd?.soHoaDon}
+                    </Button>
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell
+                    sx={{
+                      width: columnWidths.nhaKhoa,
+                      minWidth: columnWidths.nhaKhoa,
+                      maxWidth: columnWidths.nhaKhoa,
+                    }}
+                  >
+                    <b>{hd.nhaKhoa?.hoVaTen}</b>
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: columnWidths.tongTien,
+                      minWidth: columnWidths.tongTien,
+                      maxWidth: columnWidths.tongTien,
+                    }}
+                    className="text-blue-600 font-medium"
+                  >
+                    {hd.tongTien?.toLocaleString()}đ
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: columnWidths.tongChietKhau,
+                      minWidth: columnWidths.tongChietKhau,
+                      maxWidth: columnWidths.tongChietKhau,
+                    }}
+                    className="text-blue-600 font-medium"
+                  >
+                    {hd.tongChietKhau?.toLocaleString()}đ
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: columnWidths.thanhTien,
+                      minWidth: columnWidths.thanhTien,
+                      maxWidth: columnWidths.thanhTien,
+                    }}
+                    className="text-blue-600 font-medium"
+                  >
+                    {hd.thanhTien?.toLocaleString()}đ
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: columnWidths.daThanhToan,
+                      minWidth: columnWidths.daThanhToan,
+                      maxWidth: columnWidths.daThanhToan,
+                    }}
+                    className="text-blue-600 font-medium"
+                  >
+                    {hd.daThanhToan?.toLocaleString()}đ
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: columnWidths.conLai,
+                      minWidth: columnWidths.conLai,
+                      maxWidth: columnWidths.conLai,
+                    }}
+                    className="text-blue-600 font-medium"
+                  >
+                    {hd.conLai?.toLocaleString()}đ
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: columnWidths.ngayTao,
+                      minWidth: columnWidths.ngayTao,
+                      maxWidth: columnWidths.ngayTao,
+                    }}
+                  >
+                    {new Date(hd.createdAt).toLocaleDateString("vi-VN")}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: columnWidths.trangThai,
+                      minWidth: columnWidths.trangThai,
+                      maxWidth: columnWidths.trangThai,
+                    }}
+                    className="text-blue-600 font-medium"
+                  >
+                    {hd.trangThai}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      width: columnWidths.thaoTac,
+                      minWidth: columnWidths.thaoTac,
+                      maxWidth: columnWidths.thaoTac,
+                    }}
+                    align="center"
+                  >
                     <Stack direction="row" spacing={1} justifyContent="center">
                       <Tooltip title="In hóa đơn">
                         <IconButton
@@ -508,22 +698,9 @@ const HoaDonTable = () => {
                           <ExcelIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Chi tiết & Chăm sóc">
-                        <IconButton
-                          onClick={() => {
-                            navigate(`/hoa-don/${hd._id}/edit`);
-                          }}
-                          sx={{
-                            color: "#10b981",
-                          }}
-                        >
-                          <AssignmentIcon />
-                        </IconButton>
-                      </Tooltip>
                       <Tooltip title="Xóa hóa đơn">
                         <IconButton
                           onClick={() => {
-                            console.log("HD ID: ", hd._id);
                             handleDeleteHoaDon(hd._id);
                           }}
                         >

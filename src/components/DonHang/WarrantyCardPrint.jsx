@@ -102,7 +102,7 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
               style={{
                 position: "absolute",
                 left: "57mm",
-                top: "28mm",
+                top: "27mm",
               }}
             >
               <QRCodeSVG value={qrValue} size={73} level="M" includeMargin={true} />

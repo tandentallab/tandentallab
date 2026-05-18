@@ -145,7 +145,7 @@ const HoaDonPrintPreview = () => {
   });
 
   return (
-    <div className="h-screen flex flex-col bg-gray-200 overflow-hidden">
+<div className="h-screen flex flex-col bg-gray-200 overflow-hidden">
       {/* Header Bar - Fixed Top */}
       <div className="h-10 bg-[#00a8ff] flex justify-between items-center px-4 shrink-0 print:hidden z-[1000]">
         <span className="text-white font-medium text-sm tracking-wide uppercase">Xem trước hóa đơn</span>
@@ -159,24 +159,30 @@ const HoaDonPrintPreview = () => {
             className="print-area bg-white w-full max-w-[210mm] shadow-lg p-8 mb-4"
             style={{ fontFamily: "'Cambria', serif", fontSize: "10.5pt" }}
           >
-            {/* Header công ty */}
-            <div className="mb-6 leading-tight">
-              <div className="font-bold text-lg mb-1 uppercase">Công ty TNHH Tấn Dental</div>
-              <div>Số 43, đường số 14, KDC Hồng Phát, phường An Bình,</div>
-              <div>TP Cần Thơ</div>
-              <div>Điện thoại: 0842312828</div>
-            </div>
-
-            <div className="text-center font-bold text-[16pt] mb-6 uppercase">
-              Giấy báo thanh toán
-            </div>
-
-            <div className="mb-4 leading-tight">
+            {/* ĐÃ SỬA: ĐƯA TÊN CÔNG TY VÀ TÊN LOẠI GIẤY VÀO BẢNG CÓ VIỀN */}
+            <table className="w-full border-collapse border border-black mb-4" style={{ fontSize: "10.5pt" }}>
+              <tbody>
+                <tr>
+                  <td className="border border-black p-2 w-1/2 align-top leading-tight font-bold text-center">
+                    <div className="font-bold mb-1 uppercase">Công ty TNHH Tấn Dental</div>
+                    <div>Số 43, đường số 14, KDC Hồng Phát, phường An Bình,</div>
+                    <div>TP Cần Thơ</div>
+                    <div>Điện thoại: 0842312828</div>
+                  </td>
+                  <td className="border border-black p-2 w-1/2 text-center align-middle font-bold  uppercase">
+                    Giấy báo thanh toán
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            {/* Căn giữa Khách hàng và Ngày */}
+            <div className="mb-6 leading-tight text-center">
               <div>Khách hàng: <span className="font-bold uppercase">{nhaKhoaInfo?.hoVaTen || nhaKhoaInfo?.tenGiaoDich || "---"}</span></div>
-              <div>Từ Ngày: {formatDate(hoaDon.ngayXuatHoaDon)} Đến Ngày: {formatDate(hoaDon.ngayXuatHoaDon)}</div>
+              <div>Từ Ngày: {formatDate(hoaDon.ngayXuatHoaDon)} - Đến Ngày: {formatDate(hoaDon.ngayXuatHoaDon)}</div>
             </div>
 
-            <table className="w-full border-collapse border border-black" style={{ fontSize: "10.5pt" }}>
+            {/* ĐÃ SỬA CHỖ NÀY: XÓA 'border border-black' khỏi className của table để bỏ viền bao ngoài cùng */}
+            <table className="w-full border-collapse" style={{ fontSize: "10.5pt" }}>
               <thead>
                 <tr className="font-bold text-center">
                   <th className="border border-black p-1">STT</th>
@@ -198,7 +204,7 @@ const HoaDonPrintPreview = () => {
                     <td className="border border-black text-center p-1">{index + 1}</td>
                     <td className="border border-black text-center p-1">{formatShortDate(row.ngay)}</td>
                     <td className="border border-black p-1">{row.bacSi}</td>
-                    <td className="border border-black p-1">{row.benhNhan}</td>
+                    <td className="border border-black p-1 whitespace-nowrap">{row.benhNhan}</td>
                     <td className="border border-black p-1">{row.sanPham}</td>
                     <td className="border border-black text-center p-1">{row.rang}</td>
                     <td className="border border-black text-center p-1">{row.soLuong}</td>
@@ -208,42 +214,61 @@ const HoaDonPrintPreview = () => {
                     <td className="border border-black p-1">{row.ghiChu}</td>
                   </tr>
                 ))}
+
+                {/* KHỐI TỔNG HỢP CHI PHÍ */}
+                {/* KHỐI TỔNG HỢP CHI PHÍ */}
+                <tr>
+                  <td colSpan={6} style={{ border: "none" }}></td>
+                  <td colSpan={3} className="border border-black p-1 text-left uppercase">
+                    PHÁT SINH TRONG KỲ:
+                  </td>
+                  <td colSpan={2} className="border border-black p-1 font-bold text-right">
+                    {formatCurrency(hoaDon.tongTien)}
+                  </td>
+                </tr>
+                <tr>
+                  <td colSpan={6} style={{ border: "none" }}></td>
+                  <td colSpan={3} className="border border-black p-1 text-left uppercase">
+                    CHIẾT KHẤU:
+                  </td>
+                  <td colSpan={2} className="border border-black p-1 font-bold text-right">
+                    {formatCurrency(hoaDon.tongChietKhau)}
+                  </td>
+                </tr>
+                <tr>
+                  <td colSpan={6} style={{ border: "none" }}></td>
+                  <td colSpan={3} className="border border-black p-1 text-left uppercase">
+                    NỢ ĐẦU KỲ:
+                  </td>
+                  <td colSpan={2} className="border border-black p-1 font-bold text-right">
+                    0
+                  </td>
+                </tr>
+                <tr>
+                  <td colSpan={6} style={{ border: "none" }}></td>
+                  <td colSpan={3} className="border border-black p-1 text-left uppercase">
+                    GIÁ TRỊ THANH TOÁN:
+                  </td>
+                  <td colSpan={2} className="border border-black p-1 font-bold text-right">
+                    {formatCurrency(hoaDon.thanhTien)}
+                  </td>
+                </tr>
               </tbody>
             </table>
 
-            <div className="flex justify-between mt-6">
-              <div className="w-1/2">
-                {hoaDon.ghiChuChoKhachHang && (
-                  <div>
-                    <span className="font-bold underline">Ghi chú cho khách hàng:</span>
-                    <div className="mt-1 whitespace-pre-wrap">{hoaDon.ghiChuChoKhachHang}</div>
-                  </div>
-                )}
-              </div>
-              <div className="w-1/3">
-                <div className="flex justify-between font-bold mb-1">
-                  <span>PHÁT SINH TRONG KỲ:</span>
-                  <span>{formatCurrency(hoaDon.tongTien)}</span>
-                </div>
-                <div className="flex justify-between font-bold mb-1">
-                  <span>CHIẾT KHẤU:</span>
-                  <span>{formatCurrency(hoaDon.tongChietKhau)}</span>
-                </div>
-                <div className="flex justify-between font-bold mb-1">
-                  <span>NỢ ĐẦU KỲ:</span>
-                  <span>0</span>
-                </div>
-                <div className="flex justify-between font-bold border-t border-black pt-1 mt-1">
-                  <span>GIÁ TRỊ THANH TOÁN:</span>
-                  <span>{formatCurrency(hoaDon.thanhTien)}</span>
-                </div>
+            {/* PHẦN GHI CHÚ NẰM DƯỚI BẢNG (Giờ sẽ không còn bị dính viền trên nữa) */}
+            <div className="mt-4 text-left leading-normal" style={{ fontSize: "10.5pt" }}>
+              
+              <div className="mt-1 whitespace-pre-wrap text-gray-800">
+                *Ghi chú: {hoaDon.ghiChuChoKhachHang || ""}
               </div>
             </div>
+
           </div>
         </div>
       </div>
 
-      {/* Footer Bar - Fixed Bottom (Sửa lỗi nút che nội dung) */}
+      {/* Footer Bar - Fixed Bottom */}
       <div className="h-16 bg-white border-t flex justify-center items-center gap-4 shrink-0 print:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
         <button 
           onClick={() => window.print()} 
@@ -261,7 +286,6 @@ const HoaDonPrintPreview = () => {
 
       <style>{`
         @media print {
-          /* Chống nhảy 2 trang */
           @page { 
             size: A4; 
             margin: 15mm; 

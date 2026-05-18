@@ -41,7 +41,7 @@ const HoaDonDetail = () => {
   const [selectedOrders, setSelectedOrders] = useState([]);
 
   // Phiếu thu modal state
-  const toLocalDT = (d) => { const dt = d ? new Date(d) : new Date(); const p = (n) => String(n).padStart(2, "0"); return `${dt.getFullYear()}-${p(dt.getMonth()+1)}-${p(dt.getDate())}T${p(dt.getHours())}:${p(dt.getMinutes())}`; };
+  const toLocalDT = (d) => { const dt = d ? new Date(d) : new Date(); const p = (n) => String(n).padStart(2, "0"); return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}T${p(dt.getHours())}:${p(dt.getMinutes())}`; };
   const [ptOpen, setPtOpen] = useState(false);
   const [ptSoTien, setPtSoTien] = useState("");
   const [ptNgayThu, setPtNgayThu] = useState(toLocalDT(new Date()));

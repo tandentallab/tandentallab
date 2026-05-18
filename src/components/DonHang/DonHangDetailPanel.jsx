@@ -13,6 +13,14 @@ import { api } from "../../config/api";
 import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 import WarrantyCardPrint from "./WarrantyCardPrint";
 
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import PrintIcon from '@mui/icons-material/Print';
+import CheckIcon from '@mui/icons-material/Check';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+
 const DonHangDetailPanel = ({ donHang, onClose }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -60,6 +68,8 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
         });
     }
   }, [donHang?._id]);
+
+  console.log(donHang)
 
   const trangThaiColor = {
     "Chờ xử lý": "bg-yellow-200 text-yellow-900",
@@ -143,7 +153,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
   };
 
   const panelTop = isMobile ? 112 : 70;
-  const panelWidth = isVerySmall ? "100vw" : "440px";
+  const panelWidth = isVerySmall ? "100vw" : "530px";
   const panelHeight = `calc(100vh - ${panelTop}px)`;
 
   const getCongDoanTrangThai = (sp, thuTu) => {
@@ -160,128 +170,93 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
       .catch((err) => toast.error(err || "Cập nhật thất bại"));
   };
 
+  const totalCongDoanCount = donHang?.danhSachSanPham?.reduce(
+    (sum, sp) => sum + (sp.sanPham?.quyTrinh?.length || 0),
+    0
+  ) || 0;
+
+  const doneCongDoanCount = donHang?.danhSachSanPham?.reduce((sum, sp) => {
+    const quyTrinh = sp.sanPham?.quyTrinh || [];
+    return sum + quyTrinh.filter((cd) => {
+      const found = sp.trangThaiCongDoan?.find((t) => t.thuTu === cd.thuTu);
+      return found?.trangThai === "Hoàn thành";
+    }).length;
+  }, 0) || 0;
+
+  const conLaiCongDoan = totalCongDoanCount - doneCongDoanCount;
+
+  const groupedNhatKy = (donHang?.nhatKyChinhSua || []).reduce((acc, entry) => {
+    const d = new Date(entry.thoiGian);
+    const dateKey = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+    if (!acc[dateKey]) acc[dateKey] = [];
+    acc[dateKey].push(entry);
+    return acc;
+  }, {});
+
+  const hasWarranty = warranty && (
+    (warranty.danhSachSanPham && warranty.danhSachSanPham.length > 0) || warranty.isValid
+  );
+
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`fixed left-0 right-0 bottom-0 bg-black/20 transition-opacity duration-300 ${isOpen
-          ? "opacity-100 pointer-events-auto"
-          : "opacity-0 pointer-events-none"
-          }`}
-        style={{
-          zIndex: isVerySmall ? 1499 : 1298,
-          top: `${panelTop}px`,
-        }}
+        className={`fixed left-0 right-0 bottom-0 bg-black/20 transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        style={{ zIndex: isVerySmall ? 1499 : 1298, top: `${panelTop}px` }}
         onClick={onClose}
       />
 
       {/* Slide-out panel */}
       <div
-        className={`fixed right-0 top-0 pt-16 h-full w-full sm:w-[440px] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
-          }`}
-        style={{
-          zIndex: isVerySmall ? 1500 : 1300,
-          top: `${panelTop}px`,
-          width: panelWidth,
-          height: panelHeight,
-          maxHeight: panelHeight,
-        }}
+        className={`fixed right-0 flex flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        style={{ zIndex: isVerySmall ? 1500 : 1300, top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight }}
       >
         {/* Header */}
-        <div className="bg-teal-700 text-white px-4 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-bold text-base truncate">{maDonHang}</span>
-            {donHang && (
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${trangThaiColor[donHang.trangThai] ||
-                  "bg-gray-200 text-gray-800"
-                  }`}
-              >
-                {donHang.trangThai || "Chờ xử lý"}
-              </span>
-            )}
+        <div className="bg-[#4fc3f7] border-b px-4 py-3 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 text-white">
+            <div onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-500 hover:cursor-pointer transition-all duration-100">
+              <ArrowForwardIcon onClick={onClose} sx={{ fontSize: 22 }} />
+            </div>
+            <span className="text-xl">{maDonHang}</span>
           </div>
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              onClick={handlePrint}
-              title="In đơn hàng"
-              className="p-1.5 rounded hover:bg-teal-600 transition"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={handleEdit}
-              title="Chỉnh sửa"
-              className="p-1.5 rounded hover:bg-teal-600 transition"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={handleDelete}
-              title="Xóa đơn hàng"
-              className="p-1.5 rounded hover:bg-red-600 transition"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={onClose}
-              title="Đóng"
-              className="p-1.5 rounded hover:bg-teal-600 transition text-xl font-bold leading-none ml-1"
-            >
-              &times;
-            </button>
+          <div className="flex items-center gap-2 shrink-0 text-white">
+            <div onClick={handleEdit} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-500 hover:cursor-pointer transition-all duration-100">
+              <EditIcon sx={{ fontSize: 22 }} />
+            </div>
+            <div onClick={handleDelete} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-500 hover:cursor-pointer transition-all duration-100">
+              <DeleteIcon sx={{ fontSize: 22 }} />
+            </div>
+
           </div>
         </div>
 
+        {/* NhaKhoa row */}
+        {donHang && (
+          <div className="border-b px-4 py-3 flex items-center gap-3 bg-white shrink-0">
+            <div className="w-9 h-9 rounded-full bg-teal-500 text-white flex items-center justify-center font-bold text-sm shrink-0 uppercase">
+              {(donHang.nhaKhoa?.tenGiaoDich || donHang.nhaKhoa?.hoVaTen || "?").charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-gray-800 text-lg truncate">
+                  {donHang.nhaKhoa?.tenGiaoDich || donHang.nhaKhoa?.hoVaTen || "—"}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
-        <div className="flex border-b shrink-0 bg-white">
-          {tabs.map((tab) => (
+        <div className="flex border-b shrink-0 bg-gray-100">
+          {[
+            { key: "chitiet", label: "Chi tiết" },
+            { key: "sanxuat", label: `Sản xuất${donHang ? ` (${donHang.danhSachSanPham?.length || 0})` : ""}` },
+            { key: "ghichu", label: "Ghi chú" },
+          ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-5 py-2.5 text-sm font-medium transition border-b-2 ${activeTab === tab.key
-                ? "border-teal-600 text-teal-700"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
+              className={`px-4 py-2.5 flex-1 text-sm font-medium transition border-b-2 ${activeTab === tab.key ? "border-teal-600 text-teal-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
             >
               {tab.label}
             </button>
@@ -291,260 +266,144 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto">
           {donHang && activeTab === "chitiet" && (
-            <div className="p-4 flex flex-col gap-4">
-              {/* Basic info card */}
-              <div className="bg-gray-50 rounded-lg p-3 text-sm flex flex-col gap-2 border">
-                <InfoRow
-                  label="Nha khoa"
-                  value={
-                    donHang.nhaKhoa?.tenGiaoDich || donHang.nhaKhoa?.hoVaTen
-                  }
-                />
-                <InfoRow label="Bác sĩ" value={donHang.bacSi?.hoVaTen} />
-                <InfoRow label="Bệnh nhân" value={donHang.benhNhan?.hoVaTen} />
-              </div>
-
-              {/* Dates grid */}
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <DateCard
-                  label="Ngày nhận"
-                  value={donHang.ngayNhan}
-                  colorClass="bg-blue-50 border-blue-100"
-                  format="datetime"
-                />
-                <DateCard
-                  label="Hẹn giao"
-                  value={donHang.henGiao}
-                  colorClass="bg-orange-50 border-orange-100"
-                  format="date"
-                />
-                <DateCard
-                  label="Y/c hoàn thành"
-                  value={donHang.yeuCauHoanThanh}
-                  colorClass="bg-purple-50 border-purple-100"
-                  format="datetime"
-                />
-                <div className="bg-teal-50 border border-teal-100 rounded-lg p-3">
-                  <div className="text-gray-500 text-xs mb-1">Trạng thái</div>
-                  <div className="font-medium text-teal-800">
-                    {donHang.trangThai || "Chờ xử lý"}
+            <div className="flex flex-col">
+              {/* Info rows */}
+              <div className="px-4 py-3 flex flex-col gap-1 text-sm border-b">
+                {donHang.bacSi?.hoVaTen && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 w-28 shrink-0">Bác sĩ:</span>
+                    <span className="font-medium text-gray-800">{donHang.bacSi.hoVaTen}</span>
                   </div>
-                </div>
-              </div>
-
-              {/* Products */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                  Danh sách sản phẩm
-                </h4>
-                {donHang.danhSachSanPham?.length > 0 ? (
-                  donHang.danhSachSanPham.map((sp, idx) => (
-                    <div
-                      key={idx}
-                      className="border rounded-lg p-3 mb-2 text-sm bg-blue-50 border-blue-100"
-                    >
-                      <div className="flex justify-between items-start gap-2">
-                        <span className="font-medium text-blue-800">
-                          {sp.sanPham?.tenSanPham || "N/A"}
-                        </span>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                            {sp.loaiDon}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            ×{sp.soLuong}
-                          </span>
-                        </div>
-                      </div>
-                      {sp.viTri?.length > 0 && (
-                        <div className="text-gray-600 text-xs mt-1">
-                          Răng: {renderViTriText(sp.viTri)}
-                        </div>
-                      )}
-                      {sp.mau && (
-                        <div className="text-gray-600 text-xs mt-0.5">
-                          Màu: {sp.mau}
-                        </div>
-                      )}
-                      {sp.ghiChu && (
-                        <div className="text-gray-500 italic text-xs mt-0.5">
-                          {sp.ghiChu}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-gray-400 text-sm italic">
-                    Chưa có sản phẩm
+                )}
+                {donHang.benhNhan?.hoVaTen && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 w-28 shrink-0">Bệnh nhân:</span>
+                    <span className="font-medium text-gray-800">{donHang.benhNhan.hoVaTen}</span>
+                  </div>
+                )}
+                {donHang.yeuCauHoanThanh && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 w-28 shrink-0">Y/c hoàn thành:</span>
+                    <span className="font-medium text-gray-800">
+                      {new Date(donHang.yeuCauHoanThanh).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                )}
+                {donHang.henGiao && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 w-28 shrink-0">Hẹn giao:</span>
+                    <span className="font-medium text-gray-800">
+                      {new Date(donHang.henGiao).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                )}
+                {donHang.chiDinhBacSi && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 w-28 shrink-0">Chỉ định:</span>
+                    <span className="font-medium text-gray-800 whitespace-pre-wrap">{donHang.chiDinhBacSi}</span>
                   </div>
                 )}
               </div>
 
-              {/* Accessories */}
+              {/* Products */}
+              <div className="px-4 py-3 border-b">
+                <h4 className="font-semibold mb-2">
+                  {donHang.danhSachSanPham?.length || 0} sản phẩm
+                </h4>
+                {donHang.danhSachSanPham?.length > 0 ? (
+                  donHang.danhSachSanPham.map((sp, idx) => (
+                    <div key={idx} className="mb-1 last:mb-0">
+                      <div className="flex">
+                        <div className="font-medium text-sm">{sp.sanPham?.tenSanPham || "N/A"}</div>
+                        {sp.loaiDon != "Mới" && <div className="text-sm ml-2">[{sp.loaiDon}]</div>}
+                      </div>
+                      {sp.viTri?.length > 0 && (
+                        <div className="text-sm text-gray-700 mt-0.5">• {sp.soLuong} răng: {renderViTriText(sp.viTri)}</div>
+                      )}
+                      {sp.mau && <div className="text-sm text-gray-700 mt-0.5">• Màu: {sp.mau}</div>}
+                      {sp.ghiChu && <div className="text-sm text-gray-700 italic mt-0.5">{sp.ghiChu}</div>}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-gray-400 text-sm italic">Chưa có sản phẩm</div>
+                )}
+                <button
+                  onClick={handleOpenPhieuBaoHanh}
+                  className="mt-2 font-medium text-sm px-2 py-1 rounded-full bg-slate-500 text-white flex items-center gap-2"
+                >
+                  <ReceiptIcon sx={{ fontSize: 18 }} /> Thẻ bảo hành
+                </button>
+              </div>
+
+              {/* Phụ kiện */}
               {donHang.danhSachPhuKien?.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                    Phụ kiện đi kèm
-                  </h4>
-                  <div className="grid grid-cols-2 gap-1.5">
+                <div className="px-4 py-3 border-b">
+                  <h4 className="font-semibold mb-2">Phụ kiện</h4>
+                  <div className="flex flex-col gap-1">
                     {donHang.danhSachPhuKien.map((pk, idx) => (
-                      <div
-                        key={idx}
-                        className="text-xs bg-gray-100 rounded px-2 py-1.5 border border-gray-200"
-                      >
-                        <span className="font-medium text-gray-700">
-                          {pk.tenPhuKien}
-                        </span>
-                        <span className="text-gray-500 ml-1">
-                          ×{pk.soLuong}
-                        </span>
-                        <span className="text-gray-400 ml-1 text-[11px]">
-                          ({pk.soHuu})
-                        </span>
+                      <div key={idx} className="text-sm">
+                        {pk.soLuong} {pk.tenPhuKien}
+                        {pk.soHuu && <span className="text-sm ml-1">• {pk.soHuu}</span>}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Mark complete button */}
-              <button
-                onClick={handleOpenPhieuBaoHanh}
-                className="w-full py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 mt-1 bg-blue-500 hover:bg-blue-600 text-white shadow-sm"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                  stroke="currentColor"
-                  className="w-4 h-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 6h16M4 12h16M4 18h10"
-                  />
-                </svg>
-                Tạo phiếu bảo hành
-              </button>
-
-              {/* Print warranty card button */}
-              {warranty &&
-                ((warranty.danhSachSanPham &&
-                  warranty.danhSachSanPham.length > 0) ||
-                  warranty.isValid) && (
-                  <button
-                    onClick={handleOpenPrintWarranty}
-                    className="w-full py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 mt-1 bg-purple-500 hover:bg-purple-600 text-white shadow-sm"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2.5}
-                      stroke="currentColor"
-                      className="w-4 h-4"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4"
-                      />
-                    </svg>
-                    In thẻ bảo hành
-                  </button>
-                )}
-
-              {/* Mark complete button */}
-              <button
-                onClick={handleMarkComplete}
-                disabled={donHang.trangThai === "Hoàn thành"}
-                className={`w-full py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 mt-1 ${donHang.trangThai === "Hoàn thành"
-                  ? "bg-green-100 text-green-700 cursor-default border border-green-200"
-                  : "bg-green-500 hover:bg-green-600 text-white shadow-sm"
-                  }`}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                  stroke="currentColor"
-                  className="w-4 h-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4.5 12.75l6 6 9-13.5"
-                  />
-                </svg>
-                {donHang.trangThai === "Hoàn thành"
-                  ? "Đã hoàn thành"
-                  : "Đánh dấu hoàn thành"}
-              </button>
+              {/* Nhật ký chỉnh sửa */}
+              {Object.keys(groupedNhatKy).length > 0 && (
+                <div className="px-4 py-3">
+                  <h4 className="font-semibold mb-2">Nhật ký chỉnh sửa</h4>
+                  {Object.entries(groupedNhatKy).reverse().map(([dateKey, entries]) => (
+                    <div key={dateKey} className="mb-3">
+                      <div className="text-sm font-medium mb-1">{dateKey}</div>
+                      {entries.map((entry, i) => {
+                        const t = new Date(entry.thoiGian);
+                        const timeStr = t.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+                        return (
+                          <div key={i} className="flex gap-2 text-sm mb-1 ml-3">
+                            <span className="text-gray-600 text-xs pt-0.5">{timeStr}</span>
+                            <span>
+                              <span className="font-medium text-gray-800">{entry.nguoiThuc}</span>
+                              <span className="text-gray-600 ml-1">{entry.hanhDong}</span>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {donHang && activeTab === "sanxuat" && (
             <div className="p-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                Quy trình sản xuất
-              </h4>
               {donHang.danhSachSanPham?.map((sp, spIdx) => {
                 const quyTrinh = sp.sanPham?.quyTrinh
                   ? [...sp.sanPham.quyTrinh].sort((a, b) => a.thuTu - b.thuTu)
                   : [];
                 return (
-                  <div
-                    key={spIdx}
-                    className="mb-4 border rounded-lg overflow-hidden shadow-sm"
-                  >
-                    {/* Product header */}
+                  <div key={spIdx} className="mb-4 border rounded-lg overflow-hidden shadow-sm">
                     <div className="bg-gray-50 border-b px-3 py-2">
                       <div className="font-semibold text-gray-800 text-sm">
                         {sp.sanPham?.tenSanPham || `Sản phẩm ${spIdx + 1}`}
                       </div>
                       {(sp.viTri?.length > 0 || sp.mau) && (
-                        <div className="text-xs text-gray-500 mt-0.5">
-                          {sp.viTri?.length > 0 && (
-                            <span>
-                              {sp.soLuong} răng: {renderViTriText(sp.viTri)}
-                            </span>
-                          )}
-                          {sp.mau && (
-                            <span className="ml-1">– Màu răng: {sp.mau}</span>
-                          )}
+                        <div className="text-sm text-gray-600 mt-0.5">
+                          {sp.viTri?.length > 0 && <><span className="font-medium text-black">{sp.soLuong}</span> răng: <span className="font-medium text-black">{renderViTriText(sp.viTri)}</span></>}
+                          {sp.mau && <span className="ml-1">– Màu răng: <span className="font-medium text-black">{sp.mau}</span></span>}
                         </div>
                       )}
                     </div>
-
-                    {/* Công đoạn list */}
                     <div className="divide-y">
                       {quyTrinh.length > 0 ? (
                         quyTrinh.map((cd, i) => {
-                          const currentStatus = getCongDoanTrangThai(
-                            sp,
-                            cd.thuTu
-                          );
-                          const dropKey = `${spIdx}-${cd.thuTu}`;
-                          const isDropOpen =
-                            openDropdown?.spIndex === spIdx &&
-                            openDropdown?.thuTu === cd.thuTu;
+                          const currentStatus = getCongDoanTrangThai(sp, cd.thuTu);
+                          const isDropOpen = openDropdown?.spIndex === spIdx && openDropdown?.thuTu === cd.thuTu;
                           return (
-                            <div
-                              key={i}
-                              className="flex items-center justify-between px-3 py-2.5 text-sm hover:bg-gray-50"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold shrink-0">
-                                  {cd.thuTu}
-                                </span>
-                                <span className="text-gray-700">
-                                  {cd.tenCongDoan}
-                                </span>
-                              </div>
-                              {/* Status dropdown */}
+                            <div key={i} className="flex items-center justify-between px-3 py-1.5 text-sm font-medium hover:bg-gray-50">
+                              <span className="text-gray-700">{cd.thuTu}. {cd.tenCongDoan}</span>
                               <div className="relative shrink-0">
                                 <button
                                   onClick={(e) => {
@@ -552,106 +411,95 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
                                     if (isDropOpen) {
                                       setOpenDropdown(null);
                                     } else {
-                                      const rect =
-                                        e.currentTarget.getBoundingClientRect();
-                                      setOpenDropdown({
-                                        spIndex: spIdx,
-                                        thuTu: cd.thuTu,
-                                        top: rect.bottom + 4,
-                                        right: window.innerWidth - rect.right,
-                                      });
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      setOpenDropdown({ spIndex: spIdx, thuTu: cd.thuTu, top: rect.bottom + 4, right: window.innerWidth - rect.right });
                                     }
                                   }}
-                                  className={`text-xs px-2 py-1 rounded hover:bg-gray-100 transition ${CONG_DOAN_TRANG_THAI_STYLE[currentStatus]}`}
+                                  className={`text-sm px-2 py-1 rounded hover:bg-gray-100 transition ${CONG_DOAN_TRANG_THAI_STYLE[currentStatus]}`}
                                 >
                                   {currentStatus}
                                 </button>
-                                {isDropOpen &&
-                                  ReactDOM.createPortal(
-                                    <div
-                                      style={{
-                                        top: openDropdown.top,
-                                        right: openDropdown.right,
-                                      }}
-                                      className="fixed bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] min-w-[150px]"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      {CONG_DOAN_TRANG_THAI_OPTIONS.map(
-                                        (opt) => (
-                                          <button
-                                            key={opt}
-                                            onClick={() =>
-                                              handleCongDoanStatusChange(
-                                                spIdx,
-                                                cd.thuTu,
-                                                opt
-                                              )
-                                            }
-                                            className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition ${opt === currentStatus
-                                              ? "font-semibold text-cyan-600"
-                                              : "text-gray-700"
-                                              }`}
-                                          >
-                                            {opt}
-                                          </button>
-                                        )
-                                      )}
-                                    </div>,
-                                    document.body
-                                  )}
+                                {isDropOpen && ReactDOM.createPortal(
+                                  <div
+                                    style={{ top: openDropdown.top, right: openDropdown.right }}
+                                    className="fixed bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] min-w-[150px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {CONG_DOAN_TRANG_THAI_OPTIONS.map((opt) => (
+                                      <button
+                                        key={opt}
+                                        onClick={() => handleCongDoanStatusChange(spIdx, cd.thuTu, opt)}
+                                        className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition ${opt === currentStatus ? "font-semibold text-cyan-600" : "text-gray-700"}`}
+                                      >
+                                        {opt}
+                                      </button>
+                                    ))}
+                                  </div>,
+                                  document.body
+                                )}
                               </div>
                             </div>
                           );
                         })
                       ) : (
-                        <div className="px-3 py-3 text-sm text-gray-400 italic">
-                          Chưa có thông tin công đoạn
-                        </div>
+                        <div className="px-3 py-3 text-sm text-gray-400 italic">Chưa có thông tin công đoạn</div>
                       )}
                     </div>
                   </div>
                 );
               })}
-              {(!donHang.danhSachSanPham ||
-                donHang.danhSachSanPham.length === 0) && (
-                  <div className="text-gray-400 text-sm italic text-center mt-8">
-                    Chưa có sản phẩm
-                  </div>
-                )}
+              {(!donHang.danhSachSanPham || donHang.danhSachSanPham.length === 0) && (
+                <div className="text-gray-400 text-sm italic text-center mt-8">Chưa có sản phẩm</div>
+              )}
             </div>
           )}
 
           {donHang && activeTab === "ghichu" && (
             <div className="p-4 flex flex-col gap-4 text-sm">
-              <NoteBlock
-                label="Chỉ định của bác sĩ"
-                value={donHang.chiDinhBacSi}
-              />
+              <NoteBlock label="Chỉ định của bác sĩ" value={donHang.chiDinhBacSi} />
               <NoteBlock label="Ghi chú chung" value={donHang.ghiChuChung} />
-              <NoteBlock
-                label="Ghi chú tài chính"
-                value={donHang.ghiChuTaiChinh}
-              />
+              <NoteBlock label="Ghi chú tài chính" value={donHang.ghiChuTaiChinh} />
+              <NoteBlock label="Ghi chú sản xuất" value={donHang.ghiChuSanXuat} />
             </div>
           )}
+        </div>
+
+        {/* Bottom bar */}
+        <div className="border-t bg-white px-3 py-2.5 flex gap-2 shrink-0">
+          <button
+            onClick={handleMarkComplete}
+            disabled={donHang?.trangThai === "Hoàn thành"}
+            className={`flex-1 py-2 rounded-lg font-medium text-sm transition flex items-center justify-center gap-1.5 ${donHang?.trangThai === "Hoàn thành" ? "bg-green-100 text-green-700 border border-green-200 cursor-default" : "bg-green-500 hover:bg-green-600 text-white"}`}
+          >
+            <CheckIcon />
+            {donHang?.trangThai === "Hoàn thành" ? "Đã hoàn thành" : "Hoàn thành"}
+          </button>
+          <button
+            onClick={() => navigate(`/donhang/${donHang._id}/print`)}
+            className="flex-1 py-2 rounded-lg font-medium text-sm bg-blue-500 hover:bg-blue-600 text-white transition flex items-center justify-center gap-1.5"
+          >
+            <PrintIcon />
+            Phiếu chỉ định
+          </button>
+          <button
+            onClick={() => navigate(`/donhang/${donHang._id}/delivery-note`)}
+            className="flex-1 py-2 rounded-lg font-medium text-sm bg-orange-500 hover:bg-orange-600 text-white transition flex items-center justify-center gap-1.5"
+          >
+            <LocalShippingIcon />
+            Phiếu giao hàng
+          </button>
         </div>
       </div>
 
       {donHang && isPhieuBaoHanhOpen && (
         <PhieuBaoHanhModal
           open={isPhieuBaoHanhOpen}
-          onClose={() => {
-            setIsPhieuBaoHanhOpen(false);
-          }}
+          onClose={() => setIsPhieuBaoHanhOpen(false)}
           donHang={donHang}
           onSuccess={() => {
             toast.success("Đã tạo phiếu bảo hành");
-            // Refresh warranty
-            api
-              .get(`/phieu-bao-hanh/don-hang/${donHang._id}`)
-              .then((res) => {
-                setWarranty(res.data.data || res.data);
-              });
+            api.get(`/phieu-bao-hanh/don-hang/${donHang._id}`)
+              .then((res) => setWarranty(res.data.data || res.data));
           }}
         />
       )}
@@ -665,35 +513,6 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
         />
       )}
     </>
-  );
-};
-
-const InfoRow = ({ label, value }) => (
-  <div className="flex gap-2 items-start">
-    <span className="text-gray-500 w-24 shrink-0">{label}:</span>
-    <span className="font-medium text-gray-800">
-      {value || <span className="text-gray-400 italic font-normal">--</span>}
-    </span>
-  </div>
-);
-
-const DateCard = ({ label, value, colorClass, format }) => {
-  const formatted = value
-    ? format === "datetime"
-      ? new Date(value).toLocaleString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-      : new Date(value).toLocaleDateString("vi-VN")
-    : "--";
-  return (
-    <div className={`${colorClass} border rounded-lg p-3`}>
-      <div className="text-gray-500 text-xs mb-1">{label}</div>
-      <div className="font-medium text-gray-800 text-sm">{formatted}</div>
-    </div>
   );
 };
 

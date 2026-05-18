@@ -2,34 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../config/api';
 import { toast } from 'sonner';
-import { Container, Paper, TextField, Button, CircularProgress, Box } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+import { CircularProgress } from '@mui/material';
 
-// Tooth position grid - FDI notation
-const TEETH_GRID = {
-  upper: [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28],
-  lower: [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38],
-};
+// THỨ TỰ SẮP XẾP LƯỚI RĂNG 16 CỘT X 2 HÀNG THEO MẪU GỐC
+const FULL_TEETH_ORDER = [
+  18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28,
+  48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38,
+];
 
-// Parse viTriRang to extract tooth numbers
 const parseToothPositions = (viTriRang) => {
   if (!viTriRang) return [];
-  
   const positions = new Set();
-  
-  // Split by semicolon for multiple entries (Rời and Cầu)
   const entries = viTriRang.split(';').map(e => e.trim());
   
   entries.forEach(entry => {
-    // Match patterns like "Rời: 18, 17, 16" or "Cầu: 14-12"
     const numberMatches = entry.match(/\d+/g);
     if (numberMatches) {
-      numberMatches.forEach(num => {
-        positions.add(parseInt(num));
-      });
+      numberMatches.forEach(num => positions.add(parseInt(num)));
     }
-    
-    // Handle range notation like 14-12
     const rangeMatch = entry.match(/(\d+)\s*-\s*(\d+)/g);
     if (rangeMatch) {
       rangeMatch.forEach(range => {
@@ -40,56 +30,22 @@ const parseToothPositions = (viTriRang) => {
       });
     }
   });
-  
   return Array.from(positions);
 };
 
-const ToothPositionGrid = ({ positions }) => {
-  return (
-    <div className="space-y-3">
-      {/* Upper teeth */}
-      <div>
-        <div className="text-[11px] sm:text-xs font-bold text-gray-600 mb-2">Hàm trên</div>
-        <div className="flex flex-wrap gap-1">
-          {TEETH_GRID.upper.map((tooth) => (
-            <div
-              key={`upper-${tooth}`}
-              className={`
-                w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-[10px] sm:text-xs font-semibold rounded
-                border border-gray-300
-                ${positions.includes(tooth) 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-600'
-                }
-              `}
-            >
-              {tooth}
-            </div>
-          ))}
-        </div>
-      </div>
+const ToothPositionGrid = ({ viTriRang }) => {
+  const selectedTeeth = parseToothPositions(viTriRang);
 
-      {/* Lower teeth */}
-      <div>
-        <div className="text-[11px] sm:text-xs font-bold text-gray-600 mb-2">Hàm dưới</div>
-        <div className="flex flex-wrap gap-1">
-          {TEETH_GRID.lower.map((tooth) => (
-            <div
-              key={`lower-${tooth}`}
-              className={`
-                w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-[10px] sm:text-xs font-semibold rounded
-                border border-gray-300
-                ${positions.includes(tooth) 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-600'
-                }
-              `}
-            >
-              {tooth}
-            </div>
-          ))}
-        </div>
-      </div>
+  return (
+    <div className="tooth-grid">
+      {FULL_TEETH_ORDER.map((tooth) => (
+        <span
+          key={tooth}
+          className={`tooth-chip ${selectedTeeth.includes(tooth) ? '' : 'inactive'}`}
+        >
+          {tooth}
+        </span>
+      ))}
     </div>
   );
 };
@@ -101,18 +57,28 @@ const CheckPhieuBaoHanhPage = () => {
   const [warranty, setWarranty] = useState(null);
   const [searched, setSearched] = useState(false);
 
-  // Auto-search if qrcode parameter exists
+  // TỰ ĐỘNG NHẬN DIỆN MÃ QR (GIỮ NGUYÊN CHỮ HOA VÀ CHỮ THƯỜNG)
   useEffect(() => {
+    const isZalo = /Zalo/i.test(navigator.userAgent);
+    if (isZalo) {
+      document.documentElement.classList.add('zalo-browser');
+    }
+    
     const qrcode = searchParams.get('qrcode');
     if (qrcode && qrcode.trim()) {
-      setCode(qrcode.trim());
-      searchWarranty(qrcode.trim());
+      const cleanQr = qrcode.trim(); // ĐÃ BỎ .toUpperCase() - GIỮ NGUYÊN CHỮ HOA THƯỜNG (ví dụ: x6TC)
+      setCode(cleanQr); 
+      searchWarranty(cleanQr);
     }
+
+    return () => {
+      document.documentElement.classList.remove('zalo-browser');
+    };
   }, [searchParams]);
 
   const searchWarranty = async (searchCode) => {
     if (!searchCode || searchCode.trim() === '') {
-      toast.error('Vui lòng nhập mã bảo hành hoặc mã QR');
+      toast.error('Vui lòng nhập mã bảo hành');
       return;
     }
 
@@ -120,6 +86,7 @@ const CheckPhieuBaoHanhPage = () => {
     setSearched(true);
 
     try {
+      // Gửi nguyên vẹn searchCode lên API để đảm bảo phân biệt hoa thường đối với mã QR
       const res = await api.get(`/public/check-warranty/${searchCode.trim()}`);
       if (res.data?.success) {
         setWarranty(res.data.data);
@@ -145,9 +112,9 @@ const CheckPhieuBaoHanhPage = () => {
     searchWarranty(code);
   };
 
+  // BIỆN PHÁP CHẶN GÕ CHỮ: Chỉ cho phép nhập số khi gõ tay từ bàn phím
   const handleCodeChange = (e) => {
-    // Allow alphanumeric warranty codes and QR codes
-    const value = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+    const value = e.target.value.replace(/[^0-9]/g, '');
     setCode(value);
   };
 
@@ -158,242 +125,224 @@ const CheckPhieuBaoHanhPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 sm:py-8">
-      <Container maxWidth="md" sx={{ px: { xs: 1.5, sm: 2 } }}>
-        {/* Header */}
-        <Box className="text-center mb-5 sm:mb-8 px-2">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-600 mb-2 leading-tight">
-            PHIẾU BẢO HÀNH RĂNG SỨ
-          </h1>
-          <p className="text-sm sm:text-base lg:text-lg text-gray-600">Dental Warranty Certificate</p>
-        </Box>
+    <div className="warranty-lookup-body">
+      <div className="container">
+        <img 
+          src="/logo_tan_dental.jpg" 
+          className="logo" 
+          alt="Logo" 
+          onError={(e) => e.target.src = '/logo192.png'} 
+        />
+        <h4>THÔNG TIN BẢO HÀNH RĂNG SỨ<br />CÔNG TY TNHH TẤN DENTAL</h4>
 
-        {/* Search Card */}
-        <Paper elevation={3} className="p-4 sm:p-6 mb-6 sm:mb-8 bg-white rounded-xl">
-          <form onSubmit={handleSearch} className="space-y-4">
-            <TextField
-              fullWidth
-              label="Mã bảo hành"
+        <div className="search-box">
+          <form onSubmit={handleSearch}>
+            <input
+              type="text"
               value={code}
+              maxLength={20}
+              placeholder="Nhập mã bảo hành..."
               onChange={handleCodeChange}
               disabled={loading}
-              variant="outlined"
-              size="medium"
-              inputProps={{ 
-                maxLength: 20,
-                inputMode: 'text'
-              }}
-              InputProps={{
-                startAdornment: (
-                  <SearchIcon style={{ marginRight: 8, color: '#0066cc' }} />
-                ),
-              }}
             />
-
-            <Box className="flex flex-col sm:flex-row gap-3">
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                fullWidth
-                disabled={loading || !code.trim()}
-                size="large"
-              >
-                {loading ? <CircularProgress size={24} /> : 'Tra cứu'}
-              </Button>
-              {warranty && (
-                <Button
-                  variant="outlined"
-                  onClick={handleClear}
-                  size="large"
-                  fullWidth
-                >
-                  Xóa
-                </Button>
-              )}
-            </Box>
+            <br />
+            <button type="submit" className="btn-tra-cuu" disabled={loading || !code.trim()}>
+              {loading ? <CircularProgress size={20} style={{ color: 'white' }} /> : 'Tra cứu'}
+            </button>
+            
+            {warranty && (
+              <button type="button" className="btn-clear" onClick={handleClear}>
+                Xóa kết quả
+              </button>
+            )}
           </form>
-        </Paper>
+        </div>
 
-        {/* Loading */}
-        {searched && loading && (
-          <Box className="flex justify-center py-10 sm:py-12">
-            <CircularProgress />
-          </Box>
-        )}
+        <div className="result" style={{ display: (searched) ? 'block' : 'none' }}>
+          {loading && <p className="loading">Đang tra cứu hệ thống...</p>}
 
-        {/* Results - Certificate Format */}
-        {searched && !loading && warranty && (
-          <Paper elevation={3} className="bg-white">
-            {/* Certificate Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 sm:p-6 rounded-t-lg">
-              <h2 className="text-xl sm:text-2xl font-bold text-center leading-tight">PHIẾU BẢO HÀNH RĂNG SỨ</h2>
-              <p className="text-center text-xs sm:text-sm mt-1">Dental Warranty Certificate</p>
-            </div>
-
-            {/* Certificate Content */}
-            <div className="p-4 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
-              {/* Warranty Status */}
-              <div className={`p-4 rounded-lg ${warranty.isValid ? 'bg-green-50 border-2 border-green-300' : 'bg-red-50 border-2 border-red-300'}`}>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                  <span className="text-base sm:text-lg font-bold">Trạng thái:</span>
-                  <span className={`text-lg sm:text-xl font-bold ${warranty.isValid ? 'text-green-600' : 'text-red-600'}`}>
-                    {warranty.isValid ? '✓ Còn hiệu lực' : '✗ Hết hiệu lực'}
-                  </span>
-                </div>
-                {warranty.status && (
-                  <div className="text-xs sm:text-sm text-gray-700 mt-2">{warranty.status}</div>
-                )}
-              </div>
-
-              {/* Two Column Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-                {/* Left Column */}
-                <div className="space-y-5 sm:space-y-6">
-                  {/* Khách hàng */}
-                  <div className="border-b-2 pb-4">
-                    <div className="text-xs sm:text-sm text-gray-600 mb-2">👤 Khách hàng</div>
-                    <div className="font-bold text-base sm:text-lg break-words">
-                      {warranty.benhNhan?.ten || '---'}
-                    </div>
-                    {warranty.benhNhan?.soDienThoai && (
-                      <div className="text-xs sm:text-sm text-gray-600 mt-1">
-                        ☎ {warranty.benhNhan.soDienThoai}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Nha khoa */}
-                  <div className="border-b-2 pb-4">
-                    <div className="text-xs sm:text-sm text-gray-600 mb-2">🏥 Nha khoa</div>
-                    <div className="font-bold text-base sm:text-lg break-words">
-                      {warranty.nhaKhoa?.ten || '---'}
-                    </div>
-                    {warranty.nhaKhoa?.soDienThoai && (
-                      <div className="text-xs sm:text-sm text-gray-600 mt-1">
-                        {warranty.nhaKhoa.soDienThoai}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Danh sách sản phẩm */}
-                  <div className="border-b-2 pb-4">
-                    <div className="text-xs sm:text-sm text-gray-600 mb-2">🦷 Sản phẩm trong phiếu</div>
-                    <div className="space-y-3">
-                      {(warranty.danhSachSanPham || []).map((item, index) => (
-                        <div key={index} className="rounded-lg border border-blue-100 bg-blue-50 p-3">
-                          <div className="font-bold text-sm sm:text-base text-blue-700 mb-1 break-words">
-                            {item.tenSanPham || '---'}
-                          </div>
-                          <div className="text-xs sm:text-sm text-gray-700 space-y-1 break-words">
-                            <div>Vị trí: {item.viTriRang || '---'}</div>
-                            <div>Số lượng: {item.soLuong || 1}</div>
-                            <div>Màu: {item.mau || '---'}</div>
-                            <div>Hiệu lực: {new Date(item.baoHanhTu).toLocaleDateString('vi-VN')} - {new Date(item.baoHanhDen).toLocaleDateString('vi-VN')}</div>
-                            <div className={`font-medium ${item.isValid ? 'text-green-600' : 'text-red-600'}`}>
-                              {item.status}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-5 sm:space-y-6">
-                  {/* Mã bảo hành */}
-                  <div className="border-b-2 pb-4">
-                    <div className="text-xs sm:text-sm text-gray-600 mb-2">📋 Mã bảo hành</div>
-                    <div className="font-bold text-base sm:text-lg font-mono bg-gray-100 p-2 rounded break-all">
-                      {warranty.maBaoHanh}
-                    </div>
-                  </div>
-
-                  {/* Mã QR */}
-                  <div className="border-b-2 pb-4">
-                    <div className="text-xs sm:text-sm text-gray-600 mb-2">📱 Mã QR</div>
-                    <div className="font-bold text-xl sm:text-2xl lg:text-3xl text-orange-600 text-center py-2 break-all">
-                      {warranty.maQR}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Vị trí răng - Grid theo từng sản phẩm */}
+          {!loading && warranty && (
+            <div className="space-y-6">
               {(warranty.danhSachSanPham || []).map((item, index) => (
-                <div key={index} className="border-t-2 pt-6">
-                  <div className="text-xs sm:text-sm text-gray-600 mb-3 font-bold break-words"> VỊ TRÍ RĂNG - {item.tenSanPham || `Sản phẩm ${index + 1}`}</div>
-                  <div className="bg-gray-50 p-3 sm:p-4 rounded-lg overflow-x-auto">
-                    <ToothPositionGrid positions={parseToothPositions(item.viTriRang)} />
+                <div className="warranty-card" key={index}>
+                  <div className="wc-header">
+                    <div className="wc-title">PHIẾU BẢO HÀNH RĂNG SỨ</div>
+                    <div className="wc-sub">Dental Warranty Certificate</div>
                   </div>
-                  <div className="text-[11px] sm:text-xs text-gray-500 mt-3 italic break-words">
-                    <strong>Ghi chú:</strong> {item.viTriRang || 'Không có thông tin vị trí'}
+
+                  <div className="wc-section">
+                    <div className="wc-row">
+                      <span className="wc-label">👤 Khách hàng</span>
+                      <span className="wc-value">{warranty.benhNhan?.ten || 'Không rõ'}</span>
+                    </div>
+                  </div>
+
+                  <div className="wc-section">
+                    <div className="wc-row">
+                      <span className="wc-label">🏥 Nha khoa</span>
+                      <span className="wc-value">{warranty.nhaKhoa?.ten || 'Không rõ'}</span>
+                    </div>
+                  </div>
+
+                  <div className="wc-section">
+                    <div className="wc-row">
+                      <span className="wc-label">🦷 Loại răng</span>
+                      <span className="wc-value">{item.tenSanPham || 'Không rõ'}</span>
+                    </div>
+                  </div>
+
+                  <div className="wc-section">
+                    <div className="wc-row wc-full wc-teeth-row">
+                      <span className="wc-label">📍 Vị trí răng</span>
+                      <ToothPositionGrid viTriRang={item.viTriRang} />
+                    </div>
+                  </div>
+
+                  <div className="wc-section">
+                    <div className="wc-row">
+                      <span className="wc-label">🔢 Số lượng</span>
+                      <span className="wc-value">{item.soLuong || 1} Răng</span>
+                    </div>
+                  </div>
+
+                  {item.mau && (
+                    <div className="wc-section">
+                      <div className="wc-row">
+                        <span className="wc-label">🎨 Màu sắc</span>
+                        <span className="wc-value">{item.mau}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="wc-section wc-highlight">
+                    <div className="wc-row">
+                      <span className="wc-label">🗓 Ngày làm</span>
+                      <span className="wc-value">{new Date(item.baoHanhTu).toLocaleDateString('vi-VN')}</span>
+                    </div>
+                  </div>
+
+                  <div className="wc-section">
+                    <div className="wc-row">
+                      <span className="wc-label">⏳ Ngày hết hạn</span>
+                      <span className="wc-value">{new Date(item.baoHanhDen).toLocaleDateString('vi-VN')}</span>
+                    </div>
                   </div>
                 </div>
               ))}
-
-              {/* Mẫu thẻ */}
-              {warranty.mauTheTi && (
-                <div className="border-t-2 pt-4">
-                  <div className="text-sm text-gray-600 mb-2">Mẫu thẻ</div>
-                  <div className="font-medium">{warranty.mauTheTi}</div>
-                </div>
-              )}
-
-              {/* Ghi chú */}
-              {warranty.ghiChu && (
-                <div className="border-t-2 pt-4">
-                  <div className="text-sm text-gray-600 mb-2">Ghi chú</div>
-                  <div className="text-sm bg-yellow-50 p-3 rounded border border-yellow-200">
-                    {warranty.ghiChu}
-                  </div>
-                </div>
-              )}
             </div>
+          )}
 
-            {/* Footer */}
-            <div className="bg-gray-100 px-4 sm:px-8 py-4 rounded-b-lg border-t text-center">
-              <p className="text-xs text-gray-600">
-                © TanDental - Giải pháp quản lý nha khoa
-              </p>
+          {!loading && !warranty && (
+            <div className="error-box">
+              <p>❌ Không tìm thấy thông tin bảo hành</p>
+              <span>Vui lòng kiểm tra lại chính xác ký tự mã của bạn.</span>
             </div>
+          )}
+        </div>
+      </div>
 
-            {/* Action Button */}
-            <Box className="p-4 text-center">
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleClear}
-                size="large"
-                fullWidth
-                sx={{ maxWidth: { sm: 220 } }}
-              >
-                Tra cứu khác
-              </Button>
-            </Box>
-          </Paper>
-        )}
+      <style>{`
+        .warranty-lookup-body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6d9eeb, #8e7cc3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            width: 100%;
+            padding: 20px 10px;
+            box-sizing: border-box;
+        }
+        .warranty-lookup-body .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .15);
+            width: 100%;
+            max-width: 550px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .warranty-lookup-body h4 { color: #333; margin-bottom: 25px; font-size: 16px; line-height: 1.5; font-weight: bold; }
+        
+        .warranty-lookup-body .search-box input[type="text"] {
+            width: 90%; 
+            padding: 12px; 
+            font-size: 18px; 
+            border: 2px solid #0066cc; 
+            border-radius: 8px; 
+            text-align: left; 
+            box-sizing: border-box;
+        }
+        
+        .warranty-lookup-body .btn-tra-cuu {
+            margin-top: 20px; 
+            padding: 12px 30px; 
+            font-size: 18px; 
+            background: #0066cc; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            display: inline-block;
+        }
+        .warranty-lookup-body .btn-tra-cuu:hover { background: #004a99; }
+        
+        .warranty-lookup-body .btn-clear {
+            margin-top: 20px;
+            margin-left: 10px;
+            padding: 12px 20px;
+            font-size: 18px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .warranty-lookup-body .btn-clear:hover { background: #5a6268; }
+        
+        .warranty-lookup-body .result { margin-top: 25px; text-align: left; }
+        .warranty-lookup-body .loading { color: #ff4500; font-weight: bold; text-align: center; }
+        
+        .warranty-lookup-body .logo { 
+            max-width: 100px; 
+            margin: 0 auto 20px auto; 
+            display: block; 
+            border-radius: 0 !important; 
+            box-shadow: none !important; 
+        }
+        
+        .warranty-card { background: #fff; border-radius: 14px; box-shadow: 0 12px 30px rgba(0,0,0,.12); overflow: hidden; font-size: 15px; border: 1px solid #eee; margin-bottom: 20px; }
+        .wc-header { background: linear-gradient(135deg, #0d6efd, #4f8df7); color: white; padding: 18px; text-align: center; }
+        .wc-title { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+        .wc-sub { font-size: 13px; opacity: .85; margin-top: 2px; }
+        .wc-section { padding: 14px 18px; border-bottom: 1px solid #eee; }
+        .wc-section:last-child { border-bottom: none; }
+        .wc-row { display: grid; grid-template-columns: 125px 1fr; gap: 12px; align-items: center; }
+        .wc-label { display: flex; align-items: center; padding: 6px 12px; border-radius: 14px; font-size: 12px; font-weight: 600; white-space: nowrap; background: #f0f4ff; color: #0d6efd; width: fit-content; }
+        .wc-value { font-size: 14px; color: #000000; text-align: right; font-weight: bold; text-transform: uppercase; }
+        .wc-full { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; grid-template-columns: none; }
+        .wc-highlight { background: #f8faff; }
+        
+        .tooth-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 4px; width: 100%; margin-top: 6px; }
+        .tooth-chip { display: block; text-align: center; font-size: 11px; font-weight: bold; color: #0b4dbb; background: #dbeafe; border-radius: 4px; padding: 6px 0; line-height: 1; border: 1px solid #b9d5ff; }
+        .tooth-chip.inactive { background: #f3f4f6; color: #9ca3af; border-color: #e5e7eb; font-weight: normal; }
+        
+        .error-box { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba; text-align: center; }
+        .error-box p { margin: 0; font-weight: bold; font-size: 16px; }
+        .error-box span { font-size: 13px; margin-top: 5px; display: block; }
 
-        {/* No Results */}
-        {searched && !loading && !warranty && (
-          <Paper elevation={2} className="p-8 text-center bg-yellow-50">
-            <p className="text-lg text-gray-700 mb-4">
-              ❌ Không tìm thấy thông tin bảo hành
-            </p>
-            <p className="text-sm text-gray-600 mb-4">
-              Vui lòng kiểm tra lại mã (chỉ nhập phần số)
-            </p>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleClear}
-            >
-              Tra cứu lại
-            </Button>
-          </Paper>
-        )}
-      </Container>
+        .zalo-browser .tooth-grid, @media (max-width: 600px) {
+          .warranty-lookup-body .container { padding: 25px 12px; }
+          .wc-row { grid-template-columns: 110px 1fr; gap: 6px; }
+          .tooth-grid { grid-template-columns: repeat(16, 1fr); gap: 2px; }
+          .tooth-chip { font-size: 8.5px; padding: 4px 0; }
+        }
+      `}</style>
     </div>
   );
 };

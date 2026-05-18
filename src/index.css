@@ -20,3 +20,17 @@ body,
 body.drawer-open {
   overflow: hidden;
 }
+
+@layer base {
+  body {
+    @apply font-sans antialiased text-rendering-optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  .text-rendering-optimizeLegibility {
+    text-rendering: optimizeLegibility;
+  }
+}

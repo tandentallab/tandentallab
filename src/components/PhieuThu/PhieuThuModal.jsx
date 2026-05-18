@@ -1,4 +1,4 @@
-﻿﻿import React, { useEffect, useState, useMemo, useRef } from "react";
+﻿﻿﻿import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   createPhieuThu,
@@ -18,46 +18,6 @@ const toLocalDatetimeInput = (d) => {
 };
 
 const fmt = (v) => new Intl.NumberFormat("vi-VN").format(v || 0);
-const docSoTien = (amount) => {
-  if (!amount || amount <= 0) return "";
-  const n = Math.round(amount);
-  const ch = ["kh\u00f4ng", "m\u1ed9t", "hai", "ba", "b\u1ed1n", "n\u0103m", "s\u00e1u", "b\u1ea3y", "t\u00e1m", "ch\u00edn"];
-  const readGroup = (num) => {
-    if (num === 0) return "";
-    const h = Math.floor(num / 100);
-    const t = Math.floor((num % 100) / 10);
-    const u = num % 10;
-    const p = [];
-    if (h > 0) p.push(ch[h] + " tr\u0103m");
-    if (t > 1) {
-      p.push(ch[t] + " m\u01b0\u01a1i");
-      if (u === 1) p.push("m\u1ed1t");
-      else if (u === 4) p.push("t\u01b0");
-      else if (u === 5) p.push("l\u0103m");
-      else if (u > 0) p.push(ch[u]);
-    } else if (t === 1) {
-      p.push("m\u01b0\u1eddi");
-      if (u === 5) p.push("l\u0103m");
-      else if (u > 0) p.push(ch[u]);
-    } else if (u > 0) {
-      if (h > 0) p.push("l\u1ebd");
-      p.push(ch[u]);
-    }
-    return p.join(" ");
-  };
-  const ty = Math.floor(n / 1_000_000_000);
-  const tr = Math.floor((n % 1_000_000_000) / 1_000_000);
-  const ng = Math.floor((n % 1_000_000) / 1_000);
-  const dv = n % 1_000;
-  const parts = [];
-  if (ty > 0) parts.push(readGroup(ty) + " t\u1ef7");
-  if (tr > 0) parts.push(readGroup(tr) + " tri\u1ec7u");
-  if (ng > 0) parts.push(readGroup(ng) + " ngh\u00ecn");
-  if (dv > 0) parts.push(readGroup(dv));
-  if (!parts.length) return "";
-  const text = parts.join(" ");
-  return text.charAt(0).toUpperCase() + text.slice(1) + " \u0111\u1ed3ng";
-};
 const formatSoHoaDon = (hd) => hd?.soHoaDon || "-";
 const getInitials = (name) => {
   if (!name) return "?";
@@ -79,7 +39,6 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedHDs, setSelectedHDs] = useState({});
   const [soTienThuInput, setSoTienThuInput] = useState("");
-  const [showAmountSuggestions, setShowAmountSuggestions] = useState(false);
   const [ngayThu, setNgayThu] = useState(toLocalDatetimeInput(new Date()));
   const [phuongThuc, setPhuongThuc] = useState("Tiền mặt");
   const [noiDung, setNoiDung] = useState("");
@@ -219,14 +178,6 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
     [selectedHDs]
   );
 
-  const amountSuggestions = useMemo(() => {
-    const digits = soTienThuInput.replace(/[^\d]/g, "");
-    if (!digits) return [];
-    const n = Number(digits);
-    if (!n) return [];
-    return [n * 100_000, n * 1_000_000];
-  }, [soTienThuInput]);
-
   const tongConNo = useMemo(() => {
     if (!hoaDonChuaThanhToan.length) return 0;
     return (
@@ -235,25 +186,10 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
     );
   }, [hoaDonChuaThanhToan, tongThuTien]);
 
-  const tongConLaiMax = useMemo(
-    () => hoaDonChuaThanhToan.reduce((s, hd) => s + (hd.conLai || 0), 0),
-    [hoaDonChuaThanhToan]
-  );
-
-  const soTienInputNum = Number(soTienThuInput) || 0;
-  const amountOverLimit =
-    selectedNhaKhoa &&
-    hoaDonChuaThanhToan.length > 0 &&
-    soTienInputNum > tongConLaiMax;
-
   const handleSubmit = async () => {
     setSubmitError("");
     if (!selectedNhaKhoa) {
       setSubmitError("Vui lòng chọn khách hàng.");
-      return;
-    }
-    if (amountOverLimit) {
-      setSubmitError(`Số tiền thu (${fmt(soTienInputNum)} ₫) vượt quá tổng còn nợ (${fmt(tongConLaiMax)} ₫).`);
       return;
     }
     const entries = Object.entries(selectedHDs);
@@ -326,12 +262,12 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
     selectedNhaKhoaObj?.hoVaTen || selectedNhaKhoaObj?.tenGiaoDich || "";
   const address = selectedNhaKhoaObj
     ? [
-      selectedNhaKhoaObj.diaChiCuThe,
-      selectedNhaKhoaObj.quanHuyen,
-      selectedNhaKhoaObj.tinh,
-    ]
-      .filter(Boolean)
-      .join(", ")
+        selectedNhaKhoaObj.diaChiCuThe,
+        selectedNhaKhoaObj.quanHuyen,
+        selectedNhaKhoaObj.tinh,
+      ]
+        .filter(Boolean)
+        .join(", ")
     : "";
 
   return (
@@ -455,45 +391,20 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
 
             {/* RIGHT */}
             <div className="space-y-4">
-              <div className="relative">
+              <div>
                 <p className="text-xs text-gray-400 mb-0.5">Số tiền thu</p>
                 <input
                   type="text"
                   inputMode="numeric"
                   value={soTienThuInput}
                   onChange={(e) => handleSoTienThuInput(e.target.value)}
-                  onFocus={() => setShowAmountSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowAmountSuggestions(false), 150)}
                   placeholder="Nhập để tự phân bổ..."
-                  className={`w-full text-2xl font-bold text-gray-900 border-b-2 ${amountOverLimit ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-[#29b6f6]"} bg-transparent pb-1 outline-none placeholder:text-gray-300 placeholder:text-base placeholder:font-normal`}
+                  className="w-full text-2xl font-bold text-gray-900 border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent pb-1 outline-none placeholder:text-gray-300 placeholder:text-base placeholder:font-normal"
                 />
-                {amountOverLimit && (
-                  <p className="text-xs text-red-500 mt-0.5">
-                    Vượt quá tổng còn nợ {fmt(tongConLaiMax)} ₫
+                {tongThuTien > 0 && (
+                  <p className="text-xs text-[#29b6f6] mt-0.5">
+                    {fmt(tongThuTien)} ₫
                   </p>
-                )}
-                {!amountOverLimit && tongThuTien > 0 && (
-                  <div className="mt-0.5 flex gap-3">
-                    <p className="text-sm text-[#29b6f6]">{fmt(tongThuTien)} ₫</p>
-                    <p className="text-sm text-gray-400 italic">({docSoTien(tongThuTien)})</p>
-                  </div>
-                )}
-                {showAmountSuggestions && amountSuggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                    {amountSuggestions.map((val) => (
-                      <div
-                        key={val}
-                        onMouseDown={() => {
-                          handleSoTienThuInput(String(val));
-                          setShowAmountSuggestions(false);
-                        }}
-                        className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer flex items-center justify-between"
-                      >
-                        <span className="text-sm font-semibold text-gray-800">{fmt(val)}</span>
-                        <span className="text-xs text-gray-400">₫</span>
-                      </div>
-                    ))}
-                  </div>
                 )}
               </div>
               <div>
@@ -579,8 +490,9 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
                         <tr
                           key={hd._id}
                           onClick={() => handleToggleHD(hd._id)}
-                          className={`border-b border-gray-50 last:border-0 cursor-pointer transition-colors ${checked ? "bg-blue-50/60" : "hover:bg-gray-50"
-                            }`}
+                          className={`border-b border-gray-50 last:border-0 cursor-pointer transition-colors ${
+                            checked ? "bg-blue-50/60" : "hover:bg-gray-50"
+                          }`}
                         >
                           <td
                             className="px-4 py-3"
@@ -600,8 +512,8 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
                           <td className="px-4 py-3 text-gray-600">
                             {hd.ngayXuatHoaDon
                               ? new Date(hd.ngayXuatHoaDon).toLocaleDateString(
-                                "vi-VN"
-                              )
+                                  "vi-VN"
+                                )
                               : "—"}
                           </td>
                           <td className="px-4 py-3 text-right text-gray-700">
@@ -655,6 +567,15 @@ export default function PhieuThuModal({ open, onClose, onSuccess }) {
                   placeholder=""
                   className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-sm text-gray-800 py-1 outline-none"
                 />
+              </div>
+              <div className="bg-[#e3f2fd] rounded-xl p-4">
+                <p className="text-sm text-gray-500 mb-3">Tài liệu</p>
+                <div className="flex flex-col items-center justify-center py-4 text-gray-400">
+                  <CloudUploadOutlinedIcon
+                    sx={{ fontSize: 32, color: "#9ca3af", marginBottom: "4px" }}
+                  />
+                  <p className="text-xs">Thả file vào đây để upload</p>
+                </div>
               </div>
             </div>
 

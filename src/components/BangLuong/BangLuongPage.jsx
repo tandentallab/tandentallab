@@ -367,6 +367,15 @@ const BangLuongPage = () => {
                 : "Tạo bảng lương"}
             </Button>
 
+            <Button
+              variant="outlined"
+              onClick={() => {
+                navigate("/nhan-vien");
+              }}
+            >
+              Thông tin nhân viên
+            </Button>
+
             {salaryData?.length > 0 && (
               <Button
                 variant="contained"

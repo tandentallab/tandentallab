@@ -8,6 +8,18 @@ import { TrashIcon } from "lucide-react";
 import { exportHoaDonToExcel } from "../../utils/exportToExcel";
 import DonHangChuaXuatModal from "../DonHangChuaXuat/DonHangChuaXuatModal";
 import AddIcon from "@mui/icons-material/Add";
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Chip,
+} from "@mui/material";
+
+import PhieuThuModal from "../PhieuThu/PhieuThuModal";
+
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+
+import { fetchPhieuThuByHoaDon } from "../../redux/slices/phieuThuSlice";
 
 const HoaDonDetail = () => {
   const navigate = useNavigate();
@@ -24,6 +36,10 @@ const HoaDonDetail = () => {
   const { data: bangGia = [] } = useSelector((state) => state.bangGia) || {};
   const nhaKhoa = useSelector((state) => state.nhaKhoa);
 
+  const { phieuThuTheoHoaDon = [], loadingPhieuThuHoaDon } = useSelector(
+    (state) => state.phieuThu
+  );
+
   const [chinhSachThanhToan, setChinhSachThanhToan] = useState(
     hoaDon?.chinhSachThanhToan
   );
@@ -37,6 +53,15 @@ const HoaDonDetail = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState([]);
+
+  //Thanh toán ngay
+  const [open, setOpen] = useState(false);
+  const handleOpen = () => {
+    setOpen(true);
+  };
+  const handleClose = () => {
+    setOpen(false);
+  };
 
   const handleAddOrders = (orders) => {
     console.log("Orders từ modal:", orders);
@@ -83,6 +108,13 @@ const HoaDonDetail = () => {
   useEffect(() => {
     dispatch(fetchNhaKhoa());
   }, [dispatch]);
+
+  useEffect(() => {
+    console.log("Hóa đơn có id là ", id);
+    if (id) {
+      dispatch(fetchPhieuThuByHoaDon(id));
+    }
+  }, [dispatch, id]);
 
   useEffect(() => {
     console.log("Hóa đơn: ", hoaDon);
@@ -158,6 +190,15 @@ const HoaDonDetail = () => {
       style: "currency",
       currency: "VND",
     }).format(amount);
+  };
+
+  const getSoTienThanhToan = (phieuThu, hoaDonId) => {
+    const found = phieuThu.danhSachHoaDon?.find(
+      (i) =>
+        (typeof i.hoaDon === "string" ? i.hoaDon : i.hoaDon?._id) === hoaDonId
+    );
+
+    return found?.soTienThanhToan || 0;
   };
 
   const handleChangeChiPhiKhac = (chiPhi) => {
@@ -303,6 +344,16 @@ const HoaDonDetail = () => {
   if (loading) return <div className="p-4">Đang tải...</div>;
   if (!hoaDon) return <div className="p-4">Không tìm thấy hóa đơn</div>;
 
+  const renderViTriText = (viTriArr) => {
+    if (!viTriArr || viTriArr.length === 0) return "";
+    return viTriArr
+      .map((v) =>
+        v.kieu === "Rời"
+          ? v.soRang.join(", ")
+          : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+      )
+      .join("; ");
+  };
   return (
     <div className="fixed inset-0 z-[1299] bg-[#f0f2f5] flex flex-col w-screen h-screen overflow-hidden">
       {/* TOP BAR */}
@@ -457,11 +508,12 @@ const HoaDonDetail = () => {
                               </span>
 
                               <div className="text-[10px] text-gray-500 mt-0.5 break-words">
-                                {sp.viTri
+                                {/* {sp.viTri
                                   ?.map(
                                     (v) => `${v.kieu}: ${v.soRang.join(",")}`
                                   )
-                                  .join(" | ")}
+                                  .join(" | ")} */}
+                                {renderViTriText(sp.viTri)}
                               </div>
                             </div>
                           ))}
@@ -693,6 +745,75 @@ const HoaDonDetail = () => {
               </span>
             </div>
 
+            {/* LỊCH SỬ THANH TOÁN */}
+            <div className="mt-2">
+              <Accordion
+                disableGutters
+                elevation={0}
+                className="border border-gray-200 rounded-lg overflow-hidden before:hidden"
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  className="min-h-0 bg-gray-50"
+                >
+                  <div className="flex items-center justify-between w-full pr-2">
+                    <span className="text-xs font-bold uppercase text-gray-600">
+                      Lịch sử thanh toán
+                    </span>
+
+                    <Chip
+                      size="small"
+                      color="success"
+                      label={`${phieuThuTheoHoaDon.length} phiếu`}
+                    />
+                  </div>
+                </AccordionSummary>
+
+                <AccordionDetails className="p-0">
+                  {loadingPhieuThuHoaDon ? (
+                    <div className="p-3 text-xs text-gray-500">Đang tải...</div>
+                  ) : phieuThuTheoHoaDon.length === 0 ? (
+                    <div className="p-3 text-xs text-gray-400 italic">
+                      Chưa có lịch sử thanh toán
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {phieuThuTheoHoaDon.map((pt) => (
+                        <div
+                          key={pt._id}
+                          className="p-3 hover:bg-gray-50 transition"
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs text-blue-600 break-all">
+                                {pt.soPhieuThu}
+                              </div>
+
+                              <div className="text-[11px] text-gray-500 mt-1">
+                                {formatDate(pt.ngayThu)}
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <div className="font-bold text-green-600 text-sm">
+                                {formatCurrency(
+                                  getSoTienThanhToan(pt, hoaDon._id)
+                                )}
+                              </div>
+
+                              <div className="text-[10px] text-gray-400 mt-1">
+                                {pt.phuongThucThanhToan}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </AccordionDetails>
+              </Accordion>
+            </div>
+
             <div className="flex justify-between pt-4 border-t-2 border-dashed gap-3">
               <span className="font-black text-gray-700">CÒN LẠI</span>
 
@@ -700,6 +821,23 @@ const HoaDonDetail = () => {
                 {formatCurrency(hoaDon.conLai)}
               </span>
             </div>
+            {hoaDon?.conLai > 0 && (
+              <Button onClick={handleOpen}>Thanh toán ngay</Button>
+            )}
+            {/* 
+            <PhieuThuModal
+              open={open}
+              onClose={handleClose}
+              nhaKhoaId={nhaKhoaInfo?._id}
+              hoaDonId={hoaDon?._id}
+              thanhToanNgay={true}
+              onSuccess={async () => {
+                const res = await dispatch(fetchHoaDonById(id)).unwrap();
+                setHoaDon(res.data);
+
+                dispatch(fetchPhieuThuByHoaDon(id));
+              }}
+            /> */}
 
             <div className="mt-6 space-y-2">
               <button

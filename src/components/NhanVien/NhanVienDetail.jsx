@@ -375,7 +375,7 @@ const NhanVienDetail = () => {
 /* COMPONENT CON HIỂN THỊ DÒNG THÔNG TIN MỚI */
 const InfoItem = ({ icon, label, value, highlight = false }) => {
   return (
-    <Box className="flex items-center justify-between py-1">
+    <Box className="flex items-center justify-between py-1 gap-x-2">
       <Box className="flex items-center gap-3 text-slate-500">
         {React.cloneElement(icon, { sx: { fontSize: 20, color: "#64748b" } })}
         <Typography variant="body2" fontWeight={500}>

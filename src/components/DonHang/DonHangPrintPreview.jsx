@@ -57,7 +57,7 @@ const DonHangPrintPreview = () => {
   };
 
   const maDonHang = donHang.maDonHang || `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`;
-  
+
   const bacSi = donHang.bacSi?.hoVaTen || "";
   const benhNhan = donHang.benhNhan?.hoVaTen || "";
   const nhaKhoa =
@@ -178,6 +178,12 @@ const DonHangPrintPreview = () => {
               <div className="text-sm whitespace-pre-wrap ml-4 mt-1 font-bold">
                 {donHang.ghiChuChung || ""}
               </div>
+              {donHang.ghiChuSanXuat && (
+                <>
+                  <div className="text-sm font-bold mt-4">Ghi chú sản xuất:</div>
+                  <div className="text-sm whitespace-pre-wrap ml-4 mt-1 font-bold">{donHang.ghiChuSanXuat}</div>
+                </>
+              )}
             </div>
 
             <div className="col-span-4">

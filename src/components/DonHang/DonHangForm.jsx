@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { api } from "../../config/api";
 import { createDonHang, updateDonHang } from "../../redux/slices/donHangSlice";
 import DanhSachPhuKien from "./DanhSachPhuKien";
@@ -11,6 +12,45 @@ import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 import PhieuBaoHanhList from "./PhieuBaoHanhList";
 import WarrantyCardPrint from "./WarrantyCardPrint";
 import { toast } from "sonner";
+
+// ===== QUICK ADD MODALS =====
+const QuickAddModal = ({ open, onClose, title, children, onSubmit, loading }) => {
+  if (!open) return null;
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4">
+        <h3 className="font-bold text-base mb-4 text-blue-700">{title}</h3>
+        <div className="flex flex-col gap-3">{children}</div>
+        <div className="flex gap-2 mt-5 justify-end">
+          <button onClick={onClose} className="px-4 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">Hủy</button>
+          <button onClick={onSubmit} disabled={loading} className="px-4 py-1.5 text-sm rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
+            {loading ? "Đang lưu..." : "Thêm"}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const QuickAddField = ({ label, value, onChange, placeholder, type = "text" }) => (
+  <div>
+    <label className="text-xs text-gray-500">{label}</label>
+    {type === "select" ? (
+      <select value={value} onChange={e => onChange(e.target.value)}
+        className="w-full border-b border-gray-300 outline-none py-1 text-sm mt-1 bg-transparent">
+        {placeholder}
+      </select>
+    ) : type === "textarea" ? (
+      <textarea value={value} onChange={e => onChange(e.target.value)} rows={2}
+        className="w-full border border-gray-200 rounded outline-none py-1 px-2 text-sm mt-1 resize-none" placeholder={placeholder} />
+    ) : (
+      <input type="text" value={value} onChange={e => onChange(e.target.value)}
+        className="w-full border-b border-gray-300 outline-none py-1 text-sm mt-1" placeholder={placeholder} />
+    )}
+  </div>
+);
 
 const SearchInput = ({
   value,
@@ -130,11 +170,20 @@ const DonHangForm = () => {
   const { id } = useParams();
   const isEditMode = Boolean(id);
 
+  // Current user for nhật ký
+  const { user } = useSelector((state) => state.auth);
+  const nguoiThuc = user?.HoTenNV || "Điều Phối";
+
   const [nhaKhoasList, setNhaKhoasList] = useState([]);
   const [allBacSi, setAllBacSi] = useState([]);
   const [allBenhNhan, setAllBenhNhan] = useState([]);
   const [sanPhamList, setSanPhamList] = useState([]);
   const [selectedNhaKhoaInfo, setSelectedNhaKhoaInfo] = useState(null);
+
+  // Quick-add modal states
+  const [quickAddNhaKhoa, setQuickAddNhaKhoa] = useState({ open: false, loading: false, form: { hoVaTen: "", tenGiaoDich: "", soDienThoai: "", email: "", website: "", diaChiCuThe: "", tinh: "", moTa: "" } });
+  const [quickAddBacSi, setQuickAddBacSi] = useState({ open: false, loading: false, form: { hoVaTen: "", email: "", soDienThoai: "", tieuDe: "", moTa: "" } });
+  const [quickAddBenhNhan, setQuickAddBenhNhan] = useState({ open: false, loading: false, form: { hoVaTen: "", soHoSo: "", gioiTinh: "", tinh: "", quanHuyen: "" } });
 
   const [isViTriModalOpen, setIsViTriModalOpen] = useState(false);
   const [editingSpIndex, setEditingSpIndex] = useState(null);
@@ -184,6 +233,7 @@ const DonHangForm = () => {
     chiDinhBacSi: "",
     ghiChuChung: "",
     ghiChuTaiChinh: "",
+    ghiChuSanXuat: "",
   });
 
   const fetchSanPhamData = async () => {
@@ -325,6 +375,51 @@ const DonHangForm = () => {
   const handleInputChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  // ===== QUICK-ADD HANDLERS =====
+  const handleQuickAddNhaKhoa = async () => {
+    const { form } = quickAddNhaKhoa;
+    if (!form.hoVaTen && !form.tenGiaoDich) { toast.error("Vui lòng nhập tên nha khoa"); return; }
+    setQuickAddNhaKhoa(s => ({ ...s, loading: true }));
+    try {
+      const res = await api.post("/nhakhoa", form);
+      const newItem = { ...(res.data?.data || res.data), nameDisplay: (res.data?.data || res.data).tenGiaoDich || (res.data?.data || res.data).hoVaTen };
+      setNhaKhoasList(prev => [...prev, newItem]);
+      setFormData(f => ({ ...f, nhaKhoa: newItem._id, bacSi: "", benhNhan: "" }));
+      setQuickAddNhaKhoa({ open: false, loading: false, form: { hoVaTen: "", tenGiaoDich: "", soDienThoai: "", email: "", website: "", diaChiCuThe: "", tinh: "", moTa: "" } });
+      toast.success("Đã thêm nha khoa");
+    } catch (err) { toast.error(err.response?.data?.message || "Lỗi thêm nha khoa"); setQuickAddNhaKhoa(s => ({ ...s, loading: false })); }
+  };
+
+  const handleQuickAddBacSi = async () => {
+    const { form } = quickAddBacSi;
+    if (!form.hoVaTen) { toast.error("Vui lòng nhập tên bác sĩ"); return; }
+    if (!formData.nhaKhoa) { toast.error("Vui lòng chọn nha khoa trước"); return; }
+    setQuickAddBacSi(s => ({ ...s, loading: true }));
+    try {
+      const res = await api.post("/nguoilienhe", { ...form, nhaKhoa: formData.nhaKhoa });
+      const newItem = { ...(res.data?.data || res.data), nameDisplay: (res.data?.data || res.data).hoVaTen };
+      setAllBacSi(prev => [...prev, newItem]);
+      setFormData(f => ({ ...f, bacSi: newItem._id }));
+      setQuickAddBacSi({ open: false, loading: false, form: { hoVaTen: "", email: "", soDienThoai: "", tieuDe: "", moTa: "" } });
+      toast.success("Đã thêm bác sĩ");
+    } catch (err) { toast.error(err.response?.data?.message || "Lỗi thêm bác sĩ"); setQuickAddBacSi(s => ({ ...s, loading: false })); }
+  };
+
+  const handleQuickAddBenhNhan = async () => {
+    const { form } = quickAddBenhNhan;
+    if (!form.hoVaTen) { toast.error("Vui lòng nhập tên bệnh nhân"); return; }
+    if (!formData.nhaKhoa) { toast.error("Vui lòng chọn nha khoa trước"); return; }
+    setQuickAddBenhNhan(s => ({ ...s, loading: true }));
+    try {
+      const res = await api.post("/benhnhan", { ...form, nhaKhoa: formData.nhaKhoa });
+      const newItem = { ...(res.data?.data || res.data), nameDisplay: (res.data?.data || res.data).hoVaTen };
+      setAllBenhNhan(prev => [...prev, newItem]);
+      setFormData(f => ({ ...f, benhNhan: newItem._id }));
+      setQuickAddBenhNhan({ open: false, loading: false, form: { hoVaTen: "", soHoSo: "", gioiTinh: "", tinh: "", quanHuyen: "" } });
+      toast.success("Đã thêm bệnh nhân");
+    } catch (err) { toast.error(err.response?.data?.message || "Lỗi thêm bệnh nhân"); setQuickAddBenhNhan(s => ({ ...s, loading: false })); }
+  };
+
   // <-- THÊM MỚI: Xử lý bật Modal khi chọn Hàng sửa/Làm lại
   const handleSanPhamChange = (index, field, value) => {
     const newDsSp = [...formData.danhSachSanPham];
@@ -388,6 +483,11 @@ const DonHangForm = () => {
     setFormData({ ...formData, danhSachSanPham: newDsSp });
   };
 
+  const handleDateChange = (field, date, time) => {
+    if (!date) { setFormData(f => ({ ...f, [field]: "" })); return; }
+    setFormData(f => ({ ...f, [field]: `${date}T${time || "00:00"}` }));
+  };
+
   const handleSaveViTri = (dataViTri) => {
     let totalTeeth = 0;
     dataViTri.forEach((item) => {
@@ -439,15 +539,18 @@ const DonHangForm = () => {
       return;
     }
 
-    // Convert date strings to ISO format for backend
+    // Convert date strings to ISO format for backend; strip read-only nhật ký from payload
+    const { nhatKyChinhSua: _nk, ...formBase } = formData;
     const dataToSend = {
-      ...formData,
+      ...formBase,
       ngayNhan: formData.ngayNhan ? new Date(formData.ngayNhan).toISOString() : null,
       yeuCauHoanThanh: formData.yeuCauHoanThanh ? new Date(formData.yeuCauHoanThanh).toISOString() : null,
       henGiao: formData.henGiao ? new Date(formData.henGiao).toISOString() : null,
+      // Nhật ký: create adds initial entry; update appends a new entry
+      ...(isEditMode
+        ? { nhatKyLogEntry: { nguoiThuc: nguoiThuc, hanhDong: "Chỉnh sửa đơn hàng" } }
+        : { nguoiThucDuyet: nguoiThuc }),
     };
-    console.log("=== CHECK DỮ LIỆU TRƯỚC KHI GỬI API ===");
-    console.log("Danh sách sản phẩm:", JSON.parse(JSON.stringify(dataToSend.danhSachSanPham)));
 
     const action = isEditMode
       ? updateDonHang({ id, data: dataToSend })
@@ -501,11 +604,11 @@ const DonHangForm = () => {
         </button>
       </div>
 
-      {/* Body: main form + right side panel */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      {/* Body: main form */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Main form (scrollable) */}
-        <div className="flex-1 overflow-y-auto pb-16">
-          <div className="w-full mt-4 flex flex-col gap-4">
+        <div className="flex-1 overflow-y-auto pb-4">
+          <div className="w-full mt-4 flex flex-col gap-0">
             {/* Section 1: Customer info + clinic info + dates */}
             <div className="flex flex-col sm:flex-row gap-0 w-full bg-white border-b border-gray-200 shadow-sm">
               <div className="w-full sm:w-[30%] p-4 flex flex-col gap-6 border-b sm:border-b-0 sm:border-r">
@@ -521,12 +624,16 @@ const DonHangForm = () => {
                       benhNhan: "",
                     });
                   }}
+                  showAddNew={true}
+                  onAddNew={() => setQuickAddNhaKhoa(s => ({ ...s, open: true }))}
                 />
                 <SearchInput
                   label="Bác sĩ"
                   options={bacSiList}
                   value={formData.bacSi}
                   onChange={(val) => setFormData({ ...formData, bacSi: val })}
+                  showAddNew={true}
+                  onAddNew={() => setQuickAddBacSi(s => ({ ...s, open: true }))}
                 />
                 <SearchInput
                   label="Bệnh nhân"
@@ -535,6 +642,8 @@ const DonHangForm = () => {
                   onChange={(val) =>
                     setFormData({ ...formData, benhNhan: val })
                   }
+                  showAddNew={true}
+                  onAddNew={() => setQuickAddBenhNhan(s => ({ ...s, open: true }))}
                 />
               </div>
               <div className="w-full sm:w-[40%] bg-[#e8f6fc] p-4 text-sm flex flex-col gap-2 pt-6">
@@ -557,44 +666,36 @@ const DonHangForm = () => {
                   </span>
                 </div>
               </div>
-              <div className="w-full sm:w-[30%] p-4 flex flex-col gap-4 pt-4 sm:pt-6 border-t sm:border-t-0 sm:border-l bg-white">
-                <div className="flex justify-between items-center border-b pb-1">
-                  <label className="text-sm text-gray-500">Ngày nhận</label>
-                  <input
-                    type="datetime-local"
-                    name="ngayNhan"
-                    value={formData.ngayNhan}
-                    onChange={handleInputChange}
-                    className="text-sm outline-none bg-transparent text-gray-700 w-full sm:w-auto"
-                  />
+              <div className="w-full sm:w-[30%] p-4 flex flex-col gap-3 pt-4 sm:pt-6 border-t sm:border-t-0 sm:border-l bg-white">
+                {/* Ngày nhận */}
+                <div className="flex flex-col gap-0.5 border-b pb-2">
+                  <label className="text-xs text-gray-400 uppercase tracking-wide">Ngày nhận</label>
+                  <div className="flex gap-2">
+                    <input type="date" value={formData.ngayNhan ? formData.ngayNhan.split("T")[0] : ""} onChange={e => handleDateChange("ngayNhan", e.target.value, formData.ngayNhan?.split("T")[1] || "00:00")} className="flex-1 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent" />
+                    <input type="time" value={formData.ngayNhan?.split("T")[1] || ""} onChange={e => handleDateChange("ngayNhan", formData.ngayNhan?.split("T")[0] || "", e.target.value)} className="w-20 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent" />
+                  </div>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 border-b pb-1">
-                  <label className="text-sm text-gray-500">
-                    Y/c hoàn thành
-                  </label>
-                  <input
-                    type="datetime-local"
-                    name="yeuCauHoanThanh"
-                    value={formData.yeuCauHoanThanh}
-                    onChange={handleInputChange}
-                    className="text-sm outline-none bg-transparent text-gray-700 w-full sm:w-auto"
-                  />
+                {/* Y/c hoàn thành */}
+                <div className="flex flex-col gap-0.5 border-b pb-2">
+                  <label className="text-xs text-gray-400 uppercase tracking-wide">Y/c hoàn thành</label>
+                  <div className="flex gap-2">
+                    <input type="date" value={formData.yeuCauHoanThanh ? formData.yeuCauHoanThanh.split("T")[0] : ""} onChange={e => handleDateChange("yeuCauHoanThanh", e.target.value, formData.yeuCauHoanThanh?.split("T")[1] || "00:00")} className="flex-1 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent" />
+                    <input type="time" value={formData.yeuCauHoanThanh?.split("T")[1] || ""} onChange={e => handleDateChange("yeuCauHoanThanh", formData.yeuCauHoanThanh?.split("T")[0] || "", e.target.value)} className="w-20 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent" />
+                  </div>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 border-b pb-1">
-                  <label className="text-sm text-gray-500">Hẹn giao</label>
-                  <input
-                    type="datetime-local"
-                    name="henGiao"
-                    value={formData.henGiao}
-                    onChange={handleInputChange}
-                    className="text-sm outline-none bg-transparent text-gray-700 w-full sm:w-auto"
-                  />
+                {/* Hẹn giao */}
+                <div className="flex flex-col gap-0.5 border-b pb-2">
+                  <label className="text-xs text-gray-400 uppercase tracking-wide">Hẹn giao</label>
+                  <div className="flex gap-2">
+                    <input type="date" value={formData.henGiao ? formData.henGiao.split("T")[0] : ""} onChange={e => handleDateChange("henGiao", e.target.value, formData.henGiao?.split("T")[1] || "00:00")} className="flex-1 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent" />
+                    <input type="time" value={formData.henGiao?.split("T")[1] || ""} onChange={e => handleDateChange("henGiao", formData.henGiao?.split("T")[0] || "", e.target.value)} className="w-20 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent" />
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Section 2: Products table */}
-            <div className="w-full bg-white shadow-sm border-t border-b border-gray-200 overflow-x-auto">
+            <div className="w-full bg-white shadow-sm border-t border-b border-gray-200">
               <table className="w-full min-w-[600px] text-sm text-left">
                 <thead className="bg-[#f0f9ff] text-gray-600 border-b">
                   <tr>
@@ -735,110 +836,100 @@ const DonHangForm = () => {
                   </tr>
                 </tbody>
               </table>
-              </div>
-            {/* --- PHẦN THÊM MỚI CHO MOBILE --- */}
-            <div className="md:hidden flex flex-col gap-4 px-0">
-               {/* Đưa Phụ kiện lên thành 1 khối có thể cuộn */}
-               <div className="bg-white border-t border-b border-gray-200 p-4 shadow-sm">
-                  <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">
-                    Phụ kiện đi kèm
-                  </h4>
+            </div>
+            {/* Bottom notes + accessories section */}
+            <div className="w-full bg-white border-t border-gray-200 shadow-sm">
+              <div className="flex flex-col sm:flex-row">
+                {/* Left: notes (flex-1) */}
+                <div className="flex-1 flex flex-col min-w-0">
+                  <div className="flex flex-col sm:flex-row border-b border-gray-100">
+                    {/* Chỉ định của bác sĩ */}
+                    <div className="flex-1 p-4 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col gap-1">
+                      <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Chỉ định của bác sĩ</label>
+                      <textarea
+                        name="chiDinhBacSi"
+                        value={formData.chiDinhBacSi}
+                        onChange={handleInputChange}
+                        rows={4}
+                        className="w-full outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
+                        placeholder="Nhập chỉ định bác sĩ..."
+                      />
+                    </div>
+                    {/* Ghi chú */}
+                    <div className="flex-1 p-4 flex flex-col gap-1">
+                      <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Ghi chú</label>
+                      <textarea
+                        name="ghiChuChung"
+                        value={formData.ghiChuChung}
+                        onChange={handleInputChange}
+                        rows={4}
+                        className="w-full outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
+                        placeholder="Nhập ghi chú..."
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row border-gray-100">
+                    {/* Ghi chú tài chính */}
+                    <div className="flex-1 p-4 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col gap-1">
+                      <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Ghi chú về tài chính</label>
+                      <textarea
+                        name="ghiChuTaiChinh"
+                        value={formData.ghiChuTaiChinh}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="w-full outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
+                        placeholder="Nhập ghi chú tài chính..."
+                      />
+                    </div>
+                    {/* Ghi chú sản xuất */}
+                    <div className="flex-1 p-4 flex flex-col gap-1">
+                      <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Ghi chú sản xuất</label>
+                      <textarea
+                        name="ghiChuSanXuat"
+                        value={formData.ghiChuSanXuat || ""}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="w-full outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
+                        placeholder="Ghi chú sản xuất (hiển thị khi in)..."
+                      />
+                    </div>
+                  </div>
+                </div>
+                {/* Right: phụ kiện */}
+                <div className="sm:w-[260px] border-t sm:border-t-0 sm:border-l border-gray-200 p-4 shrink-0">
                   <DanhSachPhuKien
                     phuKienDaChon={formData.danhSachPhuKien}
                     setPhuKienDaChon={(data) =>
                       setFormData({ ...formData, danhSachPhuKien: data })
                     }
                   />
-               </div>
-
-               {/* Đưa các ô Ghi chú lên thành 1 khối */}
-               <div className="bg-white border-t border-b border-gray-200 p-4 shadow-sm flex flex-col gap-4">
-                  <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Ghi chú đơn hàng</h4>
-                  <div className="flex flex-col gap-3">
-                    <label className="text-xs text-gray-500 font-medium">Chỉ định bác sĩ</label>
-                    <textarea
-                      name="chiDinhBacSi"
-                      value={formData.chiDinhBacSi}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full border rounded p-2 text-sm outline-none bg-gray-50"
-                    />
-                    
-                    <label className="text-xs text-gray-500 font-medium">Ghi chú chung</label>
-                    <textarea
-                      name="ghiChuChung"
-                      value={formData.ghiChuChung}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full border rounded p-2 text-sm outline-none bg-gray-50"
-                    />
-                    <label className="text-xs text-gray-500 font-medium">Ghi chú tài chính</label>
-                    <textarea
-                      name="ghiChuTaiChinh"
-                      value={formData.ghiChuTaiChinh}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full border rounded p-2 text-sm outline-none bg-gray-50"
-                      placeholder="Nhập ghi chú tài chính..."
-                    />
-                  </div>
-               </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Right side panel: 2 tabs – Sản xuất / Ghi chú */}
-        <div className="hidden md:flex w-[300px] border-l bg-white flex-col shrink-0 overflow-hidden">
-          <RightSidePanel
-            formData={formData}
-            setFormData={setFormData}
-            handleInputChange={handleInputChange}
-            phieuBaoHanhList={phieuBaoHanhList}
-            donHangId={id}
-            onRefreshPhieuBaoHanh={() => {
-              if (id) {
-                api
-                  .get(`/phieu-bao-hanh/don-hang/${id}`)
-                  .then((res) => {
-                    const warranty = res.data?.data || res.data;
-                    const warrantyArray = warranty ? (Array.isArray(warranty) ? warranty : [warranty]) : [];
-                    setPhieuBaoHanhList(warrantyArray);
-                  })
-                  .catch((err) => {
-                    console.error("Lỗi fetch phiếu bảo hành:", err);
-                    setPhieuBaoHanhList([]);
-                  });
-              }
-            }}
-          />
         </div>
       </div>
 
       {/* Footer save bar */}
       <div className="bg-gray-100 px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center gap-2 border-t z-10 shadow-lg shrink-0">
         <div className="flex flex-wrap gap-2">
-          <button className="bg-gray-500 text-white px-4 py-1.5 rounded text-sm">
-            Cập nhật phiên bản mới!
+          <button
+            onClick={() => navigate("/donhang/new")}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded text-sm flex items-center gap-1"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+            Tạo mới
           </button>
           {isEditMode && (
             <button
               onClick={() => navigate(`/donhang/${id}/print`)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded text-sm flex items-center gap-1"
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1.5 rounded text-sm flex items-center gap-1"
               title="In đơn hàng (F4)"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="w-4 h-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4" />
               </svg>
               In đơn hàng (F4)
             </button>
@@ -854,12 +945,7 @@ const DonHangForm = () => {
           {isEditMode && (
             <button
               onClick={() => {
-                if (!formData._id) {
-                  toast.error(
-                    "Vui lòng lưu đơn hàng trước khi thêm thẻ bảo hành"
-                  );
-                  return;
-                }
+                if (!formData._id) { toast.error("Vui lòng lưu đơn hàng trước khi thêm thẻ bảo hành"); return; }
                 setIsPhieuBaoHanhModalOpen(true);
               }}
               className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 rounded text-sm"
@@ -869,25 +955,11 @@ const DonHangForm = () => {
           )}
           {isEditMode && validWarranties.length > 0 && (
             <button
-              onClick={() => {
-                setSelectedWarranty(validWarranties[0]);
-                setOpenPrintWarranty(true);
-              }}
+              onClick={() => { setSelectedWarranty(validWarranties[0]); setOpenPrintWarranty(true); }}
               className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded text-sm flex items-center gap-1"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="w-4 h-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4" />
               </svg>
               In thẻ bảo hành
             </button>
@@ -941,18 +1013,14 @@ const DonHangForm = () => {
         donHang={formData}
         onSuccess={() => {
           setIsPhieuBaoHanhModalOpen(false);
-          // Fetch lại danh sách phiếu bảo hành
           if (id) {
-            api
-              .get(`/phieu-bao-hanh/don-hang/${id}`)
+            api.get(`/phieu-bao-hanh/don-hang/${id}`)
               .then((res) => {
                 const warranty = res.data?.data || res.data;
                 const warrantyArray = warranty ? (Array.isArray(warranty) ? warranty : [warranty]) : [];
                 setPhieuBaoHanhList(warrantyArray);
               })
-              .catch((err) => {
-                console.error("Lỗi fetch phiếu bảo hành:", err);
-              });
+              .catch(() => { });
           }
         }}
       />
@@ -964,6 +1032,64 @@ const DonHangForm = () => {
           donHang={formData}
         />
       )}
+
+      {/* Quick-add: Nha Khoa */}
+      <QuickAddModal
+        open={quickAddNhaKhoa.open}
+        onClose={() => setQuickAddNhaKhoa(s => ({ ...s, open: false }))}
+        title="+ Thêm Nha Khoa"
+        onSubmit={handleQuickAddNhaKhoa}
+        loading={quickAddNhaKhoa.loading}
+      >
+        <QuickAddField label="Tên nha khoa *" value={quickAddNhaKhoa.form.hoVaTen} placeholder="Tên nha khoa..." onChange={v => setQuickAddNhaKhoa(s => ({ ...s, form: { ...s.form, hoVaTen: v } }))} />
+        <QuickAddField label="Tên giao dịch" value={quickAddNhaKhoa.form.tenGiaoDich} placeholder="Tên giao dịch..." onChange={v => setQuickAddNhaKhoa(s => ({ ...s, form: { ...s.form, tenGiaoDich: v } }))} />
+        <QuickAddField label="Email" value={quickAddNhaKhoa.form.email} placeholder="Email..." onChange={v => setQuickAddNhaKhoa(s => ({ ...s, form: { ...s.form, email: v } }))} />
+        <QuickAddField label="SĐT" value={quickAddNhaKhoa.form.soDienThoai} placeholder="Số điện thoại..." onChange={v => setQuickAddNhaKhoa(s => ({ ...s, form: { ...s.form, soDienThoai: v } }))} />
+        <QuickAddField label="Website" value={quickAddNhaKhoa.form.website} placeholder="achau.com.vn..." onChange={v => setQuickAddNhaKhoa(s => ({ ...s, form: { ...s.form, website: v } }))} />
+        <QuickAddField label="Địa chỉ cụ thể" value={quickAddNhaKhoa.form.diaChiCuThe} placeholder="Địa chỉ..." onChange={v => setQuickAddNhaKhoa(s => ({ ...s, form: { ...s.form, diaChiCuThe: v } }))} />
+        <QuickAddField label="Tỉnh / Thành phố" value={quickAddNhaKhoa.form.tinh} placeholder="Hồ Chí Minh..." onChange={v => setQuickAddNhaKhoa(s => ({ ...s, form: { ...s.form, tinh: v } }))} />
+        <QuickAddField label="Mô tả" type="textarea" value={quickAddNhaKhoa.form.moTa} placeholder="Mô tả..." onChange={v => setQuickAddNhaKhoa(s => ({ ...s, form: { ...s.form, moTa: v } }))} />
+      </QuickAddModal>
+
+      {/* Quick-add: Bác Sĩ */}
+      <QuickAddModal
+        open={quickAddBacSi.open}
+        onClose={() => setQuickAddBacSi(s => ({ ...s, open: false }))}
+        title="+ Thêm Bác Sĩ"
+        onSubmit={handleQuickAddBacSi}
+        loading={quickAddBacSi.loading}
+      >
+        <QuickAddField label="Họ và tên *" value={quickAddBacSi.form.hoVaTen} placeholder="Tên bác sĩ..." onChange={v => setQuickAddBacSi(s => ({ ...s, form: { ...s.form, hoVaTen: v } }))} />
+        <QuickAddField label="Email" value={quickAddBacSi.form.email} placeholder="Email..." onChange={v => setQuickAddBacSi(s => ({ ...s, form: { ...s.form, email: v } }))} />
+        <QuickAddField label="SĐT" value={quickAddBacSi.form.soDienThoai} placeholder="Số điện thoại..." onChange={v => setQuickAddBacSi(s => ({ ...s, form: { ...s.form, soDienThoai: v } }))} />
+        <QuickAddField label="Tiêu đề" value={quickAddBacSi.form.tieuDe} placeholder="Bác sĩ / Nha sĩ..." onChange={v => setQuickAddBacSi(s => ({ ...s, form: { ...s.form, tieuDe: v } }))} />
+        <QuickAddField label="Mô tả" type="textarea" value={quickAddBacSi.form.moTa} placeholder="Mô tả..." onChange={v => setQuickAddBacSi(s => ({ ...s, form: { ...s.form, moTa: v } }))} />
+        {!formData.nhaKhoa && <p className="text-xs text-orange-500">⚠ Vui lòng chọn nha khoa trước</p>}
+      </QuickAddModal>
+
+      {/* Quick-add: Bệnh Nhân */}
+      <QuickAddModal
+        open={quickAddBenhNhan.open}
+        onClose={() => setQuickAddBenhNhan(s => ({ ...s, open: false }))}
+        title="+ Thêm Bệnh Nhân"
+        onSubmit={handleQuickAddBenhNhan}
+        loading={quickAddBenhNhan.loading}
+      >
+        <QuickAddField label="Tên *" value={quickAddBenhNhan.form.hoVaTen} placeholder="Tên bệnh nhân..." onChange={v => setQuickAddBenhNhan(s => ({ ...s, form: { ...s.form, hoVaTen: v } }))} />
+        <QuickAddField label="Số hồ sơ" value={quickAddBenhNhan.form.soHoSo} placeholder="Số hồ sơ..." onChange={v => setQuickAddBenhNhan(s => ({ ...s, form: { ...s.form, soHoSo: v } }))} />
+        <div>
+          <label className="text-xs text-gray-500">Giới tính</label>
+          <select value={quickAddBenhNhan.form.gioiTinh} onChange={e => setQuickAddBenhNhan(s => ({ ...s, form: { ...s.form, gioiTinh: e.target.value } }))}
+            className="w-full border-b border-gray-300 outline-none py-1 text-sm mt-1 bg-transparent">
+            <option value="">-- Chọn --</option>
+            <option value="Nam">Nam</option>
+            <option value="Nữ">Nữ</option>
+          </select>
+        </div>
+        <QuickAddField label="Tỉnh / Thành phố" value={quickAddBenhNhan.form.tinh} placeholder="Hồ Chí Minh..." onChange={v => setQuickAddBenhNhan(s => ({ ...s, form: { ...s.form, tinh: v } }))} />
+        <QuickAddField label="Quận / Huyện" value={quickAddBenhNhan.form.quanHuyen} placeholder="Bình Thạnh..." onChange={v => setQuickAddBenhNhan(s => ({ ...s, form: { ...s.form, quanHuyen: v } }))} />
+        {!formData.nhaKhoa && <p className="text-xs text-orange-500">⚠ Vui lòng chọn nha khoa trước</p>}
+      </QuickAddModal>
     </div>
   );
 };

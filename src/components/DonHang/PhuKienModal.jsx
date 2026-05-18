@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+import DeleteIcon from '@mui/icons-material/Delete';
+
 const PhuKienModal = ({ isOpen, onClose, initialSelected, onSave }) => {
     const allPhuKien = [
         "Analog", "Cây so màu", "Dấu sơ khởi", "Giá khớp", "Gối sáp",
@@ -53,14 +55,11 @@ const PhuKienModal = ({ isOpen, onClose, initialSelected, onSave }) => {
                     {/* Cột trái */}
                     <div className="w-[300px] border-r flex flex-col bg-gray-50">
                         <div className="p-3 border-b">
-                            <div className="relative">
-                                <input
-                                    type="text" placeholder="Tìm kiếm phụ kiện"
-                                    value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-8 pr-3 py-1.5 border rounded outline-none text-sm"
-                                />
-                                <span className="absolute left-2.5 top-2 text-gray-400">🔍</span>
-                            </div>
+                            <input
+                                type="text" placeholder="Tìm kiếm phụ kiện"
+                                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full px-3 py-1.5 border rounded outline-none text-sm"
+                            />
                         </div>
                         <div className="flex-1 overflow-y-auto">
                             {filteredPhuKien.map((pk, idx) => (
@@ -87,11 +86,10 @@ const PhuKienModal = ({ isOpen, onClose, initialSelected, onSave }) => {
                                 <div className="text-center text-gray-400 mt-10 text-sm">Vui lòng chọn</div>
                             ) : (
                                 selectedList.map((item, idx) => (
-                                    <div key={idx} className="flex items-center text-sm py-3 border-b border-gray-50 hover:bg-gray-50 group">
+                                    <div key={idx} className="flex items-center text-sm py-3 border-b border-gray-50 hover:bg-gray-50">
                                         <div className="w-12 text-center font-medium">{item.soLuong}</div>
                                         <div className="flex-1 text-gray-800 font-medium">{item.tenPhuKien}</div>
 
-                                        {/* ĐÃ SỬA: Dùng Radio Button theo đúng yêu cầu */}
                                         <div className="w-40 flex justify-center gap-4">
                                             <label className="flex items-center gap-1.5 cursor-pointer text-gray-700">
                                                 <input
@@ -99,7 +97,7 @@ const PhuKienModal = ({ isOpen, onClose, initialSelected, onSave }) => {
                                                     name={`sohuu-${idx}`}
                                                     checked={item.soHuu === 'Lab'}
                                                     onChange={() => setSoHuu(idx, 'Lab')}
-                                                    className="w-4 h-4 text-blue-600 cursor-pointer"
+                                                    className="w-4 h-4 text-blue-600 cursor-pointer accent-green-600"
                                                 /> Lab
                                             </label>
                                             <label className="flex items-center gap-1.5 cursor-pointer text-gray-700">
@@ -108,13 +106,13 @@ const PhuKienModal = ({ isOpen, onClose, initialSelected, onSave }) => {
                                                     name={`sohuu-${idx}`}
                                                     checked={item.soHuu === 'Nha khoa'}
                                                     onChange={() => setSoHuu(idx, 'Nha khoa')}
-                                                    className="w-4 h-4 text-blue-600 cursor-pointer"
+                                                    className="w-4 h-4 text-blue-600 cursor-pointer accent-green-600"
                                                 /> Nha khoa
                                             </label>
                                         </div>
 
-                                        <div className="w-8 text-center text-gray-400 hover:text-red-500 cursor-pointer hidden group-hover:block" onClick={() => handleRemove(idx)}>
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mx-auto"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                        <div className="w-8 text-center text-gray-400 hover:text-red-500 cursor-pointer" onClick={() => handleRemove(idx)}>
+                                            <DeleteIcon />
                                         </div>
                                     </div>
                                 ))

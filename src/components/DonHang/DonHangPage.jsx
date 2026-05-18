@@ -66,7 +66,7 @@ const TRANG_THAI_OPTIONS = [
   "Hoàn thành",
   "Đã giao",
 ];
-const ROWS_PER_PAGE = 10;
+const ROWS_PER_PAGE = 14;
 
 const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
 const EXPORT_STATUS_OPTIONS = [
@@ -612,8 +612,8 @@ const DonHangPage = () => {
                     }))
                   }
                   className={`w-full text-left px-6 py-2 text-sm flex items-center gap-2 transition ${draftFilter.preset === p.key
-                      ? "bg-blue-50 text-blue-700 font-semibold"
-                      : "text-gray-700 hover:bg-gray-50"
+                    ? "bg-blue-50 text-blue-700 font-semibold"
+                    : "text-gray-700 hover:bg-gray-50"
                     }`}
                 >
                   {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 13 }} />}
@@ -667,7 +667,7 @@ const DonHangPage = () => {
   };
 
   return (
-    <div className="p-4 bg-gray-100 min-h-screen">
+    <div className="p-4 bg-gray-100">
       <div className="mb-4 bg-white rounded shadow-sm border">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3">
           {/* Left: status badges & filters */}
@@ -677,8 +677,8 @@ const DonHangPage = () => {
                 onClick={handleOpenFilter}
                 title="Bộ lọc"
                 className={`relative p-1.5 rounded transition ${isFiltered
-                    ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
-                    : "text-gray-500 hover:bg-gray-100"
+                  ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                  : "text-gray-500 hover:bg-gray-100"
                   }`}
               >
                 <FilterAltIcon sx={{ fontSize: 20 }} />
@@ -767,8 +767,8 @@ const DonHangPage = () => {
                                 )
                               }
                               className={`w-full text-left px-4 py-2 text-sm transition ${draftNhaKhoa?._id === nk._id
-                                  ? "bg-blue-50 text-blue-700 font-semibold"
-                                  : "text-gray-700 hover:bg-gray-50"
+                                ? "bg-blue-50 text-blue-700 font-semibold"
+                                : "text-gray-700 hover:bg-gray-50"
                                 }`}
                             >
                               {nk.name}
@@ -845,8 +845,8 @@ const DonHangPage = () => {
                                 )
                               }
                               className={`w-full text-left px-4 py-2 text-sm transition ${draftBenhNhan?._id === bn._id
-                                  ? "bg-blue-50 text-blue-700 font-semibold"
-                                  : "text-gray-700 hover:bg-gray-50"
+                                ? "bg-blue-50 text-blue-700 font-semibold"
+                                : "text-gray-700 hover:bg-gray-50"
                                 }`}
                             >
                               {bn.name}
@@ -904,14 +904,14 @@ const DonHangPage = () => {
                             key={status}
                             onClick={() => toggleDraftTrangThai(status)}
                             className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition ${draftTrangThai.includes(status)
-                                ? "bg-blue-50 text-blue-700 font-semibold"
-                                : "text-gray-700 hover:bg-gray-50"
+                              ? "bg-blue-50 text-blue-700 font-semibold"
+                              : "text-gray-700 hover:bg-gray-50"
                               }`}
                           >
                             <span
                               className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${draftTrangThai.includes(status)
-                                  ? "bg-blue-500 border-blue-500"
-                                  : "border-gray-300"
+                                ? "bg-blue-500 border-blue-500"
+                                : "border-gray-300"
                                 }`}
                             >
                               {draftTrangThai.includes(status) && (

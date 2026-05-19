@@ -3,7 +3,7 @@ import { Box } from "@mui/material";
 import { useTheme, useMediaQuery } from "@mui/material";
 import Sidebar from "../Layout/Sidebar";
 import Header from "../Layout/Header";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getAuthSelector } from "../../redux/selector";
 import { getDefaultPathForUser, hasRouteAccess } from "../../config/permissions";
@@ -38,6 +38,8 @@ const Dashboard = () => {
   
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useSelector(getAuthSelector);
+  const location = useLocation();
+  const isPrintPage = /\/(print|delivery-note)$/.test(location.pathname);
   const fallbackPath = getDefaultPathForUser(user);
 
   // Calculate responsive header height
@@ -70,13 +72,13 @@ const Dashboard = () => {
 
   return (
     <Box sx={{ display: "flex" }}>
-      <Header onToggleSidebar={() => setCollapsed(!collapsed)} />
-      <Sidebar collapsed={collapsed} />
+      {!isPrintPage && <Header onToggleSidebar={() => setCollapsed(!collapsed)} />}
+      {!isPrintPage && <Sidebar collapsed={collapsed} />}
       <Box
         component="main"
         className="bg-gray-100 min-h-screen w-full"
         sx={{
-          mt: "66px",
+          mt: isPrintPage ? 0 : "66px",
           transition: "all 0.3s",
         }}
       >

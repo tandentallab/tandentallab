@@ -66,7 +66,7 @@ const TRANG_THAI_OPTIONS = [
   "Hoàn thành",
   "Đã giao",
 ];
-const ROWS_PER_PAGE = 14;
+const ROWS_PER_PAGE = 20;
 
 const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
 const EXPORT_STATUS_OPTIONS = [

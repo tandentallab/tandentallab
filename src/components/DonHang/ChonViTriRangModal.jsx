@@ -473,10 +473,7 @@ export default function ChonViTriRangModal({
                 </div>
 
                 {/* ── Footer ─────────────────────────────────────────────────────── */}
-                <div className="flex justify-between items-center px-8 py-4 border-t bg-gray-50">
-                    <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1.5 rounded text-xs shadow transition">
-                        Cập nhật phiên bản mới!
-                    </button>
+                <div className="flex justify-end px-8 py-4 border-t bg-gray-50">
                     <button
                         onClick={() => {
                             if (onSave) onSave(selectedObjects);

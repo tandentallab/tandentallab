@@ -37,36 +37,50 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
   };
 
 const getFieldValue = (loaiTruong) => {
-  // Thay đổi: ưu tiên lấy từ warranty thay vì donHang
-  if (!warranty) return "---";
+  if (!warranty && !donHang) return "---";
   
   switch (loaiTruong) {
     case "maThe": 
-  // Loại bỏ chữ TAN ở đầu mã
-    const maBaoHanh = warranty?.maBaoHanh || "";
-    return maBaoHanh.replace(/^TAN/, "") || "---";
+      const maBaoHanh = warranty?.maBaoHanh || "";
+      return maBaoHanh.replace(/^TAN/, "") || "---";
     
-    // Lấy thông tin từ object warranty đã được populate
     case "nhaKhoa": 
-      return warranty.nhaKhoa?.tenGiaoDich || warranty.nhaKhoa?.hoVaTen || "---";
+      return warranty?.nhaKhoa?.tenGiaoDich || warranty?.nhaKhoa?.hoVaTen || donHang?.nhaKhoa?.tenGiaoDich || donHang?.nhaKhoa?.hoVaTen || "---";
       
     case "bacSi": 
-      return warranty.bacSi?.hoVaTen || "---";
+      return warranty?.bacSi?.hoVaTen || donHang?.bacSi?.hoVaTen || "---";
       
     case "benhNhan": 
-      return warranty.benhNhan?.hoVaTen || "---";
+      return warranty?.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen || "---";
       
     case "sanPham": 
-      // Lấy từ danh sách bảo hành trong phiếu
-      return warranty.danhSachBaoHanh?.[0]?.sanPham?.tenSanPham || "---";
+      return warranty?.danhSachBaoHanh?.[0]?.sanPham?.tenSanPham || donHang?.danhSachSanPham?.[0]?.sanPham?.tenSanPham || "---";
       
+    case "viTriRang": {
+      const viTriStr = warranty?.danhSachBaoHanh?.[0]?.viTriRang;
+      if (typeof viTriStr === "string" && viTriStr !== "---" && viTriStr.trim() !== "") {
+        return viTriStr;
+      }
+      const viTriArr = donHang?.danhSachSanPham?.[0]?.viTri || [];
+      if (!Array.isArray(viTriArr) || viTriArr.length === 0) return "---";
+      const parts = viTriArr
+        .map((v) => {
+          if (!Array.isArray(v.soRang) || v.soRang.length === 0) return "";
+          if (v.kieu === "Rời") return v.soRang.join(", ");
+          if (v.soRang.length === 1) return String(v.soRang[0]);
+          return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+        })
+        .filter(Boolean);
+      return parts.join("; ") || "---";
+    }
+
     case "baoHanhTu": 
-      return warranty.danhSachBaoHanh?.[0]?.baoHanhTu 
+      return warranty?.danhSachBaoHanh?.[0]?.baoHanhTu 
         ? new Date(warranty.danhSachBaoHanh[0].baoHanhTu).toLocaleDateString("vi-VN") 
         : "---";
         
     case "baoHanhDen": 
-      return warranty.danhSachBaoHanh?.[0]?.baoHanhDen 
+      return warranty?.danhSachBaoHanh?.[0]?.baoHanhDen 
         ? new Date(warranty.danhSachBaoHanh[0].baoHanhDen).toLocaleDateString("vi-VN") 
         : "---";
         
@@ -100,7 +114,7 @@ return (
                 return (
                   <div key={idx} style={{ position: "absolute", left: `${left}mm`, top: `${top}mm` }}>
                     {/* 3. Truyền đường dẫn đầy đủ vào QR */}
-                    <QRCodeSVG value={fullUrl} size={65} />
+                    <QRCodeSVG value={fullUrl} size={field.coChu ? field.coChu * 4 : 65} />
                   </div>
                 );
               }

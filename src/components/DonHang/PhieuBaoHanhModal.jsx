@@ -43,6 +43,9 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
           const res = await api.get("/mau-the-bao-hanh");
           if (res.data?.success) {
             setMauTheList(res.data.data);
+            if (res.data.data.length > 0) {
+              setSelectedMauTheId(res.data.data[0]._id);
+            }
           }
         } catch (err) {
           toast.error("Không thể tải danh sách mẫu thẻ");
@@ -159,7 +162,11 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
 
         return {
           sanPham: sanPhamId,
-          viTriRang: product.viTri?.map((v) => `${v.kieu}: ${v.soRang.join(", ")}`).join("; ") || "---",
+          viTriRang: product.viTri?.map((v) => {
+            if (!v.soRang || v.soRang.length === 0) return "";
+            if (v.kieu === "Rời" || v.soRang.length === 1) return v.soRang.join(", ");
+            return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+          }).filter(Boolean).join("; ") || "---",
           soLuong: product.soLuong || 1,
           mau: product.mau || "",
           baoHanhTu: startDate,
@@ -254,7 +261,11 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
                 <div className="col-span-4 flex flex-col gap-1">
                   <span className="font-bold text-sm text-blue-800">{sp.sanPham?.tenSanPham || `Sản phẩm ${idx + 1}`}</span>
                   <span className="text-xs text-gray-600">
-                    Vị trí: {sp.viTri?.map((v) => `${v.kieu}: ${v.soRang.join(", ")}`).join("; ") || "---"} | SL: {sp.soLuong || 1}
+                    Vị trí: {sp.viTri?.map((v) => {
+                      if (!v.soRang || v.soRang.length === 0) return "";
+                      if (v.kieu === "Rời" || v.soRang.length === 1) return v.soRang.join(", ");
+                      return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+                    }).filter(Boolean).join("; ") || "---"} | SL: {sp.soLuong || 1}
                   </span>
                 </div>
 

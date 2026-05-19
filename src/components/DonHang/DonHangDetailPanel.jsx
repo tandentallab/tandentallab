@@ -521,7 +521,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
           open={openPrintWarranty}
           onClose={() => setOpenPrintWarranty(false)}
           warranty={warranty}
-          donHang={fullDonHang} // <--- Truyền biến mới fetch được vào đây
+          donHang={{ ...fullDonHang, bacSi: fullDonHang?.bacSi?.hoVaTen ? fullDonHang.bacSi : donHang?.bacSi }} 
         />
       )}
     </>

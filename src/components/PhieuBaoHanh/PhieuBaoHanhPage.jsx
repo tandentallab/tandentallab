@@ -81,27 +81,42 @@ const PhieuBaoHanhPage = () => {
   // Mở modal edit
   const handleOpenEdit = (phieu) => {
     setEditingPhieu(phieu);
+    
+    const enrichedList = (phieu.danhSachBaoHanh || []).map((item) => {
+      const startDate = new Date(item.baoHanhTu);
+      const endDate = new Date(item.baoHanhDen);
+      const yearsDiff = endDate.getFullYear() - startDate.getFullYear();
+      
+      const expectedEnd = addYearsToDate(item.baoHanhTu, yearsDiff);
+      const actualEndStr = new Date(item.baoHanhDen).toISOString().slice(0, 10);
+      const isExactYears = expectedEnd === actualEndStr;
+
+      return {
+        ...item,
+        selectedYears: isExactYears ? yearsDiff : "",
+        customEndDate: isExactYears ? "" : actualEndStr,
+      };
+    });
+
     setEditForm({
       ghiChu: phieu.ghiChu || "",
-      danhSachBaoHanh: JSON.parse(JSON.stringify(phieu.danhSachBaoHanh || [])),
+      danhSachBaoHanh: enrichedList,
     });
     setIsEditModalOpen(true);
   };
 
-  // Cập nhật ngày bảo hành sản phẩm
-  const handleUpdateProductWarranty = (index, newEndDate) => {
-    const newDanhSach = [...editForm.danhSachBaoHanh];
-    newDanhSach[index].baoHanhDen = new Date(newEndDate).toISOString();
-    setEditForm({ ...editForm, danhSachBaoHanh: newDanhSach });
-  };
+
 
   // Lưu chỉnh sửa
   const handleSaveEdit = async () => {
     try {
       setLoading(true);
+      
+      const cleanedDanhSach = editForm.danhSachBaoHanh.map(({ selectedYears, customEndDate, ...rest }) => rest);
+      
       const res = await api.put(`/phieu-bao-hanh/${editingPhieu._id}`, {
         ghiChu: editForm.ghiChu,
-        danhSachBaoHanh: editForm.danhSachBaoHanh,
+        danhSachBaoHanh: cleanedDanhSach,
       });
       if (res.data?.success) {
         toast.success("Cập nhật phiếu bảo hành thành công");
@@ -255,16 +270,16 @@ const PhieuBaoHanhPage = () => {
         <DialogContent className="pt-6 space-y-4">
           {editingPhieu && (
             <>
-              <div className="bg-gray-50 p-3 rounded border border-gray-200">
-                <div className="text-sm">
+              <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-200 shadow-sm">
+                <div className="text-base space-y-2">
                   <div>
-                    <span className="font-semibold">Mã BH:</span> {editingPhieu.maBaoHanh}
+                    <span className="font-bold text-blue-900">Mã BH:</span> <span className="font-semibold text-gray-800">{editingPhieu.maBaoHanh}</span>
                   </div>
                   <div>
-                    <span className="font-semibold">Đơn Hàng:</span> {editingPhieu.donHang?.maDonHang}
+                    <span className="font-bold text-blue-900">Đơn Hàng:</span> <span className="font-semibold text-gray-800">{editingPhieu.donHang?.maDonHang}</span>
                   </div>
                   <div>
-                    <span className="font-semibold">Bệnh Nhân:</span> {editingPhieu.benhNhan?.hoVaTen}
+                    <span className="font-bold text-blue-900">Bệnh Nhân:</span> <span className="font-bold text-blue-700">{editingPhieu.benhNhan?.hoVaTen}</span>
                   </div>
                 </div>
               </div>
@@ -273,37 +288,42 @@ const PhieuBaoHanhPage = () => {
                 <h3 className="font-semibold text-gray-700 mb-3">Danh Sách Sản Phẩm & Năm Bảo Hành:</h3>
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {editForm.danhSachBaoHanh?.map((item, idx) => (
-                    <div key={idx} className="p-4 bg-blue-50 rounded border-2 border-blue-200">
-                      <div className="mb-4">
-                        <div className="font-semibold text-gray-800">
+                    <div key={idx} className="p-4 bg-blue-50/30 rounded-lg border border-blue-200 mb-4 shadow-sm">
+                      <div className="mb-4 flex flex-col gap-1">
+                        <div className="font-bold text-base text-blue-800">
                           {idx + 1}. {item.sanPham?.tenSanPham || item.sanPham}
                         </div>
-                        {item.viTriRang && <div className="text-gray-600 text-sm">Vị trí: {item.viTriRang}</div>}
-                        {item.soLuong && <div className="text-gray-600 text-sm">SL: {item.soLuong}</div>}
-                        {item.mau && <div className="text-gray-600 text-sm">Màu: {item.mau}</div>}
-                        <div className="text-gray-500 text-sm mt-2">
-                          Ngày bắt đầu: {formatDateVN(item.baoHanhTu)}
+                        {item.viTriRang && <div className="text-gray-700 text-sm">Vị trí: {item.viTriRang}</div>}
+                        {item.soLuong && <div className="text-gray-700 text-sm">SL: {item.soLuong}</div>}
+                        {item.mau && <div className="text-gray-700 text-sm">Màu: {item.mau}</div>}
+                        <div className="text-gray-600 text-sm mt-1">
+                          Ngày bắt đầu: {formatDateVN(item.baoHanhTu)} | Hạn BH hiện tại: <span className="font-semibold text-gray-800">{formatDateVN(editingPhieu.danhSachBaoHanh?.[idx]?.baoHanhDen)}</span>
                         </div>
                       </div>
 
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Chọn năm bảo hành:</label>
+                      <div className="grid grid-cols-12 gap-3 items-center">
+                        <div className="col-span-5">
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">Chọn năm bảo hành:</label>
                           <TextField
                             select
-                            value={(() => {
-                              const startDate = new Date(item.baoHanhTu);
-                              const endDate = new Date(item.baoHanhDen);
-                              return endDate.getFullYear() - startDate.getFullYear();
-                            })()}
+                            value={item.selectedYears ?? ""}
                             onChange={(e) => {
-                              const years = Number(e.target.value);
-                              const newEndDate = addYearsToDate(item.baoHanhTu, years);
-                              handleUpdateProductWarranty(idx, newEndDate);
+                              const val = e.target.value;
+                              const newDanhSach = [...editForm.danhSachBaoHanh];
+                              const newEndDateStr = val === "" ? item.baoHanhTu : addYearsToDate(item.baoHanhTu, Number(val));
+                              newDanhSach[idx] = {
+                                ...newDanhSach[idx],
+                                selectedYears: val === "" ? "" : Number(val),
+                                customEndDate: "",
+                                baoHanhDen: new Date(newEndDateStr).toISOString()
+                              };
+                              setEditForm({ ...editForm, danhSachBaoHanh: newDanhSach });
                             }}
                             fullWidth
                             size="small"
+                            inputProps={{ style: { fontSize: '14px' } }}
                           >
+                            <MenuItem value="">-- Chọn năm --</MenuItem>
                             {Array.from({ length: 11 }, (_, i) => i).map((year) => (
                               <MenuItem key={year} value={year}>
                                 {year} năm
@@ -312,24 +332,37 @@ const PhieuBaoHanhPage = () => {
                           </TextField>
                         </div>
 
-                        <div className="text-center text-sm text-gray-500">hoặc</div>
+                        <div className="col-span-2 flex items-center justify-center mt-4">
+                          <span className="text-gray-400 text-xs font-medium">hoặc</span>
+                        </div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Chọn ngày bảo hành đến:</label>
+                        <div className="col-span-5">
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">Chọn ngày bảo hành đến:</label>
                           <TextField
                             type="date"
-                            value={item.baoHanhDen ? item.baoHanhDen.split("T")[0] : ""}
+                            value={item.customEndDate || ""}
                             onChange={(e) => {
-                              handleUpdateProductWarranty(idx, e.target.value);
+                              const val = e.target.value;
+                              const newDanhSach = [...editForm.danhSachBaoHanh];
+                              newDanhSach[idx] = {
+                                ...newDanhSach[idx],
+                                customEndDate: val,
+                                selectedYears: "",
+                                baoHanhDen: val ? new Date(val).toISOString() : new Date(item.baoHanhTu).toISOString()
+                              };
+                              setEditForm({ ...editForm, danhSachBaoHanh: newDanhSach });
                             }}
                             fullWidth
                             size="small"
-                            inputLabelProps={{ shrink: true }}
+                            inputProps={{ style: { fontSize: '14px' } }}
                           />
                         </div>
 
-                        <div className="p-2 bg-green-50 rounded text-sm border border-green-200">
-                          <span className="font-medium">Kết quả:</span> {formatDateVN(item.baoHanhTu)} → {formatDateVN(item.baoHanhDen)}
+                        <div className="mt-2 pt-3 border-t border-green-200 bg-green-50 rounded px-3 py-2 flex items-center gap-2">
+                          <span className="font-semibold text-sm text-green-900">Kết quả:</span>
+                          <span className="text-sm text-green-800">
+                            {formatDateVN(item.baoHanhTu)} → {formatDateVN(item.baoHanhDen)}
+                          </span>
                         </div>
                       </div>
                     </div>

@@ -32,6 +32,8 @@ import PhieuThuPage from "../PhieuThu/PhieuThuPage";
 import PhieuThuPrintPreview from "../PhieuThu/PhieuThuPrintPreview";
 import NhanVienTable from "../NhanVien/NhanVienTable";
 import BangLuongPage from "../BangLuong/BangLuongPage";
+import PhieuBaoHanhPage from "../PhieuBaoHanh";
+import MauTheBaoHanhPage from "../PhieuBaoHanh/MauTheBaoHanhPage";
 const Dashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -90,6 +92,8 @@ const Dashboard = () => {
             path="/donhang/:id/delivery-note"
             element={renderProtected("/donhang", <DonHangDeliveryNotePrintPreview />)}
           />
+          <Route path="/phieu-bao-hanh" element={renderProtected("/phieu-bao-hanh", <PhieuBaoHanhPage />)} />
+          <Route path="/mau-the-bao-hanh" element={renderProtected("/mau-the-bao-hanh", <MauTheBaoHanhPage />)} />
           <Route path="/nha-khoa" element={renderProtected("/nha-khoa", <NhaKhoaPage />)} />
           <Route path="/nguoi-lien-he" element={renderProtected("/nguoi-lien-he", <NguoiLienHePage />)} />
           <Route path="/benh-nhan" element={renderProtected("/benh-nhan", <BenhNhanPage />)} />

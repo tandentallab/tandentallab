@@ -11,7 +11,6 @@ import {
   Checkbox,
   Grid,
   InputAdornment,
-  Autocomplete, // 👉 THÊM IMPORT AUTOCOMPLETE
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
@@ -24,9 +23,6 @@ import {
 } from "../../data/sanPhamConfig";
 import ChonCongDoanModal from "./ChonCongDoanModal";
 
-// 👉 DANH SÁCH DROPDOWN BẢO HÀNH CHO SẴN
-const BAO_HANH_OPTIONS = ["1 năm", "2 năm", "3 năm", "4 năm", "5 năm"];
-
 const INITIAL_FORM = {
   tenSanPham: "",
   donGiaChung: "",
@@ -37,7 +33,7 @@ const INITIAL_FORM = {
   loai: "Sản xuất",
   coMauRang: true,
   quyTrinh: [],
-  baoHanhMacDinh: "", // 👉 KHỞI TẠO GIÁ TRỊ RỖNG MẶC ĐỊNH
+  baoHanhMacDinh: "0",
 };
 
 export default function SanPhamModal({
@@ -60,7 +56,7 @@ export default function SanPhamModal({
           ...editData,
           donGiaChung: editData.donGiaChung?.toString() || "",
           quyTrinh: editData.quyTrinh || [],
-          baoHanhMacDinh: editData.baoHanhMacDinh || "", // 👉 ĐẢM BẢO TRỘN DỮ LIỆU KHI EDIT
+          baoHanhMacDinh: (editData.baoHanhMacDinh || 0).toString(),
         });
       } else {
         setForm(INITIAL_FORM);
@@ -93,7 +89,11 @@ export default function SanPhamModal({
   const handleSubmit = async () => {
     if (!validateForm()) return;
     try {
-      const payload = { ...form, donGiaChung: Number(form.donGiaChung) };
+      const payload = {
+        ...form,
+        donGiaChung: Number(form.donGiaChung),
+        baoHanhMacDinh: Number(form.baoHanhMacDinh),
+      };
       if (isEdit) {
         await dispatch(
           updateSanPham({ id: editData._id, data: payload })
@@ -103,7 +103,7 @@ export default function SanPhamModal({
       }
       handleClose();
     } catch (err) {
-      console.error(err);
+      alert(`Lỗi: ${err?.message || JSON.stringify(err)}`);
     }
   };
 
@@ -240,28 +240,27 @@ export default function SanPhamModal({
                     </TextField>
                   </div>
 
-                  {/* 👉 THÊM Ô THỜI GIAN BẢO HÀNH (VỪA CHỌN VỪA TỰ NHẬP ĐƯỢC) */}
-                  <Autocomplete
-                    freeSolo
-                    options={BAO_HANH_OPTIONS}
-                    value={form.baoHanhMacDinh || ""}
-                    onInputChange={(event, newInputValue) => {
-                      handleChange("baoHanhMacDinh", newInputValue);
-                    }}
-                    onChange={(event, newValue) => {
-                      handleChange("baoHanhMacDinh", newValue || "");
-                    }}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Thời gian bảo hành mặc định"
-                        variant="standard"
-                        fullWidth
-                        InputLabelProps={{ shrink: true }}
-                        placeholder="Chọn hoặc tự gõ (VD: 1 năm, 2 năm, 6 tháng...)"
-                      />
-                    )}
-                  />
+                  <TextField
+                    select
+                    label="Thời gian bảo hành mặc định"
+                    variant="standard"
+                    fullWidth
+                    value={form.baoHanhMacDinh || "0"}
+                    onChange={(e) => handleChange("baoHanhMacDinh", e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                  >
+                    <MenuItem value="0">Không có bảo hành</MenuItem>
+                    <MenuItem value="1">1 năm</MenuItem>
+                    <MenuItem value="2">2 năm</MenuItem>
+                    <MenuItem value="3">3 năm</MenuItem>
+                    <MenuItem value="4">4 năm</MenuItem>
+                    <MenuItem value="5">5 năm</MenuItem>
+                    <MenuItem value="6">6 năm</MenuItem>
+                    <MenuItem value="7">7 năm</MenuItem>
+                    <MenuItem value="8">8 năm</MenuItem>
+                    <MenuItem value="9">9 năm</MenuItem>
+                    <MenuItem value="10">10 năm</MenuItem>
+                  </TextField>
 
                   <TextField
                     label="Mô tả"

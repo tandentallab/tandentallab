@@ -59,14 +59,13 @@ const DonHangPrintPreview = () => {
   const maDonHang = donHang.maDonHang || `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`;
 
   const bacSi = donHang.bacSi?.hoVaTen || "";
+  const nhaKhoa = donHang.nhaKhoa?.tenGiaoDich || donHang.nhaKhoa?.hoVaTen || "";
   const benhNhan = donHang.benhNhan?.hoVaTen || "";
-  const nhaKhoa =
-    donHang.nhaKhoa?.tenGiaoDich || donHang.nhaKhoa?.hoVaTen || "";
 
   const buildTeethText = (viTri = []) => {
     if (!Array.isArray(viTri)) return "";
     const parts = viTri
-      .map((v) => (Array.isArray(v.soRang) ? v.soRang.join("=>") : ""))
+      .map((v) => (Array.isArray(v.soRang) ? v.soRang.join("->") : ""))
       .filter(Boolean);
     return parts.join(" , ");
   };
@@ -89,13 +88,22 @@ const DonHangPrintPreview = () => {
           <div className="grid grid-cols-12 gap-2 text-sm">
             <div className="col-span-5">
               <div className="grid grid-cols-[78px_1fr] gap-y-1">
-                <span className="font-bold">Mã số:</span>
+                <span >Mã số:</span>
                 <span className="font-bold">{maDonHang}</span>
-                <span className="font-bold">Nha khoa:</span>
+                <span >Nha khoa:</span>
                 <span className="font-bold">{nhaKhoa || "---"}</span>
-                <span className="font-bold">Bác sĩ:</span>
+                <span >Bác sĩ:</span>
                 <span className="font-bold">{bacSi || "---"}</span>
-                <span className="font-bold">Bệnh nhân:</span>
+                
+                {/* 👉 ĐÃ THÊM: In ra Mô tả của Người liên hệ (Bác sĩ) nếu có */}
+                {donHang.bacSi?.moTa && (
+                  <>
+                    <span >Mô tả:</span>
+                    <span className="font-bold italic text-gray-800">{donHang.bacSi.moTa}</span>
+                  </>
+                )}
+
+                <span >Bệnh nhân:</span>
                 <span className="font-bold">{benhNhan || "---"}</span>
               </div>
             </div>
@@ -107,15 +115,14 @@ const DonHangPrintPreview = () => {
             </div>
 
             <div className="col-span-5 flex justify-end">
-              {/* Đổi 1fr thành auto để khung không bị kéo giãn, kết hợp flex justify-end ở cha để đẩy nó sang phải */}
               <div className="grid grid-cols-[90px_auto] gap-y-1">
-                <span className="font-bold">Nhận:</span>
+                <span>Nhận:</span>
                 <span className="font-bold">{formatDateTime(donHang.ngayNhan)}</span>
                 
-                <span className="font-bold">Giao:</span>
+                <span>Giao:</span>
                 <span className="font-bold">{formatDateTime(donHang.henGiao)}</span>
                 
-                <span className="font-bold">Chỉ định giao:</span>
+                <span>Chỉ định giao:</span>
                 <span className="font-bold">{donHang.trangThai || "---"}</span>
               </div>
             </div>
@@ -127,13 +134,13 @@ const DonHangPrintPreview = () => {
           <table className="w-full text-sm border border-gray-800 border-collapse">
             <thead>
               <tr>
-                <th className="border border-gray-800 p-1.5 text-center font-bold">
+                <th className="border border-gray-800 p-1.5 text-center">
                   Loại phục hình
                 </th>
-                <th className="border border-gray-800 p-1.5 text-center font-bold">S.L</th>
-                <th className="border border-gray-800 p-1.5 text-center font-bold">Răng</th>
-                <th className="border border-gray-800 p-1.5 text-center font-bold">Màu</th>
-                <th className="border border-gray-800 p-1.5 text-center font-bold">Loại</th>
+                <th className="border border-gray-800 p-1.5 text-center">S.L</th>
+                <th className="border border-gray-800 p-1.5 text-center">Răng</th>
+                <th className="border border-gray-800 p-1.5 text-center">Màu</th>
+                <th className="border border-gray-800 p-1.5 text-center">Loại</th>
               </tr>
             </thead>
             <tbody>
@@ -169,18 +176,18 @@ const DonHangPrintPreview = () => {
 
           <div className="grid grid-cols-12 gap-3 mt-4">
             <div className="col-span-8">
-              <div className="text-sm font-bold">Chỉ định:</div>
+              <div className="text-sm">Chỉ định:</div>
               <div className="text-sm whitespace-pre-wrap ml-4 mt-1 font-bold">
                 {donHang.chiDinhBacSi || ""}
               </div>
 
-              <div className="text-sm font-bold mt-4">Yêu cầu kỹ thuật:</div>
+              <div className="text-sm mt-4">Yêu cầu kỹ thuật:</div>
               <div className="text-sm whitespace-pre-wrap ml-4 mt-1 font-bold">
                 {donHang.ghiChuChung || ""}
               </div>
               {donHang.ghiChuSanXuat && (
                 <>
-                  <div className="text-sm font-bold mt-4">Ghi chú sản xuất:</div>
+                  <div className="text-sm mt-4">Ghi chú sản xuất:</div>
                   <div className="text-sm whitespace-pre-wrap ml-4 mt-1 font-bold">{donHang.ghiChuSanXuat}</div>
                 </>
               )}
@@ -238,11 +245,7 @@ const DonHangPrintPreview = () => {
       </div>
 
       <style>{`
-        /* ─────────────────────────────────────────────────────────────────────────────
-           CSS ĐIỀU CHỈNH KHI IN ẤN - HỖ TRỢ MỌI KHỔ GIẤY (A4, A5...)
-           ───────────────────────────────────────────────────────────────────────────── */
         @media print {
-          /* 1. ẨN TUYỆT ĐỐI TOÀN BỘ APP, CHỈ HIỆN FORM IN */
           body * {
             visibility: hidden !important;
           }
@@ -250,13 +253,10 @@ const DonHangPrintPreview = () => {
             visibility: visible !important;
           }
 
-          /* 2. BÍ QUYẾT AUTO-SCALE (TỰ THU PHÓNG): Ép cứng chiều rộng bằng A4 */
           .print-area {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
-            /* Thay vì 100%, ta ép cứng form rộng 190mm. 
-               Khi in giấy A5, trình duyệt sẽ tự thu nhỏ toàn bộ form lại vừa khít tờ A5! */
             width: 190mm !important; 
             max-width: 190mm !important;
             margin: 0 !important;
@@ -266,9 +266,8 @@ const DonHangPrintPreview = () => {
             background: white !important;
           }
 
-          /* 3. CÀI ĐẶT TRANG GIẤY */
           @page {
-            margin: 10mm; /* Giữ lề giấy chung, cho phép chọn khổ giấy tùy ý */
+            margin: 10mm;
           }
 
           body {
@@ -277,13 +276,11 @@ const DonHangPrintPreview = () => {
             print-color-adjust: exact !important;
           }
 
-          /* 4. ẨN SIDEBAR, HEADER, NÚT BẤM */
           button, .no-print, .MuiDrawer-root, .MuiAppBar-root, header, nav, aside {
             display: none !important;
             visibility: hidden !important;
           }
 
-          /* 5. GIỮ CẤU TRÚC 2 CỘT LUÔN THẲNG HÀNG */
           .grid.grid-cols-2 {
             display: flex !important;
             flex-direction: row !important;

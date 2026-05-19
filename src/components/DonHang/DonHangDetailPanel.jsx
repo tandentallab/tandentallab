@@ -35,6 +35,18 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
   const [selectedProductIndex, setSelectedProductIndex] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null); // { spIndex, thuTu, top, right }
   const isOpen = !!donHang;
+  const [fullDonHang, setFullDonHang] = useState(donHang);
+
+    // Thêm useEffect để fetch dữ liệu chi tiết khi donHang._id thay đổi
+    useEffect(() => {
+      if (donHang?._id) {
+        api.get(`/don-hang/${donHang._id}`) // Gọi đúng API chi tiết (có populate)
+          .then((res) => {
+            setFullDonHang(res.data.data);
+          })
+          .catch((err) => console.error("Lỗi fetch full donHang:", err));
+      }
+    }, [donHang?._id]);
 
   // Close dropdown on outside click or scroll
   useEffect(() => {
@@ -509,7 +521,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
           open={openPrintWarranty}
           onClose={() => setOpenPrintWarranty(false)}
           warranty={warranty}
-          donHang={donHang}
+          donHang={fullDonHang} // <--- Truyền biến mới fetch được vào đây
         />
       )}
     </>

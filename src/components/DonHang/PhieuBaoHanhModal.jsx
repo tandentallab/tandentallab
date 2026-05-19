@@ -31,6 +31,24 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   const [selectedYears, setSelectedYears] = useState(null);
   const [customEndDate, setCustomEndDate] = useState("");
   const [ghiChu, setGhiChu] = useState("");
+  const [mauTheList, setMauTheList] = useState([]);
+  const [selectedMauTheId, setSelectedMauTheId] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      const fetchMauThe = async () => {
+        try {
+          const res = await api.get("/mau-the-bao-hanh");
+          if (res.data?.success) {
+            setMauTheList(res.data.data);
+          }
+        } catch (err) {
+          toast.error("Không thể tải danh sách mẫu thẻ");
+        }
+      };
+      fetchMauThe();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open || !donHang?._id) return;
@@ -86,8 +104,19 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   };
 
   const handleSubmit = async () => {
+    console.log("Dữ liệu gửi lên:", {
+        donHang: fullDonHang._id,
+        mauTheId: selectedMauTheId, // Kiểm tra kỹ chỗ này
+        ghiChu
+    });
     try {
+      
       // Kiểm tra nếu chưa chọn sản phẩm
+      if (!selectedMauTheId) {
+        toast.error("Vui lòng chọn mẫu thẻ trước khi lưu!");
+        return;
+      }
+
       if (selectedProductIndex === "") {
         toast.error("Vui lòng chọn sản phẩm");
         return;
@@ -124,7 +153,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
             baoHanhDen: new Date(endDate).toISOString(),
           },
         ],
-        mauTheTi: "Mẫu in Lab",
+        mauTheId: selectedMauTheId,
         ghiChu,
       };
 
@@ -310,12 +339,19 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
             size="small"
           />
           <TextField
-            label="Mẫu thẻ"
-            disabled
-            value="Mẫu in Lab"
-            fullWidth
-            size="small"
-          />
+          label="Mẫu thẻ"
+          select // Thêm thuộc tính này
+          fullWidth
+          size="small"
+          value={selectedMauTheId || ""} // Bạn cần tạo state selectedMauTheId để lưu giá trị chọn
+          onChange={(e) => setSelectedMauTheId(e.target.value)}
+          >
+          {mauTheList.map((mau) => (
+            <MenuItem key={mau._id} value={mau._id}>
+              {mau.tenMau}
+            </MenuItem>
+          ))}
+        </TextField>
         </div>
 
         {/* Hàng 5: Tên bệnh nhân */}

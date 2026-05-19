@@ -1,122 +1,141 @@
-import React, { useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
+import { Dialog, DialogContent, DialogActions, Button, CircularProgress } from "@mui/material";
+import { api } from "../../config/api";
 
 const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
-  const printRef = useRef();
+  const [mauThe, setMauThe] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  if (!warranty) return null;
+  useEffect(() => {
+    if (open) loadMauThe();
+  }, [open, warranty]);
 
-  const handlePrint = () => {
-    const printWindow = window.open("", "", "height=400,width=600");
-    printWindow.document.write(printRef.current.innerHTML);
-    printWindow.document.close();
-    printWindow.print();
+  const loadMauThe = async () => {
+    try {
+      setLoading(true);
+      const mauTheId = typeof warranty?.mauThe === 'object' ? warranty.mauThe?._id : warranty?.mauThe;
+      
+      let res;
+      if (mauTheId) {
+        res = await api.get(`/mau-the-bao-hanh/${mauTheId}`);
+      } else {
+        const listRes = await api.get("/mau-the-bao-hanh", { params: { nhaKhoaId: warranty.nhaKhoa?._id } });
+        if (listRes.data?.success && listRes.data.data.length > 0) {
+          res = { data: { success: true, data: listRes.data.data[0] } };
+        }
+      }
+
+      if (res?.data?.success && res.data.data) {
+        setMauThe(res.data.data);
+      }
+    } catch (error) {
+      console.error("Lỗi tải mẫu:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
- // Tự động lấy "http://localhost:3000" ở máy dev, hoặc "https://ten-mien-cua-ban.com" ở bản deploy
- const origin = "https://tan-dental-frontend-snmb.vercel.app";
-  const qrValue = `${origin}/warranty/?qrcode=${warranty.maQR}`;
-  const warrantyCodeNumber = String(warranty.maBaoHanh || "").match(/\d+/g)?.join("") || warranty.maBaoHanh || "---";
+const getFieldValue = (loaiTruong) => {
+  // Thay đổi: ưu tiên lấy từ warranty thay vì donHang
+  if (!warranty) return "---";
+  
+  switch (loaiTruong) {
+    case "maThe": 
+  // Loại bỏ chữ TAN ở đầu mã
+    const maBaoHanh = warranty?.maBaoHanh || "";
+    return maBaoHanh.replace(/^TAN/, "") || "---";
+    
+    // Lấy thông tin từ object warranty đã được populate
+    case "nhaKhoa": 
+      return warranty.nhaKhoa?.tenGiaoDich || warranty.nhaKhoa?.hoVaTen || "---";
+      
+    case "bacSi": 
+      return warranty.bacSi?.hoVaTen || "---";
+      
+    case "benhNhan": 
+      return warranty.benhNhan?.hoVaTen || "---";
+      
+    case "sanPham": 
+      // Lấy từ danh sách bảo hành trong phiếu
+      return warranty.danhSachBaoHanh?.[0]?.sanPham?.tenSanPham || "---";
+      
+    case "baoHanhTu": 
+      return warranty.danhSachBaoHanh?.[0]?.baoHanhTu 
+        ? new Date(warranty.danhSachBaoHanh[0].baoHanhTu).toLocaleDateString("vi-VN") 
+        : "---";
+        
+    case "baoHanhDen": 
+      return warranty.danhSachBaoHanh?.[0]?.baoHanhDen 
+        ? new Date(warranty.danhSachBaoHanh[0].baoHanhDen).toLocaleDateString("vi-VN") 
+        : "---";
+        
+    default: return "";
+  }
+};
 
-  return (
+return (
     <Dialog 
       open={open} 
       onClose={onClose} 
-      maxWidth="md" 
+      maxWidth="sm" 
       fullWidth
-      PaperProps={{
-        sx: { maxHeight: "90vh", height: "auto" }
-      }}
+      PaperProps={{ style: { boxShadow: 'none', border: 'none' } }} // Xóa bóng mờ của khung dialog
     >
-      <DialogTitle className="bg-blue-600 text-white font-bold">
-        In thẻ bảo hành
-      </DialogTitle>
+      <DialogContent id="print-content" style={{ minHeight: "300px", padding: 0 }}>
+        {loading ? <CircularProgress /> : !mauThe ? <p>Không tìm thấy mẫu.</p> : (
+          /* Xóa border: "1px dashed #ccc" ở đây */
+          <div style={{ position: "relative", width: "100%", height: "297mm", border: "none" }}>
+            {mauThe.cacTruong?.map((field, idx) => {
+              const left = Number(field.leTrai) || 0; 
+              const top = Number(field.leTren) || 0;
+              
+              if (field.loaiTruong === "maQR") {
+                // 1. Lấy mã và loại bỏ chữ "TAN" ở đầu
+                const rawCode = (warranty?.maQR || "N/A").replace(/^TAN/, "");
+                
+                // 2. Tạo đường dẫn đầy đủ
+                const fullUrl = `https://tan-dental-frontend-snmb.vercel.app/warranty/?qrcode=${rawCode}`;
 
-      <DialogContent className="p-4">
-        {/* Card Preview */}
-        <div
-          ref={printRef}
-          style={{
-            width: "100%",
-            maxWidth: "450px",
-            margin: "0 auto",
-            height: "500px",
-            background: "#ffffff",
-            border: "2px solid #e5e7eb",
-            boxSizing: "border-box",
-            position: "relative",
-            overflow: "hidden",
-            padding: 0,
-            fontFamily: "sans-serif",
-          }}
-        >
-          <div style={{ position: "relative", width: "100%", height: "100%" }}>
-            {/* Tên nha khoa: top 37mm, left 10mm, size 12pt bold */}
-            <div
-              style={{
-                position: "absolute",
-                left: "8mm",
-                top: "36mm",
-                fontSize: "10pt",
-                fontWeight: 700,
-                color: "#111827",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {warranty.nhaKhoa?.tenGiaoDich || warranty.nhaKhoa?.hoVaTen || "---"}
-            </div>
+                return (
+                  <div key={idx} style={{ position: "absolute", left: `${left}mm`, top: `${top}mm` }}>
+                    {/* 3. Truyền đường dẫn đầy đủ vào QR */}
+                    <QRCodeSVG value={fullUrl} size={65} />
+                  </div>
+                );
+              }
 
-            {/* Bệnh nhân: top 47mm, left 10mm, size 12pt bold */}
-            <div
-              style={{
-                position: "absolute",
-                left: "8mm",
-                top: "46mm",
-                fontSize: "10pt",
-                fontWeight: 700,
-                color: "#111827",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {warranty.benhNhan?.hoVaTen || "---"}
-            </div>
-
-            {/* Mã thẻ: top 47mm, left 60mm, size 12pt bold */}
-            <div
-              style={{
-                position: "absolute",
-                left: "59mm",
-                top: "46mm",
-                fontSize: "10pt",
-                fontWeight: 700,
-                color: "#111827",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {warrantyCodeNumber}
-            </div>
-
-            {/* Mã QR: top 33mm, left 60mm */}
-            <div
-              style={{
-                position: "absolute",
-                left: "57mm",
-                top: "27mm",
-              }}
-            >
-              <QRCodeSVG value={qrValue} size={73} level="M" includeMargin={true} />
-            </div>
+              return (
+                <div key={idx} style={{
+                  position: "absolute",
+                  left: `${left}mm`,
+                  top: `${top}mm`,
+                  fontSize: `${field.coChu || 12}pt`,
+                  fontWeight: field.doDam ? "bold" : "normal",
+                  color: "#000",
+                  whiteSpace: "nowrap"
+                }}>
+                  {getFieldValue(field.loaiTruong) || "..."}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )}
       </DialogContent>
-
-      <DialogActions>
+      <DialogActions className="print-hidden">
         <Button onClick={onClose}>Đóng</Button>
-        <Button onClick={handlePrint} variant="contained" color="primary">
-          In
-        </Button>
+        <Button variant="contained" onClick={() => window.print()}>In</Button>
       </DialogActions>
+
+      <style>{`
+        @media print {
+          .print-hidden { display: none !important; }
+          @page { size: auto; margin: 0; }
+          body * { visibility: hidden; }
+          #print-content, #print-content * { visibility: visible; border: none !important; box-shadow: none !important; }
+          #print-content { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+      `}</style>
     </Dialog>
   );
 };

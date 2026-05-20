@@ -23,7 +23,6 @@ import {
   Contacts,
   People,
   Assignment,
-  Receipt,
   BarChart,
   Settings,
   Category,
@@ -32,7 +31,10 @@ import {
   Menu as MenuIcon,
   Close as CloseIcon,
 } from "@mui/icons-material";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 
+
+import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import BadgeIcon from "@mui/icons-material/Badge";
 
@@ -67,6 +69,10 @@ const Sidebar = ({ collapsed }) => {
   const menu = [
     { name: "Thống kê", router: "/", icon: <Dashboard /> },
     { name: "Đơn Hàng", router: "/don-hang", icon: <ShoppingCart /> },
+    { name: "Kế Hoạch Giao Hàng", router: "/ke-hoach-giao-hang", icon: <Assignment /> },
+    { name: "Chờ xuất hóa đơn", router: "/cho-xuat-hoa-don", icon: <ReceiptLong /> },
+    { name: "Hóa Đơn", router: "/hoa-don", icon: <RequestQuoteIcon /> },
+    { name: "Phiếu Thu", router: "/phieu-thu", icon: <AccountBalanceWalletIcon /> },
     { name: "Sản Phẩm", router: "/san-pham", icon: <Category /> },
     { name: "Công Đoạn", router: "/cong-doan", icon: <AccountTree /> },
   ];
@@ -78,10 +84,6 @@ const Sidebar = ({ collapsed }) => {
   ];
 
   const otherMenu = [
-    { name: "Kế Hoạch Giao Hàng", router: "/ke-hoach-giao-hang", icon: <Assignment /> },
-    { name: "Chờ xuất hóa đơn", router: "/cho-xuat-hoa-don", icon: <ReceiptLong /> },
-    { name: "Hóa Đơn", router: "/hoa-don", icon: <Receipt /> },
-    { name: "Phiếu Thu", router: "/phieu-thu", icon: <Receipt /> },
     { name: "Báo Cáo", router: "/bao-cao", icon: <BarChart /> },
     { name: "Nhân viên", router: "/nhan-vien", icon: <BadgeIcon /> },
     { name: "Bảng lương", router: "/bang-luong", icon: <PaymentsIcon /> },

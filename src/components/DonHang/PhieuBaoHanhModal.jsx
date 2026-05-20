@@ -271,7 +271,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
 
                 <div className="col-span-4 flex flex-col gap-1 text-xs text-gray-700">
                   <span className="font-medium">Từ: <span className="font-normal">{formatDateVN(fullDonHang.ngayNhan)}</span></span>
-                  <span className="font-medium">Đến: <span className="font-normal text-blue-700 font-semibold">{formatDateVN(calculatedEndDate)}</span></span>
+                  <span className="font-medium">Đến: <span className="text-blue-700 font-semibold">{formatDateVN(calculatedEndDate)}</span></span>
                 </div>
 
                 <div className="col-span-2">

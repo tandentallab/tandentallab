@@ -29,6 +29,7 @@ import {
   Category,
   AccountTree,
   ReceiptLong,
+  CreditCard,
   Menu as MenuIcon,
   Close as CloseIcon,
 } from "@mui/icons-material";
@@ -90,7 +91,7 @@ const Sidebar = ({ collapsed }) => {
     {
       name: "Mẫu Thẻ Bảo Hành",
       router: "/mau-the-bao-hanh",
-      icon: <Category />,
+      icon: <CreditCard />,
     },
     { name: "Sản Phẩm", router: "/san-pham", icon: <Category /> },
     { name: "Công Đoạn", router: "/cong-doan", icon: <AccountTree /> },

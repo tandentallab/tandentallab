@@ -23,6 +23,8 @@ const KeHoachGiaoHangTable = () => {
   const [filterType, setFilterType] = useState("all");
   // all | today | range | overdue
 
+  const [filterStatus, setFilterStatus] = useState("all");
+
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
@@ -63,6 +65,13 @@ const KeHoachGiaoHangTable = () => {
 
       return true;
     });
+
+    // // 🔥 FILTER TRẠNG THÁI
+    // if (filterStatus !== "all") {
+    //   result = result.filter(
+    //     (order) => order.trangThaiCongDoan === filterStatus
+    //   );
+    // }
 
     // 🔥 FILTER ĐƠN GẤP
     if (showUrgentOnly) {
@@ -147,6 +156,20 @@ const KeHoachGiaoHangTable = () => {
               />
             </>
           )}
+
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="border px-3 py-2 rounded"
+          >
+            <option value="all">Tất cả trạng thái</option>
+
+            <option value="Thử sườn">Thử sườn</option>
+
+            <option value="Thử sứ">Thử sứ</option>
+
+            <option value="Hoàn thành">Hoàn thành</option>
+          </select>
 
           {/* Toggle */}
           <label className="flex items-center gap-2 ml-auto">

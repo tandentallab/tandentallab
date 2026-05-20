@@ -1,8 +1,9 @@
 import React from "react";
 
-import { TableRow, TableCell, TextField } from "@mui/material";
+import { TableRow, TableCell, TextField, Button } from "@mui/material";
 
 import { tinhLuong } from "../../utils/tinhLuong";
+import { useNavigate } from "react-router-dom";
 
 const BangLuongRow = ({ item, onChange }) => {
   // 🔥 Tính lương realtime
@@ -43,10 +44,21 @@ const BangLuongRow = ({ item, onChange }) => {
     },
   };
 
+  const navigate = useNavigate();
+
   return (
     <TableRow hover>
       {/* Tên */}
-      <TableCell>{item.hoVaTen}</TableCell>
+      <TableCell>
+        <Button
+          variant="text"
+          onClick={() => {
+            navigate(`/nhan-vien/${item._id}`);
+          }}
+        >
+          {item.hoVaTen}
+        </Button>
+      </TableCell>
 
       {/* Lương cơ bản */}
       <TableCell align="right">

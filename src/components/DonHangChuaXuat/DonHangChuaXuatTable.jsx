@@ -40,7 +40,10 @@ import {
   fetchDonHangChuaHoaDonAll,
   createHoaDon,
 } from "../../redux/slices/hoaDonSlice";
-import { fetchBangGiaByNhaKhoa, fetchAllBangGia } from "../../redux/slices/bangGiaSlice";
+import {
+  fetchBangGiaByNhaKhoa,
+  fetchAllBangGia,
+} from "../../redux/slices/bangGiaSlice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -214,9 +217,7 @@ export default function DonHangChuaXuatTable({
       );
 
       if (uniqueClinicIds.size > 1) {
-        toast.error(
-          "Các đơn hàng phải từ cùng 1 nha khoa. Vui lòng chọn lại!"
-        );
+        toast.error("Các đơn hàng phải từ cùng 1 nha khoa. Vui lòng chọn lại!");
         return;
       }
 
@@ -410,6 +411,8 @@ export default function DonHangChuaXuatTable({
 
               <TableCell className="whitespace-nowrap">Bác sĩ</TableCell>
 
+              <TableCell className="whitespace-nowrap">Bệnh nhân</TableCell>
+
               <TableCell className="whitespace-nowrap">Sản phẩm</TableCell>
 
               <TableCell className="whitespace-nowrap">Thành tiền</TableCell>
@@ -448,7 +451,8 @@ export default function DonHangChuaXuatTable({
                       size="small"
                       onClick={() => navigate(`/donhang/${order._id}/edit`)}
                     >
-                      {order.maDonHang || `TAN${order._id.slice(-8).toUpperCase()}`}
+                      {order.maDonHang ||
+                        `TAN${order._id.slice(-8).toUpperCase()}`}
                     </Button>
                   </TableCell>
 
@@ -464,14 +468,21 @@ export default function DonHangChuaXuatTable({
                     </div>
                   </TableCell>
 
+                  <TableCell className="min-w-[160px]">
+                    <div className="break-words">
+                      {order.benhNhan?.hoVaTen || "-"}
+                    </div>
+                  </TableCell>
+
                   {/* SẢN PHẨM */}
                   <TableCell className="min-w-[260px]">
                     <Box className="flex flex-col gap-1">
                       {order.danhSachSanPham.map((sp, i) => (
                         <Chip
                           key={i}
-                          label={`${mapTen[sp.sanPham?.toString()] || "SP"
-                            } | SL: ${sp.soLuong}`}
+                          label={`${
+                            mapTen[sp.sanPham?.toString()] || "SP"
+                          } | SL: ${sp.soLuong}`}
                           size="small"
                           variant="outlined"
                         />

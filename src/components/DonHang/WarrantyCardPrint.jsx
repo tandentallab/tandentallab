@@ -14,8 +14,9 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
     printWindow.print();
   };
 
-  const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
-  const qrValue = `http://${host}:3000/warranty/?qrcode=${warranty.maQR}`;
+ // Tự động lấy "http://localhost:3000" ở máy dev, hoặc "https://ten-mien-cua-ban.com" ở bản deploy
+ const origin = "https://tan-dental-frontend-snmb.vercel.app";
+  const qrValue = `${origin}/warranty/?qrcode=${warranty.maQR}`;
   const warrantyCodeNumber = String(warranty.maBaoHanh || "").match(/\d+/g)?.join("") || warranty.maBaoHanh || "---";
 
   return (
@@ -100,11 +101,11 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
             <div
               style={{
                 position: "absolute",
-                left: "59mm",
-                top: "31mm",
+                left: "57mm",
+                top: "27mm",
               }}
             >
-              <QRCodeSVG value={qrValue} size={53} level="H" includeMargin={false} />
+              <QRCodeSVG value={qrValue} size={73} level="M" includeMargin={true} />
             </div>
           </div>
         </div>

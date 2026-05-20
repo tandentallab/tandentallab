@@ -23,6 +23,8 @@ import {
 } from "../../data/sanPhamConfig";
 import ChonCongDoanModal from "./ChonCongDoanModal";
 
+// 👉 DANH SÁCH DROPDOWN BẢO HÀNH CHO SẴN
+const BAO_HANH_OPTIONS = [1, 2, 3, 4, 5];
 const INITIAL_FORM = {
   tenSanPham: "",
   donGiaChung: "",
@@ -33,6 +35,7 @@ const INITIAL_FORM = {
   loai: "Sản xuất",
   coMauRang: true,
   quyTrinh: [],
+  baoHanhMacDinh: 0,
 };
 
 export default function SanPhamModal({
@@ -50,12 +53,12 @@ export default function SanPhamModal({
   useEffect(() => {
     if (open) {
       if (isEdit && editData) {
-        // 👉 DÙNG MẸO TRỘN DỮ LIỆU ĐỂ TRÁNH TRƯỜNG HỢP API TRẢ VỀ THIẾU TRƯỜNG
         setForm({
           ...INITIAL_FORM,
           ...editData,
           donGiaChung: editData.donGiaChung?.toString() || "",
           quyTrinh: editData.quyTrinh || [],
+          baoHanhMacDinh: editData.baoHanhMacDinh ?? 0,
         });
       } else {
         setForm(INITIAL_FORM);
@@ -234,6 +237,27 @@ export default function SanPhamModal({
                       ))}
                     </TextField>
                   </div>
+
+                  <TextField
+                    select
+                    label="Bảo hành mặc định"
+                    variant="standard"
+                    fullWidth
+                    value={form.baoHanhMacDinh}
+                    onChange={(e) =>
+                      handleChange("baoHanhMacDinh", Number(e.target.value))
+                    }
+                    InputLabelProps={{ shrink: true }}
+                  >
+                    <MenuItem value={0}>Không bảo hành</MenuItem>
+
+                    {BAO_HANH_OPTIONS.map((year) => (
+                      <MenuItem key={year} value={year}>
+                        {year} năm
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
                   <TextField
                     label="Mô tả"
                     variant="standard"
@@ -255,20 +279,18 @@ export default function SanPhamModal({
                 className="flex flex-col items-center pt-2 md:pt-4 pl-0 md:pl-4"
               >
                 <Typography
-                  className={`font-bold text-[11px] mb-4 text-center ${
-                    errors.quyTrinh ? "text-red-500" : "text-[#f57c00]"
-                  }`}
+                  className={`font-bold text-[11px] mb-4 text-center ${errors.quyTrinh ? "text-red-500" : "text-[#f57c00]"
+                    }`}
                 >
                   {errors.quyTrinh
                     ? "* Chưa thiết lập quy trình!"
                     : "* Quy trình sản xuất"}
                 </Typography>
                 <Box
-                  className={`rounded-xl p-3 cursor-pointer border transition w-full ${
-                    errors.quyTrinh
-                      ? "bg-red-50 border-red-300"
-                      : "bg-blue-50 hover:border-blue-400"
-                  }`}
+                  className={`rounded-xl p-3 cursor-pointer border transition w-full ${errors.quyTrinh
+                    ? "bg-red-50 border-red-300"
+                    : "bg-blue-50 hover:border-blue-400"
+                    }`}
                   onClick={() => setOpenCD(true)}
                 >
                   <div className="flex justify-between items-center mb-2">

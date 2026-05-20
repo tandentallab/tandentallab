@@ -7,9 +7,19 @@ module.exports = {
       colors: {
         primary: '#198754',
         secondary: '#333'
-      }
+      },
+      // Thêm đoạn cấu hình font chữ dưới đây 👇
+      fontFamily: {
+        sans: [
+          '"Inter"', 
+          '"Segoe UI"', 
+          'Roboto', 
+          'Helvetica', 
+          'Arial', 
+          'sans-serif'
+        ],
+      },
     },
   },
   plugins: [],
 }
-

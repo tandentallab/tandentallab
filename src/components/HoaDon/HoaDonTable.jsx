@@ -100,16 +100,16 @@ const HoaDonTable = () => {
   const [openUpdate, setOpenUpdate] = useState(false);
 
   const [columnWidths, setColumnWidths] = useState({
-    soHoaDon: 85,
-    nhaKhoa: 100,
-    tongTien: 80,
-    tongChietKhau: 80,
-    thanhTien: 80,
-    daThanhToan: 80,
-    conLai: 80,
-    ngayTao: 80,
-    trangThai: 80,
-    thaoTac: 80,
+    soHoaDon: 140,
+    nhaKhoa: 200,
+    tongTien: 120,
+    tongChietKhau: 140,
+    thanhTien: 140,
+    daThanhToan: 140,
+    conLai: 120,
+    ngayTao: 120,
+    trangThai: 120,
+    thaoTac: 100,
   });
 
   // State cho phân trang và bộ lọc
@@ -289,7 +289,6 @@ const HoaDonTable = () => {
           maxWidth: columnWidths[columnKey],
           position: "relative",
           fontWeight: "bold",
-          whiteSpace: "nowrap",
           userSelect: "none",
         }}
       >
@@ -363,13 +362,13 @@ const HoaDonTable = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gray-50 min-h-screen overflow-x-hidden">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Quản lý Hóa Đơn</h2>
       <ThongKeCongNo></ThongKeCongNo>
       {/* BỘ LỌC (FILTERS) */}
       <Paper className="p-4 mb-6 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 w-full overflow-hidden">
+          <div className="w-full min-w-0">
             <Grid container spacing={2} alignItems="center">
               {/* ===== Nha khoa ===== */}
               <Grid item xs={12} md>
@@ -449,10 +448,10 @@ const HoaDonTable = () => {
               </Grid>
             </Grid>
           </div>
-          <div>
+          <div className="w-full min-w-0">
             <Grid container spacing={2} alignItems="center">
               {/* Cột Tìm kiếm */}
-              <Grid item xs={12} lg={3}>
+              <Grid item xs={12} md={6} lg>
                 <TextField
                   fullWidth
                   size="small"
@@ -480,7 +479,7 @@ const HoaDonTable = () => {
               </Grid>
 
               {/* Cột Nút Thao Tác */}
-              <Grid item xs={12} lg={3.5}>
+              <Grid item xs={12} md={6} lg="auto">
                 <Stack
                   direction="row"
                   spacing={1}
@@ -511,7 +510,6 @@ const HoaDonTable = () => {
           </div>
         </div>
       </Paper>
-
       <TableContainer
         component={Paper}
         className="shadow-lg"
@@ -519,13 +517,20 @@ const HoaDonTable = () => {
           width: "100%",
           overflowX: "auto",
           overflowY: "hidden",
-          maxWidth: "100%",
+          whiteSpace: "nowrap",
+          "&::-webkit-scrollbar": {
+            height: 10,
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#cbd5e1",
+            borderRadius: "999px",
+          },
         }}
       >
         <Table
           sx={{
-            tableLayout: "fixed",
-            minWidth: "max-content",
+            minWidth: 1600,
+            tableLayout: "auto",
           }}
         >
           <TableHead>
@@ -546,7 +551,6 @@ const HoaDonTable = () => {
                 columnKey="daThanhToan"
               />
               <ResizableHeaderCell label="Còn lại" columnKey="conLai" />
-              <ResizableHeaderCell label="Ngày Tạo" columnKey="ngayTao" />
               <ResizableHeaderCell label="Trạng thái" columnKey="trangThai" />
               <ResizableHeaderCell
                 label="Thao Tác"
@@ -579,8 +583,9 @@ const HoaDonTable = () => {
                       maxWidth: columnWidths.soHoaDon,
                     }}
                   >
-                    <Button
+                    <Chip
                       variant="text"
+                      label={hd?.soHoaDon}
                       sx={{
                         fontWeight: 700,
                         textTransform: "none",
@@ -595,9 +600,12 @@ const HoaDonTable = () => {
                             ? "#22c55e" // xanh lá
                             : "#374151",
                       }}
-                    >
-                      {hd?.soHoaDon}
-                    </Button>
+                    ></Chip>
+
+                    <div className="text-xs text-gray-500 pt-1">
+                      Ngày tạo:
+                      {new Date(hd.createdAt).toLocaleDateString("vi-VN")}
+                    </div>
                   </TableCell>
                   <TableCell
                     sx={{
@@ -657,15 +665,6 @@ const HoaDonTable = () => {
                     className="text-blue-600 font-medium"
                   >
                     {hd.conLai?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: columnWidths.ngayTao,
-                      minWidth: columnWidths.ngayTao,
-                      maxWidth: columnWidths.ngayTao,
-                    }}
-                  >
-                    {new Date(hd.createdAt).toLocaleDateString("vi-VN")}
                   </TableCell>
                   <TableCell
                     sx={{
@@ -735,7 +734,6 @@ const HoaDonTable = () => {
           labelRowsPerPage="Số hàng mỗi trang"
         />
       </TableContainer>
-
       {/* MODAL CHI TIẾT */}
       <Modal open={openDetail} onClose={() => setOpenDetail(false)}>
         <Box sx={modalStyle}>
@@ -824,7 +822,6 @@ const HoaDonTable = () => {
           </Box>
         </Box>
       </Modal>
-
       {/* MODAL CẬP NHẬT TRẠNG THÁI */}
       <Modal open={openUpdate} onClose={() => setOpenUpdate(false)}>
         <Box sx={modalStyle}>
@@ -854,7 +851,6 @@ const HoaDonTable = () => {
           </Stack>
         </Box>
       </Modal>
-
       {/* MODAL XUẤT EXCEL */}
       <Modal open={openExport} onClose={() => setOpenExport(false)}>
         <Box sx={{ ...modalStyle, maxWidth: 500 }}>

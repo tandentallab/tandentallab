@@ -10,6 +10,18 @@ import { TrashIcon } from "lucide-react";
 import { exportHoaDonToExcel } from "../../utils/exportToExcel";
 import DonHangChuaXuatModal from "../DonHangChuaXuat/DonHangChuaXuatModal";
 import AddIcon from "@mui/icons-material/Add";
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Chip,
+} from "@mui/material";
+
+import PhieuThuModal from "../PhieuThu/PhieuThuModal";
+
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+
+import { fetchPhieuThuByHoaDon } from "../../redux/slices/phieuThuSlice";
 
 const HoaDonDetail = () => {
   const navigate = useNavigate();
@@ -26,6 +38,10 @@ const HoaDonDetail = () => {
   const { data: bangGia = [] } = useSelector((state) => state.bangGia) || {};
   const nhaKhoa = useSelector((state) => state.nhaKhoa);
 
+  const { phieuThuTheoHoaDon = [], loadingPhieuThuHoaDon } = useSelector(
+    (state) => state.phieuThu
+  );
+
   const [chinhSachThanhToan, setChinhSachThanhToan] = useState(
     hoaDon?.chinhSachThanhToan
   );
@@ -41,7 +57,13 @@ const HoaDonDetail = () => {
   const [selectedOrders, setSelectedOrders] = useState([]);
 
   // Phiếu thu modal state
-  const toLocalDT = (d) => { const dt = d ? new Date(d) : new Date(); const p = (n) => String(n).padStart(2, "0"); return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}T${p(dt.getHours())}:${p(dt.getMinutes())}`; };
+  const toLocalDT = (d) => {
+    const dt = d ? new Date(d) : new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}T${p(
+      dt.getHours()
+    )}:${p(dt.getMinutes())}`;
+  };
   const [ptOpen, setPtOpen] = useState(false);
   const [ptSoTien, setPtSoTien] = useState("");
   const [ptNgayThu, setPtNgayThu] = useState(toLocalDT(new Date()));
@@ -61,18 +83,27 @@ const HoaDonDetail = () => {
 
   const handleSubmitPT = async () => {
     const soTien = Number(ptSoTien) || 0;
-    if (soTien <= 0) { setPtError("Số tiền phải lớn hơn 0."); return; }
-    if (soTien > (hoaDon?.conLai || 0)) { setPtError(`Số tiền vượt quá còn lại (${fmtVND(hoaDon?.conLai)} đ).`); return; }
-    setPtLoading(true); setPtError("");
+    if (soTien <= 0) {
+      setPtError("Số tiền phải lớn hơn 0.");
+      return;
+    }
+    if (soTien > (hoaDon?.conLai || 0)) {
+      setPtError(`Số tiền vượt quá còn lại (${fmtVND(hoaDon?.conLai)} đ).`);
+      return;
+    }
+    setPtLoading(true);
+    setPtError("");
     try {
-      await dispatch(createPhieuThu({
-        danhSachHoaDon: [{ hoaDon: hoaDon._id, soTienThanhToan: soTien }],
-        ngayThu: new Date(ptNgayThu).toISOString(),
-        noiDung: ptNoiDung,
-        phuongThucThanhToan: ptPhuongThuc,
-      })).unwrap();
+      await dispatch(
+        createPhieuThu({
+          danhSachHoaDon: [{ hoaDon: hoaDon._id, soTienThanhToan: soTien }],
+          ngayThu: new Date(ptNgayThu).toISOString(),
+          noiDung: ptNoiDung,
+          phuongThucThanhToan: ptPhuongThuc,
+        })
+      ).unwrap();
       // Cập nhật lại daThanhToan và conLai trong state
-      setHoaDon(prev => ({
+      setHoaDon((prev) => ({
         ...prev,
         daThanhToan: (prev.daThanhToan || 0) + soTien,
         conLai: (prev.conLai || 0) - soTien,
@@ -130,6 +161,13 @@ const HoaDonDetail = () => {
   useEffect(() => {
     dispatch(fetchNhaKhoa());
   }, [dispatch]);
+
+  useEffect(() => {
+    console.log("Hóa đơn có id là ", id);
+    if (id) {
+      dispatch(fetchPhieuThuByHoaDon(id));
+    }
+  }, [dispatch, id]);
 
   useEffect(() => {
     console.log("Hóa đơn: ", hoaDon);
@@ -205,6 +243,15 @@ const HoaDonDetail = () => {
       style: "currency",
       currency: "VND",
     }).format(amount);
+  };
+
+  const getSoTienThanhToan = (phieuThu, hoaDonId) => {
+    const found = phieuThu.danhSachHoaDon?.find(
+      (i) =>
+        (typeof i.hoaDon === "string" ? i.hoaDon : i.hoaDon?._id) === hoaDonId
+    );
+
+    return found?.soTienThanhToan || 0;
   };
 
   const handleChangeChiPhiKhac = (chiPhi) => {
@@ -350,6 +397,16 @@ const HoaDonDetail = () => {
   if (loading) return <div className="p-4">Đang tải...</div>;
   if (!hoaDon) return <div className="p-4">Không tìm thấy hóa đơn</div>;
 
+  const renderViTriText = (viTriArr) => {
+    if (!viTriArr || viTriArr.length === 0) return "";
+    return viTriArr
+      .map((v) =>
+        v.kieu === "Rời"
+          ? v.soRang.join(", ")
+          : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+      )
+      .join("; ");
+  };
   return (
     <div className="fixed inset-0 z-[1299] bg-[#f0f2f5] flex flex-col w-screen h-screen overflow-hidden">
       {/* TOP BAR */}
@@ -504,11 +561,12 @@ const HoaDonDetail = () => {
                               </span>
 
                               <div className="text-[10px] text-gray-500 mt-0.5 break-words">
-                                {sp.viTri
+                                {/* {sp.viTri
                                   ?.map(
                                     (v) => `${v.kieu}: ${v.soRang.join(",")}`
                                   )
-                                  .join(" | ")}
+                                  .join(" | ")} */}
+                                {renderViTriText(sp.viTri)}
                               </div>
                             </div>
                           ))}
@@ -740,6 +798,75 @@ const HoaDonDetail = () => {
               </span>
             </div>
 
+            {/* LỊCH SỬ THANH TOÁN */}
+            <div className="mt-2">
+              <Accordion
+                disableGutters
+                elevation={0}
+                className="border border-gray-200 rounded-lg overflow-hidden before:hidden"
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  className="min-h-0 bg-gray-50"
+                >
+                  <div className="flex items-center justify-between w-full pr-2">
+                    <span className="text-xs font-bold uppercase text-gray-600">
+                      Lịch sử thanh toán
+                    </span>
+
+                    <Chip
+                      size="small"
+                      color="success"
+                      label={`${phieuThuTheoHoaDon.length} phiếu`}
+                    />
+                  </div>
+                </AccordionSummary>
+
+                <AccordionDetails className="p-0">
+                  {loadingPhieuThuHoaDon ? (
+                    <div className="p-3 text-xs text-gray-500">Đang tải...</div>
+                  ) : phieuThuTheoHoaDon.length === 0 ? (
+                    <div className="p-3 text-xs text-gray-400 italic">
+                      Chưa có lịch sử thanh toán
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {phieuThuTheoHoaDon.map((pt) => (
+                        <div
+                          key={pt._id}
+                          className="p-3 hover:bg-gray-50 transition"
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs text-blue-600 break-all">
+                                {pt.soPhieuThu}
+                              </div>
+
+                              <div className="text-[11px] text-gray-500 mt-1">
+                                {formatDate(pt.ngayThu)}
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <div className="font-bold text-green-600 text-sm">
+                                {formatCurrency(
+                                  getSoTienThanhToan(pt, hoaDon._id)
+                                )}
+                              </div>
+
+                              <div className="text-[10px] text-gray-400 mt-1">
+                                {pt.phuongThucThanhToan}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </AccordionDetails>
+              </Accordion>
+            </div>
+
             <div className="flex justify-between pt-4 border-t-2 border-dashed gap-3">
               <span className="font-black text-gray-700">CÒN LẠI</span>
 
@@ -747,6 +874,21 @@ const HoaDonDetail = () => {
                 {formatCurrency(hoaDon.conLai)}
               </span>
             </div>
+
+            {/* 
+            <PhieuThuModal
+              open={open}
+              onClose={handleClose}
+              nhaKhoaId={nhaKhoaInfo?._id}
+              hoaDonId={hoaDon?._id}
+              thanhToanNgay={true}
+              onSuccess={async () => {
+                const res = await dispatch(fetchHoaDonById(id)).unwrap();
+                setHoaDon(res.data);
+
+                dispatch(fetchPhieuThuByHoaDon(id));
+              }}
+            /> */}
 
             <div className="mt-6 space-y-2">
               <button
@@ -770,7 +912,7 @@ const HoaDonDetail = () => {
                 In hóa đơn (F4)
               </button>
 
-              {(hoaDon.conLai > 0) && (
+              {hoaDon.conLai > 0 && (
                 <button
                   onClick={handleOpenPT}
                   className="w-full bg-green-600 text-white py-2.5 rounded-lg font-bold shadow-md hover:bg-green-700 active:scale-95 transition text-sm"
@@ -794,111 +936,158 @@ const HoaDonDetail = () => {
       </div>
 
       {/* Modal tạo phiếu thu */}
-      {ptOpen && ReactDOM.createPortal(
-        <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/50" onClick={() => setPtOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between bg-[#29b6f6] px-5 py-3.5">
-              <h2 className="text-white font-semibold text-base">Tạo phiếu thu</h2>
-              <button onClick={() => setPtOpen(false)} className="text-white hover:text-blue-200 transition text-xl leading-none">&times;</button>
-            </div>
-
-            {/* Body */}
-            <div className="p-5 flex flex-col gap-4">
-              {/* Hóa đơn info */}
-              <div className="bg-gray-50 rounded-lg p-3 text-sm flex flex-col gap-1 border border-gray-100">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Khách hàng</span>
-                  <span className="font-semibold text-gray-800">{nhaKhoaInfo?.hoVaTen || nhaKhoaInfo?.tenGiaoDich || "---"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Hóa đơn</span>
-                  <span className="font-bold text-blue-600">{hoaDon.soHoaDon}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Thành tiền</span>
-                  <span className="font-medium">{fmtVND(hoaDon.thanhTien)} đ</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Đã thanh toán</span>
-                  <span className="text-green-600 font-medium">{fmtVND(hoaDon.daThanhToan || 0)} đ</span>
-                </div>
-                <div className="flex justify-between border-t pt-1 mt-1">
-                  <span className="font-bold text-gray-700">Còn lại</span>
-                  <span className="font-black text-red-600">{fmtVND(hoaDon.conLai)} đ</span>
-                </div>
-              </div>
-
-              {/* Số tiền thu */}
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Số tiền thu <span className="text-red-500">*</span></label>
-                <input
-                  type="number"
-                  value={ptSoTien}
-                  onChange={e => setPtSoTien(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
-                  placeholder="Nhập số tiền..."
-                  min={1}
-                  max={hoaDon.conLai}
-                />
-                {ptSoTien && <p className="text-xs text-blue-500 mt-0.5">{fmtVND(Number(ptSoTien))} đ</p>}
-              </div>
-
-              {/* Ngày thu */}
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Ngày thu</label>
-                <input
-                  type="datetime-local"
-                  value={ptNgayThu}
-                  onChange={e => setPtNgayThu(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
-                />
-              </div>
-
-              {/* Phương thức */}
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Phương thức</label>
-                <select
-                  value={ptPhuongThuc}
-                  onChange={e => setPtPhuongThuc(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white"
+      {ptOpen &&
+        ReactDOM.createPortal(
+          <div
+            className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/50"
+            onClick={() => setPtOpen(false)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between bg-[#29b6f6] px-5 py-3.5">
+                <h2 className="text-white font-semibold text-base">
+                  Tạo phiếu thu
+                </h2>
+                <button
+                  onClick={() => setPtOpen(false)}
+                  className="text-white hover:text-blue-200 transition text-xl leading-none"
                 >
-                  <option>Tiền mặt</option>
-                  <option>Chuyển khoản</option>
-                  <option>Quẹt thẻ</option>
-                </select>
+                  &times;
+                </button>
               </div>
 
-              {/* Nội dung */}
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Nội dung</label>
-                <input
-                  type="text"
-                  value={ptNoiDung}
-                  onChange={e => setPtNoiDung(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
-                  placeholder="Nội dung thanh toán..."
-                />
+              {/* Body */}
+              <div className="p-5 flex flex-col gap-4">
+                {/* Hóa đơn info */}
+                <div className="bg-gray-50 rounded-lg p-3 text-sm flex flex-col gap-1 border border-gray-100">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Khách hàng</span>
+                    <span className="font-semibold text-gray-800">
+                      {nhaKhoaInfo?.hoVaTen ||
+                        nhaKhoaInfo?.tenGiaoDich ||
+                        "---"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Hóa đơn</span>
+                    <span className="font-bold text-blue-600">
+                      {hoaDon.soHoaDon}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Thành tiền</span>
+                    <span className="font-medium">
+                      {fmtVND(hoaDon.thanhTien)} đ
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Đã thanh toán</span>
+                    <span className="text-green-600 font-medium">
+                      {fmtVND(hoaDon.daThanhToan || 0)} đ
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t pt-1 mt-1">
+                    <span className="font-bold text-gray-700">Còn lại</span>
+                    <span className="font-black text-red-600">
+                      {fmtVND(hoaDon.conLai)} đ
+                    </span>
+                  </div>
+                </div>
+
+                {/* Số tiền thu */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">
+                    Số tiền thu <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={ptSoTien}
+                    onChange={(e) => setPtSoTien(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                    placeholder="Nhập số tiền..."
+                    min={1}
+                    max={hoaDon.conLai}
+                  />
+                  {ptSoTien && (
+                    <p className="text-xs text-blue-500 mt-0.5">
+                      {fmtVND(Number(ptSoTien))} đ
+                    </p>
+                  )}
+                </div>
+
+                {/* Ngày thu */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">
+                    Ngày thu
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={ptNgayThu}
+                    onChange={(e) => setPtNgayThu(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                  />
+                </div>
+
+                {/* Phương thức */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">
+                    Phương thức
+                  </label>
+                  <select
+                    value={ptPhuongThuc}
+                    onChange={(e) => setPtPhuongThuc(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white"
+                  >
+                    <option>Tiền mặt</option>
+                    <option>Chuyển khoản</option>
+                    <option>Quẹt thẻ</option>
+                  </select>
+                </div>
+
+                {/* Nội dung */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">
+                    Nội dung
+                  </label>
+                  <input
+                    type="text"
+                    value={ptNoiDung}
+                    onChange={(e) => setPtNoiDung(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                    placeholder="Nội dung thanh toán..."
+                  />
+                </div>
+
+                {ptError && (
+                  <p className="text-red-500 text-xs bg-red-50 rounded p-2">
+                    {ptError}
+                  </p>
+                )}
               </div>
 
-              {ptError && <p className="text-red-500 text-xs bg-red-50 rounded p-2">{ptError}</p>}
+              {/* Footer */}
+              <div className="flex justify-end gap-2 px-5 pb-5">
+                <button
+                  onClick={() => setPtOpen(false)}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSubmitPT}
+                  disabled={ptLoading}
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-6 py-2 rounded-lg text-sm font-bold shadow transition"
+                >
+                  {ptLoading ? "Đang lưu..." : "Xác nhận"}
+                </button>
+              </div>
             </div>
-
-            {/* Footer */}
-            <div className="flex justify-end gap-2 px-5 pb-5">
-              <button onClick={() => setPtOpen(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">Hủy</button>
-              <button
-                onClick={handleSubmitPT}
-                disabled={ptLoading}
-                className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-6 py-2 rounded-lg text-sm font-bold shadow transition"
-              >
-                {ptLoading ? "Đang lưu..." : "Xác nhận"}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

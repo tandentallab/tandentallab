@@ -25,7 +25,7 @@ import VaiTro from "../Settings/VaiTro";
 import StaffProfile from "../Staff/StaffProfile";
 import SanPhamPage from "../SanPham/SanPhamPage";
 import CongDoanPage from "../CongDoan/CongDoanPage";
-import HoaDonTable from "../HoaDon/HoaDonTable";
+import HoaDonPage from "../HoaDon/HoaDonPage";
 import DonHangChuaXuatPage from "../DonHangChuaXuat/DonHangChuaXuatPage";
 import HoaDonDetail from "../HoaDon/HoaDonDetail";
 import KeHoachGiaoHangTable from "../KeHoachGiaoHang/KeHoachGiaoHangTable";
@@ -78,10 +78,18 @@ const Dashboard = () => {
       <Sidebar collapsed={collapsed} />
       <Box
         component="main"
-        className="bg-gray-100 min-h-screen w-full"
+        className="bg-gray-100"
         sx={{
-          mt: "66px",
-          transition: "all 0.3s",
+          flexGrow: 1,
+          minWidth: 0,
+          mt: `${headerMarginTop}px`,
+          height: `calc(100vh - ${headerMarginTop}px)`,
+          display: "flex",
+          flexDirection: "column",
+          transition: theme.transitions.create("margin-left", {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         }}
       >
         <Routes>
@@ -158,7 +166,7 @@ const Dashboard = () => {
           />
           <Route
             path="/hoa-don"
-            element={renderProtected("/hoa-don", <HoaDonTable />)}
+            element={renderProtected("/hoa-don", <HoaDonPage />)}
           />
           <Route
             path="/bao-cao"

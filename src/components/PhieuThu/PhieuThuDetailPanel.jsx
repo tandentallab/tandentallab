@@ -225,10 +225,10 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                             </span>
                           </div>
                           <div className="space-y-0">
-                            <InfoRow label="Giá trị hóa đơn:" value={formatNumber(hd.thanhTien)} />
+                            <InfoRow label="Giá trị hóa đơn:" value={formatNumber(hd.giaTriThanhToan)} />
                             <InfoRow
                               label="Đã thanh toán:"
-                              value={formatNumber((hd.daThanhToan || 0) - (soTienThanhToan || 0))}
+                              value={formatNumber(item.daTTruocLanNay || 0)}
                             />
                             <InfoRow
                               label="Thanh toán lần này:"

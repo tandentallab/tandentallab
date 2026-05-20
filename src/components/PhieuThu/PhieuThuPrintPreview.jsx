@@ -184,14 +184,14 @@ const PhieuThuPrintPreview = () => {
                 {danhSachHoaDon.map((item, idx) => {
                   const hd = item.hoaDon || {};
                   const soTienThanhToan = item.soTienThanhToan || 0;
-                  const daTTruocLanNay = (hd.daThanhToan || 0) - soTienThanhToan;
+                  const daTTruocLanNay = item.daTTruocLanNay || 0;
                   return (
                     <tr key={hd._id || idx}>
                       <td className="border border-gray-400 p-2">
                         {hd.soHoaDon || (hd._id ? `TAN${hd._id.substring(hd._id.length - 8).toUpperCase()}` : "---")}
                       </td>
                       <td className="border border-gray-400 p-2 text-right">
-                        {formatCurrency(hd.thanhTien || hd.tongTien || 0)}
+                        {formatCurrency(hd.giaTriThanhToan || 0)}
                       </td>
                       <td className="border border-gray-400 p-2 text-right">
                         {formatCurrency(daTTruocLanNay)}

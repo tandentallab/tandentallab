@@ -306,8 +306,8 @@ const MauTheBaoHanhPage = () => {
   if (loading && mauTheList.length === 0) return <FullScreenLoader />;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-bold text-gray-800">Mẫu Thẻ Bảo Hành</h1>
         <div className="flex gap-2">
           <Button variant="outlined" onClick={loadMauTheList} disabled={loading}>
@@ -329,35 +329,80 @@ const MauTheBaoHanhPage = () => {
         />
       </div>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead className="bg-gray-100">
-            <TableRow>
-              <TableCell className="font-bold">Tên Mẫu</TableCell>
-              <TableCell>Mô Tả</TableCell>
-              <TableCell>Số Trường Dữ Liệu</TableCell>
-              <TableCell align="center">Thao Tác</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredMauThe.map((mau) => (
-              <TableRow key={mau._id} hover>
-                <TableCell className="font-medium text-blue-700">{mau.tenMau}</TableCell>
-                <TableCell>{mau.moTa}</TableCell>
-                <TableCell>{mau.cacTruong?.length || 0}</TableCell>
-                <TableCell align="center">
-                  <IconButton size="small" color="primary" onClick={() => handleOpenEdit(mau)}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton size="small" color="error" onClick={() => handleDelete(mau._id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {/* DESKTOP: TABLE LAYOUT */}
+      <div className="hidden md:block">
+        <div style={{ WebkitOverflowScrolling: "touch" }} className="overflow-x-auto">
+          <TableContainer component={Paper} sx={{ minWidth: 700 }}>
+            <Table size="small" sx={{ minWidth: 700 }}>
+              <TableHead className="bg-gray-100">
+                <TableRow>
+                  <TableCell className="font-bold">Tên Mẫu</TableCell>
+                  <TableCell>Mô Tả</TableCell>
+                  <TableCell>Số Trường Dữ Liệu</TableCell>
+                  <TableCell align="center">Thao Tác</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredMauThe.map((mau) => (
+                  <TableRow key={mau._id} hover>
+                    <TableCell className="font-medium text-blue-700">{mau.tenMau}</TableCell>
+                    <TableCell>{mau.moTa}</TableCell>
+                    <TableCell>{mau.cacTruong?.length || 0}</TableCell>
+                    <TableCell align="center">
+                      <IconButton size="small" color="primary" onClick={() => handleOpenEdit(mau)}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton size="small" color="error" onClick={() => handleDelete(mau._id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </div>
+      </div>
+
+      {/* MOBILE: CARD LAYOUT */}
+      <div className="md:hidden space-y-3">
+        {filteredMauThe.length > 0 ? (
+          filteredMauThe.map((mau) => (
+            <Paper key={mau._id} className="p-4 border-l-4 border-blue-500">
+              <div className="space-y-3">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex-1">
+                    <div className="text-xs text-gray-500 uppercase font-semibold mb-1">Tên Mẫu</div>
+                    <div className="font-bold text-lg text-blue-700">{mau.tenMau}</div>
+                  </div>
+                  <div className="flex gap-1">
+                    <IconButton size="small" color="primary" onClick={() => handleOpenEdit(mau)} title="Sửa">
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton size="small" color="error" onClick={() => handleDelete(mau._id)} title="Xóa">
+                      <DeleteIcon />
+                    </IconButton>
+                  </div>
+                </div>
+
+                {mau.moTa && (
+                  <div>
+                    <div className="text-xs text-gray-500 uppercase font-semibold mb-1">Mô Tả</div>
+                    <div className="text-gray-700">{mau.moTa}</div>
+                  </div>
+                )}
+
+                <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                  <div className="text-xs text-gray-500 uppercase font-semibold mb-1">Số Trường Dữ Liệu</div>
+                  <div className="text-2xl font-bold text-blue-600">{mau.cacTruong?.length || 0}</div>
+                </div>
+              </div>
+            </Paper>
+          ))
+        ) : (
+          <Paper className="p-8 text-center text-gray-500">Không tìm thấy mẫu thẻ nào</Paper>
+        )}
+      </div>
 
       {/* VISUAL EDITOR DIALOG */}
       <Dialog
@@ -393,10 +438,10 @@ const MauTheBaoHanhPage = () => {
           </Toolbar>
         </AppBar>
 
-        <div className="flex flex-col md:flex-row h-full bg-gray-100 overflow-hidden">
+        <div className="flex flex-col lg:flex-row h-full bg-gray-100 overflow-hidden">
           
-          {/* CỘT TRÁI: LIVE PREVIEW */}
-          <div className="w-full md:w-[45%] lg:w-[40%] p-6 flex flex-col gap-6 bg-white border-r border-gray-300 overflow-y-auto shadow-lg z-10">
+          {/* TOP/LEFT: LIVE PREVIEW + INPUTS */}
+          <div className="w-full lg:w-[45%] xl:w-[40%] p-4 md:p-6 flex flex-col gap-6 bg-white border-b lg:border-b-0 lg:border-r border-gray-300 overflow-y-auto shadow-lg z-10">
             <div>
               <TextField
                 label="Tên mẫu thẻ *"
@@ -420,7 +465,7 @@ const MauTheBaoHanhPage = () => {
             <div className="mt-4 flex-1">
               <div className="text-sm font-bold text-gray-500 mb-2 uppercase tracking-wider">Hiển thị trực tiếp (Kích thước thực: 86x54mm)</div>
               
-              <div className="flex justify-center items-center bg-gray-200 p-8 rounded-lg border-2 border-dashed border-gray-300">
+              <div className="flex justify-center items-center bg-gray-200 p-4 md:p-8 rounded-lg border-2 border-dashed border-gray-300 min-h-[200px]">
                 {/* THẺ PREVIEW (GẮN REF ĐỂ BÊ ĐI IN) */}
                 <div
                   ref={printRef}
@@ -478,12 +523,12 @@ const MauTheBaoHanhPage = () => {
             </div>
           </div>
 
-          {/* CỘT PHẢI: BẢNG SETTINGS */}
-          <div className="w-full md:w-[55%] lg:w-[60%] p-4 overflow-y-auto">
+          {/* BOTTOM/RIGHT: BẢNG SETTINGS */}
+          <div className="w-full lg:w-[55%] xl:w-[60%] p-4 overflow-y-auto">
              <div className="bg-white rounded-xl shadow p-4 border border-gray-200">
                <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">Thiết lập tọa độ và định dạng (Đơn vị: mm, pt)</h3>
-               
-               <table className="w-full text-sm text-left">
+               <div style={{ WebkitOverflowScrolling: "touch" }} className="overflow-x-auto">
+               <table className="w-full min-w-[680px] md:min-w-[720px] text-sm text-left">
                  <thead className="bg-blue-50 text-blue-900 border-b-2 border-blue-200">
                    <tr>
                      <th className="p-2 w-12 text-center">Bật</th>
@@ -596,6 +641,7 @@ const MauTheBaoHanhPage = () => {
                    })}
                  </tbody>
                </table>
+               </div>
               
              </div>
           </div>

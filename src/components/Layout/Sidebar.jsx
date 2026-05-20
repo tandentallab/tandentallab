@@ -67,6 +67,10 @@ const Sidebar = ({ collapsed }) => {
   const menu = [
     { name: "Thống kê", router: "/", icon: <Dashboard /> },
     { name: "Đơn Hàng", router: "/don-hang", icon: <ShoppingCart /> },
+    { name: "Kế Hoạch Giao Hàng", router: "/ke-hoach-giao-hang", icon: <Assignment /> },
+    { name: "Chờ xuất hóa đơn", router: "/cho-xuat-hoa-don", icon: <ReceiptLong /> },
+    { name: "Hóa Đơn", router: "/hoa-don", icon: <Receipt /> },
+    { name: "Phiếu Thu", router: "/phieu-thu", icon: <Receipt /> },
     { name: "Phiếu Bảo Hành", router: "/phieu-bao-hanh", icon: <Receipt /> },
     { name: "Mẫu Thẻ Bảo Hành", router: "/mau-the-bao-hanh", icon: <Category /> },
     { name: "Sản Phẩm", router: "/san-pham", icon: <Category /> },
@@ -80,10 +84,6 @@ const Sidebar = ({ collapsed }) => {
   ];
 
   const otherMenu = [
-    { name: "Kế Hoạch Giao Hàng", router: "/ke-hoach-giao-hang", icon: <Assignment /> },
-    { name: "Chờ xuất hóa đơn", router: "/cho-xuat-hoa-don", icon: <ReceiptLong /> },
-    { name: "Hóa Đơn", router: "/hoa-don", icon: <Receipt /> },
-    { name: "Phiếu Thu", router: "/phieu-thu", icon: <Receipt /> },
     { name: "Báo Cáo", router: "/bao-cao", icon: <BarChart /> },
     { name: "Nhân viên", router: "/nhan-vien", icon: <BadgeIcon /> },
     { name: "Bảng lương", router: "/bang-luong", icon: <PaymentsIcon /> },

@@ -155,8 +155,8 @@ const PhieuBaoHanhPage = () => {
   if (loading && phieuList.length === 0) return <FullScreenLoader />;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-bold text-gray-800">Quản lý Phiếu Bảo Hành</h1>
         <Button variant="contained" color="primary" onClick={loadPhieuList}>
           Làm mới
@@ -175,94 +175,131 @@ const PhieuBaoHanhPage = () => {
         />
       </div>
 
-      {/* Table */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead className="bg-gray-100">
-            <TableRow>
-              <TableCell className="font-bold">Mã BH</TableCell>
-              <TableCell className="font-bold">Mã Đơn Hàng</TableCell>
-              <TableCell className="font-bold">Bệnh Nhân</TableCell>
-              <TableCell className="font-bold">Nha Khoa</TableCell>
-              <TableCell className="font-bold">Số Sản Phẩm</TableCell>
-              <TableCell className="font-bold">Danh Sách Sản Phẩm</TableCell>
-              <TableCell className="font-bold">Ghi Chú</TableCell>
-              <TableCell align="center" className="font-bold">
-                Hành Động
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredPhieu.length > 0 ? (
-              filteredPhieu.map((phieu) => (
-                <TableRow key={phieu._id} hover>
-                  <TableCell className="font-medium">{phieu.maBaoHanh}</TableCell>
-                  <TableCell>{phieu.donHang?.maDonHang || "---"}</TableCell>
-                  <TableCell>{phieu.benhNhan?.hoVaTen || "---"}</TableCell>
-                  <TableCell>{phieu.nhaKhoa?.hoVaTen || phieu.nhaKhoa?.tenGiaoDich || "---"}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={`${phieu.danhSachBaoHanh?.length || 0} sản phẩm`}
-                      color="primary"
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1 max-w-xs">
-                      {phieu.danhSachBaoHanh?.map((item, idx) => (
-                        <div key={idx} className="text-sm p-2 bg-blue-50 rounded border border-blue-200">
-                          <div className="font-medium">
-                            {idx + 1}. {item.sanPham?.tenSanPham || item.sanPham || "---"}
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            {item.viTriRang && `Vị trí: ${item.viTriRang}`}
-                            {item.soLuong && ` | SL: ${item.soLuong}`}
-                            {item.mau && ` | Màu: ${item.mau}`}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            BH: {new Date(item.baoHanhTu).toLocaleDateString("vi-VN")} →{" "}
-                            {new Date(item.baoHanhDen).toLocaleDateString("vi-VN")}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm text-gray-600 max-w-xs truncate">
-                      {phieu.ghiChu || "---"}
-                    </div>
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={() => handleOpenEdit(phieu)}
-                      title="Sửa"
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleDelete(phieu._id)}
-                      title="Xóa"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
+      {/* Desktop: Table, Mobile: Cards */}
+      <div className="hidden md:block">
+        <div style={{ WebkitOverflowScrolling: "touch" }} className="overflow-x-auto">
+          <TableContainer component={Paper} sx={{ minWidth: 900 }}>
+            <Table size="small" sx={{ minWidth: 900 }}>
+              <TableHead className="bg-gray-100">
+                <TableRow>
+                  <TableCell className="font-bold">Mã BH</TableCell>
+                  <TableCell className="font-bold">Mã Đơn Hàng</TableCell>
+                  <TableCell className="font-bold">Bệnh Nhân</TableCell>
+                  <TableCell className="font-bold">Nha Khoa</TableCell>
+                  <TableCell className="font-bold">Số Sản Phẩm</TableCell>
+                  <TableCell className="font-bold">Danh Sách Sản Phẩm</TableCell>
+                  <TableCell className="font-bold">Ghi Chú</TableCell>
+                  <TableCell align="center" className="font-bold">Hành Động</TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan="8" align="center" className="py-8 text-gray-500">
-                  Không tìm thấy phiếu bảo hành nào
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              </TableHead>
+              <TableBody>
+                {filteredPhieu.length > 0 ? (
+                  filteredPhieu.map((phieu) => (
+                    <TableRow key={phieu._id} hover>
+                      <TableCell className="font-medium">{phieu.maBaoHanh}</TableCell>
+                      <TableCell>{phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}</TableCell>
+                      <TableCell>{phieu.benhNhan?.hoVaTen || "---"}</TableCell>
+                      <TableCell>{phieu.nhaKhoa?.hoVaTen || phieu.nhaKhoa?.tenGiaoDich || "---"}</TableCell>
+                      <TableCell>
+                        <Chip label={`${phieu.danhSachBaoHanh?.length || 0} sản phẩm`} color="primary" size="small" variant="outlined" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1 max-w-xs">
+                          {phieu.danhSachBaoHanh?.map((item, idx) => (
+                            <div key={idx} className="text-sm p-2 bg-blue-50 rounded border border-blue-200">
+                              <div className="font-medium">{idx + 1}. {item.sanPham?.tenSanPham || item.sanPham || "---"}</div>
+                              <div className="text-xs text-gray-600">
+                                {item.viTriRang && `Vị trí: ${item.viTriRang}`}
+                                {item.soLuong && ` | SL: ${item.soLuong}`}
+                                {item.mau && ` | Màu: ${item.mau}`}
+                              </div>
+                              <div className="text-xs text-gray-500">BH: {new Date(item.baoHanhTu).toLocaleDateString("vi-VN")} → {new Date(item.baoHanhDen).toLocaleDateString("vi-VN")}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm text-gray-600 max-w-xs truncate">{phieu.ghiChu || "---"}</div>
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton size="small" color="primary" onClick={() => handleOpenEdit(phieu)} title="Sửa"><EditIcon fontSize="small" /></IconButton>
+                        <IconButton size="small" color="error" onClick={() => handleDelete(phieu._id)} title="Xóa"><DeleteIcon fontSize="small" /></IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan="8" align="center" className="py-8 text-gray-500">Không tìm thấy phiếu bảo hành nào</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </div>
+      </div>
+
+      {/* Mobile: Card Layout */}
+      <div className="md:hidden space-y-4">
+        {filteredPhieu.length > 0 ? (
+          filteredPhieu.map((phieu) => (
+            <Paper key={phieu._id} className="p-4 border-l-4 border-blue-500">
+              <div className="space-y-3">
+                <div className="flex justify-between items-start gap-2">
+                  <div>
+                    <div className="text-xs text-gray-500 uppercase">Mã BH</div>
+                    <div className="font-bold text-lg text-blue-700">{phieu.maBaoHanh}</div>
+                  </div>
+                  <div className="flex gap-1">
+                    <IconButton size="small" color="primary" onClick={() => handleOpenEdit(phieu)}><EditIcon /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => handleDelete(phieu._id)}><DeleteIcon /></IconButton>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-xs text-gray-500 uppercase">Mã Đơn Hàng</div>
+                    <div className="font-semibold text-gray-800">{phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 uppercase">Bệnh Nhân</div>
+                    <div className="font-semibold text-gray-800">{phieu.benhNhan?.hoVaTen || "---"}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-xs text-gray-500 uppercase">Nha Khoa</div>
+                  <div className="font-semibold text-gray-800">{phieu.nhaKhoa?.hoVaTen || phieu.nhaKhoa?.tenGiaoDich || "---"}</div>
+                </div>
+
+                <Chip label={`${phieu.danhSachBaoHanh?.length || 0} sản phẩm`} color="primary" size="small" variant="outlined" className="w-fit" />
+
+                {phieu.danhSachBaoHanh?.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t">
+                    {phieu.danhSachBaoHanh?.map((item, idx) => (
+                      <div key={idx} className="text-sm p-2 bg-blue-50 rounded border border-blue-200">
+                        <div className="font-medium">{idx + 1}. {item.sanPham?.tenSanPham || item.sanPham || "---"}</div>
+                        {item.viTriRang && <div className="text-xs text-gray-600">Vị trí: {item.viTriRang}</div>}
+                        {item.soLuong && <div className="text-xs text-gray-600">SL: {item.soLuong}</div>}
+                        {item.mau && <div className="text-xs text-gray-600">Màu: {item.mau}</div>}
+                        <div className="text-xs text-gray-500 mt-1">BH: {new Date(item.baoHanhTu).toLocaleDateString("vi-VN")} → {new Date(item.baoHanhDen).toLocaleDateString("vi-VN")}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {phieu.ghiChu && (
+                  <div className="pt-2 border-t">
+                    <div className="text-xs text-gray-500 uppercase">Ghi Chú</div>
+                    <div className="text-sm text-gray-700">{phieu.ghiChu}</div>
+                  </div>
+                )}
+              </div>
+            </Paper>
+          ))
+        ) : (
+          <Paper className="p-8 text-center text-gray-500">Không tìm thấy phiếu bảo hành nào</Paper>
+        )}
+      </div>
 
       {/* Edit Modal */}
       <Dialog open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} maxWidth="md" fullWidth>

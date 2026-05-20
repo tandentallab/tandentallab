@@ -229,6 +229,11 @@ const HoaDonDetail = () => {
     }
   };
 
+  // 🔥 In hóa đơn
+  const handlePrint = () => {
+    navigate(`/hoa-don/${id}/print`);
+  };
+
   if (loading) return <div className="p-10 text-center text-gray-400">Đang tải...</div>;
   if (!hoaDon) return <div className="p-10 text-center text-red-500">Không tìm thấy hóa đơn!</div>;
 
@@ -568,7 +573,7 @@ const HoaDonDetail = () => {
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
-          <button className="hidden md:flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-md text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors">
+          <button onClick={handlePrint} className="hidden md:flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-md text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors">
             <Printer className="w-4 h-4" /> In hóa đơn
           </button>
           <button
@@ -578,7 +583,7 @@ const HoaDonDetail = () => {
             <FileDown className="w-4 h-4" /> Xuất excel
           </button>
           {/* Mobile: icon-only cho In + Xuất */}
-          <button className="flex md:hidden items-center justify-center w-9 h-9 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 transition-colors">
+          <button onClick={handlePrint} className="flex md:hidden items-center justify-center w-9 h-9 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 transition-colors">
             <Printer className="w-4 h-4" />
           </button>
           <button

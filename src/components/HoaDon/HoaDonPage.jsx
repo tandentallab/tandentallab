@@ -113,20 +113,31 @@ const HoaDonPage = () => {
     };
 
     const handleExport = async () => {
-        if (!exportFrom || !exportTo) return alert("Vui lòng chọn khoảng thời gian để xuất.");
-        if (!isValidExportDateFilter(exportDateFilter)) return alert("Vui lòng chọn thời gian bằng preset hoặc Chọn trên lịch.");
+        const hasManualDateRange = exportFrom && exportTo;
+        const hasPresetDateRange = isValidExportDateFilter(exportDateFilter);
+
+        if (!hasManualDateRange && !hasPresetDateRange) {
+            return alert("Vui lòng chọn khoảng thời gian (thủ công hoặc từ danh sách).");
+        }
 
         try {
             setExporting(true);
-            const fromDate = new Date(exportFrom).toISOString();
-            const toDate = new Date(`${exportTo}T23:59:59`).toISOString();
-            const { fromISO, toISO } = toISODateRange(exportDateFilter);
+            
+            let fromISO, toISO;
+            if (hasManualDateRange) {
+                fromISO = new Date(exportFrom).toISOString();
+                toISO = new Date(`${exportTo}T23:59:59`).toISOString();
+            } else {
+                const dateRange = toISODateRange(exportDateFilter);
+                fromISO = dateRange.fromISO;
+                toISO = dateRange.toISO;
+            }
 
             const res = await api.get("/hoa-don/all", {
                 params: {
                     page: 1, limit: 5000,
-                    fromDate: fromISO || fromDate,
-                    toDate: toISO || toDate,
+                    fromDate: fromISO,
+                    toDate: toISO,
                     nhaKhoaId: exportNhaKhoa || "",
                 },
             });
@@ -138,8 +149,8 @@ const HoaDonPage = () => {
 
             const selectedNk = (nhaKhoa?.data || []).find((nk) => nk._id === exportNhaKhoa);
             await exportHoaDonListToExcel(data, {
-                fromDate: fromISO || fromDate,
-                toDate: toISO || toDate,
+                fromDate: fromISO,
+                toDate: toISO,
                 nhaKhoaName: selectedNk?.hoVaTen || selectedNk?.tenGiaoDich || "Tất cả",
             });
             setOpenExport(false);

@@ -248,7 +248,9 @@ export default function SanPhamModal({
                     variant="standard"
                     fullWidth
                     value={form.baoHanhMacDinh || "0"}
-                    onChange={(e) => handleChange("baoHanhMacDinh", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("baoHanhMacDinh", e.target.value)
+                    }
                     InputLabelProps={{ shrink: true }}
                   >
                     <MenuItem value="0">Không có bảo hành</MenuItem>
@@ -285,18 +287,20 @@ export default function SanPhamModal({
                 className="flex flex-col items-center pt-2 md:pt-4 pl-0 md:pl-4"
               >
                 <Typography
-                  className={`font-bold text-[11px] mb-4 text-center ${errors.quyTrinh ? "text-red-500" : "text-[#f57c00]"
-                    }`}
+                  className={`font-bold text-[11px] mb-4 text-center ${
+                    errors.quyTrinh ? "text-red-500" : "text-[#f57c00]"
+                  }`}
                 >
                   {errors.quyTrinh
                     ? "* Chưa thiết lập quy trình!"
                     : "* Quy trình sản xuất"}
                 </Typography>
                 <Box
-                  className={`rounded-xl p-3 cursor-pointer border transition w-full ${errors.quyTrinh
-                    ? "bg-red-50 border-red-300"
-                    : "bg-blue-50 hover:border-blue-400"
-                    }`}
+                  className={`rounded-xl p-3 cursor-pointer border transition w-full ${
+                    errors.quyTrinh
+                      ? "bg-red-50 border-red-300"
+                      : "bg-blue-50 hover:border-blue-400"
+                  }`}
                   onClick={() => setOpenCD(true)}
                 >
                   <div className="flex justify-between items-center mb-2">

@@ -35,9 +35,11 @@ import PhieuThuPage from "../PhieuThu/PhieuThuPage";
 import PhieuThuPrintPreview from "../PhieuThu/PhieuThuPrintPreview";
 import NhanVienTable from "../NhanVien/NhanVienTable";
 import BangLuongPage from "../BangLuong/BangLuongPage";
-import NhanVienDetail from "../NhanVien/NhanVienDetail";
 import PhieuBaoHanhPage from "../PhieuBaoHanh";
 import MauTheBaoHanhPage from "../PhieuBaoHanh/MauTheBaoHanhPage";
+import TextSnippetIcon from "@mui/icons-material/TextSnippet";
+import NhanVienDetail from "../NhanVien/NhanVienDetail";
+
 const Dashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -78,7 +80,9 @@ const Dashboard = () => {
 
   return (
     <Box sx={{ display: "flex" }}>
-      {!isPrintPage && <Header onToggleSidebar={() => setCollapsed(!collapsed)} />}
+      {!isPrintPage && (
+        <Header onToggleSidebar={() => setCollapsed(!collapsed)} />
+      )}
       {!isPrintPage && <Sidebar collapsed={collapsed} />}
       <Box
         component="main"
@@ -120,6 +124,17 @@ const Dashboard = () => {
             element={renderProtected(
               "/donhang",
               <DonHangDeliveryNotePrintPreview />
+            )}
+          />
+          <Route
+            path="/phieu-bao-hanh"
+            element={renderProtected("/phieu-bao-hanh", <PhieuBaoHanhPage />)}
+          />
+          <Route
+            path="/mau-the-bao-hanh"
+            element={renderProtected(
+              "/mau-the-bao-hanh",
+              <MauTheBaoHanhPage />
             )}
           />
           <Route
@@ -177,21 +192,70 @@ const Dashboard = () => {
             path="/bao-cao"
             element={renderProtected("/bao-cao", <BaoCaoPage />)}
           />
-          <Route path="/phieu-bao-hanh" element={renderProtected("/phieu-bao-hanh", <PhieuBaoHanhPage />)} />
-          <Route path="/mau-the-bao-hanh" element={renderProtected("/mau-the-bao-hanh", <MauTheBaoHanhPage />)} />
-          <Route path="/nha-khoa" element={renderProtected("/nha-khoa", <NhaKhoaPage />)} />
-          <Route path="/nguoi-lien-he" element={renderProtected("/nguoi-lien-he", <NguoiLienHePage />)} />
-          <Route path="/benh-nhan" element={renderProtected("/benh-nhan", <BenhNhanPage />)} />
-          <Route path="/tai-khoan" element={renderProtected("/tai-khoan", <StaffPage />)} />
-          <Route path="/nhap-du-lieu" element={renderProtected("/nhap-du-lieu", <NhapDuLieu />)} />
-          <Route path="/cong-ty" element={renderProtected("/cong-ty", <CongTy />)} />
-          <Route path="/quyen-su-dung" element={renderProtected("/quyen-su-dung", <VaiTro />)} />
-          <Route path="/ho-so" element={renderProtected("/ho-so", <StaffProfile />)} />
-          <Route path="/san-pham" element={renderProtected("/san-pham", <SanPhamPage />)} />
-          <Route path="/cong-doan" element={renderProtected("/cong-doan", <CongDoanPage />)} />
-          <Route path="/cho-xuat-hoa-don" element={renderProtected("/cho-xuat-hoa-don", <DonHangChuaXuatPage />)} />
+
+          <Route
+            path="/phieu-bao-hanh"
+            element={renderProtected("/phieu-bao-hanh", <PhieuBaoHanhPage />)}
+          />
+          <Route
+            path="/mau-the-bao-hanh"
+            element={renderProtected(
+              "/mau-the-bao-hanh",
+              <MauTheBaoHanhPage />
+            )}
+          />
+          <Route
+            path="/nha-khoa"
+            element={renderProtected("/nha-khoa", <NhaKhoaPage />)}
+          />
+          <Route
+            path="/nguoi-lien-he"
+            element={renderProtected("/nguoi-lien-he", <NguoiLienHePage />)}
+          />
+          <Route
+            path="/benh-nhan"
+            element={renderProtected("/benh-nhan", <BenhNhanPage />)}
+          />
+          <Route
+            path="/tai-khoan"
+            element={renderProtected("/tai-khoan", <StaffPage />)}
+          />
+          <Route
+            path="/nhap-du-lieu"
+            element={renderProtected("/nhap-du-lieu", <NhapDuLieu />)}
+          />
+          <Route
+            path="/cong-ty"
+            element={renderProtected("/cong-ty", <CongTy />)}
+          />
+          <Route
+            path="/quyen-su-dung"
+            element={renderProtected("/quyen-su-dung", <VaiTro />)}
+          />
+          <Route
+            path="/ho-so"
+            element={renderProtected("/ho-so", <StaffProfile />)}
+          />
+          <Route
+            path="/san-pham"
+            element={renderProtected("/san-pham", <SanPhamPage />)}
+          />
+          <Route
+            path="/cong-doan"
+            element={renderProtected("/cong-doan", <CongDoanPage />)}
+          />
+          <Route
+            path="/cho-xuat-hoa-don"
+            element={renderProtected(
+              "/cho-xuat-hoa-don",
+              <DonHangChuaXuatPage />
+            )}
+          />
           {/* <Route path="/hoa-don" element={renderProtected("/hoa-don", <HoaDonTable />)} /> */}
-          <Route path="/bao-cao" element={renderProtected("/bao-cao", <BaoCaoPage />)} />
+          <Route
+            path="/bao-cao"
+            element={renderProtected("/bao-cao", <BaoCaoPage />)}
+          />
           <Route
             path="/ke-hoach-giao-hang"
             element={renderProtected(

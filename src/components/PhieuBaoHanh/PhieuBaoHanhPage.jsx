@@ -26,7 +26,11 @@ import FullScreenLoader from "../Loader/FullScreenLoader";
 // Helper functions
 const addYearsToDate = (dateValue, years) => {
   const start = new Date(dateValue);
-  const result = new Date(start.getFullYear() + years, start.getMonth(), start.getDate());
+  const result = new Date(
+    start.getFullYear() + years,
+    start.getMonth(),
+    start.getDate()
+  );
   return result.toISOString().slice(0, 10);
 };
 
@@ -45,7 +49,6 @@ const PhieuBaoHanhPage = () => {
     ghiChu: "",
     danhSachBaoHanh: [],
   });
-
 
   // Load danh sách phiếu bảo hành
   useEffect(() => {
@@ -81,12 +84,12 @@ const PhieuBaoHanhPage = () => {
   // Mở modal edit
   const handleOpenEdit = (phieu) => {
     setEditingPhieu(phieu);
-    
+
     const enrichedList = (phieu.danhSachBaoHanh || []).map((item) => {
       const startDate = new Date(item.baoHanhTu);
       const endDate = new Date(item.baoHanhDen);
       const yearsDiff = endDate.getFullYear() - startDate.getFullYear();
-      
+
       const expectedEnd = addYearsToDate(item.baoHanhTu, yearsDiff);
       const actualEndStr = new Date(item.baoHanhDen).toISOString().slice(0, 10);
       const isExactYears = expectedEnd === actualEndStr;
@@ -105,15 +108,15 @@ const PhieuBaoHanhPage = () => {
     setIsEditModalOpen(true);
   };
 
-
-
   // Lưu chỉnh sửa
   const handleSaveEdit = async () => {
     try {
       setLoading(true);
-      
-      const cleanedDanhSach = editForm.danhSachBaoHanh.map(({ selectedYears, customEndDate, ...rest }) => rest);
-      
+
+      const cleanedDanhSach = editForm.danhSachBaoHanh.map(
+        ({ selectedYears, customEndDate, ...rest }) => rest
+      );
+
       const res = await api.put(`/phieu-bao-hanh/${editingPhieu._id}`, {
         ghiChu: editForm.ghiChu,
         danhSachBaoHanh: cleanedDanhSach,
@@ -157,7 +160,9 @@ const PhieuBaoHanhPage = () => {
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-3xl font-bold text-gray-800">Quản lý Phiếu Bảo Hành</h1>
+        <h1 className="text-3xl font-bold text-gray-800">
+          Quản lý Phiếu Bảo Hành
+        </h1>
         <Button variant="contained" color="primary" onClick={loadPhieuList}>
           Làm mới
         </Button>
@@ -177,7 +182,10 @@ const PhieuBaoHanhPage = () => {
 
       {/* Desktop: Table, Mobile: Cards */}
       <div className="hidden md:block">
-        <div style={{ WebkitOverflowScrolling: "touch" }} className="overflow-x-auto">
+        <div
+          style={{ WebkitOverflowScrolling: "touch" }}
+          className="overflow-x-auto"
+        >
           <TableContainer component={Paper} sx={{ minWidth: 900 }}>
             <Table size="small" sx={{ minWidth: 900 }}>
               <TableHead className="bg-gray-100">
@@ -187,49 +195,107 @@ const PhieuBaoHanhPage = () => {
                   <TableCell className="font-bold">Bệnh Nhân</TableCell>
                   <TableCell className="font-bold">Nha Khoa</TableCell>
                   <TableCell className="font-bold">Số Sản Phẩm</TableCell>
-                  <TableCell className="font-bold">Danh Sách Sản Phẩm</TableCell>
+                  <TableCell className="font-bold">
+                    Danh Sách Sản Phẩm
+                  </TableCell>
                   <TableCell className="font-bold">Ghi Chú</TableCell>
-                  <TableCell align="center" className="font-bold">Hành Động</TableCell>
+                  <TableCell align="center" className="font-bold">
+                    Hành Động
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredPhieu.length > 0 ? (
                   filteredPhieu.map((phieu) => (
                     <TableRow key={phieu._id} hover>
-                      <TableCell className="font-medium">{phieu.maBaoHanh}</TableCell>
-                      <TableCell>{phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}</TableCell>
-                      <TableCell>{phieu.benhNhan?.hoVaTen || "---"}</TableCell>
-                      <TableCell>{phieu.nhaKhoa?.hoVaTen || phieu.nhaKhoa?.tenGiaoDich || "---"}</TableCell>
+                      <TableCell className="font-medium">
+                        {phieu.maBaoHanh}
+                      </TableCell>
                       <TableCell>
-                        <Chip label={`${phieu.danhSachBaoHanh?.length || 0} sản phẩm`} color="primary" size="small" variant="outlined" />
+                        {phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}
+                      </TableCell>
+                      <TableCell>{phieu.benhNhan?.hoVaTen || "---"}</TableCell>
+                      <TableCell>
+                        {phieu.nhaKhoa?.hoVaTen ||
+                          phieu.nhaKhoa?.tenGiaoDich ||
+                          "---"}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={`${
+                            phieu.danhSachBaoHanh?.length || 0
+                          } sản phẩm`}
+                          color="primary"
+                          size="small"
+                          variant="outlined"
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1 max-w-xs">
                           {phieu.danhSachBaoHanh?.map((item, idx) => (
-                            <div key={idx} className="text-sm p-2 bg-blue-50 rounded border border-blue-200">
-                              <div className="font-medium">{idx + 1}. {item.sanPham?.tenSanPham || item.sanPham || "---"}</div>
+                            <div
+                              key={idx}
+                              className="text-sm p-2 bg-blue-50 rounded border border-blue-200"
+                            >
+                              <div className="font-medium">
+                                {idx + 1}.{" "}
+                                {item.sanPham?.tenSanPham ||
+                                  item.sanPham ||
+                                  "---"}
+                              </div>
                               <div className="text-xs text-gray-600">
                                 {item.viTriRang && `Vị trí: ${item.viTriRang}`}
                                 {item.soLuong && ` | SL: ${item.soLuong}`}
                                 {item.mau && ` | Màu: ${item.mau}`}
                               </div>
-                              <div className="text-xs text-gray-500">BH: {new Date(item.baoHanhTu).toLocaleDateString("vi-VN")} → {new Date(item.baoHanhDen).toLocaleDateString("vi-VN")}</div>
+                              <div className="text-xs text-gray-500">
+                                BH:{" "}
+                                {new Date(item.baoHanhTu).toLocaleDateString(
+                                  "vi-VN"
+                                )}{" "}
+                                →{" "}
+                                {new Date(item.baoHanhDen).toLocaleDateString(
+                                  "vi-VN"
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm text-gray-600 max-w-xs truncate">{phieu.ghiChu || "---"}</div>
+                        <div className="text-sm text-gray-600 max-w-xs truncate">
+                          {phieu.ghiChu || "---"}
+                        </div>
                       </TableCell>
                       <TableCell align="center">
-                        <IconButton size="small" color="primary" onClick={() => handleOpenEdit(phieu)} title="Sửa"><EditIcon fontSize="small" /></IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleDelete(phieu._id)} title="Xóa"><DeleteIcon fontSize="small" /></IconButton>
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleOpenEdit(phieu)}
+                          title="Sửa"
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(phieu._id)}
+                          title="Xóa"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan="8" align="center" className="py-8 text-gray-500">Không tìm thấy phiếu bảo hành nào</TableCell>
+                    <TableCell
+                      colSpan="8"
+                      align="center"
+                      className="py-8 text-gray-500"
+                    >
+                      Không tìm thấy phiếu bảo hành nào
+                    </TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -247,41 +313,100 @@ const PhieuBaoHanhPage = () => {
                 <div className="flex justify-between items-start gap-2">
                   <div>
                     <div className="text-xs text-gray-500 uppercase">Mã BH</div>
-                    <div className="font-bold text-lg text-blue-700">{phieu.maBaoHanh}</div>
+                    <div className="font-bold text-lg text-blue-700">
+                      {phieu.maBaoHanh}
+                    </div>
                   </div>
                   <div className="flex gap-1">
-                    <IconButton size="small" color="primary" onClick={() => handleOpenEdit(phieu)}><EditIcon /></IconButton>
-                    <IconButton size="small" color="error" onClick={() => handleDelete(phieu._id)}><DeleteIcon /></IconButton>
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => handleOpenEdit(phieu)}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleDelete(phieu._id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <div className="text-xs text-gray-500 uppercase">Mã Đơn Hàng</div>
-                    <div className="font-semibold text-gray-800">{phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}</div>
+                    <div className="text-xs text-gray-500 uppercase">
+                      Mã Đơn Hàng
+                    </div>
+                    <div className="font-semibold text-gray-800">
+                      {phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}
+                    </div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500 uppercase">Bệnh Nhân</div>
-                    <div className="font-semibold text-gray-800">{phieu.benhNhan?.hoVaTen || "---"}</div>
+                    <div className="text-xs text-gray-500 uppercase">
+                      Bệnh Nhân
+                    </div>
+                    <div className="font-semibold text-gray-800">
+                      {phieu.benhNhan?.hoVaTen || "---"}
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-xs text-gray-500 uppercase">Nha Khoa</div>
-                  <div className="font-semibold text-gray-800">{phieu.nhaKhoa?.hoVaTen || phieu.nhaKhoa?.tenGiaoDich || "---"}</div>
+                  <div className="text-xs text-gray-500 uppercase">
+                    Nha Khoa
+                  </div>
+                  <div className="font-semibold text-gray-800">
+                    {phieu.nhaKhoa?.hoVaTen ||
+                      phieu.nhaKhoa?.tenGiaoDich ||
+                      "---"}
+                  </div>
                 </div>
 
-                <Chip label={`${phieu.danhSachBaoHanh?.length || 0} sản phẩm`} color="primary" size="small" variant="outlined" className="w-fit" />
+                <Chip
+                  label={`${phieu.danhSachBaoHanh?.length || 0} sản phẩm`}
+                  color="primary"
+                  size="small"
+                  variant="outlined"
+                  className="w-fit"
+                />
 
                 {phieu.danhSachBaoHanh?.length > 0 && (
                   <div className="space-y-2 pt-2 border-t">
                     {phieu.danhSachBaoHanh?.map((item, idx) => (
-                      <div key={idx} className="text-sm p-2 bg-blue-50 rounded border border-blue-200">
-                        <div className="font-medium">{idx + 1}. {item.sanPham?.tenSanPham || item.sanPham || "---"}</div>
-                        {item.viTriRang && <div className="text-xs text-gray-600">Vị trí: {item.viTriRang}</div>}
-                        {item.soLuong && <div className="text-xs text-gray-600">SL: {item.soLuong}</div>}
-                        {item.mau && <div className="text-xs text-gray-600">Màu: {item.mau}</div>}
-                        <div className="text-xs text-gray-500 mt-1">BH: {new Date(item.baoHanhTu).toLocaleDateString("vi-VN")} → {new Date(item.baoHanhDen).toLocaleDateString("vi-VN")}</div>
+                      <div
+                        key={idx}
+                        className="text-sm p-2 bg-blue-50 rounded border border-blue-200"
+                      >
+                        <div className="font-medium">
+                          {idx + 1}.{" "}
+                          {item.sanPham?.tenSanPham || item.sanPham || "---"}
+                        </div>
+                        {item.viTriRang && (
+                          <div className="text-xs text-gray-600">
+                            Vị trí: {item.viTriRang}
+                          </div>
+                        )}
+                        {item.soLuong && (
+                          <div className="text-xs text-gray-600">
+                            SL: {item.soLuong}
+                          </div>
+                        )}
+                        {item.mau && (
+                          <div className="text-xs text-gray-600">
+                            Màu: {item.mau}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500 mt-1">
+                          BH:{" "}
+                          {new Date(item.baoHanhTu).toLocaleDateString("vi-VN")}{" "}
+                          →{" "}
+                          {new Date(item.baoHanhDen).toLocaleDateString(
+                            "vi-VN"
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -289,7 +414,9 @@ const PhieuBaoHanhPage = () => {
 
                 {phieu.ghiChu && (
                   <div className="pt-2 border-t">
-                    <div className="text-xs text-gray-500 uppercase">Ghi Chú</div>
+                    <div className="text-xs text-gray-500 uppercase">
+                      Ghi Chú
+                    </div>
                     <div className="text-sm text-gray-700">{phieu.ghiChu}</div>
                   </div>
                 )}
@@ -297,84 +424,141 @@ const PhieuBaoHanhPage = () => {
             </Paper>
           ))
         ) : (
-          <Paper className="p-8 text-center text-gray-500">Không tìm thấy phiếu bảo hành nào</Paper>
+          <Paper className="p-8 text-center text-gray-500">
+            Không tìm thấy phiếu bảo hành nào
+          </Paper>
         )}
       </div>
 
       {/* Edit Modal */}
-      <Dialog open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle className="bg-blue-600 text-white font-bold">Sửa Phiếu Bảo Hành</DialogTitle>
+      <Dialog
+        open={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle className="bg-blue-600 text-white font-bold">
+          Sửa Phiếu Bảo Hành
+        </DialogTitle>
         <DialogContent className="pt-6 space-y-4">
           {editingPhieu && (
             <>
               <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-200 shadow-sm">
                 <div className="text-base space-y-2">
                   <div>
-                    <span className="font-bold text-blue-900">Mã BH:</span> <span className="font-semibold text-gray-800">{editingPhieu.maBaoHanh}</span>
+                    <span className="font-bold text-blue-900">Mã BH:</span>{" "}
+                    <span className="font-semibold text-gray-800">
+                      {editingPhieu.maBaoHanh}
+                    </span>
                   </div>
                   <div>
-                    <span className="font-bold text-blue-900">Đơn Hàng:</span> <span className="font-semibold text-gray-800">{editingPhieu.donHang?.maDonHang}</span>
+                    <span className="font-bold text-blue-900">Đơn Hàng:</span>{" "}
+                    <span className="font-semibold text-gray-800">
+                      {editingPhieu.donHang?.maDonHang}
+                    </span>
                   </div>
                   <div>
-                    <span className="font-bold text-blue-900">Bệnh Nhân:</span> <span className="font-bold text-blue-700">{editingPhieu.benhNhan?.hoVaTen}</span>
+                    <span className="font-bold text-blue-900">Bệnh Nhân:</span>{" "}
+                    <span className="font-bold text-blue-700">
+                      {editingPhieu.benhNhan?.hoVaTen}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-700 mb-3">Danh Sách Sản Phẩm & Năm Bảo Hành:</h3>
+                <h3 className="font-semibold text-gray-700 mb-3">
+                  Danh Sách Sản Phẩm & Năm Bảo Hành:
+                </h3>
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {editForm.danhSachBaoHanh?.map((item, idx) => (
-                    <div key={idx} className="p-4 bg-blue-50/30 rounded-lg border border-blue-200 mb-4 shadow-sm">
+                    <div
+                      key={idx}
+                      className="p-4 bg-blue-50/30 rounded-lg border border-blue-200 mb-4 shadow-sm"
+                    >
                       <div className="mb-4 flex flex-col gap-1">
                         <div className="font-bold text-base text-blue-800">
                           {idx + 1}. {item.sanPham?.tenSanPham || item.sanPham}
                         </div>
-                        {item.viTriRang && <div className="text-gray-700 text-sm">Vị trí: {item.viTriRang}</div>}
-                        {item.soLuong && <div className="text-gray-700 text-sm">SL: {item.soLuong}</div>}
-                        {item.mau && <div className="text-gray-700 text-sm">Màu: {item.mau}</div>}
+                        {item.viTriRang && (
+                          <div className="text-gray-700 text-sm">
+                            Vị trí: {item.viTriRang}
+                          </div>
+                        )}
+                        {item.soLuong && (
+                          <div className="text-gray-700 text-sm">
+                            SL: {item.soLuong}
+                          </div>
+                        )}
+                        {item.mau && (
+                          <div className="text-gray-700 text-sm">
+                            Màu: {item.mau}
+                          </div>
+                        )}
                         <div className="text-gray-600 text-sm mt-1">
-                          Ngày bắt đầu: {formatDateVN(item.baoHanhTu)} | Hạn BH hiện tại: <span className="font-semibold text-gray-800">{formatDateVN(editingPhieu.danhSachBaoHanh?.[idx]?.baoHanhDen)}</span>
+                          Ngày bắt đầu: {formatDateVN(item.baoHanhTu)} | Hạn BH
+                          hiện tại:{" "}
+                          <span className="font-semibold text-gray-800">
+                            {formatDateVN(
+                              editingPhieu.danhSachBaoHanh?.[idx]?.baoHanhDen
+                            )}
+                          </span>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-12 gap-3 items-center">
                         <div className="col-span-5">
-                          <label className="block text-xs font-semibold text-gray-700 mb-1">Chọn năm bảo hành:</label>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Chọn năm bảo hành:
+                          </label>
                           <TextField
                             select
                             value={item.selectedYears ?? ""}
                             onChange={(e) => {
                               const val = e.target.value;
                               const newDanhSach = [...editForm.danhSachBaoHanh];
-                              const newEndDateStr = val === "" ? item.baoHanhTu : addYearsToDate(item.baoHanhTu, Number(val));
+                              const newEndDateStr =
+                                val === ""
+                                  ? item.baoHanhTu
+                                  : addYearsToDate(item.baoHanhTu, Number(val));
                               newDanhSach[idx] = {
                                 ...newDanhSach[idx],
                                 selectedYears: val === "" ? "" : Number(val),
                                 customEndDate: "",
-                                baoHanhDen: new Date(newEndDateStr).toISOString()
+                                baoHanhDen: new Date(
+                                  newEndDateStr
+                                ).toISOString(),
                               };
-                              setEditForm({ ...editForm, danhSachBaoHanh: newDanhSach });
+                              setEditForm({
+                                ...editForm,
+                                danhSachBaoHanh: newDanhSach,
+                              });
                             }}
                             fullWidth
                             size="small"
-                            inputProps={{ style: { fontSize: '14px' } }}
+                            inputProps={{ style: { fontSize: "14px" } }}
                           >
                             <MenuItem value="">-- Chọn năm --</MenuItem>
-                            {Array.from({ length: 11 }, (_, i) => i).map((year) => (
-                              <MenuItem key={year} value={year}>
-                                {year} năm
-                              </MenuItem>
-                            ))}
+                            {Array.from({ length: 11 }, (_, i) => i).map(
+                              (year) => (
+                                <MenuItem key={year} value={year}>
+                                  {year} năm
+                                </MenuItem>
+                              )
+                            )}
                           </TextField>
                         </div>
 
                         <div className="col-span-2 flex items-center justify-center mt-4">
-                          <span className="text-gray-400 text-xs font-medium">hoặc</span>
+                          <span className="text-gray-400 text-xs font-medium">
+                            hoặc
+                          </span>
                         </div>
 
                         <div className="col-span-5">
-                          <label className="block text-xs font-semibold text-gray-700 mb-1">Chọn ngày bảo hành đến:</label>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Chọn ngày bảo hành đến:
+                          </label>
                           <TextField
                             type="date"
                             value={item.customEndDate || ""}
@@ -385,20 +569,28 @@ const PhieuBaoHanhPage = () => {
                                 ...newDanhSach[idx],
                                 customEndDate: val,
                                 selectedYears: "",
-                                baoHanhDen: val ? new Date(val).toISOString() : new Date(item.baoHanhTu).toISOString()
+                                baoHanhDen: val
+                                  ? new Date(val).toISOString()
+                                  : new Date(item.baoHanhTu).toISOString(),
                               };
-                              setEditForm({ ...editForm, danhSachBaoHanh: newDanhSach });
+                              setEditForm({
+                                ...editForm,
+                                danhSachBaoHanh: newDanhSach,
+                              });
                             }}
                             fullWidth
                             size="small"
-                            inputProps={{ style: { fontSize: '14px' } }}
+                            inputProps={{ style: { fontSize: "14px" } }}
                           />
                         </div>
 
                         <div className="mt-2 pt-3 border-t border-green-200 bg-green-50 rounded px-3 py-2 flex items-center gap-2">
-                          <span className="font-semibold text-sm text-green-900">Kết quả:</span>
+                          <span className="font-semibold text-sm text-green-900">
+                            Kết quả:
+                          </span>
                           <span className="text-sm text-green-800">
-                            {formatDateVN(item.baoHanhTu)} → {formatDateVN(item.baoHanhDen)}
+                            {formatDateVN(item.baoHanhTu)} →{" "}
+                            {formatDateVN(item.baoHanhDen)}
                           </span>
                         </div>
                       </div>
@@ -410,7 +602,9 @@ const PhieuBaoHanhPage = () => {
               <TextField
                 label="Ghi chú"
                 value={editForm.ghiChu}
-                onChange={(e) => setEditForm({ ...editForm, ghiChu: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, ghiChu: e.target.value })
+                }
                 fullWidth
                 multiline
                 rows={2}
@@ -421,7 +615,11 @@ const PhieuBaoHanhPage = () => {
         </DialogContent>
         <DialogActions className="p-4">
           <Button onClick={() => setIsEditModalOpen(false)}>Hủy</Button>
-          <Button onClick={handleSaveEdit} variant="contained" disabled={loading}>
+          <Button
+            onClick={handleSaveEdit}
+            variant="contained"
+            disabled={loading}
+          >
             {loading ? "Đang lưu..." : "Lưu"}
           </Button>
         </DialogActions>

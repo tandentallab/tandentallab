@@ -10,23 +10,27 @@ import {
   parseISO,
 } from "date-fns";
 import ThongKeKeHoachGiaoHang from "./ThongKeKeHoachGiaoHang";
-import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import {
+  FiFilter,
+  FiSearch,
+  FiRefreshCw,
+  FiPlus,
+  FiMoreVertical,
+  FiDownload,
+} from "react-icons/fi";
 
 const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
   const { allData: data, loading } = useSelector((state) => state.donHang);
 
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
-
-  // 🔥 FILTER STATE
   const [filterType, setFilterType] = useState("all");
-  // all | today | range | overdue
-
-  const [filterStatus, setFilterStatus] = useState("all");
-
+  const [filterStatus, setFilterStatus] = useState("Chờ xử lý");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [showFilterBar, setShowFilterBar] = useState(false);
 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -36,7 +40,6 @@ const KeHoachGiaoHangTable = () => {
   }, [dispatch]);
 
   const todayStart = startOfDay(new Date());
-  const todayEnd = endOfDay(new Date());
 
   const navigate = useNavigate();
 
@@ -46,38 +49,28 @@ const KeHoachGiaoHangTable = () => {
 
     result = result.filter((order) => {
       const henGiaoDate = parseISO(order.henGiao);
-
       const overdue =
         isBefore(henGiaoDate, todayStart) && order.trangThai !== "Hoàn thành";
-
       const dueToday = isToday(henGiaoDate);
-
       const from = fromDate ? startOfDay(new Date(fromDate)) : null;
-
       const to = toDate ? endOfDay(new Date(toDate)) : null;
-
       const inRange = from && to && henGiaoDate >= from && henGiaoDate <= to;
 
-      // 🔥 FILTER TYPE
       if (filterType === "today") return dueToday;
       if (filterType === "overdue") return overdue;
       if (filterType === "range") return inRange;
-
       return true;
     });
 
-    // // 🔥 FILTER TRẠNG THÁI
-    // if (filterStatus !== "all") {
-    //   result = result.filter(
-    //     (order) => order.trangThaiCongDoan === filterStatus
-    //   );
-    // }
+    // 🔥 FILTER TRẠNG THÁI
+    if (filterStatus !== "all") {
+      result = result.filter((order) => order.trangThai === filterStatus);
+    }
 
     // 🔥 FILTER ĐƠN GẤP
     if (showUrgentOnly) {
       result = result.filter((order) => {
         const henGiaoDate = parseISO(order.henGiao);
-
         return (
           isToday(henGiaoDate) ||
           (isBefore(henGiaoDate, todayStart) &&
@@ -86,284 +79,358 @@ const KeHoachGiaoHangTable = () => {
       });
     }
 
+    // 🔥 SEARCH
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      result = result.filter(
+        (o) =>
+          (o.maDonHang && o.maDonHang.toLowerCase().includes(q)) ||
+          (o.nhaKhoa?.hoVaTen && o.nhaKhoa.hoVaTen.toLowerCase().includes(q)) ||
+          (o.bacSi?.hoVaTen && o.bacSi.hoVaTen.toLowerCase().includes(q)) ||
+          (o.benhNhan?.hoVaTen && o.benhNhan.hoVaTen.toLowerCase().includes(q))
+      );
+    }
+
     return result;
-  }, [data, showUrgentOnly, filterType, fromDate, toDate]);
+  }, [
+    data,
+    showUrgentOnly,
+    filterType,
+    filterStatus,
+    fromDate,
+    toDate,
+    searchText,
+  ]);
 
   // ================= PAGINATION =================
   const totalPages = Math.ceil(filteredOrders.length / rowsPerPage);
 
   const paginatedOrders = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
-
-    const end = start + rowsPerPage;
-
-    return filteredOrders.slice(start, end);
+    return filteredOrders.slice(start, start + rowsPerPage);
   }, [filteredOrders, page, rowsPerPage]);
 
-  // reset page khi filter đổi
   useEffect(() => {
     setPage(1);
-  }, [filterType, fromDate, toDate, showUrgentOnly]);
+  }, [filterType, fromDate, toDate, showUrgentOnly, filterStatus, searchText]);
 
   // ================= COUNT =================
   const countToday = data.filter((o) => isToday(parseISO(o.henGiao))).length;
-
   const countOverdue = data.filter(
     (o) =>
       isBefore(parseISO(o.henGiao), todayStart) && o.trangThai !== "Hoàn thành"
   ).length;
-
   const countDone = data.filter((o) => o.trangThai === "Hoàn thành").length;
 
-  if (loading) return <div className="p-6 text-center">Đang tải...</div>;
+  if (loading)
+    return <div className="p-6 text-center text-gray-500">Đang tải...</div>;
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
+    <div className="p-4 bg-gray-100 min-h-screen font-sans">
+      <div className="max-w-full mx-auto">
         {/* ================= HEADER STATS ================= */}
         <ThongKeKeHoachGiaoHang
           countToday={countToday}
           countOverdue={countOverdue}
           countDone={countDone}
-        ></ThongKeKeHoachGiaoHang>
+        />
 
-        {/* ================= FILTER ================= */}
-        <div className="flex flex-wrap gap-3 mb-4 items-center">
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="border px-3 py-2 rounded"
+        {/* ================= TOOLBAR ================= */}
+        <div className="flex items-center gap-2 mb-2 px-1">
+          {/* Filter icon toggle */}
+          <button
+            onClick={() => setShowFilterBar((v) => !v)}
+            className={`p-2 rounded hover:bg-gray-200 transition ${
+              showFilterBar ? "text-blue-600" : "text-gray-500"
+            }`}
+            title="Lọc"
           >
-            <option value="all">Tất cả</option>
-            <option value="today">Giao hôm nay</option>
-            <option value="overdue">Trễ hẹn</option>
-            <option value="range">Khoảng ngày</option>
-          </select>
+            <FiFilter size={18} />
+          </button>
 
-          {filterType === "range" && (
-            <>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="border px-2 py-2 rounded"
-              />
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="border px-2 py-2 rounded"
-              />
-            </>
-          )}
+          <div className="flex-1" />
 
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="border px-3 py-2 rounded"
-          >
-            <option value="all">Tất cả trạng thái</option>
-
-            <option value="Thử sườn">Thử sườn</option>
-
-            <option value="Thử sứ">Thử sứ</option>
-
-            <option value="Hoàn thành">Hoàn thành</option>
-          </select>
-
-          {/* Toggle */}
-          <label className="flex items-center gap-2 ml-auto">
-            <span>Đơn gấp</span>
-            <input
-              type="checkbox"
-              checked={showUrgentOnly}
-              onChange={() => setShowUrgentOnly(!showUrgentOnly)}
+          {/* Search */}
+          <div className="relative">
+            <FiSearch
+              size={15}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
             />
-          </label>
+            <input
+              type="text"
+              placeholder="Tìm kiếm..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="pl-8 pr-3 py-1.5 border rounded-full text-sm bg-white w-52 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            />
+          </div>
+
+          {/* Actions */}
+          <button
+            onClick={() => dispatch(fetchDonHangAll())}
+            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
+            title="Làm mới"
+          >
+            <FiRefreshCw size={17} />
+          </button>
         </div>
+
+        {/* ================= FILTER BAR ================= */}
+        {showFilterBar && (
+          <div className="flex flex-wrap gap-2 mb-3 px-1 py-2 bg-white rounded border text-sm">
+            {/* Loại lọc ngày */}
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="border px-2 py-1.5 rounded text-sm"
+            >
+              <option value="all">Tất cả ngày</option>
+              <option value="today">Giao hôm nay</option>
+              <option value="overdue">Trễ hẹn</option>
+              <option value="range">Khoảng ngày</option>
+            </select>
+
+            {filterType === "range" && (
+              <>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="border px-2 py-1.5 rounded text-sm"
+                />
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="border px-2 py-1.5 rounded text-sm"
+                />
+              </>
+            )}
+
+            {/* Lọc trạng thái */}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="border px-2 py-1.5 rounded text-sm"
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="Chờ xử lý">Chờ xử lý</option>
+              <option value="Hoàn thành">Hoàn thành</option>
+            </select>
+
+            {/* Đơn gấp */}
+            {/* <label className="flex items-center gap-1.5 ml-auto cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showUrgentOnly}
+                onChange={() => setShowUrgentOnly(!showUrgentOnly)}
+                className="accent-red-500"
+              />
+              <span className="text-red-600 font-medium">Đơn gấp</span>
+            </label> */}
+          </div>
+        )}
 
         {/* ================= TABLE ================= */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          {/* 🔥 Responsive wrapper */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-3 text-left whitespace-nowrap">
-                    Số đơn hàng
+            <table className="w-full min-w-[900px] text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
+                    Số
                   </th>
-
-                  <th className="p-3 text-left whitespace-nowrap">
+                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
+                    Nhận lúc
+                  </th>
+                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
+                    Hẹn giao
+                  </th>
+                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
                     Khách hàng
                   </th>
-
-                  <th className="p-3 text-left whitespace-nowrap">Bác sĩ</th>
-
-                  <th className="p-3 text-left whitespace-nowrap">Bệnh nhân</th>
-
-                  <th className="p-3 text-left whitespace-nowrap">Hẹn giao</th>
-
-                  <th className="p-3 text-left whitespace-nowrap">
+                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
+                    Bác sĩ
+                  </th>
+                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
+                    Bệnh nhân
+                  </th>
+                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
                     Trạng thái
                   </th>
+                  {/* <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
+                    Tiến độ
+                  </th>
+                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
+                    Tiến độ sản xuất
+                  </th> */}
                 </tr>
               </thead>
 
               <tbody>
                 {paginatedOrders.map((order) => {
                   const date = parseISO(order.henGiao);
-
                   const overdue =
                     isBefore(date, todayStart) &&
                     order.trangThai !== "Hoàn thành";
-
                   const today = isToday(date);
 
+                  const maDon =
+                    order.maDonHang ||
+                    `TAN${order._id
+                      .substring(order._id.length - 8)
+                      .toUpperCase()}`;
+
                   return (
-                    <tr key={order._id} className="border-t hover:bg-gray-50">
+                    <tr
+                      key={order._id}
+                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    >
                       {/* SỐ ĐƠN */}
-                      <td className="p-3 font-medium whitespace-nowrap">
-                        <Button
-                          variant="text"
-                          onClick={() => {
-                            navigate(`/donhang/${order._id}/edit`);
-                          }}
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        <button
+                          onClick={() => navigate(`/donhang/${order._id}/edit`)}
+                          className={`font-medium text-sm hover:underline ${
+                            overdue
+                              ? "text-red-500"
+                              : today
+                              ? "text-blue-600"
+                              : "text-gray-700"
+                          }`}
                         >
-                          {order.maDonHang ||
-                            `TAN${order._id
-                              .substring(order._id.length - 8)
-                              .toUpperCase()}`}
-                        </Button>
+                          {maDon}
+                        </button>
                       </td>
 
-                      {/* KHÁCH HÀNG */}
-                      <td className="p-3 min-w-[180px]">
-                        <div className="font-medium break-words">
-                          {order.nhaKhoa?.hoVaTen}
-                        </div>
-                      </td>
-
-                      {/* BÁC SĨ */}
-                      <td className="p-3 min-w-[150px]">
-                        <div className="break-words">
-                          {order.bacSi?.hoVaTen}
-                        </div>
-                      </td>
-
-                      {/* BỆNH NHÂN */}
-                      <td className="p-3 min-w-[150px]">
-                        <div className="break-words">
-                          {order.benhNhan?.hoVaTen}
-                        </div>
+                      {/* NHẬN LÚC */}
+                      <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap text-xs">
+                        {order.ngayNhan
+                          ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
+                          : "—"}
                       </td>
 
                       {/* HẸN GIAO */}
-                      <td className="p-3 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span
-                            className={`font-bold ${
-                              overdue
-                                ? "text-red-600"
-                                : today
-                                ? "text-orange-500"
-                                : ""
-                            }`}
-                          >
-                            {format(date, "dd/MM/yyyy HH:mm")}
-                          </span>
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        <span
+                          className={`text-sm font-medium ${
+                            overdue
+                              ? "text-red-500"
+                              : today
+                              ? "text-gray-800"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          {format(date, "dd/MM/yyyy HH:mm")}
+                        </span>
+                      </td>
 
-                          {overdue && (
-                            <span className="text-xs text-red-600">
-                              Trễ hẹn
-                            </span>
-                          )}
+                      {/* KHÁCH HÀNG */}
+                      <td className="px-4 py-2.5 min-w-[180px]">
+                        <span className="text-gray-800 text-sm">
+                          {order.nhaKhoa?.hoVaTen}
+                        </span>
+                      </td>
 
-                          {today && (
-                            <span className="text-xs text-orange-500">
-                              Hôm nay
-                            </span>
-                          )}
-                        </div>
+                      {/* BÁC SĨ */}
+                      <td className="px-4 py-2.5 min-w-[120px] text-gray-700 text-sm">
+                        {order.bacSi?.hoVaTen}
+                      </td>
+
+                      {/* BỆNH NHÂN */}
+                      <td className="px-4 py-2.5 min-w-[140px] text-gray-700 text-sm">
+                        {order.benhNhan?.hoVaTen}
                       </td>
 
                       {/* TRẠNG THÁI */}
-                      <td className="p-3 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${
+                          className={`text-xs font-medium ${
                             order.trangThai === "Hoàn thành"
-                              ? "bg-green-100 text-green-700"
+                              ? "text-green-700"
                               : order.trangThai === "Đang sản xuất"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-yellow-100 text-yellow-700"
+                              ? "text-blue-700"
+                              : "text-gray-600"
                           }`}
                         >
-                          {order.trangThai}
+                          {order.trangThai
+                            ? order.trangThai.length > 10
+                              ? order.trangThai.substring(0, 10) + "..."
+                              : order.trangThai
+                            : "—"}
                         </span>
                       </td>
+
+                      {/* TIẾN ĐỘ */}
+                      {/* <td className="px-4 py-2.5 whitespace-nowrap min-w-[100px]">
+                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-blue-400 rounded-full"
+                            style={{ width: `${order.tienDo || 0}%` }}
+                          />
+                        </div>
+                      </td> */}
+
+                      {/* TIẾN ĐỘ SẢN XUẤT */}
+                      {/* <td className="px-4 py-2.5 whitespace-nowrap min-w-[120px]">
+                        <div className="w-28 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-blue-300 rounded-full"
+                            style={{ width: `${order.tienDoSanXuat || 0}%` }}
+                          />
+                        </div>
+                      </td> */}
                     </tr>
                   );
                 })}
 
                 {filteredOrders.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="text-center p-6 text-gray-400">
+                    <td
+                      colSpan="9"
+                      className="text-center py-10 text-gray-400 text-sm"
+                    >
                       Không có dữ liệu
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
-            {/* ================= PAGINATION ================= */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-3 px-4 py-4 border-t bg-white">
-              {/* LEFT */}
-              <div className="flex items-center gap-2 text-sm">
-                <span>Hiển thị</span>
 
+            {/* ================= PAGINATION ================= */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-2 px-4 py-3 border-t bg-white text-sm">
+              <div className="flex items-center gap-2 text-gray-600">
+                <span>Hiển thị</span>
                 <select
                   value={rowsPerPage}
                   onChange={(e) => {
                     setRowsPerPage(Number(e.target.value));
                     setPage(1);
                   }}
-                  className="border rounded px-2 py-1"
+                  className="border rounded px-2 py-1 text-sm"
                 >
                   <option value={5}>5</option>
                   <option value={10}>10</option>
                   <option value={20}>20</option>
                   <option value={50}>50</option>
                 </select>
-
                 <span>/ {filteredOrders.length} đơn</span>
               </div>
 
-              {/* RIGHT */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <button
                   disabled={page === 1}
-                  onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                  className={`px-3 py-1 rounded border ${
-                    page === 1
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-gray-100"
-                  }`}
+                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                  className="px-3 py-1 rounded border text-sm disabled:opacity-40 hover:bg-gray-100 transition"
                 >
                   Trước
                 </button>
-
-                <span className="text-sm">
+                <span className="px-2 text-gray-600">
                   Trang {page} / {totalPages || 1}
                 </span>
-
                 <button
                   disabled={page === totalPages || totalPages === 0}
-                  onClick={() =>
-                    setPage((prev) => Math.min(prev + 1, totalPages))
-                  }
-                  className={`px-3 py-1 rounded border ${
-                    page === totalPages || totalPages === 0
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-gray-100"
-                  }`}
+                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                  className="px-3 py-1 rounded border text-sm disabled:opacity-40 hover:bg-gray-100 transition"
                 >
                   Sau
                 </button>

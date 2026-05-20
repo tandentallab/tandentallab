@@ -1,264 +1,240 @@
 import React, { useEffect, useMemo, useState } from "react";
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
-  Tooltip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-} from "@mui/material";
-
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import AddIcon from "@mui/icons-material/Add";
-
 import { useDispatch, useSelector } from "react-redux";
-
 import {
   fetchNhanVien,
   deleteNhanVien,
 } from "../../redux/slices/nhanVienSlice";
-
 import NhanVienFormModal from "./NhanVienFormModal";
 import { useNavigate } from "react-router-dom";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import AddIcon from "@mui/icons-material/Add";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import { Tooltip } from "@mui/material";
 
 const NhanVienTable = () => {
   const dispatch = useDispatch();
-
   const [open, setOpen] = useState(false);
-
   const [selectedNhanVien, setSelectedNhanVien] = useState(null);
-
   const [sortLuong, setSortLuong] = useState("");
-
-  const handleOpen = () => {
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-
   const { data } = useSelector((state) => state.nhanVien);
+  const navigate = useNavigate();
 
   useEffect(() => {
     dispatch(fetchNhanVien());
   }, [dispatch]);
 
-  // ================= SORT =================
-
   const sortedData = useMemo(() => {
     const arr = [...(data || [])];
-
-    if (sortLuong === "asc") {
+    if (sortLuong === "asc")
       arr.sort(
         (a, b) => Number(a.luongCanBan || 0) - Number(b.luongCanBan || 0)
       );
-    }
-
-    if (sortLuong === "desc") {
+    if (sortLuong === "desc")
       arr.sort(
         (a, b) => Number(b.luongCanBan || 0) - Number(a.luongCanBan || 0)
       );
-    }
-
     return arr;
   }, [data, sortLuong]);
 
-  // ================= DELETE =================
-
   const handleDelete = (id) => {
-    const confirmDelete = window.confirm("Bạn có chắc muốn xóa nhân viên này?");
-
-    if (!confirmDelete) return;
-
+    if (!window.confirm("Bạn có chắc muốn xóa nhân viên này?")) return;
     dispatch(deleteNhanVien(id));
   };
 
-  const navigate = useNavigate();
+  const COLS = [
+    "Họ tên",
+    "Chức vụ",
+    "CCCD",
+    "SĐT",
+    "Email",
+    "Địa chỉ",
+    "Lương cơ bản",
+    "",
+  ];
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Danh sách nhân viên</h2>
+    <div className="p-6 bg-slate-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">
+              Nhân viên
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {sortedData.length} nhân viên trong hệ thống
+            </p>
+          </div>
 
-        <div className="flex items-center gap-3">
-          {/* Sort */}
-          <FormControl
-            size="small"
-            sx={{
-              minWidth: 220,
-              background: "#fff",
-            }}
-          >
-            <InputLabel>Sắp xếp lương</InputLabel>
-
-            <Select
+          <div className="flex items-center gap-2">
+            <select
               value={sortLuong}
-              label="Sắp xếp lương"
               onChange={(e) => setSortLuong(e.target.value)}
+              className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
             >
-              <MenuItem value="">Mặc định</MenuItem>
+              <option value="">Sắp xếp lương</option>
+              <option value="asc">Lương tăng dần</option>
+              <option value="desc">Lương giảm dần</option>
+            </select>
 
-              <MenuItem value="asc">Lương tăng dần</MenuItem>
-
-              <MenuItem value="desc">Lương giảm dần</MenuItem>
-            </Select>
-          </FormControl>
-
-          {/* Add */}
-          <Tooltip title="Thêm nhân viên">
-            <IconButton
-              color="primary"
+            <button
               onClick={() => {
                 setSelectedNhanVien(null);
-
-                handleOpen();
+                setOpen(true);
               }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white shadow transition-all"
+              style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
-              <AddIcon />
-            </IconButton>
-          </Tooltip>
+              <AddIcon sx={{ fontSize: 17 }} />
+              Thêm nhân viên
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="rounded-xl shadow overflow-hidden bg-white">
+          <div className="overflow-x-auto">
+            <table
+              className="w-full text-sm"
+              style={{ borderCollapse: "collapse" }}
+            >
+              <thead>
+                <tr style={{ background: "#2563eb" }}>
+                  {COLS.map((col) => (
+                    <th
+                      key={col}
+                      className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                      style={{ color: "#fff" }}
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedData.length > 0 ? (
+                  sortedData.map((nv, idx) => (
+                    <tr
+                      key={nv._id}
+                      style={{
+                        background: idx % 2 === 0 ? "#fff" : "#f8fafc",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#eff6ff")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background =
+                          idx % 2 === 0 ? "#fff" : "#f8fafc")
+                      }
+                    >
+                      <td
+                        className="px-4 py-3 whitespace-nowrap"
+                        style={{ borderBottom: "1px solid #f1f5f9" }}
+                      >
+                        <button
+                          onClick={() => navigate(`/nhan-vien/${nv._id}`)}
+                          className="font-semibold text-blue-600 hover:underline text-sm"
+                        >
+                          {nv.hoVaTen}
+                        </button>
+                      </td>
+                      <td
+                        className="px-4 py-3 text-slate-600 text-sm whitespace-nowrap"
+                        style={{ borderBottom: "1px solid #f1f5f9" }}
+                      >
+                        <span className="px-2 py-0.5 bg-slate-100 rounded-full text-xs font-medium">
+                          {nv.chucVu || "—"}
+                        </span>
+                      </td>
+                      <td
+                        className="px-4 py-3 text-slate-500 text-sm font-mono"
+                        style={{ borderBottom: "1px solid #f1f5f9" }}
+                      >
+                        {nv.cccd}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-slate-600 text-sm whitespace-nowrap"
+                        style={{ borderBottom: "1px solid #f1f5f9" }}
+                      >
+                        {nv.soDienThoai || "—"}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-slate-500 text-sm"
+                        style={{ borderBottom: "1px solid #f1f5f9" }}
+                      >
+                        {nv.email || "—"}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-slate-500 text-sm max-w-[180px] truncate"
+                        style={{ borderBottom: "1px solid #f1f5f9" }}
+                      >
+                        {nv.diaChi || "—"}
+                      </td>
+                      <td
+                        className="px-4 py-3 whitespace-nowrap font-bold text-emerald-600 text-sm"
+                        style={{ borderBottom: "1px solid #f1f5f9" }}
+                      >
+                        {Number(nv.luongCanBan).toLocaleString("vi-VN")} đ
+                      </td>
+                      <td
+                        className="px-4 py-3 whitespace-nowrap"
+                        style={{ borderBottom: "1px solid #f1f5f9" }}
+                      >
+                        <div className="flex items-center gap-0.5">
+                          <Tooltip title="Chỉnh sửa">
+                            <button
+                              onClick={() => {
+                                setSelectedNhanVien(nv);
+                                setOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors"
+                            >
+                              <EditIcon sx={{ fontSize: 17 }} />
+                            </button>
+                          </Tooltip>
+                          <Tooltip title="Chi tiết">
+                            <button
+                              onClick={() => navigate(`/nhan-vien/${nv._id}`)}
+                              className="p-1.5 rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors"
+                            >
+                              <AssignmentIcon sx={{ fontSize: 17 }} />
+                            </button>
+                          </Tooltip>
+                          <Tooltip title="Xóa">
+                            <button
+                              onClick={() => handleDelete(nv._id)}
+                              className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 transition-colors"
+                            >
+                              <DeleteIcon sx={{ fontSize: 17 }} />
+                            </button>
+                          </Tooltip>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={8}
+                      className="text-center py-12 text-slate-400 text-sm"
+                    >
+                      Không có dữ liệu
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      {/* Table */}
-      <TableContainer
-        component={Paper}
-        sx={{
-          borderRadius: 2,
-        }}
-      >
-        <Table>
-          <TableHead>
-            <TableRow
-              sx={{
-                backgroundColor: "#1976d2",
-              }}
-            >
-              {[
-                "Họ tên",
-                "Chức vụ",
-                "CCCD",
-                "SĐT",
-                "Email",
-                "Địa chỉ",
-                "Lương cơ bản",
-                "Thao tác",
-              ].map((head) => (
-                <TableCell
-                  key={head}
-                  sx={{
-                    color: "#fff",
-                    fontWeight: 700,
-                    backgroundColor: "#1976d2",
-                  }}
-                >
-                  {head}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-
-          <TableBody>
-            {sortedData?.length > 0 ? (
-              sortedData.map((nv) => (
-                <TableRow key={nv._id} hover>
-                  <TableCell>
-                    <Button
-                      variant="text"
-                      onClick={() => {
-                        navigate(`/nhan-vien/${nv._id}`);
-                      }}
-                    >
-                      {nv.hoVaTen}
-                    </Button>
-                  </TableCell>
-
-                  <TableCell>{nv.chucVu}</TableCell>
-
-                  <TableCell>{nv.cccd}</TableCell>
-
-                  <TableCell>{nv.soDienThoai}</TableCell>
-
-                  <TableCell>{nv.email}</TableCell>
-
-                  <TableCell>{nv.diaChi}</TableCell>
-
-                  <TableCell
-                    sx={{
-                      fontWeight: 600,
-                      color: "green",
-                    }}
-                  >
-                    {Number(nv.luongCanBan).toLocaleString("vi-VN")}đ
-                  </TableCell>
-
-                  <TableCell>
-                    {/* Edit */}
-                    <Tooltip title="Chỉnh sửa">
-                      <IconButton
-                        color="primary"
-                        onClick={() => {
-                          setSelectedNhanVien(nv);
-
-                          handleOpen();
-                        }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-
-                    {/* Edit */}
-                    <Tooltip title="Chi tiết">
-                      <IconButton
-                        color="primary"
-                        onClick={() => {
-                          navigate(`/nhan-vien/${nv._id}`);
-                        }}
-                      >
-                        <AssignmentIcon color="success"></AssignmentIcon>
-                      </IconButton>
-                    </Tooltip>
-
-                    {/* Delete */}
-                    <Tooltip title="Xóa">
-                      <IconButton
-                        color="error"
-                        onClick={() => handleDelete(nv._id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={8} align="center">
-                  Không có dữ liệu
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* Modal */}
       <NhanVienFormModal
         open={open}
-        onClose={handleClose}
+        onClose={() => setOpen(false)}
         initialData={selectedNhanVien}
       />
     </div>

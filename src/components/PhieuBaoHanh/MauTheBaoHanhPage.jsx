@@ -26,7 +26,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatUnderlinedIcon from "@mui/icons-material/FormatUnderlined";
-import TitleIcon from "@mui/icons-material/Title"; 
+import TitleIcon from "@mui/icons-material/Title";
 import PrintIcon from "@mui/icons-material/Print"; // Bổ sung Icon In
 import { api } from "../../config/api";
 import { toast } from "sonner";
@@ -145,7 +145,7 @@ const MauTheBaoHanhPage = () => {
         newConfigs[field.loaiTruong] = {
           enabled: true,
           leTren: field.leTren || 10,
-          leTrai: field.leTrai || field.leTraI || 10, 
+          leTrai: field.leTrai || field.leTraI || 10,
           coChu: field.coChu || 12,
           doDam: field.doDam || false,
           nghieng: field.nghieng || false,
@@ -217,7 +217,9 @@ const MauTheBaoHanhPage = () => {
       }
 
       if (res.data?.success) {
-        toast.success(isEditMode ? "Cập nhật thành công" : "Tạo mẫu thành công");
+        toast.success(
+          isEditMode ? "Cập nhật thành công" : "Tạo mẫu thành công"
+        );
         setIsEditorOpen(false);
         loadMauTheList();
       } else {
@@ -249,10 +251,10 @@ const MauTheBaoHanhPage = () => {
   // 👉 HÀM MỞ CỬA SỔ IN THỬ
   const handlePrintTest = () => {
     if (!printRef.current) return;
-    
+
     // Lấy nội dung HTML của thẻ (phải lấy innerHTML chứa các div con bên trong)
     const printContent = printRef.current.innerHTML;
-    
+
     // Mở popup ẩn
     const printWindow = window.open("", "", "width=800,height=600");
     printWindow.document.write(`
@@ -292,10 +294,10 @@ const MauTheBaoHanhPage = () => {
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
     printWindow.focus();
-    
+
     // Đợi 300ms cho QR Code (SVG) render xong rồi mới kích hoạt hộp thoại in
     setTimeout(() => {
       printWindow.print();
@@ -310,10 +312,18 @@ const MauTheBaoHanhPage = () => {
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-bold text-gray-800">Mẫu Thẻ Bảo Hành</h1>
         <div className="flex gap-2">
-          <Button variant="outlined" onClick={loadMauTheList} disabled={loading}>
+          <Button
+            variant="outlined"
+            onClick={loadMauTheList}
+            disabled={loading}
+          >
             Làm mới
           </Button>
-          <Button variant="contained" color="primary" onClick={handleOpenCreate}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleOpenCreate}
+          >
             + Tạo Mẫu Mới
           </Button>
         </div>
@@ -331,7 +341,10 @@ const MauTheBaoHanhPage = () => {
 
       {/* DESKTOP: TABLE LAYOUT */}
       <div className="hidden md:block">
-        <div style={{ WebkitOverflowScrolling: "touch" }} className="overflow-x-auto">
+        <div
+          style={{ WebkitOverflowScrolling: "touch" }}
+          className="overflow-x-auto"
+        >
           <TableContainer component={Paper} sx={{ minWidth: 700 }}>
             <Table size="small" sx={{ minWidth: 700 }}>
               <TableHead className="bg-gray-100">
@@ -345,14 +358,24 @@ const MauTheBaoHanhPage = () => {
               <TableBody>
                 {filteredMauThe.map((mau) => (
                   <TableRow key={mau._id} hover>
-                    <TableCell className="font-medium text-blue-700">{mau.tenMau}</TableCell>
+                    <TableCell className="font-medium text-blue-700">
+                      {mau.tenMau}
+                    </TableCell>
                     <TableCell>{mau.moTa}</TableCell>
                     <TableCell>{mau.cacTruong?.length || 0}</TableCell>
                     <TableCell align="center">
-                      <IconButton size="small" color="primary" onClick={() => handleOpenEdit(mau)}>
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => handleOpenEdit(mau)}
+                      >
                         <EditIcon />
                       </IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleDelete(mau._id)}>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDelete(mau._id)}
+                      >
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
@@ -372,14 +395,28 @@ const MauTheBaoHanhPage = () => {
               <div className="space-y-3">
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1">
-                    <div className="text-xs text-gray-500 uppercase font-semibold mb-1">Tên Mẫu</div>
-                    <div className="font-bold text-lg text-blue-700">{mau.tenMau}</div>
+                    <div className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                      Tên Mẫu
+                    </div>
+                    <div className="font-bold text-lg text-blue-700">
+                      {mau.tenMau}
+                    </div>
                   </div>
                   <div className="flex gap-1">
-                    <IconButton size="small" color="primary" onClick={() => handleOpenEdit(mau)} title="Sửa">
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => handleOpenEdit(mau)}
+                      title="Sửa"
+                    >
                       <EditIcon />
                     </IconButton>
-                    <IconButton size="small" color="error" onClick={() => handleDelete(mau._id)} title="Xóa">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleDelete(mau._id)}
+                      title="Xóa"
+                    >
                       <DeleteIcon />
                     </IconButton>
                   </div>
@@ -387,20 +424,28 @@ const MauTheBaoHanhPage = () => {
 
                 {mau.moTa && (
                   <div>
-                    <div className="text-xs text-gray-500 uppercase font-semibold mb-1">Mô Tả</div>
+                    <div className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                      Mô Tả
+                    </div>
                     <div className="text-gray-700">{mau.moTa}</div>
                   </div>
                 )}
 
                 <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                  <div className="text-xs text-gray-500 uppercase font-semibold mb-1">Số Trường Dữ Liệu</div>
-                  <div className="text-2xl font-bold text-blue-600">{mau.cacTruong?.length || 0}</div>
+                  <div className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                    Số Trường Dữ Liệu
+                  </div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {mau.cacTruong?.length || 0}
+                  </div>
                 </div>
               </div>
             </Paper>
           ))
         ) : (
-          <Paper className="p-8 text-center text-gray-500">Không tìm thấy mẫu thẻ nào</Paper>
+          <Paper className="p-8 text-center text-gray-500">
+            Không tìm thấy mẫu thẻ nào
+          </Paper>
         )}
       </div>
 
@@ -413,25 +458,46 @@ const MauTheBaoHanhPage = () => {
       >
         <AppBar sx={{ position: "relative", backgroundColor: "#0284c7" }}>
           <Toolbar>
-            <IconButton edge="start" color="inherit" onClick={() => setIsEditorOpen(false)} aria-label="close">
+            <IconButton
+              edge="start"
+              color="inherit"
+              onClick={() => setIsEditorOpen(false)}
+              aria-label="close"
+            >
               <CloseIcon />
             </IconButton>
             <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
-              {isEditMode ? `Cập nhật mẫu: ${tenMau}` : "Thiết kế Mẫu thẻ bảo hành mới"}
+              {isEditMode
+                ? `Cập nhật mẫu: ${tenMau}`
+                : "Thiết kế Mẫu thẻ bảo hành mới"}
             </Typography>
-            
+
             {/* 👉 BỔ SUNG NÚT IN THỬ TẠI ĐÂY */}
             <div className="flex gap-3">
-              <Button 
-                color="inherit" 
-                onClick={handlePrintTest} 
+              <Button
+                color="inherit"
+                onClick={handlePrintTest}
                 startIcon={<PrintIcon />}
-                sx={{ fontWeight: 'bold', border: '1px solid rgba(255,255,255,0.5)', bgcolor: 'rgba(255,255,255,0.1)' }}
+                sx={{
+                  fontWeight: "bold",
+                  border: "1px solid rgba(255,255,255,0.5)",
+                  bgcolor: "rgba(255,255,255,0.1)",
+                }}
               >
                 IN THỬ
               </Button>
 
-              <Button autoFocus color="inherit" onClick={handleSave} disabled={loading} sx={{ fontWeight: 'bold', fontSize: '16px', border: '1px solid white' }}>
+              <Button
+                autoFocus
+                color="inherit"
+                onClick={handleSave}
+                disabled={loading}
+                sx={{
+                  fontWeight: "bold",
+                  fontSize: "16px",
+                  border: "1px solid white",
+                }}
+              >
                 {loading ? "ĐANG LƯU..." : "LƯU CẤU HÌNH"}
               </Button>
             </div>
@@ -439,7 +505,6 @@ const MauTheBaoHanhPage = () => {
         </AppBar>
 
         <div className="flex flex-col lg:flex-row h-full bg-gray-100 overflow-hidden">
-          
           {/* TOP/LEFT: LIVE PREVIEW + INPUTS */}
           <div className="w-full lg:w-[45%] xl:w-[40%] p-4 md:p-6 flex flex-col gap-6 bg-white border-b lg:border-b-0 lg:border-r border-gray-300 overflow-y-auto shadow-lg z-10">
             <div>
@@ -463,8 +528,10 @@ const MauTheBaoHanhPage = () => {
             </div>
 
             <div className="mt-4 flex-1">
-              <div className="text-sm font-bold text-gray-500 mb-2 uppercase tracking-wider">Hiển thị trực tiếp (Kích thước thực: 86x54mm)</div>
-              
+              <div className="text-sm font-bold text-gray-500 mb-2 uppercase tracking-wider">
+                Hiển thị trực tiếp (Kích thước thực: 86x54mm)
+              </div>
+
               <div className="flex justify-center items-center bg-gray-200 p-4 md:p-8 rounded-lg border-2 border-dashed border-gray-300 min-h-[200px]">
                 {/* THẺ PREVIEW (GẮN REF ĐỂ BÊ ĐI IN) */}
                 <div
@@ -493,7 +560,11 @@ const MauTheBaoHanhPage = () => {
                             left: `${conf.leTrai}mm`,
                           }}
                         >
-                          <QRCodeSVG value="https://tandental.com/qr/DEMO" size={conf.coChu * 4 || 60} level="M" />
+                          <QRCodeSVG
+                            value="https://tandental.com/qr/DEMO"
+                            size={conf.coChu * 4 || 60}
+                            level="M"
+                          />
                         </div>
                       );
                     }
@@ -525,127 +596,173 @@ const MauTheBaoHanhPage = () => {
 
           {/* BOTTOM/RIGHT: BẢNG SETTINGS */}
           <div className="w-full lg:w-[55%] xl:w-[60%] p-4 overflow-y-auto">
-             <div className="bg-white rounded-xl shadow p-4 border border-gray-200">
-               <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">Thiết lập tọa độ và định dạng (Đơn vị: mm, pt)</h3>
-               <div style={{ WebkitOverflowScrolling: "touch" }} className="overflow-x-auto">
-               <table className="w-full min-w-[680px] md:min-w-[720px] text-sm text-left">
-                 <thead className="bg-blue-50 text-blue-900 border-b-2 border-blue-200">
-                   <tr>
-                     <th className="p-2 w-12 text-center">Bật</th>
-                     <th className="p-2 w-32">Dữ liệu</th>
-                     <th className="p-2 w-20 text-center">Lề Trên</th>
-                     <th className="p-2 w-20 text-center">Lề Trái</th>
-                     <th className="p-2 w-20 text-center">Cỡ Chữ</th>
-                     <th className="p-2 min-w-[150px] text-center">Định dạng</th>
-                   </tr>
-                 </thead>
-                 <tbody className="divide-y divide-gray-100">
-                   {AVAILABLE_FIELDS.map((field) => {
-                     const conf = fieldConfigs[field.key];
-                     const isEnabled = conf.enabled;
+            <div className="bg-white rounded-xl shadow p-4 border border-gray-200">
+              <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">
+                Thiết lập tọa độ và định dạng (Đơn vị: mm, pt)
+              </h3>
+              <div
+                style={{ WebkitOverflowScrolling: "touch" }}
+                className="overflow-x-auto"
+              >
+                <table className="w-full min-w-[680px] md:min-w-[720px] text-sm text-left">
+                  <thead className="bg-blue-50 text-blue-900 border-b-2 border-blue-200">
+                    <tr>
+                      <th className="p-2 w-12 text-center">Bật</th>
+                      <th className="p-2 w-32">Dữ liệu</th>
+                      <th className="p-2 w-20 text-center">Lề Trên</th>
+                      <th className="p-2 w-20 text-center">Lề Trái</th>
+                      <th className="p-2 w-20 text-center">Cỡ Chữ</th>
+                      <th className="p-2 min-w-[150px] text-center">
+                        Định dạng
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {AVAILABLE_FIELDS.map((field) => {
+                      const conf = fieldConfigs[field.key];
+                      const isEnabled = conf.enabled;
 
-                     return (
-                       <tr key={field.key} className={`hover:bg-gray-50 transition-colors ${isEnabled ? 'bg-white' : 'bg-gray-50 opacity-60'}`}>
-                         <td className="p-1 text-center">
-                           <Checkbox
-                             color="success"
-                             checked={isEnabled}
-                             onChange={(e) => handleConfigChange(field.key, "enabled", e.target.checked)}
-                           />
-                         </td>
-                         
-                         <td className="p-2 font-medium text-gray-700">
-                           {field.label}
-                         </td>
+                      return (
+                        <tr
+                          key={field.key}
+                          className={`hover:bg-gray-50 transition-colors ${
+                            isEnabled ? "bg-white" : "bg-gray-50 opacity-60"
+                          }`}
+                        >
+                          <td className="p-1 text-center">
+                            <Checkbox
+                              color="success"
+                              checked={isEnabled}
+                              onChange={(e) =>
+                                handleConfigChange(
+                                  field.key,
+                                  "enabled",
+                                  e.target.checked
+                                )
+                              }
+                            />
+                          </td>
 
-                         <td className="p-2">
-                           <input
-                             type="number"
-                             disabled={!isEnabled}
-                             value={conf.leTren}
-                             onChange={(e) => handleConfigChange(field.key, "leTren", e.target.value)}
-                             className="w-full text-center border border-gray-300 rounded p-1 outline-none focus:border-blue-500 disabled:bg-gray-200"
-                           />
-                         </td>
+                          <td className="p-2 font-medium text-gray-700">
+                            {field.label}
+                          </td>
 
-                         <td className="p-2">
-                           <input
-                             type="number"
-                             disabled={!isEnabled}
-                             value={conf.leTrai}
-                             onChange={(e) => handleConfigChange(field.key, "leTrai", e.target.value)}
-                             className="w-full text-center border border-gray-300 rounded p-1 outline-none focus:border-blue-500 disabled:bg-gray-200"
-                           />
-                         </td>
+                          <td className="p-2">
+                            <input
+                              type="number"
+                              disabled={!isEnabled}
+                              value={conf.leTren}
+                              onChange={(e) =>
+                                handleConfigChange(
+                                  field.key,
+                                  "leTren",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full text-center border border-gray-300 rounded p-1 outline-none focus:border-blue-500 disabled:bg-gray-200"
+                            />
+                          </td>
 
-                         <td className="p-2">
-                           <input
-                             type="number"
-                             disabled={!isEnabled}
-                             value={conf.coChu}
-                             onChange={(e) => handleConfigChange(field.key, "coChu", e.target.value)}
-                             className="w-full text-center border border-gray-300 rounded p-1 outline-none focus:border-blue-500 disabled:bg-gray-200"
-                             title={field.isQR ? "Kích thước QR" : "Cỡ chữ"}
-                           />
-                         </td>
+                          <td className="p-2">
+                            <input
+                              type="number"
+                              disabled={!isEnabled}
+                              value={conf.leTrai}
+                              onChange={(e) =>
+                                handleConfigChange(
+                                  field.key,
+                                  "leTrai",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full text-center border border-gray-300 rounded p-1 outline-none focus:border-blue-500 disabled:bg-gray-200"
+                            />
+                          </td>
 
-                         <td className="p-2 text-center">
-                           {!field.isQR && (
-                             <ToggleButtonGroup
-                               size="small"
-                               disabled={!isEnabled}
-                               className="bg-white"
-                             >
-                               <ToggleButton
-                                 value="bold"
-                                 selected={conf.doDam}
-                                 onClick={() => handleFormatToggle(field.key, "doDam")}
-                                 color="primary"
-                               >
-                                 <FormatBoldIcon fontSize="small" />
-                               </ToggleButton>
-                               
-                               <ToggleButton
-                                 value="italic"
-                                 selected={conf.nghieng}
-                                 onClick={() => handleFormatToggle(field.key, "nghieng")}
-                                 color="primary"
-                               >
-                                 <FormatItalicIcon fontSize="small" />
-                               </ToggleButton>
-                               
-                               <ToggleButton
-                                 value="underline"
-                                 selected={conf.gachChan}
-                                 onClick={() => handleFormatToggle(field.key, "gachChan")}
-                                 color="primary"
-                               >
-                                 <FormatUnderlinedIcon fontSize="small" />
-                               </ToggleButton>
-                               
-                               <ToggleButton
-                                 value="uppercase"
-                                 selected={conf.inHoa}
-                                 onClick={() => handleFormatToggle(field.key, "inHoa")}
-                                 color="primary"
-                                 title="In Hoa toàn bộ"
-                               >
-                                 <TitleIcon fontSize="small" />
-                               </ToggleButton>
-                             </ToggleButtonGroup>
-                           )}
-                           {field.isQR && <span className="text-xs text-gray-500 italic">Áp dụng cho QR Code</span>}
-                         </td>
-                       </tr>
-                     );
-                   })}
-                 </tbody>
-               </table>
-               </div>
-              
-             </div>
+                          <td className="p-2">
+                            <input
+                              type="number"
+                              disabled={!isEnabled}
+                              value={conf.coChu}
+                              onChange={(e) =>
+                                handleConfigChange(
+                                  field.key,
+                                  "coChu",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full text-center border border-gray-300 rounded p-1 outline-none focus:border-blue-500 disabled:bg-gray-200"
+                              title={field.isQR ? "Kích thước QR" : "Cỡ chữ"}
+                            />
+                          </td>
+
+                          <td className="p-2 text-center">
+                            {!field.isQR && (
+                              <ToggleButtonGroup
+                                size="small"
+                                disabled={!isEnabled}
+                                className="bg-white"
+                              >
+                                <ToggleButton
+                                  value="bold"
+                                  selected={conf.doDam}
+                                  onClick={() =>
+                                    handleFormatToggle(field.key, "doDam")
+                                  }
+                                  color="primary"
+                                >
+                                  <FormatBoldIcon fontSize="small" />
+                                </ToggleButton>
+
+                                <ToggleButton
+                                  value="italic"
+                                  selected={conf.nghieng}
+                                  onClick={() =>
+                                    handleFormatToggle(field.key, "nghieng")
+                                  }
+                                  color="primary"
+                                >
+                                  <FormatItalicIcon fontSize="small" />
+                                </ToggleButton>
+
+                                <ToggleButton
+                                  value="underline"
+                                  selected={conf.gachChan}
+                                  onClick={() =>
+                                    handleFormatToggle(field.key, "gachChan")
+                                  }
+                                  color="primary"
+                                >
+                                  <FormatUnderlinedIcon fontSize="small" />
+                                </ToggleButton>
+
+                                <ToggleButton
+                                  value="uppercase"
+                                  selected={conf.inHoa}
+                                  onClick={() =>
+                                    handleFormatToggle(field.key, "inHoa")
+                                  }
+                                  color="primary"
+                                  title="In Hoa toàn bộ"
+                                >
+                                  <TitleIcon fontSize="small" />
+                                </ToggleButton>
+                              </ToggleButtonGroup>
+                            )}
+                            {field.isQR && (
+                              <span className="text-xs text-gray-500 italic">
+                                Áp dụng cho QR Code
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-
         </div>
       </Dialog>
     </div>

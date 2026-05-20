@@ -246,7 +246,7 @@ export default function DonHangChuaXuatTable({
 
       toast.success(`Tạo hóa đơn thành công!`);
       // Chuyển hướng sang trang chi tiết để chỉnh sửa thuế, CK, xem bảng
-      navigate(`/hoadon/${result.data?._id}`);
+      navigate(`/hoa-don/${result.data?._id}/edit`);
 
       setSelectedOrders([]);
     } catch (err) {

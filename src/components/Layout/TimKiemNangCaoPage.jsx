@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Box,
     Typography,
@@ -19,7 +19,255 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { api } from '../../config/api';
 import dayjs from 'dayjs';
+import {
+    EXPORT_DATE_PRESETS,
+    EMPTY_EXPORT_DATE_FILTER,
+    toISODateRange,
+    isValidExportDateFilter,
+    isCustomRangeTooLong,
+} from '../../utils/exportDatePresets'; // 🔥 adjust path nếu cần
 
+// ─────────────────────────────────────────
+// Helper: format range để hiển thị trên ô
+// ─────────────────────────────────────────
+const formatDisplayRange = (filter) => {
+    if (!filter?.preset) return '';
+
+    if (filter.preset !== 'custom') {
+        const found = EXPORT_DATE_PRESETS.find((p) => p.key === filter.preset);
+        return found?.label || '';
+    }
+
+    // custom
+    const from = filter.startDate ? dayjs(filter.startDate).format('DD/MM/YYYY') : '?';
+    const to = filter.endDate ? dayjs(filter.endDate).format('DD/MM/YYYY') : '?';
+    return `${from} – ${to}`;
+};
+
+// ─────────────────────────────────────────
+// Component DateFilterField
+// ─────────────────────────────────────────
+const DateFilterField = ({ label, filterKey, value, onChange }) => {
+    const [open, setOpen] = useState(false);
+    const containerRef = useRef(null);
+
+    // Đóng khi click ra ngoài
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
+
+    const handleSelectPreset = (presetKey) => {
+        onChange({ preset: presetKey, startDate: null, endDate: null });
+        if (presetKey !== 'custom') setOpen(false);
+    };
+
+    const handleCustomDate = (field, raw) => {
+        const date = raw ? new Date(raw) : null;
+        onChange({ ...value, preset: 'custom', [field]: date });
+    };
+
+    const handleClear = (e) => {
+        e.stopPropagation();
+        onChange(EMPTY_EXPORT_DATE_FILTER);
+        setOpen(false);
+    };
+
+    const displayText = formatDisplayRange(value);
+    const hasValue = Boolean(value?.preset);
+    const isCustomTooLong =
+        value?.preset === 'custom' &&
+        isCustomRangeTooLong(value.startDate, value.endDate, 90);
+
+    return (
+        <Box ref={containerRef} sx={{ mt: 3, position: 'relative' }}>
+            <Typography sx={{ fontSize: '12px', color: '#666', mb: 0.5, userSelect: 'none' }}>
+                {label}
+            </Typography>
+
+            {/* ── Trigger row ── */}
+            <Box
+                onClick={() => setOpen((o) => !o)}
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottom: `1px solid ${open ? '#03a9f4' : '#ccc'}`,
+                    pb: 0.5,
+                    cursor: 'pointer',
+                    transition: 'border-color 0.15s',
+                    '&:hover': { borderBottomColor: '#03a9f4' },
+                }}
+            >
+                <Typography
+                    sx={{
+                        fontSize: '13px',
+                        color: hasValue ? '#1a1a1a' : '#aaa',
+                        flex: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    {displayText || 'Từ – Đến'}
+                </Typography>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1, flexShrink: 0 }}>
+                    {hasValue && (
+                        <Box
+                            component="span"
+                            onClick={handleClear}
+                            sx={{
+                                fontSize: '14px',
+                                color: '#aaa',
+                                lineHeight: 1,
+                                cursor: 'pointer',
+                                '&:hover': { color: '#f44336' },
+                                px: 0.25,
+                            }}
+                        >
+                            ✕
+                        </Box>
+                    )}
+                    <CalendarTodayIcon
+                        sx={{ fontSize: 16, color: open ? '#03a9f4' : '#888', transition: 'color 0.15s' }}
+                    />
+                </Box>
+            </Box>
+
+            {/* ── Dropdown panel ── */}
+            {open && (
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        zIndex: 999,
+                        mt: 0.5,
+                        bgcolor: 'white',
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                        border: '1px solid #e8eaf0',
+                        overflow: 'hidden',
+                    }}
+                >
+                    {/* Danh sách preset */}
+                    {EXPORT_DATE_PRESETS.map((preset) => {
+                        const selected = value?.preset === preset.key;
+                        return (
+                            <Box
+                                key={preset.key}
+                                onClick={() => handleSelectPreset(preset.key)}
+                                sx={{
+                                    px: 2,
+                                    py: 1,
+                                    fontSize: '13px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1.5,
+                                    bgcolor: selected ? '#e8f6ff' : 'transparent',
+                                    color: selected ? '#03a9f4' : '#333',
+                                    fontWeight: selected ? 600 : 400,
+                                    borderLeft: selected ? '3px solid #03a9f4' : '3px solid transparent',
+                                    transition: 'background 0.1s',
+                                    '&:hover': { bgcolor: selected ? '#e8f6ff' : '#f5f6fa' },
+                                }}
+                            >
+                                {preset.label}
+                            </Box>
+                        );
+                    })}
+
+                    {/* Custom date inputs — chỉ hiện khi chọn "Chọn trên Lịch" */}
+                    {value?.preset === 'custom' && (
+                        <Box
+                            sx={{
+                                px: 2,
+                                py: 1.5,
+                                borderTop: '1px solid #f0f0f0',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 1,
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                <input
+                                    type="date"
+                                    value={value.startDate ? dayjs(value.startDate).format('YYYY-MM-DD') : ''}
+                                    onChange={(e) => handleCustomDate('startDate', e.target.value)}
+                                    style={{
+                                        flex: 1,
+                                        fontSize: '13px',
+                                        border: 'none',
+                                        borderBottom: '1px solid #ccc',
+                                        outline: 'none',
+                                        padding: '2px 0',
+                                        background: 'transparent',
+                                        color: '#333',
+                                    }}
+                                />
+                                <Typography sx={{ fontSize: '12px', color: '#999' }}>–</Typography>
+                                <input
+                                    type="date"
+                                    value={value.endDate ? dayjs(value.endDate).format('YYYY-MM-DD') : ''}
+                                    onChange={(e) => handleCustomDate('endDate', e.target.value)}
+                                    style={{
+                                        flex: 1,
+                                        fontSize: '13px',
+                                        border: 'none',
+                                        borderBottom: '1px solid #ccc',
+                                        outline: 'none',
+                                        padding: '2px 0',
+                                        background: 'transparent',
+                                        color: '#333',
+                                    }}
+                                />
+                            </Box>
+
+                            {isCustomTooLong && (
+                                <Typography sx={{ fontSize: '11px', color: '#f44336' }}>
+                                    Khoảng thời gian quá dài (tối đa 90 ngày)
+                                </Typography>
+                            )}
+
+                            {/* Nút Áp dụng */}
+                            {value.startDate && value.endDate && !isCustomTooLong && (
+                                <Button
+                                    size="small"
+                                    variant="contained"
+                                    onClick={() => setOpen(false)}
+                                    sx={{
+                                        mt: 0.5,
+                                        bgcolor: '#03a9f4',
+                                        borderRadius: '8px',
+                                        textTransform: 'none',
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                        '&:hover': { bgcolor: '#0097e6' },
+                                    }}
+                                >
+                                    Áp dụng
+                                </Button>
+                            )}
+                        </Box>
+                    )}
+                </Box>
+            )}
+        </Box>
+    );
+};
+
+// ─────────────────────────────────────────
+// Component chính
+// ─────────────────────────────────────────
 const TimKiemNangCaoPage = ({ onClose }) => {
     const [orders, setOrders] = useState([]);
     const [filteredOrders, setFilteredOrders] = useState([]);
@@ -32,15 +280,23 @@ const TimKiemNangCaoPage = ({ onClose }) => {
         benhNhan: '',
     });
 
-    // Khóa thanh cuộn trang gốc khi mở màn hình này lên
+    // 🔥 State bộ lọc ngày riêng từng trường
+    const [dateFilters, setDateFilters] = useState({
+        ngayNhan: { ...EMPTY_EXPORT_DATE_FILTER },
+        henGiao: { ...EMPTY_EXPORT_DATE_FILTER },
+        daHoanThanh: { ...EMPTY_EXPORT_DATE_FILTER },
+    });
+
+    const setDateFilter = (key, val) =>
+        setDateFilters((prev) => ({ ...prev, [key]: val }));
+
+    // Khóa thanh cuộn trang gốc
     useEffect(() => {
         document.body.style.overflow = 'hidden';
-        return () => {
-            document.body.style.overflow = 'auto';
-        };
+        return () => { document.body.style.overflow = 'auto'; };
     }, []);
 
-    // Lấy dữ liệu đơn hàng thật từ server
+    // Lấy dữ liệu đơn hàng
     useEffect(() => {
         const fetchRealOrders = async () => {
             setLoading(true);
@@ -50,7 +306,7 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                 setOrders(data);
                 setFilteredOrders(data);
             } catch (error) {
-                console.error("Lỗi tải danh sách đơn hàng thật:", error);
+                console.error('Lỗi tải danh sách đơn hàng:', error);
             } finally {
                 setLoading(false);
             }
@@ -60,57 +316,64 @@ const TimKiemNangCaoPage = ({ onClose }) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFilters(prev => ({ ...prev, [name]: value }));
+        setFilters((prev) => ({ ...prev, [name]: value }));
     };
 
-    // Hàm xử lý lọc dữ liệu khi bấm nút Tìm kiếm
+    // ── Lọc ngày helper ──
+    const isInRange = (dateStr, isoFrom, isoTo) => {
+        if (!dateStr) return false;
+        const d = new Date(dateStr).getTime();
+        const from = isoFrom ? new Date(isoFrom).getTime() : null;
+        const to = isoTo ? new Date(isoTo).getTime() : null;
+        if (from && d < from) return false;
+        if (to && d > to) return false;
+        return true;
+    };
+
     const handleSearch = () => {
         const { tuKhoa, khachHang, bacSi, benhNhan } = filters;
 
-        const result = orders.filter(dh => {
+        // ISO ranges từ preset helpers
+        const { fromISO: ngayNhanFrom, toISO: ngayNhanTo } = toISODateRange(dateFilters.ngayNhan);
+        const { fromISO: henGiaoFrom, toISO: henGiaoTo } = toISODateRange(dateFilters.henGiao);
+        const { fromISO: hoanThanhFrom, toISO: hoanThanhTo } = toISODateRange(dateFilters.daHoanThanh);
+
+        const result = orders.filter((dh) => {
+            // Text filters
             const matchTuKhoa = !tuKhoa.trim() ||
-                (dh.maDonHang && dh.maDonHang.toLowerCase().includes(tuKhoa.toLowerCase().trim()));
+                (dh.maDonHang?.toLowerCase().includes(tuKhoa.toLowerCase().trim()));
 
             const matchKhachHang = !khachHang.trim() ||
                 (dh.nhaKhoa && (
-                    (dh.nhaKhoa.hoVaTen && dh.nhaKhoa.hoVaTen.toLowerCase().includes(khachHang.toLowerCase().trim())) ||
-                    (dh.nhaKhoa.tenGiaoDich && dh.nhaKhoa.tenGiaoDich.toLowerCase().includes(khachHang.toLowerCase().trim()))
+                    dh.nhaKhoa.hoVaTen?.toLowerCase().includes(khachHang.toLowerCase().trim()) ||
+                    dh.nhaKhoa.tenGiaoDich?.toLowerCase().includes(khachHang.toLowerCase().trim())
                 ));
 
             const matchBacSi = !bacSi.trim() ||
-                (dh.bacSi && dh.bacSi.hoVaTen && dh.bacSi.hoVaTen.toLowerCase().includes(bacSi.toLowerCase().trim()));
+                dh.bacSi?.hoVaTen?.toLowerCase().includes(bacSi.toLowerCase().trim());
 
             const matchBenhNhan = !benhNhan.trim() ||
-                (dh.benhNhan && dh.benhNhan.hoVaTen && dh.benhNhan.hoVaTen.toLowerCase().includes(benhNhan.toLowerCase().trim()));
+                dh.benhNhan?.hoVaTen?.toLowerCase().includes(benhNhan.toLowerCase().trim());
 
-            return matchTuKhoa && matchKhachHang && matchBacSi && matchBenhNhan;
+            // Date filters
+            const matchNgayNhan = !ngayNhanFrom && !ngayNhanTo
+                ? true
+                : isInRange(dh.ngayNhan, ngayNhanFrom, ngayNhanTo);
+
+            const matchHenGiao = !henGiaoFrom && !henGiaoTo
+                ? true
+                : isInRange(dh.henGiao, henGiaoFrom, henGiaoTo);
+
+            const matchHoanThanh = !hoanThanhFrom && !hoanThanhTo
+                ? true
+                : isInRange(dh.ngayHoanThanh || dh.completedAt, hoanThanhFrom, hoanThanhTo);
+
+            return matchTuKhoa && matchKhachHang && matchBacSi && matchBenhNhan
+                && matchNgayNhan && matchHenGiao && matchHoanThanh;
         });
 
         setFilteredOrders(result);
     };
-
-    const DateFilterMock = ({ label, value }) => (
-        <Box sx={{ mt: 3 }}>
-            <Typography sx={{ fontSize: '13px', color: '#666', mb: 0.5 }}>{label}</Typography>
-            <Box
-                sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderBottom: '1px solid #ccc',
-                    pb: 0.5,
-                    cursor: 'pointer',
-                    '&:hover': { borderBottomColor: '#03a9f4' }
-                }}
-                onClick={() => alert(`Mở popup chọn ngày cho: ${label}`)}
-            >
-                <Typography sx={{ fontSize: '14px', color: value ? '#333' : '#aaa' }}>
-                    {value || 'Từ – Đến'}
-                </Typography>
-                <CalendarTodayIcon sx={{ fontSize: 18, color: '#666' }} />
-            </Box>
-        </Box>
-    );
 
     return (
         <div className="fixed inset-0 z-[1299] bg-[#f5f6fa] flex flex-col w-full h-full overflow-hidden">
@@ -125,7 +388,7 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                flexShrink: 0
+                flexShrink: 0,
             }}>
                 <Typography variant="h6" sx={{ fontSize: '16px', fontWeight: 'bold' }}>
                     Đơn hàng
@@ -136,17 +399,14 @@ const TimKiemNangCaoPage = ({ onClose }) => {
             </Box>
 
             {/* --- MAIN CONTAINER --- */}
-            {/* 👉 Trên mobile (xs) cho phép cuộn dọc toàn màn hình (overflow: 'auto') để Bộ lọc và Danh sách đi liền mạch */}
             <Box sx={{
                 display: 'flex',
                 flex: 1,
                 overflow: { xs: 'auto', sm: 'hidden' },
-                flexDirection: { xs: 'column', sm: 'row' }
+                flexDirection: { xs: 'column', sm: 'row' },
             }}>
 
-                {/* ═════════════════════════════════════════════════════════════ */}
-                {/* [1] GIAO DIỆN BỘ LỌC (HIỂN THỊ ĐẦU TIÊN)                        */}
-                {/* ═════════════════════════════════════════════════════════════ */}
+                {/* ═══ [1] BỘ LỌC ═══ */}
                 <Box sx={{
                     width: { xs: '100%', sm: '300px' },
                     bgcolor: '#f5f6fa',
@@ -155,10 +415,18 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                     display: 'flex',
                     flexDirection: 'column',
                     flexShrink: 0,
-                    overflowY: { xs: 'visible', sm: 'auto' } // Mobile không tạo khung cuộn con để tránh kẹt tay
+                    overflowY: { xs: 'visible', sm: 'auto' },
                 }}>
-                    {/* Thẻ trắng bo tròn chứa bộ lọc giống hệt Ảnh 1 */}
-                    <Box sx={{ bgcolor: 'white', p: 3, borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                    <Box sx={{
+                        bgcolor: 'white',
+                        p: 3,
+                        borderRadius: '16px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        position: 'relative',
+                    }}>
                         <TextField
                             name="tuKhoa"
                             placeholder="Nhập mã đơn hàng, từ khóa..."
@@ -205,9 +473,25 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                             InputProps={{ style: { fontSize: '14px', paddingBottom: '4px' } }}
                         />
 
-                        <DateFilterMock label="Ngày nhận" value="08/4/2026 - 07/5/2026" />
-                        <DateFilterMock label="Hẹn giao" value="" />
-                        <DateFilterMock label="Đã hoàn thành" value="" />
+                        {/* 🔥 3 bộ lọc ngày dùng DateFilterField thật */}
+                        <DateFilterField
+                            label="Ngày nhận"
+                            filterKey="ngayNhan"
+                            value={dateFilters.ngayNhan}
+                            onChange={(val) => setDateFilter('ngayNhan', val)}
+                        />
+                        <DateFilterField
+                            label="Hẹn giao"
+                            filterKey="henGiao"
+                            value={dateFilters.henGiao}
+                            onChange={(val) => setDateFilter('henGiao', val)}
+                        />
+                        <DateFilterField
+                            label="Đã hoàn thành"
+                            filterKey="daHoanThanh"
+                            value={dateFilters.daHoanThanh}
+                            onChange={(val) => setDateFilter('daHoanThanh', val)}
+                        />
 
                         <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-start' }}>
                             <Button
@@ -220,45 +504,51 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                                     px: 4,
                                     py: 1,
                                     fontWeight: 'bold',
-                                    '&:hover': { bgcolor: '#0097e6' }
+                                    '&:hover': { bgcolor: '#0097e6' },
                                 }}
                             >
                                 Tìm kiếm
                             </Button>
                         </Box>
 
-                        <IconButton sx={{ position: 'absolute', bottom: 12, right: 12, color: '#333' }}>
-                            <MoreVertIcon />
-                        </IconButton>
                     </Box>
                 </Box>
 
-                {/* ═════════════════════════════════════════════════════════════ */}
-                {/* [2] GIAO DIỆN DANH SÁCH ĐƠN HÀNG (NẰM NGAY PHÍA DƯỚI TRÊN MOBILE) */}
-                {/* ═════════════════════════════════════════════════════════════ */}
+                {/* ═══ [2] DANH SÁCH ĐƠN HÀNG ═══ */}
                 <Box sx={{
                     flex: 1,
                     p: { xs: 1.5, sm: 2 },
                     display: 'flex',
                     flexDirection: 'column',
-                    overflow: { xs: 'visible', sm: 'hidden' } // Mobile để tràn tự nhiên xuôi dòng
+                    overflow: { xs: 'visible', sm: 'hidden' },
                 }}>
-
-                    {/* Header thông số dòng trên PC */}
                     <Box sx={{ display: { xs: 'none', sm: 'flex' }, justifyContent: 'flex-end', mb: 1 }}>
-                        <IconButton size="small">
-                            <MoreVertIcon />
-                        </IconButton>
+                        <IconButton size="small"><MoreVertIcon /></IconButton>
                     </Box>
 
-                    {/* ── BẢN PC: HIỂN THỊ DẠNG TABLE NGANG CHUẨN ── */}
-                    <TableContainer component={Paper} elevation={0} sx={{ display: { xs: 'none', sm: 'block' }, flex: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                    {/* PC: Table */}
+                    <TableContainer
+                        component={Paper}
+                        elevation={0}
+                        sx={{
+                            display: { xs: 'none', sm: 'block' },
+                            flex: 1,
+                            border: '1px solid #e0e0e0',
+                            borderRadius: 1,
+                            overflowX: 'auto',
+                            overflowY: 'auto',
+                            '&::-webkit-scrollbar': { height: 8, width: 8 },
+                            '&::-webkit-scrollbar-track': { background: 'transparent' },
+                            '&::-webkit-scrollbar-thumb': { backgroundColor: '#cbd5e1', borderRadius: 8 },
+                            '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#94a3b8' },
+                        }}
+                    >
                         {loading ? (
                             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                                 <CircularProgress size={40} sx={{ color: '#00a8ff' }} />
                             </Box>
                         ) : (
-                            <Table stickyHeader size="small">
+                            <Table stickyHeader size="small" sx={{ minWidth: 600 }}>
                                 <TableHead>
                                     <TableRow>
                                         <TableCell sx={{ color: '#00a8ff', fontWeight: 'bold', py: 1.5 }}>Số</TableCell>
@@ -271,7 +561,11 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                                 </TableHead>
                                 <TableBody>
                                     {filteredOrders.map((row, index) => (
-                                        <TableRow key={row._id || index} hover sx={{ '&:nth-of-type(even)': { bgcolor: '#f9f9f9' } }}>
+                                        <TableRow
+                                            key={row._id || index}
+                                            hover
+                                            sx={{ '&:nth-of-type(even)': { bgcolor: '#f9f9f9' } }}
+                                        >
                                             <TableCell sx={{ fontSize: '13px', py: 1.5 }}>{row.maDonHang || '---'}</TableCell>
                                             <TableCell sx={{ fontSize: '13px' }}>{row.ngayNhan ? dayjs(row.ngayNhan).format('DD/MM/YYYY HH:mm') : ''}</TableCell>
                                             <TableCell sx={{ fontSize: '13px' }}>{row.nhaKhoa?.hoVaTen || row.nhaKhoa?.tenGiaoDich || ''}</TableCell>
@@ -285,7 +579,7 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                         )}
                     </TableContainer>
 
-                    {/* ── BẢN MOBILE: HIỂN THỊ DẠNG DANH SÁCH CARD XẾP DỌC NGAY PHÍA DƯỚI (ẢNH 2) ── */}
+                    {/* Mobile: Card list */}
                     <Box sx={{ display: { xs: 'block', sm: 'none' }, width: '100%', mt: 1 }}>
                         <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 'bold', mb: 1, pl: 0.5 }}>
                             Kết quả tìm kiếm ({filteredOrders.length} dòng):
@@ -305,7 +599,7 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                                         p: 2,
                                         mb: 1.5,
                                         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                                        border: '1px solid #eef0f5'
+                                        border: '1px solid #eef0f5',
                                     }}
                                 >
                                     {[
@@ -317,9 +611,7 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                                         { label: 'Hẹn giao', val: row.henGiao ? dayjs(row.henGiao).format('DD/MM/YYYY HH:mm') : '' },
                                     ].map((item, i) => (
                                         <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.6 }}>
-                                            <Typography sx={{ fontSize: '13px', color: '#888888' }}>
-                                                {item.label}
-                                            </Typography>
+                                            <Typography sx={{ fontSize: '13px', color: '#888888' }}>{item.label}</Typography>
                                             <Typography sx={{ fontSize: '13px', color: '#333333', fontWeight: item.isBold ? 'bold' : '500', textAlign: 'right', pl: 2 }}>
                                                 {item.val || '---'}
                                             </Typography>
@@ -336,7 +628,6 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                         )}
                     </Box>
 
-                    {/* Bộ đếm số dòng ở cuối trang */}
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, pr: 0.5 }}>
                         <Typography sx={{ fontSize: '12px', color: '#666' }}>
                             Số dòng: {filteredOrders.length}

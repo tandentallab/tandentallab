@@ -30,7 +30,7 @@ const ThongKeKeHoachGiaoHang = ({ countToday, countOverdue, countDone }) => {
           <div className="text-3xl font-extrabold leading-none">
             {countDone}
           </div>
-          <div className="text-sm font-semibold mt-0.5">Gởi thử</div>
+          <div className="text-sm font-semibold mt-0.5">Hoàn thành</div>
         </div>
       </div>
     </div>

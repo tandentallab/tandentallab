@@ -26,7 +26,7 @@ const KeHoachGiaoHangTable = () => {
 
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [filterType, setFilterType] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("Chờ xử lý");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -214,7 +214,7 @@ const KeHoachGiaoHangTable = () => {
               className="border px-2 py-1.5 rounded text-sm"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="Chờ sản xuất">Chờ xử lý</option>
+              <option value="Chờ xử lý">Chờ xử lý</option>
               <option value="Hoàn thành">Hoàn thành</option>
             </select>
 
@@ -258,12 +258,12 @@ const KeHoachGiaoHangTable = () => {
                   <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
                     Trạng thái
                   </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
+                  {/* <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
                     Tiến độ
                   </th>
                   <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
                     Tiến độ sản xuất
-                  </th>
+                  </th> */}
                 </tr>
               </thead>
 
@@ -361,24 +361,24 @@ const KeHoachGiaoHangTable = () => {
                       </td>
 
                       {/* TIẾN ĐỘ */}
-                      <td className="px-4 py-2.5 whitespace-nowrap min-w-[100px]">
+                      {/* <td className="px-4 py-2.5 whitespace-nowrap min-w-[100px]">
                         <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-blue-400 rounded-full"
                             style={{ width: `${order.tienDo || 0}%` }}
                           />
                         </div>
-                      </td>
+                      </td> */}
 
                       {/* TIẾN ĐỘ SẢN XUẤT */}
-                      <td className="px-4 py-2.5 whitespace-nowrap min-w-[120px]">
+                      {/* <td className="px-4 py-2.5 whitespace-nowrap min-w-[120px]">
                         <div className="w-28 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-blue-300 rounded-full"
                             style={{ width: `${order.tienDoSanXuat || 0}%` }}
                           />
                         </div>
-                      </td>
+                      </td> */}
                     </tr>
                   );
                 })}

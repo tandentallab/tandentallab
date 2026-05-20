@@ -32,19 +32,20 @@ const getFirstName = (fullName) => {
 };
 
 // ================= COMPONENT CHÍNH =================
-const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange }) => {
+// Đã nhận thêm prop handleGiamGiaChange
+const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaChange }) => {
     const [columnWidths, setColumnWidths] = useState({
         donHang: 110,
         ngayNhan: 95,
         bacSi: 80,
-        benhNhan: 120,
+        benhNhan: 140,
         sanPham: 140,
         loaiDon: 85,
-        viTri: 100,
+        viTri: 140,
         soLuong: 50,
-        donGia: 95,
-        thanhTien: 100,
-        giamGia: 90,
+        donGia: 115,
+        thanhTien: 140,
+        giamGia: 160,
         tongCongSanPham: 110,
         ghiChu: 140,
     });
@@ -146,8 +147,8 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange }) => {
                 <Table
                     sx={{
                         tableLayout: "fixed",
-                        width: "100%", // Chiếm toàn bộ màn hình để lấp đầy không gian
-                        minWidth: `${totalTableWidth}px`, // Khi kéo dãn vượt giới hạn sẽ sinh ra scroll ngang
+                        width: "100%",
+                        minWidth: `${totalTableWidth}px`,
                         borderCollapse: "collapse",
                         bgcolor: "white"
                     }}
@@ -164,12 +165,10 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange }) => {
                             <ResizableHeaderCell label="S.L" columnKey="soLuong" />
                             <ResizableHeaderCell label="Đơn giá" columnKey="donGia" />
                             <ResizableHeaderCell label="Thành tiền" columnKey="thanhTien" />
-                            <ResizableHeaderCell label="Giảm giá %" columnKey="giamGia" />
+                            <ResizableHeaderCell label="Giảm giá" columnKey="giamGia" />
                             <ResizableHeaderCell label="Tổng cộng" columnKey="tongCongSanPham" />
-                            {/* Bỏ isLast ở Ghi chú vì cột ảo sẽ nằm ở cuối */}
                             <ResizableHeaderCell label="Ghi chú" columnKey="ghiChu" />
 
-                            {/* CỘT ẢO (DUMMY COLUMN): Tự động co giãn để giữ nguyên các cột còn lại */}
                             <TableCell
                                 sx={{
                                     width: "auto",
@@ -186,7 +185,6 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange }) => {
                     <TableBody>
                         {rows.length === 0 ? (
                             <TableRow>
-                                {/* Đã tăng colSpan lên 14 để cover cả cột ảo */}
                                 <TableCell colSpan={14} align="center" sx={{ py: 6, color: "text.secondary", borderBottom: "none" }}>
                                     Chưa có sản phẩm
                                 </TableCell>
@@ -209,7 +207,49 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange }) => {
                                     <TableCell sx={{ ...getCellStyle("soLuong"), fontWeight: "bold" }}>{sp.soLuong}</TableCell>
                                     <TableCell sx={getCellStyle("donGia")}>{fmtVND(sp.donGia)}</TableCell>
                                     <TableCell sx={getCellStyle("thanhTien")}>{fmtVND(sp.thanhTien)}</TableCell>
-                                    <TableCell sx={getCellStyle("giamGia")}>{fmtVND(sp.giamGia)}</TableCell>
+
+                                    {/* CỘT GIẢM GIÁ % ĐÃ CHUYỂN THÀNH Ô INPUT */}
+                                    <TableCell sx={getCellStyle("giamGia")}>
+                                        <div className="flex items-center gap-2 w-full">
+
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                value={
+                                                    sp.loaiGiamGia === "phanTram"
+                                                        ? (sp.giamGiaPhanTram || "")
+                                                        : ((sp.giamGia || 0).toLocaleString("vi-VN"))
+                                                }
+                                                onChange={(e) => {
+                                                    const rawValue = e.target.value.replace(/\D/g, "");
+
+                                                    handleGiamGiaChange(
+                                                        idx,
+                                                        Number(rawValue),
+                                                        sp.loaiGiamGia || "phanTram"
+                                                    );
+                                                }}
+                                                className="w-[70%] border border-gray-300 rounded-md px-2 py-1 outline-none text-right bg-white focus:border-blue-500"
+                                            />
+
+                                            <select
+                                                value={sp.loaiGiamGia || "phanTram"}
+                                                onChange={(e) =>
+                                                    handleGiamGiaChange(
+                                                        idx,
+                                                        sp.giamGia,
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="w-[30%] h-[34px] rounded-md border border-gray-300 bg-gray-50 cursor-pointer outline-none text-sm px-1"
+                                            >
+                                                <option value="phanTram">%</option>
+                                                <option value="tienMat">đ</option>
+                                            </select>
+
+                                        </div>
+                                    </TableCell>
+
                                     <TableCell sx={{ ...getCellStyle("tongCongSanPham"), fontWeight: "bold" }}>{fmtVND(sp.tongCongSanPham)}</TableCell>
                                     <TableCell sx={getCellStyle("ghiChu")}>
                                         <input

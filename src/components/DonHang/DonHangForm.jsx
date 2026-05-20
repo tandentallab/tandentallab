@@ -164,6 +164,14 @@ const SearchInput = ({
   );
 };
 
+// Convert Date to local datetime string for date/time inputs (YYYY-MM-DDTHH:mm)
+const toLocalDT = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const DonHangForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -181,6 +189,7 @@ const DonHangForm = () => {
   const [selectedNhaKhoaInfo, setSelectedNhaKhoaInfo] = useState(null);
 
   // Quick-add modal states
+  const [yeuCauThuModal, setYeuCauThuModal] = useState({ open: false, spIndex: null });
   const [quickAddNhaKhoa, setQuickAddNhaKhoa] = useState({ open: false, loading: false, form: { hoVaTen: "", tenGiaoDich: "", soDienThoai: "", email: "", website: "", diaChiCuThe: "", tinh: "", moTa: "" } });
   const [quickAddBacSi, setQuickAddBacSi] = useState({ open: false, loading: false, form: { hoVaTen: "", email: "", soDienThoai: "", tieuDe: "", moTa: "" } });
   const [quickAddBenhNhan, setQuickAddBenhNhan] = useState({ open: false, loading: false, form: { hoVaTen: "", soHoSo: "", gioiTinh: "", tinh: "", quanHuyen: "" } });
@@ -206,18 +215,18 @@ const DonHangForm = () => {
     nhaKhoa: "",
     bacSi: "",
     benhNhan: "",
-    ngayNhan: new Date().toISOString().slice(0, 16),
+    ngayNhan: toLocalDT(new Date()),
     yeuCauHoanThanh: (() => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(14, 0, 0, 0);
-      return tomorrow.toISOString().slice(0, 16);
+      return toLocalDT(tomorrow);
     })(),
     henGiao: (() => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(14, 0, 0, 0);
-      return tomorrow.toISOString().slice(0, 16);
+      return toLocalDT(tomorrow);
     })(),
     danhSachSanPham: [
       {
@@ -227,6 +236,7 @@ const DonHangForm = () => {
         soLuong: 1,
         mau: "",
         ghiChu: "",
+        yeuCauThu: [],
       },
     ],
     danhSachPhuKien: [],
@@ -308,19 +318,14 @@ const DonHangForm = () => {
             nhaKhoa: dh.nhaKhoa?._id || dh.nhaKhoa,
             bacSi: dh.bacSi?._id || dh.bacSi,
             benhNhan: dh.benhNhan?._id || dh.benhNhan,
-            ngayNhan: dh.ngayNhan
-              ? new Date(dh.ngayNhan).toISOString().slice(0, 16)
-              : "",
-            yeuCauHoanThanh: dh.yeuCauHoanThanh
-              ? new Date(dh.yeuCauHoanThanh).toISOString().slice(0, 16)
-              : "",
-            henGiao: dh.henGiao
-              ? new Date(dh.henGiao).toISOString().slice(0, 16)
-              : "",
+            ngayNhan: dh.ngayNhan ? toLocalDT(dh.ngayNhan) : "",
+            yeuCauHoanThanh: dh.yeuCauHoanThanh ? toLocalDT(dh.yeuCauHoanThanh) : "",
+            henGiao: dh.henGiao ? toLocalDT(dh.henGiao) : "",
             danhSachSanPham: (dh.danhSachSanPham || []).map((sp) => ({
               ...sp,
               sanPham: sp.sanPham?._id || sp.sanPham || "",
               donHangCu: sp.donHangCu?._id || sp.donHangCu || null,
+              yeuCauThu: sp.yeuCauThu || [],
             })),
           });
         })
@@ -646,24 +651,26 @@ const DonHangForm = () => {
                   onAddNew={() => setQuickAddBenhNhan(s => ({ ...s, open: true }))}
                 />
               </div>
-              <div className="w-full sm:w-[40%] bg-[#e8f6fc] p-4 text-sm flex flex-col gap-2 pt-6">
-                <div className="flex">
-                  <span className="text-gray-500 w-20">Địa chỉ:</span>{" "}
-                  <span className="font-medium text-gray-800">
-                    {selectedNhaKhoaInfo?.diaChiCuThe || ""}
-                  </span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
-                  <span className="text-gray-500 w-20 shrink-0">Điện thoại:</span>
-                  <span className="font-medium text-gray-800 break-words">
-                    {selectedNhaKhoaInfo?.soDienThoai || ""}
-                  </span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
-                  <span className="text-gray-500 w-20 shrink-0">Mô tả:</span>
-                  <span className="font-medium text-gray-800 break-words">
-                    {selectedNhaKhoaInfo?.moTa || ""}
-                  </span>
+              <div className="w-full sm:w-[40%] bg-gray-100 p-4 pt-0 text-sm flex flex-col gap-2">
+                <div className="bg-[#d7f3ff] w-full h-full p-3 rounded-xl text-lg">
+                  <div className="flex">
+                    <span className="text-gray-500 w-20">Địa chỉ:</span>{" "}
+                    <span className="font-medium text-gray-800">
+                      {selectedNhaKhoaInfo?.diaChiCuThe || ""}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                    <span className="text-gray-500 w-20 shrink-0">Điện thoại:</span>
+                    <span className="font-medium text-gray-800 break-words">
+                      {selectedNhaKhoaInfo?.soDienThoai || ""}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                    <span className="text-gray-500 w-20 shrink-0">Mô tả:</span>
+                    <span className="font-medium text-gray-800 break-words">
+                      {selectedNhaKhoaInfo?.moTa || ""}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="w-full sm:w-[30%] p-4 flex flex-col gap-3 pt-4 sm:pt-6 border-t sm:border-t-0 sm:border-l bg-white">
@@ -707,6 +714,7 @@ const DonHangForm = () => {
                     </th>
                     <th className="p-3 w-28 font-medium">Màu</th>
                     <th className="p-3 font-medium">Ghi chú</th>
+                    <th className="p-3 w-28 text-center font-medium">Yêu cầu thử</th>
                     <th className="p-3 w-10 text-center"></th>
                   </tr>
                 </thead>
@@ -785,6 +793,20 @@ const DonHangForm = () => {
                       </td>
                       <td className="p-2 text-center">
                         <button
+                          type="button"
+                          onClick={() => setYeuCauThuModal({ open: true, spIndex: index })}
+                          className={`text-xs rounded px-2 py-1 whitespace-nowrap transition font-medium border ${(sp.yeuCauThu || []).length > 0
+                            ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
+                            : "bg-white text-blue-500 border-blue-300 hover:bg-blue-50"
+                            }`}
+                        >
+                          {(sp.yeuCauThu || []).length > 0
+                            ? `Yêu cầu thử (${sp.yeuCauThu.length})`
+                            : "Yêu cầu thử"}
+                        </button>
+                      </td>
+                      <td className="p-2 text-center">
+                        <button
                           onClick={() => handleRemoveSanPham(index)}
                           className="text-gray-400 hover:text-red-500 transition"
                         >
@@ -807,7 +829,7 @@ const DonHangForm = () => {
                     </tr>
                   ))}
                   <tr>
-                    <td colSpan="7" className="p-0 bg-[#f0f9ff]">
+                    <td colSpan="8" className="p-0 bg-[#f0f9ff]">
                       <button
                         onClick={() =>
                           setFormData({
@@ -821,6 +843,7 @@ const DonHangForm = () => {
                                 soLuong: 1,
                                 mau: "",
                                 ghiChu: "",
+                                yeuCauThu: [],
                               },
                             ],
                           })
@@ -1032,6 +1055,70 @@ const DonHangForm = () => {
           donHang={formData}
         />
       )}
+
+      {/* Yêu cầu thử modal */}
+      {yeuCauThuModal.open && yeuCauThuModal.spIndex !== null && (() => {
+        const spIdx = yeuCauThuModal.spIndex;
+        const sp = formData.danhSachSanPham[spIdx];
+        const items = sp?.yeuCauThu || [];
+        const addItem = (congDoan) => {
+          const newDsSp = [...formData.danhSachSanPham];
+          newDsSp[spIdx] = { ...newDsSp[spIdx], yeuCauThu: [...items, { congDoan, ngayTao: new Date().toISOString() }] };
+          setFormData(f => ({ ...f, danhSachSanPham: newDsSp }));
+        };
+        const removeItem = (i) => {
+          const newDsSp = [...formData.danhSachSanPham];
+          newDsSp[spIdx] = { ...newDsSp[spIdx], yeuCauThu: items.filter((_, idx) => idx !== i) };
+          setFormData(f => ({ ...f, danhSachSanPham: newDsSp }));
+        };
+        return ReactDOM.createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setYeuCauThuModal({ open: false, spIndex: null })}>
+            <div className="bg-white rounded-xl shadow-2xl w-[420px] max-w-[95vw] overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between bg-[#00a8ff] px-4 py-3">
+                <span className="text-white font-semibold text-sm">Yêu cầu thử</span>
+                <button type="button" onClick={() => setYeuCauThuModal({ open: false, spIndex: null })} className="text-white hover:text-blue-200 transition text-xl leading-none">&times;</button>
+              </div>
+              <div className="px-4 pt-4 pb-2">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-gray-500 text-xs">
+                      <th className="text-left pb-2 w-10">STT</th>
+                      <th className="text-left pb-2">Công đoạn</th>
+                      <th className="text-left pb-2">Ngày tạo</th>
+                      <th className="w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.length === 0 && (
+                      <tr><td colSpan={4} className="py-4 text-center text-gray-400 text-xs italic">Chưa có yêu cầu nào</td></tr>
+                    )}
+                    {items.map((item, i) => (
+                      <tr key={i} className="border-b border-gray-100">
+                        <td className="py-2 text-gray-500 text-xs">{i + 1}</td>
+                        <td className="py-2 font-medium text-gray-800">{item.congDoan}</td>
+                        <td className="py-2 text-gray-500 text-xs">{new Date(item.ngayTao).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+                        <td className="py-2 text-center">
+                          <button type="button" onClick={() => removeItem(i)} className="text-orange-400 hover:text-red-500 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex gap-2 px-4 pb-3">
+                <button type="button" onClick={() => addItem("Thử Sườn")} className="flex-1 bg-[#00a8ff] hover:bg-blue-600 text-white text-xs font-semibold rounded-full py-2 transition">+ Thử Sườn</button>
+                <button type="button" onClick={() => addItem("Thử sứ thô")} className="flex-1 bg-[#00a8ff] hover:bg-blue-600 text-white text-xs font-semibold rounded-full py-2 transition">+ Thử sứ thô</button>
+              </div>
+              <div className="flex justify-end px-4 pb-4">
+                <button type="button" onClick={() => setYeuCauThuModal({ open: false, spIndex: null })} className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded px-5 py-1.5 transition">Xác nhận</button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
 
       {/* Quick-add: Nha Khoa */}
       <QuickAddModal

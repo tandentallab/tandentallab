@@ -23,6 +23,7 @@ import {
   Contacts,
   People,
   Assignment,
+  Receipt,
   BarChart,
   Settings,
   Category,
@@ -73,6 +74,9 @@ const Sidebar = ({ collapsed }) => {
     { name: "Chờ xuất hóa đơn", router: "/cho-xuat-hoa-don", icon: <ReceiptLong /> },
     { name: "Hóa Đơn", router: "/hoa-don", icon: <RequestQuoteIcon /> },
     { name: "Phiếu Thu", router: "/phieu-thu", icon: <AccountBalanceWalletIcon /> },
+
+    { name: "Phiếu Bảo Hành", router: "/phieu-bao-hanh", icon: <Receipt /> },
+    { name: "Mẫu Thẻ Bảo Hành", router: "/mau-the-bao-hanh", icon: <Category /> },
     { name: "Sản Phẩm", router: "/san-pham", icon: <Category /> },
     { name: "Công Đoạn", router: "/cong-doan", icon: <AccountTree /> },
   ];

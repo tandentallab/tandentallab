@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchTopProductsBaoCao } from '../../redux/slices/baoCaoSlice';
 import {
@@ -10,10 +10,34 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
     const dispatch = useDispatch();
     const { data, loading, error } = useSelector((state) => state.baoCao);
 
+    // State lưu width của YAxis (Tự động tính % theo màn hình)
+    const [yAxisWidth, setYAxisWidth] = useState(220);
+    const [isMobile, setIsMobile] = useState(false);
+
     useEffect(() => {
         if (!startDate || !endDate) return;
         dispatch(fetchTopProductsBaoCao({ startDate, endDate, dateType }));
     }, [dispatch, startDate, endDate, dateType]);
+
+    // Hook xử lý responsive linh hoạt
+    useEffect(() => {
+        const handleResize = () => {
+            const screenWidth = window.innerWidth;
+            if (screenWidth < 768) {
+                setIsMobile(true);
+                // Cấp 35% chiều ngang màn hình cho phần chữ trên Mobile
+                setYAxisWidth(screenWidth * 0.35);
+            } else {
+                setIsMobile(false);
+                // Cấp cứng 220px trên PC
+                setYAxisWidth(220);
+            }
+        };
+
+        handleResize(); // Chạy ngay lần đầu
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     if (error) {
         return (
@@ -34,14 +58,13 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
                     Top 10 sản phẩm có số lượng cao nhất
                 </p>
 
-                {/* ── FIX: Tăng chiều cao từ 220px lên 350px để đủ chỗ cho 10 nhãn sản phẩm ── */}
                 <div className="h-[250px] w-full">
                     {loading ? (
                         <div className="flex items-center justify-center h-full animate-pulse text-blue-400 font-bold italic text-sm">
                             Đang cập nhật biểu đồ...
                         </div>
                     ) : !data || data.length === 0 ? (
-                        <div className="flex items-center justify-center h-full text-gray-300 text-sm">
+                        <div className="flex items-center justify-start h-full text-gray-300 text-sm">
                             Không có dữ liệu
                         </div>
                     ) : (
@@ -50,9 +73,7 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
                                 layout="vertical"
                                 data={data}
                                 barCategoryGap="15%"
-                                // Để margin left một chút để thanh bar không dính sát lề trái, 
-                                // margin right để 0 vì đã có width của YAxis giữ chỗ
-                                margin={{ top: 0, right: 0, left: 10, bottom: 10 }}
+                                margin={{ top: 0, right: 30, left: 0, bottom: 0 }}
                             >
                                 <CartesianGrid
                                     strokeDasharray="3 3"
@@ -64,18 +85,17 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
                                 <YAxis
                                     type="category"
                                     dataKey="name"
-                                    orientation="left"   // 1. Cái "ô" chứa chữ vẫn nằm bên trái
-                                    width={150}          // 2. Độ rộng của ô này (tăng lên nếu tên sản phẩm dài)
+                                    orientation="left"
+                                    width={yAxisWidth} // Áp dụng width % đã được convert sang số
                                     axisLine={false}
                                     tickLine={false}
                                     interval={0}
                                     tick={{
                                         fill: '#1e293b',
-                                        fontSize: 12,
+                                        fontSize: isMobile ? 10 : 12, // Giảm font nếu là mobile
                                         fontWeight: 600,
-                                        textAnchor: 'end' // 3. CHÍNH LÀ ĐÂY: Chữ sẽ căn lề phải (sát vào thanh bar)
+                                        textAnchor: 'end'
                                     }}
-                                    // Dịch toàn bộ chữ sang phải một chút để nó "chạm" vào lề thanh Bar
                                     dx={-10}
                                 />
 
@@ -91,7 +111,6 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
                                 <Bar
                                     dataKey="quantity"
                                     fill="#00a3e0"
-                                    // Bo góc bên phải của thanh bar (vì thanh bar chạy từ trái sang phải)
                                     radius={[0, 4, 4, 0]}
                                     barSize={14}
                                 >

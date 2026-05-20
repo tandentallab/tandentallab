@@ -23,8 +23,8 @@ import {
   Contacts,
   People,
   Assignment,
-  BarChart,
   Receipt,
+  BarChart,
   Settings,
   Category,
   AccountTree,
@@ -85,14 +85,15 @@ const Sidebar = ({ collapsed }) => {
       router: "/phieu-thu",
       icon: <AccountBalanceWalletIcon />,
     },
-    { name: "Sản Phẩm", router: "/san-pham", icon: <Category /> },
-    { name: "Công Đoạn", router: "/cong-doan", icon: <AccountTree /> },
+
     { name: "Phiếu Bảo Hành", router: "/phieu-bao-hanh", icon: <Receipt /> },
     {
       name: "Mẫu Thẻ Bảo Hành",
       router: "/mau-the-bao-hanh",
       icon: <Category />,
     },
+    { name: "Sản Phẩm", router: "/san-pham", icon: <Category /> },
+    { name: "Công Đoạn", router: "/cong-doan", icon: <AccountTree /> },
   ];
 
   const customerMenu = [

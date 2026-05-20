@@ -19,6 +19,7 @@ import {
   Slide,
   ToggleButton,
   ToggleButtonGroup,
+  InputAdornment,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -27,7 +28,13 @@ import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatUnderlinedIcon from "@mui/icons-material/FormatUnderlined";
 import TitleIcon from "@mui/icons-material/Title";
-import PrintIcon from "@mui/icons-material/Print"; // Bổ sung Icon In
+import PrintIcon from "@mui/icons-material/Print";
+import SearchIcon from "@mui/icons-material/Search";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import AddIcon from "@mui/icons-material/Add";
+import SaveIcon from "@mui/icons-material/Save";
+import StyleIcon from "@mui/icons-material/Style";
+import SettingsIcon from "@mui/icons-material/Settings";
 import { api } from "../../config/api";
 import { toast } from "sonner";
 import FullScreenLoader from "../Loader/FullScreenLoader";
@@ -252,10 +259,7 @@ const MauTheBaoHanhPage = () => {
   const handlePrintTest = () => {
     if (!printRef.current) return;
 
-    // Lấy nội dung HTML của thẻ (phải lấy innerHTML chứa các div con bên trong)
     const printContent = printRef.current.innerHTML;
-
-    // Mở popup ẩn
     const printWindow = window.open("", "", "width=800,height=600");
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -276,14 +280,12 @@ const MauTheBaoHanhPage = () => {
               width: 86mm;
               height: 54mm;
               position: relative;
-              /* Border đứt khúc để dễ nhìn viền lúc cắt thẻ */
               border: 1px dashed #ccc; 
             }
-            /* Định dạng cực chuẩn khi nạp vào máy in */
             @media print {
               @page { size: auto; margin: 0; }
               body { padding: 10mm; display: block; }
-              .card-container { border: none; } /* Xóa viền khi in thật */
+              .card-container { border: none; }
             }
           </style>
         </head>
@@ -298,7 +300,6 @@ const MauTheBaoHanhPage = () => {
     printWindow.document.close();
     printWindow.focus();
 
-    // Đợi 300ms cho QR Code (SVG) render xong rồi mới kích hoạt hộp thoại in
     setTimeout(() => {
       printWindow.print();
       printWindow.close();
@@ -308,79 +309,145 @@ const MauTheBaoHanhPage = () => {
   if (loading && mauTheList.length === 0) return <FullScreenLoader />;
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-3xl font-bold text-gray-800">Mẫu Thẻ Bảo Hành</h1>
-        <div className="flex gap-2">
+    <div className="p-4 md:p-8 max-w-7xl bg-slate-50/50 min-h-screen">
+      {/* HEADER SECTION */}
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 flex items-center gap-3 tracking-tight">
+            <StyleIcon className="text-sky-600 text-3xl md:text-4xl" />
+            Mẫu Thẻ Bảo Hành
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Quản lý và thiết kế tùy biến phôi in tọa độ thẻ bảo hành nha khoa.
+          </p>
+        </div>
+        <div className="flex gap-3">
           <Button
             variant="outlined"
+            color="inherit"
+            startIcon={<RefreshIcon />}
             onClick={loadMauTheList}
             disabled={loading}
+            className="border-slate-300 text-slate-700 hover:bg-slate-100 font-medium px-4 py-2 rounded-xl normal-case transition-all shadow-sm"
           >
             Làm mới
           </Button>
           <Button
             variant="contained"
-            color="primary"
+            startIcon={<AddIcon />}
             onClick={handleOpenCreate}
+            className="bg-sky-600 hover:bg-sky-700 text-white font-semibold px-5 py-2 rounded-xl normal-case tracking-wide transition-all shadow-md hover:shadow-lg"
           >
-            + Tạo Mẫu Mới
+            Tạo Mẫu Mới
           </Button>
         </div>
       </div>
 
-      <div className="mb-6">
+      {/* SEARCH BAR */}
+      <div className="mb-6 bg-white p-2 rounded-xl shadow-sm border border-slate-200 max-w-md">
         <TextField
-          placeholder="Tìm kiếm mẫu thẻ..."
+          placeholder="Tìm kiếm mẫu thẻ theo tên hoặc mô tả..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           fullWidth
           size="small"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon className="text-slate-400" />
+              </InputAdornment>
+            ),
+            className: "bg-transparent border-none rounded-lg text-slate-800",
+          }}
+          sx={{ "& .MuiOutlinedInput-notchedOutline": { border: "none" } }}
         />
       </div>
 
       {/* DESKTOP: TABLE LAYOUT */}
-      <div className="hidden md:block">
+      <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200 shadow-sm bg-white">
         <div
           style={{ WebkitOverflowScrolling: "touch" }}
           className="overflow-x-auto"
         >
-          <TableContainer component={Paper} sx={{ minWidth: 700 }}>
-            <Table size="small" sx={{ minWidth: 700 }}>
-              <TableHead className="bg-gray-100">
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{ minWidth: 700, borderRadius: 0 }}
+          >
+            <Table size="medium">
+              <TableHead className="bg-slate-50 border-b border-slate-200">
                 <TableRow>
-                  <TableCell className="font-bold">Tên Mẫu</TableCell>
-                  <TableCell>Mô Tả</TableCell>
-                  <TableCell>Số Trường Dữ Liệu</TableCell>
-                  <TableCell align="center">Thao Tác</TableCell>
+                  <TableCell className="font-semibold text-slate-700 py-4">
+                    Tên Mẫu
+                  </TableCell>
+                  <TableCell className="font-semibold text-slate-700 py-4">
+                    Mô Tả
+                  </TableCell>
+                  <TableCell
+                    className="font-semibold text-slate-700 py-4"
+                    align="center"
+                  >
+                    Số Trường Dữ Liệu
+                  </TableCell>
+                  <TableCell
+                    className="font-semibold text-slate-700 py-4"
+                    align="center"
+                  >
+                    Thao Tác
+                  </TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
+              <TableBody className="divide-y divide-slate-100">
                 {filteredMauThe.map((mau) => (
-                  <TableRow key={mau._id} hover>
-                    <TableCell className="font-medium text-blue-700">
+                  <TableRow key={mau._id} hover className="transition-all">
+                    <TableCell className="font-semibold text-sky-700 py-4 text-base">
                       {mau.tenMau}
                     </TableCell>
-                    <TableCell>{mau.moTa}</TableCell>
-                    <TableCell>{mau.cacTruong?.length || 0}</TableCell>
-                    <TableCell align="center">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => handleOpenEdit(mau)}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDelete(mau._id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                    <TableCell className="text-slate-600 py-4 max-w-xs truncate">
+                      {mau.moTa || (
+                        <span className="text-slate-400 italic text-xs">
+                          Không có mô tả
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell align="center" className="py-4">
+                      <span className="inline-flex items-center justify-center bg-sky-50 text-sky-700 text-xs font-bold px-3 py-1.5 rounded-full border border-sky-100">
+                        {mau.cacTruong?.length || 0} trường
+                      </span>
+                    </TableCell>
+                    <TableCell align="center" className="py-4">
+                      <div className="flex justify-center gap-1">
+                        <IconButton
+                          size="small"
+                          className="text-sky-600 hover:bg-sky-50 p-2 rounded-lg"
+                          onClick={() => handleOpenEdit(mau)}
+                          title="Sửa cấu hình"
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          className="text-rose-600 hover:bg-rose-50 p-2 rounded-lg"
+                          onClick={() => handleDelete(mau._id)}
+                          title="Xóa mẫu"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
+                {filteredMauThe.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      align="center"
+                      className="py-12 text-slate-400 italic"
+                    >
+                      Không tìm thấy dữ liệu mẫu thẻ nào thích hợp.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -388,62 +455,66 @@ const MauTheBaoHanhPage = () => {
       </div>
 
       {/* MOBILE: CARD LAYOUT */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-4">
         {filteredMauThe.length > 0 ? (
           filteredMauThe.map((mau) => (
-            <Paper key={mau._id} className="p-4 border-l-4 border-blue-500">
-              <div className="space-y-3">
+            <Paper
+              key={mau._id}
+              className="p-5 rounded-2xl border border-slate-200 shadow-sm bg-white relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 h-full w-1.5 bg-sky-500"></div>
+              <div className="space-y-4">
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1">
-                    <div className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                    <div className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-0.5">
                       Tên Mẫu
                     </div>
-                    <div className="font-bold text-lg text-blue-700">
+                    <div className="font-bold text-lg text-slate-800">
                       {mau.tenMau}
                     </div>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
                     <IconButton
                       size="small"
-                      color="primary"
+                      className="text-sky-600 p-1.5 rounded-lg"
                       onClick={() => handleOpenEdit(mau)}
-                      title="Sửa"
                     >
-                      <EditIcon />
+                      <EditIcon fontSize="small" />
                     </IconButton>
                     <IconButton
                       size="small"
-                      color="error"
+                      className="text-rose-600 p-1.5 rounded-lg"
                       onClick={() => handleDelete(mau._id)}
-                      title="Xóa"
                     >
-                      <DeleteIcon />
+                      <DeleteIcon fontSize="small" />
                     </IconButton>
                   </div>
                 </div>
 
                 {mau.moTa && (
                   <div>
-                    <div className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                    <div className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-0.5">
                       Mô Tả
                     </div>
-                    <div className="text-gray-700">{mau.moTa}</div>
+                    <div className="text-slate-600 text-sm line-clamp-2">
+                      {mau.moTa}
+                    </div>
                   </div>
                 )}
 
-                <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                  <div className="text-xs text-gray-500 uppercase font-semibold mb-1">
-                    Số Trường Dữ Liệu
-                  </div>
-                  <div className="text-2xl font-bold text-blue-600">
+                <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Số trường đang kích hoạt
+                  </span>
+                  <span className="text-sm font-extrabold text-sky-600 bg-sky-50 border border-sky-100 px-2.5 py-0.5 rounded-full">
                     {mau.cacTruong?.length || 0}
-                  </div>
+                  </span>
                 </div>
               </div>
             </Paper>
           ))
         ) : (
-          <Paper className="p-8 text-center text-gray-500">
+          <Paper className="p-12 text-center text-slate-400 italic rounded-2xl border border-slate-200">
             Không tìm thấy mẫu thẻ nào
           </Paper>
         )}
@@ -455,85 +526,121 @@ const MauTheBaoHanhPage = () => {
         open={isEditorOpen}
         onClose={() => setIsEditorOpen(false)}
         TransitionComponent={Transition}
+        PaperProps={{ className: "bg-slate-100" }}
       >
-        <AppBar sx={{ position: "relative", backgroundColor: "#0284c7" }}>
-          <Toolbar>
-            <IconButton
-              edge="start"
-              color="inherit"
-              onClick={() => setIsEditorOpen(false)}
-              aria-label="close"
-            >
-              <CloseIcon />
-            </IconButton>
-            <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
-              {isEditMode
-                ? `Cập nhật mẫu: ${tenMau}`
-                : "Thiết kế Mẫu thẻ bảo hành mới"}
-            </Typography>
+        <AppBar
+          sx={{
+            position: "relative",
+            backgroundColor: "#0f172a",
+            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+          }}
+        >
+          <Toolbar className="bg-blue-500 px-4 md:px-6 py-2 flex justify-between gap-4">
+            <div className="flex items-center  gap-2">
+              <IconButton
+                edge="start"
+                color="inherit"
+                onClick={() => setIsEditorOpen(false)}
+                aria-label="close"
+                className="hover:bg-slate-800 p-2 rounded-lg"
+              >
+                <CloseIcon />
+              </IconButton>
+              <Typography
+                sx={{
+                  ml: 1,
+                  fontWeight: 700,
+                  fontSize: { xs: "16px", md: "20px" },
+                  tracking: "-0.025em",
+                }}
+                variant="h6"
+                component="div"
+              >
+                {isEditMode
+                  ? `Cập nhật: ${tenMau}`
+                  : "Thiết kế Mẫu thẻ bảo hành mới"}
+              </Typography>
+            </div>
 
-            {/* 👉 BỔ SUNG NÚT IN THỬ TẠI ĐÂY */}
-            <div className="flex gap-3">
+            <div className="flex gap-2 md:gap-3 shrink-0">
               <Button
                 color="inherit"
                 onClick={handlePrintTest}
                 startIcon={<PrintIcon />}
-                sx={{
-                  fontWeight: "bold",
-                  border: "1px solid rgba(255,255,255,0.5)",
-                  bgcolor: "rgba(255,255,255,0.1)",
-                }}
+                className="font-semibold text-slate-200 border border-slate-700 bg-slate-800/50 hover:bg-white hover:text-blue-500 px-3 md:px-4 py-1.5 rounded-xl normal-case text-sm transition-all"
               >
-                IN THỬ
+                In Thử
               </Button>
-
               <Button
                 autoFocus
                 color="inherit"
                 onClick={handleSave}
                 disabled={loading}
-                sx={{
-                  fontWeight: "bold",
-                  fontSize: "16px",
-                  border: "1px solid white",
-                }}
+                startIcon={<SaveIcon />}
+                className="font-semibold text-slate-200 border border-slate-700 bg-slate-800/50 hover:bg-white hover:text-blue-500 px-3 md:px-4 py-1.5 rounded-xl normal-case text-sm transition-all"
               >
-                {loading ? "ĐANG LƯU..." : "LƯU CẤU HÌNH"}
+                {loading ? "Đang lưu..." : "Lưu Cấu Hình"}
               </Button>
             </div>
           </Toolbar>
         </AppBar>
 
-        <div className="flex flex-col lg:flex-row h-full bg-gray-100 overflow-hidden">
-          {/* TOP/LEFT: LIVE PREVIEW + INPUTS */}
-          <div className="w-full lg:w-[45%] xl:w-[40%] p-4 md:p-6 flex flex-col gap-6 bg-white border-b lg:border-b-0 lg:border-r border-gray-300 overflow-y-auto shadow-lg z-10">
-            <div>
+        <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)] overflow-hidden">
+          {/* LEFT CONTAINER: INFO INPUTS & REALTIME CANVAS WORKBENCH */}
+          <div className="w-full lg:w-[45%] xl:w-[40%] p-4 md:p-6 flex flex-col gap-6 bg-white border-b lg:border-b-0 lg:border-r border-slate-200 overflow-y-auto shadow-sm z-10">
+            {/* Template Information */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 space-y-4">
+              <div className="flex items-center gap-2 text-slate-800 font-bold text-sm uppercase tracking-wider mb-2">
+                <SettingsIcon className="text-slate-500 text-sm" /> Thông tin
+                mẫu phôi
+              </div>
               <TextField
                 label="Tên mẫu thẻ *"
                 value={tenMau}
                 onChange={(e) => setTenMau(e.target.value)}
                 fullWidth
-                variant="standard"
-                className="mb-4"
+                variant="outlined"
+                size="small"
+                InputLabelProps={{ className: "text-slate-500" }}
+                className="bg-white rounded-lg"
               />
               <TextField
-                label="Mô tả"
+                label="Mô tả mẫu"
                 value={moTa}
                 onChange={(e) => setMoTa(e.target.value)}
                 fullWidth
                 multiline
                 rows={2}
-                variant="standard"
+                variant="outlined"
+                size="small"
+                InputLabelProps={{ className: "text-slate-500" }}
+                className="bg-white rounded-lg"
               />
             </div>
 
-            <div className="mt-4 flex-1">
-              <div className="text-sm font-bold text-gray-500 mb-2 uppercase tracking-wider">
-                Hiển thị trực tiếp (Kích thước thực: 86x54mm)
+            {/* Visual Studio Card Preview */}
+            <div className="flex-1 flex flex-col min-h-[350px]">
+              <div className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider flex items-center justify-between">
+                <span>Khung hiển thị trực quan</span>
+                <span className="text-sky-600 bg-sky-50 font-semibold px-2 py-0.5 rounded-md border border-sky-100">
+                  Kích thước chuẩn: 86x54mm
+                </span>
               </div>
 
-              <div className="flex justify-center items-center bg-gray-200 p-4 md:p-8 rounded-lg border-2 border-dashed border-gray-300 min-h-[200px]">
-                {/* THẺ PREVIEW (GẮN REF ĐỂ BÊ ĐI IN) */}
+              {/* The Studio Workbench Background Grid */}
+              <div
+                className="flex-1 flex justify-center items-center bg-slate-900 rounded-2xl p-6 md:p-8 shadow-inner border border-slate-800 relative overflow-hidden"
+                style={{
+                  backgroundImage:
+                    "radial-gradient(#1e293b 1px, transparent 1px)",
+                  backgroundSize: "16px 16px",
+                }}
+              >
+                <div className="absolute top-3 left-3 text-[10px] text-slate-500 uppercase font-mono tracking-widest pointer-events-none select-none">
+                  Studio Preview Workbench
+                </div>
+
+                {/* THÈ PREVIEW (GẮN REF ĐỂ BÊ ĐI IN) */}
                 <div
                   ref={printRef}
                   style={{
@@ -542,7 +649,7 @@ const MauTheBaoHanhPage = () => {
                     backgroundColor: "white",
                     position: "relative",
                     borderRadius: "4px",
-                    boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                    boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.5)",
                     overflow: "hidden",
                   }}
                 >
@@ -594,30 +701,37 @@ const MauTheBaoHanhPage = () => {
             </div>
           </div>
 
-          {/* BOTTOM/RIGHT: BẢNG SETTINGS */}
-          <div className="w-full lg:w-[55%] xl:w-[60%] p-4 overflow-y-auto">
-            <div className="bg-white rounded-xl shadow p-4 border border-gray-200">
-              <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">
-                Thiết lập tọa độ và định dạng (Đơn vị: mm, pt)
-              </h3>
+          {/* RIGHT CONTAINER: SETTINGS CONTROL CONTROLLER PANEL */}
+          <div className="w-full lg:w-[55%] xl:w-[60%] p-4 md:p-6 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-200">
+              <div className="mb-4 pb-3 border-b border-slate-100">
+                <h3 className="font-extrabold text-lg text-slate-800 tracking-tight">
+                  Thiết lập tọa độ & định dạng văn bản
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Tinh chỉnh khoảng cách lề (đơn vị: mm) và kích cỡ chữ hiển thị
+                  (đơn vị: pt).
+                </p>
+              </div>
+
               <div
                 style={{ WebkitOverflowScrolling: "touch" }}
                 className="overflow-x-auto"
               >
-                <table className="w-full min-w-[680px] md:min-w-[720px] text-sm text-left">
-                  <thead className="bg-blue-50 text-blue-900 border-b-2 border-blue-200">
-                    <tr>
-                      <th className="p-2 w-12 text-center">Bật</th>
-                      <th className="p-2 w-32">Dữ liệu</th>
-                      <th className="p-2 w-20 text-center">Lề Trên</th>
-                      <th className="p-2 w-20 text-center">Lề Trái</th>
-                      <th className="p-2 w-20 text-center">Cỡ Chữ</th>
-                      <th className="p-2 min-w-[150px] text-center">
-                        Định dạng
+                <table className="w-full min-w-[680px] text-sm text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                      <th className="p-3 w-14 text-center">Bật</th>
+                      <th className="p-3 w-32">Tên Trường</th>
+                      <th className="p-3 w-24 text-center">Lề Trên (mm)</th>
+                      <th className="p-3 w-24 text-center">Lề Trái (mm)</th>
+                      <th className="p-3 w-24 text-center">Cỡ Chữ (pt)</th>
+                      <th className="p-3 min-w-[160px] text-center">
+                        Định Dạng
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-slate-100">
                     {AVAILABLE_FIELDS.map((field) => {
                       const conf = fieldConfigs[field.key];
                       const isEnabled = conf.enabled;
@@ -625,13 +739,13 @@ const MauTheBaoHanhPage = () => {
                       return (
                         <tr
                           key={field.key}
-                          className={`hover:bg-gray-50 transition-colors ${
-                            isEnabled ? "bg-white" : "bg-gray-50 opacity-60"
+                          className={`transition-colors duration-150 ${
+                            isEnabled ? "bg-white" : "bg-slate-50/50 opacity-60"
                           }`}
                         >
-                          <td className="p-1 text-center">
+                          <td className="p-3 text-center">
                             <Checkbox
-                              color="success"
+                              color="primary"
                               checked={isEnabled}
                               onChange={(e) =>
                                 handleConfigChange(
@@ -640,14 +754,19 @@ const MauTheBaoHanhPage = () => {
                                   e.target.checked
                                 )
                               }
+                              size="small"
+                              sx={{
+                                color: "#cbd5e1",
+                                "&.Mui-checked": { color: "#0284c7" },
+                              }}
                             />
                           </td>
 
-                          <td className="p-2 font-medium text-gray-700">
+                          <td className="p-3 font-semibold text-slate-700">
                             {field.label}
                           </td>
 
-                          <td className="p-2">
+                          <td className="p-3">
                             <input
                               type="number"
                               disabled={!isEnabled}
@@ -659,11 +778,11 @@ const MauTheBaoHanhPage = () => {
                                   e.target.value
                                 )
                               }
-                              className="w-full text-center border border-gray-300 rounded p-1 outline-none focus:border-blue-500 disabled:bg-gray-200"
+                              className="w-full text-center border border-slate-200 rounded-lg px-2 py-1.5 text-sm font-medium transition-all focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
                             />
                           </td>
 
-                          <td className="p-2">
+                          <td className="p-3">
                             <input
                               type="number"
                               disabled={!isEnabled}
@@ -675,11 +794,11 @@ const MauTheBaoHanhPage = () => {
                                   e.target.value
                                 )
                               }
-                              className="w-full text-center border border-gray-300 rounded p-1 outline-none focus:border-blue-500 disabled:bg-gray-200"
+                              className="w-full text-center border border-slate-200 rounded-lg px-2 py-1.5 text-sm font-medium transition-all focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
                             />
                           </td>
 
-                          <td className="p-2">
+                          <td className="p-3">
                             <input
                               type="number"
                               disabled={!isEnabled}
@@ -691,17 +810,21 @@ const MauTheBaoHanhPage = () => {
                                   e.target.value
                                 )
                               }
-                              className="w-full text-center border border-gray-300 rounded p-1 outline-none focus:border-blue-500 disabled:bg-gray-200"
-                              title={field.isQR ? "Kích thước QR" : "Cỡ chữ"}
+                              className="w-full text-center border border-slate-200 rounded-lg px-2 py-1.5 text-sm font-medium transition-all focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                              title={
+                                field.isQR
+                                  ? "Kích thước ô QR Code"
+                                  : "Kích cỡ phông chữ"
+                              }
                             />
                           </td>
 
-                          <td className="p-2 text-center">
-                            {!field.isQR && (
+                          <td className="p-3 text-center">
+                            {!field.isQR ? (
                               <ToggleButtonGroup
                                 size="small"
                                 disabled={!isEnabled}
-                                className="bg-white"
+                                className="bg-slate-50 border border-slate-200 rounded-lg p-0.5 shadow-sm"
                               >
                                 <ToggleButton
                                   value="bold"
@@ -709,7 +832,9 @@ const MauTheBaoHanhPage = () => {
                                   onClick={() =>
                                     handleFormatToggle(field.key, "doDam")
                                   }
-                                  color="primary"
+                                  classes={{
+                                    root: "border-none rounded-md px-2 py-1 mx-0.5 text-slate-500 &.Mui-selected:bg-sky-100 &.Mui-selected:text-sky-700",
+                                  }}
                                 >
                                   <FormatBoldIcon fontSize="small" />
                                 </ToggleButton>
@@ -720,7 +845,9 @@ const MauTheBaoHanhPage = () => {
                                   onClick={() =>
                                     handleFormatToggle(field.key, "nghieng")
                                   }
-                                  color="primary"
+                                  classes={{
+                                    root: "border-none rounded-md px-2 py-1 mx-0.5 text-slate-500 &.Mui-selected:bg-sky-100 &.Mui-selected:text-sky-700",
+                                  }}
                                 >
                                   <FormatItalicIcon fontSize="small" />
                                 </ToggleButton>
@@ -731,7 +858,9 @@ const MauTheBaoHanhPage = () => {
                                   onClick={() =>
                                     handleFormatToggle(field.key, "gachChan")
                                   }
-                                  color="primary"
+                                  classes={{
+                                    root: "border-none rounded-md px-2 py-1 mx-0.5 text-slate-500 &.Mui-selected:bg-sky-100 &.Mui-selected:text-sky-700",
+                                  }}
                                 >
                                   <FormatUnderlinedIcon fontSize="small" />
                                 </ToggleButton>
@@ -742,16 +871,17 @@ const MauTheBaoHanhPage = () => {
                                   onClick={() =>
                                     handleFormatToggle(field.key, "inHoa")
                                   }
-                                  color="primary"
-                                  title="In Hoa toàn bộ"
+                                  title="In Hoa toàn bộ chữ"
+                                  classes={{
+                                    root: "border-none rounded-md px-2 py-1 mx-0.5 text-slate-500 &.Mui-selected:bg-sky-100 &.Mui-selected:text-sky-700",
+                                  }}
                                 >
                                   <TitleIcon fontSize="small" />
                                 </ToggleButton>
                               </ToggleButtonGroup>
-                            )}
-                            {field.isQR && (
-                              <span className="text-xs text-gray-500 italic">
-                                Áp dụng cho QR Code
+                            ) : (
+                              <span className="text-xs text-slate-400 font-medium italic bg-slate-50 px-2.5 py-1.5 border border-slate-100 rounded-lg inline-block">
+                                Chỉ áp dụng cho QR Code
                               </span>
                             )}
                           </td>

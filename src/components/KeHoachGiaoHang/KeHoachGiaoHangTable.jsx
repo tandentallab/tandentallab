@@ -229,13 +229,12 @@ const KeHoachGiaoHangTable = () => {
               className="border px-2 py-1.5 rounded text-sm"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="Chờ sản xuất">Chờ sản xuất</option>
-              <option value="Đang sản xuất">Đang sản xuất</option>
+              <option value="Chờ sản xuất">Chờ xử lý</option>
               <option value="Hoàn thành">Hoàn thành</option>
             </select>
 
             {/* Đơn gấp */}
-            <label className="flex items-center gap-1.5 ml-auto cursor-pointer select-none">
+            {/* <label className="flex items-center gap-1.5 ml-auto cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={showUrgentOnly}
@@ -243,7 +242,7 @@ const KeHoachGiaoHangTable = () => {
                 className="accent-red-500"
               />
               <span className="text-red-600 font-medium">Đơn gấp</span>
-            </label>
+            </label> */}
           </div>
         )}
 

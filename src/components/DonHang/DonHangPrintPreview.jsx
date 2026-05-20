@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../config/api";
 import { QRCodeSVG } from "qrcode.react";
 
+import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshop';
+
 const DonHangPrintPreview = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -48,32 +50,38 @@ const DonHangPrintPreview = () => {
 
   const formatDateTime = (date) => {
     if (!date) return "";
-    return new Date(date).toLocaleString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const d = new Date(date);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return `${dd}/${mm} ${hh}:${min}`;
   };
 
   const maDonHang = donHang.maDonHang || `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`;
 
   const bacSi = donHang.bacSi?.hoVaTen || "";
-  const nhaKhoa = donHang.nhaKhoa?.tenGiaoDich || donHang.nhaKhoa?.hoVaTen || "";
   const benhNhan = donHang.benhNhan?.hoVaTen || "";
+  const nhaKhoa =
+    donHang.nhaKhoa?.tenGiaoDich || donHang.nhaKhoa?.hoVaTen || "";
 
   const buildTeethText = (viTri = []) => {
     if (!Array.isArray(viTri)) return "";
     const parts = viTri
-      .map((v) => (Array.isArray(v.soRang) ? v.soRang.join("->") : ""))
+      .map((v) => {
+        if (!Array.isArray(v.soRang) || v.soRang.length === 0) return "";
+        if (v.soRang.length === 1) return String(v.soRang[0]);
+        return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+      })
       .filter(Boolean);
-    return parts.join(" , ");
+    return parts.join("; ");
   };
 
   return (
-    <div className="min-h-screen bg-gray-200">
-      <div className="h-10 bg-[#00a8ff] flex justify-between items-center px-4">
-        <span className="text-white font-medium text-sm">PHIẾU ĐƠN HÀNG</span>
+    <div className="min-h-screen bg-gray-300 relative">
+      {/* Toolbar - chỉ hiện trên màn hình, ẩn khi in */}
+      <div className="no-print h-10 bg-[#00a8ff] flex justify-between items-center px-4">
+        <span className="text-white font-medium">PHIẾU CHỈ ĐỊNH</span>
         <button
           onClick={() => navigate(-1)}
           className="text-white text-2xl font-bold leading-none hover:text-gray-200 transition"
@@ -82,225 +90,178 @@ const DonHangPrintPreview = () => {
         </button>
       </div>
 
-      <div className="flex flex-col items-center py-6 px-4">
-        <div className="print-area bg-white w-full max-w-4xl shadow-lg border border-gray-400 p-8">
-          {/* Top info row */}
-          <div className="grid grid-cols-12 gap-2 text-sm">
-            <div className="col-span-5">
-              <div className="grid grid-cols-[78px_1fr] gap-y-1">
-                <span >Mã số:</span>
-                <span className="font-bold">{maDonHang}</span>
-                <span >Nha khoa:</span>
-                <span className="font-bold">{nhaKhoa || "---"}</span>
-                <span >Bác sĩ:</span>
-                <span className="font-bold">{bacSi || "---"}</span>
-                
-                {/* 👉 ĐÃ THÊM: In ra Mô tả của Người liên hệ (Bác sĩ) nếu có */}
-                {donHang.bacSi?.moTa && (
-                  <>
-                    <span >Mô tả:</span>
-                    <span className="font-bold italic text-gray-800">{donHang.bacSi.moTa}</span>
-                  </>
-                )}
+      <button
+        onClick={() => window.print()}
+        className="absolute bottom-5 right-5 w-12 h-12 text-white bg-green-600 shadow rounded-full"
+        title="In"
+      >
+        <LocalPrintshopIcon />
+      </button>
 
-                <span >Bệnh nhân:</span>
-                <span className="font-bold">{benhNhan || "---"}</span>
+      {/* A5 preview wrapper */}
+      <div className="flex justify-center py-6 px-4">
+        <div
+          className="print-area bg-white shadow-xl"
+          style={{ width: "148mm", minHeight: "210mm", padding: "5mm", paddingTop: "20mm", fontFamily: "Times New Roman, serif", fontSize: "11pt", color: "#000", boxSizing: "border-box" }}
+        >
+          {/* Header: 3 cột */}
+          <div style={{ display: "grid", gridTemplateColumns: "auto 50px auto", gap: "8px", marginBottom: "8px" }}>
+            {/* Left */}
+            <div>
+              <div>
+                <span style={{ display: "inline-block", minWidth: "80px" }}>Mã số: </span>
+                <span style={{ fontWeight: "bold" }}>{maDonHang}</span>
+              </div>
+              <div>
+                <span style={{ display: "inline-block", minWidth: "80px" }}>Nha khoa: </span>
+                <span style={{ fontWeight: "bold" }}>{nhaKhoa || "---"}</span>
+              </div>
+              <div>
+                <span style={{ display: "inline-block", minWidth: "80px" }}>Bác sĩ: </span>
+                <span style={{ fontWeight: "bold" }}>{bacSi}</span>
+              </div>
+              <div>
+                <span style={{ display: "inline-block", minWidth: "80px" }}>Bệnh nhân: </span>
+                <span style={{ fontWeight: "bold" }}>{benhNhan}</span>
               </div>
             </div>
 
-            <div className="col-span-2 flex items-center justify-center">
-              <div className="w-20 h-20 border border-gray-800 flex items-center justify-center">
-                <QRCodeSVG value={maDonHang} size={72} level="M" />
-              </div>
+            {/* Center: QR */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "2px" }}>
+              <QRCodeSVG value={maDonHang} size={56} level="M" />
             </div>
 
-            <div className="col-span-5 flex justify-end">
-              <div className="grid grid-cols-[90px_auto] gap-y-1">
-                <span>Nhận:</span>
-                <span className="font-bold">{formatDateTime(donHang.ngayNhan)}</span>
-                
-                <span>Giao:</span>
-                <span className="font-bold">{formatDateTime(donHang.henGiao)}</span>
-                
-                <span>Chỉ định giao:</span>
-                <span className="font-bold">{donHang.trangThai || "---"}</span>
+            {/* Right */}
+            <div style={{ textAlign: "left", marginLeft: "auto" }}>
+              <div>
+                <span style={{ display: "inline-block", minWidth: "100px" }}>Nhận: </span>
+                <span style={{ fontWeight: "bold" }}>{formatDateTime(donHang.ngayNhan)}</span>
+              </div>
+              <div>
+                <span style={{ display: "inline-block", minWidth: "100px" }}>Giao: </span>
+                <span style={{ fontWeight: "bold" }}>{formatDateTime(donHang.henGiao)}</span>
+              </div>
+              <div>
+                <span style={{ display: "inline-block", minWidth: "100px" }}>Chỉ định giao: </span>
+                <span style={{ fontWeight: "bold" }}>{(() => {
+                  const allYct = (donHang.danhSachSanPham || []).flatMap(sp => sp.yeuCauThu || []);
+                  if (!allYct.length) return "Hoàn thành";
+                  return allYct[allYct.length - 1].congDoan || "Hoàn thành";
+                })()}</span>
               </div>
             </div>
           </div>
 
-          <div className="h-3" />
-
-          {/* Main table */}
-          <table className="w-full text-sm border border-gray-800 border-collapse">
+          {/* Main product table */}
+          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "8px" }}>
             <thead>
-              <tr>
-                <th className="border border-gray-800 p-1.5 text-center">
-                  Loại phục hình
-                </th>
-                <th className="border border-gray-800 p-1.5 text-center">S.L</th>
-                <th className="border border-gray-800 p-1.5 text-center">Răng</th>
-                <th className="border border-gray-800 p-1.5 text-center">Màu</th>
-                <th className="border border-gray-800 p-1.5 text-center">Loại</th>
+              <tr style={{ borderTop: "1px solid #000", borderBottom: "1px solid #000" }}>
+                <th style={{ border: "1px solid #000", padding: "0 6px", textAlign: "center", fontWeight: "normal", minWidth: "150px" }}>Loại phục hình</th>
+                <th style={{ border: "1px solid #000", padding: "0 6px", textAlign: "center", fontWeight: "normal", width: "30px" }}>S.L</th>
+                <th style={{ border: "1px solid #000", padding: "0 6px", textAlign: "center", fontWeight: "normal" }}>Răng</th>
+                <th style={{ border: "1px solid #000", padding: "0 6px", textAlign: "center", fontWeight: "normal" }}>Màu</th>
+                <th style={{ border: "1px solid #000", padding: "0 6px", textAlign: "center", fontWeight: "normal" }}>Loại</th>
               </tr>
             </thead>
             <tbody>
               {donHang.danhSachSanPham && donHang.danhSachSanPham.length > 0 ? (
                 donHang.danhSachSanPham.map((sp, index) => (
                   <tr key={index}>
-                    <td className="border border-gray-800 p-1.5 font-bold">
+                    <td style={{ border: "1px solid #000", padding: "0 6px", fontWeight: "bold" }}>
                       {sp.sanPham?.tenSanPham || "---"}
                     </td>
-                    <td className="border border-gray-800 p-1.5 text-center font-bold">
+                    <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold" }}>
                       {sp.soLuong || 1}
                     </td>
-                    <td className="border border-gray-800 p-1.5 text-center">
+                    <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold" }}>
                       {buildTeethText(sp.viTri) || ""}
                     </td>
-                    <td className="border border-gray-800 p-1.5 text-center font-bold">
+                    <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold" }}>
                       {sp.mau || ""}
                     </td>
-                    <td className="border border-gray-800 p-1.5 text-center font-bold">
+                    <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold" }}>
                       {sp.loaiDon || "Mới"}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="border border-gray-800 p-2 text-center">
-                    ---
-                  </td>
+                  <td colSpan="5" style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>---</td>
                 </tr>
               )}
             </tbody>
           </table>
 
-          <div className="grid grid-cols-12 gap-3 mt-4">
-            <div className="col-span-8">
-              <div className="text-sm">Chỉ định:</div>
-              <div className="text-sm whitespace-pre-wrap ml-4 mt-1 font-bold">
-                {donHang.chiDinhBacSi || ""}
-              </div>
+          <div className="flex justify-between gap-3">
+            {/* Chỉ định / ghi chú */}
+            <div className="w-2/3">
+              {donHang.chiDinhBacSi && (
+                <div style={{ marginBottom: "6px" }}>
+                  <div>Chỉ định:</div>
+                  <div style={{ fontWeight: "bold", whiteSpace: "pre-wrap" }}>{donHang.chiDinhBacSi}</div>
+                </div>
+              )}
 
-              <div className="text-sm mt-4">Yêu cầu kỹ thuật:</div>
-              <div className="text-sm whitespace-pre-wrap ml-4 mt-1 font-bold">
-                {donHang.ghiChuChung || ""}
-              </div>
               {donHang.ghiChuSanXuat && (
-                <>
-                  <div className="text-sm mt-4">Ghi chú sản xuất:</div>
-                  <div className="text-sm whitespace-pre-wrap ml-4 mt-1 font-bold">{donHang.ghiChuSanXuat}</div>
-                </>
+                <div style={{ marginBottom: "6px" }}>
+                  <div>Ghi chú sản xuất:</div>
+                  <div style={{ fontWeight: "bold", whiteSpace: "pre-wrap" }}>{donHang.ghiChuSanXuat}</div>
+                </div>
               )}
             </div>
 
-            <div className="col-span-4">
-              <table className="w-full text-sm border border-gray-800 border-collapse">
-                <thead>
-                  <tr>
-                    <th className="border border-gray-800 p-1.5 text-center font-bold">
-                      Phụ kiện
-                    </th>
-                    <th className="border border-gray-800 p-1.5 text-center font-bold">S.L</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {donHang.danhSachPhuKien && donHang.danhSachPhuKien.length > 0 ? (
-                    donHang.danhSachPhuKien.map((pk, index) => (
-                      <tr key={index}>
-                        <td className="border border-gray-800 p-1.5">
-                          {pk.tenPhuKien}
-                        </td>
-                        <td className="border border-gray-800 p-1.5 text-center">
-                          {pk.soLuong}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
+            {/* Phụ kiện (chỉ hiện nếu có) */}
+            {donHang.danhSachPhuKien && donHang.danhSachPhuKien.length > 0 && (
+              <div className="w-1/3">
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
                     <tr>
-                      <td className="border border-gray-800 p-1.5">&nbsp;</td>
-                      <td className="border border-gray-800 p-1.5 text-center">&nbsp;</td>
+                      <th style={{ border: "1px solid #000", textAlign: "center", fontWeight: "normal" }}>Phụ kiện</th>
+                      <th style={{ border: "1px solid #000", textAlign: "center", fontWeight: "normal" }}>S.L</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {donHang.danhSachPhuKien.map((pk, index) => (
+                      <tr key={index}>
+                        <td style={{ border: "1px solid #000", padding: "0 6px", fontWeight: "bold" }}>{pk.tenPhuKien}</td>
+                        <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold" }}>{pk.soLuong}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Print Button */}
-        <div className="mt-4 flex gap-2">
-          <button
-            onClick={() => window.print()}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-          >
-            In trang này (Ctrl+P)
-          </button>
-          <button
-            onClick={() => navigate(-1)}
-            className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition"
-          >
-            Quay lại
-          </button>
         </div>
       </div>
 
       <style>{`
         @media print {
-          body * {
-            visibility: hidden !important;
-          }
-          .print-area, .print-area * {
-            visibility: visible !important;
-          }
-
-          .print-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 190mm !important; 
-            max-width: 190mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
-            background: white !important;
-          }
-
           @page {
-            margin: 10mm;
+            size: A5 portrait;
+            margin: 0;
           }
-
-          body {
-            background: white !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+          html, body {
+            background: white;
+            margin: 0;
+            padding: 0;
           }
-
-          button, .no-print, .MuiDrawer-root, .MuiAppBar-root, header, nav, aside {
+          .no-print {
             display: none !important;
-            visibility: hidden !important;
           }
-
-          .grid.grid-cols-2 {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            width: 100% !important;
-            gap: 20px !important;
+          .print-area {
+            box-shadow: none !important;
+            width: 148mm !important;
+            min-height: 210mm !important;
+            padding: 10mm !important;
           }
-          
-          .grid.grid-cols-2 > div {
-            flex: 1 !important;
-            min-width: 0 !important;
-          }
-
-          table {
-            width: 100% !important;
-            page-break-inside: auto;
-          }
-          tr {
-            page-break-inside: avoid;
-            page-break-after: auto;
+          /* Hide everything except print-area */
+          body > * { visibility: hidden; }
+          .print-area, .print-area * { visibility: visible; }
+          .print-area {
+            position: fixed;
+            top: 0;
+            left: 0;
           }
         }
       `}</style>

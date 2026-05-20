@@ -20,31 +20,36 @@ const formatDateSafe = (value) => {
 
 const toFileDateSafe = (value) => formatDateSafe(value).replaceAll('/', '-');
 
+// ==========================================
+// 1. XUẤT EXCEL CHI TIẾT 1 HÓA ĐƠN (ĐÃ FIX)
+// ==========================================
 export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Hóa Đơn');
 
-  // Column widths A-K
+  // Khai báo lại 13 cột khớp với bảng hiển thị trên Web
   worksheet.columns = [
-    { width: 5 },
-    { width: 12 },
-    { width: 14 },
-    { width: 16 },
-    { width: 18 },
-    { width: 10 },
-    { width: 6 },
-    { width: 12 },
-    { width: 12 },
-    { width: 14 },
-    { width: 16 }
+    { width: 5 },  // A: STT
+    { width: 12 }, // B: Ngày nhận
+    { width: 18 }, // C: Bác sĩ
+    { width: 18 }, // D: Bệnh nhân
+    { width: 22 }, // E: Sản phẩm
+    { width: 14 }, // F: Loại
+    { width: 16 }, // G: Vị trí răng
+    { width: 6 },  // H: S.L
+    { width: 12 }, // I: Đơn giá
+    { width: 12 }, // J: Thành tiền
+    { width: 10 }, // K: Giảm giá
+    { width: 14 }, // L: Tổng cộng
+    { width: 20 }, // M: Ghi chú
   ];
 
   // ===== HEADER AREA =====
   worksheet.mergeCells('A1:B4');
-  worksheet.mergeCells('C1:G2');
-  worksheet.mergeCells('C3:G3');
-  worksheet.mergeCells('C4:G4');
-  worksheet.mergeCells('H1:K4');
+  worksheet.mergeCells('C1:I2');
+  worksheet.mergeCells('C3:I3');
+  worksheet.mergeCells('C4:I4');
+  worksheet.mergeCells('J1:M4');
 
   worksheet.getCell('C1').value = 'CÔNG TY TNHH TẤN DENTAL';
   worksheet.getCell('C1').font = { bold: true, size: 20 };
@@ -58,17 +63,17 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
   worksheet.getCell('C4').font = { size: 11 };
   worksheet.getCell('C4').alignment = { horizontal: 'center', vertical: 'middle' };
 
-  worksheet.getCell('H1').value = 'GIẤY BÁO THANH TOÁN';
-  worksheet.getCell('H1').font = { bold: true, size: 18 };
-  worksheet.getCell('H1').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  worksheet.getCell('J1').value = 'GIẤY BÁO THANH TOÁN';
+  worksheet.getCell('J1').font = { bold: true, size: 18 };
+  worksheet.getCell('J1').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
-  // Add logo image
+  // Thêm Logo
   try {
     const response = await fetch(LOGO_URL);
     const arrayBuffer = await response.arrayBuffer();
     const imageId = workbook.addImage({
       buffer: arrayBuffer,
-      extension: 'jpge'
+      extension: 'jpeg'
     });
     worksheet.addImage(imageId, {
       tl: { col: 0, row: 0 },
@@ -79,21 +84,22 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
     worksheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
   }
 
-  // Borders for header block
-  ['A1', 'B1', 'C1', 'H1'].forEach((ref) => {
+  ['A1', 'C1', 'J1'].forEach((ref) => {
     applyBorder(worksheet.getCell(ref), 'medium');
   });
 
-  // ===== CUSTOMER & DATE =====
-  worksheet.mergeCells('A5:K5');
-  worksheet.mergeCells('A6:K6');
-  worksheet.getCell('A5').value = `Khách hàng: ${nhaKhoaInfo?.hoVaTen || 'N/A'}`;
+  // ===== THÔNG TIN KHÁCH HÀNG & HÓA ĐƠN =====
+  worksheet.mergeCells('A5:M5');
+  worksheet.mergeCells('A6:M6');
+
+  // Lấy tên nha khoa (Ưu tiên lấy thẳng từ hoaDon đã populate)
+  const tenKhachHang = hoaDon.nhaKhoa?.hoVaTen || hoaDon.nhaKhoa?.tenGiaoDich || nhaKhoaInfo?.hoVaTen || '---';
+  worksheet.getCell('A5').value = `Khách hàng: ${tenKhachHang}`;
   worksheet.getCell('A5').font = { bold: true, size: 12 };
   worksheet.getCell('A5').alignment = { horizontal: 'center', vertical: 'middle' };
 
-  const fromDate = new Date(hoaDon.ngayXuatHoaDon).toLocaleDateString('vi-VN');
-  const toDate = new Date(hoaDon.ngayXuatHoaDon).toLocaleDateString('vi-VN');
-  worksheet.getCell('A6').value = `Từ ngày: ${fromDate} đến ngày: ${toDate}`;
+  const hdDate = new Date(hoaDon.ngayXuatHoaDon || new Date()).toLocaleDateString('vi-VN');
+  worksheet.getCell('A6').value = `Hóa đơn số: ${hoaDon.soHoaDon || '---'}   -   Ngày xuất: ${hdDate}`;
   worksheet.getCell('A6').font = { bold: true, size: 12 };
   worksheet.getCell('A6').alignment = { horizontal: 'center', vertical: 'middle' };
 
@@ -102,156 +108,134 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
 
   // ===== TABLE HEADER =====
   const tableHeaderRow = 8;
-  const headers = ['TT', 'NGÀY', 'BÁC SĨ', 'BỆNH NHÂN', 'LOẠI PHỤC HÌNH', 'RĂNG', 'S.L', 'ĐƠN GIÁ', 'GIẢM GIÁ', 'THANH TIỀN', 'GHI CHÚ'];
+  const headers = ['STT', 'NGÀY NHẬN', 'BÁC SĨ', 'BỆNH NHÂN', 'SẢN PHẨM', 'LOẠI', 'VỊ TRÍ RĂNG', 'S.L', 'ĐƠN GIÁ', 'THÀNH TIỀN', 'GIẢM GIÁ', 'TỔNG CỘNG', 'GHI CHÚ'];
   worksheet.getRow(tableHeaderRow).values = headers;
-  worksheet.getRow(tableHeaderRow).font = { bold: true, size: 11 };
+  worksheet.getRow(tableHeaderRow).font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
   worksheet.getRow(tableHeaderRow).alignment = { horizontal: 'center', vertical: 'middle' };
 
   headers.forEach((_, index) => {
     const cell = worksheet.getCell(tableHeaderRow, index + 1);
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1565C0' } };
     applyBorder(cell, 'medium');
   });
 
-  // ===== TABLE DATA =====
-  const buildTeethText = (viTri = []) => {
-    if (!Array.isArray(viTri)) return '';
-    const parts = viTri
-      .map((v) => (Array.isArray(v.soRang) ? v.soRang.join(', ') : ''))
-      .filter(Boolean);
-    return parts.join(' | ');
+  // ===== TABLE DATA (RENDER TỪ danhSachSanPham) =====
+  const buildTeethText = (viTriArr) => {
+    if (!viTriArr || viTriArr.length === 0) return "-";
+    return viTriArr
+      .map((v) =>
+        v.kieu === "Cầu" && v.soRang?.length > 1
+          ? `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+          : v.soRang?.join(", ")
+      )
+      .join("; ");
   };
 
-  const rows = [];
-  hoaDon.danhSachDonHang.forEach((wrap) => {
-    const donHang = wrap.donHang || {};
-    const bacSi = donHang.bacSi?.hoVaTen || '';
-    const benhNhan = donHang.benhNhan?.hoVaTen || '';
-    const ngay = donHang.ngayNhan || hoaDon.ngayXuatHoaDon;
-    const sanPhamList = donHang.danhSachSanPham || [];
-    
-    // Lấy ghi chú của đơn hàng
-    const orderNote = wrap.ghiChu || donHang.ghiChuChung || donHang.ghiChu || "";
-
-    // 1. Trường hợp đơn hàng trống sản phẩm
-    if (sanPhamList.length === 0) {
-      rows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        loaiPhucHinh: '',
-        rang: '',
-        soLuong: '',
-        donGia: '',
-        giamGia: wrap.chietKhau
-          ? `${wrap.chietKhau}${wrap.loaiChietKhau === 'phanTram' ? '%' : 'đ'}`
-          : '',
-        thanhTien: wrap.thanhTienSauCK || 0,
-        ghiChu: orderNote, // Gán ghi chú
-      });
-      return;
-    }
-
-    // 2. Trường hợp đơn hàng có sản phẩm
-    sanPhamList.forEach((sp, spIndex) => {
-      // Đặt logic gộp ghi chú vào BÊN TRONG vòng lặp này
-      const productNote = sp.ghiChu || "";
-      let finalNote = productNote;
-      // Chỉ gộp ghi chú của đơn hàng vào dòng sản phẩm đầu tiên
-      if (spIndex === 0 && orderNote) {
-        finalNote = finalNote ? `${finalNote}. ${orderNote}` : orderNote;
-      }
-
-      rows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        loaiPhucHinh: sp.sanPham?.tenSanPham || '',
-        rang: buildTeethText(sp.viTri),
-        soLuong: sp.soLuong || '',
-        donGia: sp.sanPham?.donGiaChung || sp.donGia || '',
-        giamGia:
-          spIndex === 0 && wrap.chietKhau
-            ? `${wrap.chietKhau}${wrap.loaiChietKhau === 'phanTram' ? '%' : 'đ'}`
-            : '',
-        thanhTien: spIndex === 0 ? wrap.thanhTienSauCK || 0 : '',
-        ghiChu: finalNote, // Gán ghi chú
-      });
-    });
-  });
-
+  const rows = hoaDon.danhSachSanPham || [];
   let dataRowStart = tableHeaderRow + 1;
-  rows.forEach((rowData, index) => {
+
+  rows.forEach((sp, index) => {
     const rowIndex = dataRowStart + index;
     const row = worksheet.getRow(rowIndex);
-    
-    // Đẩy dữ liệu vào mảng Excel, lưu ý thay cột 11 bằng rowData.ghiChu
+
+    const ngayNhan = sp.donHang?.ngayNhan ? new Date(sp.donHang.ngayNhan).toLocaleDateString('vi-VN') : '---';
+    const bacSi = sp.donHang?.bacSi?.hoVaTen || '---';
+    const benhNhan = sp.donHang?.benhNhan?.hoVaTen || '---';
+
     row.values = [
       index + 1,
-      rowData.ngay ? new Date(rowData.ngay).toLocaleDateString('vi-VN') : '',
-      rowData.bacSi,
-      rowData.benhNhan,
-      rowData.loaiPhucHinh,
-      rowData.rang,
-      rowData.soLuong,
-      rowData.donGia,
-      rowData.giamGia,
-      rowData.thanhTien,
-      rowData.ghiChu || ''  // Sửa ở đây: Thay '' bằng rowData.ghiChu
+      ngayNhan,
+      bacSi,
+      benhNhan,
+      sp.tenSanPham || '---',
+      sp.loaiDon || '---',
+      buildTeethText(sp.viTri),
+      sp.soLuong || 0,
+      sp.donGia || 0,
+      sp.thanhTien || 0,
+      sp.giamGia || 0,
+      sp.tongCongSanPham || 0,
+      sp.ghiChu || ''
     ];
-    
-    row.alignment = { vertical: 'middle', horizontal: 'center' };
-    
-    // Format tiền tệ
-    [8, 10].forEach((col) => {
+
+    row.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+
+    // Format center & right cho các cột số/tiền
+    row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+    row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
+    [9, 10, 11, 12].forEach((col) => {
       row.getCell(col).numFmt = '#,##0';
       row.getCell(col).alignment = { horizontal: 'right', vertical: 'middle' };
     });
-    
-    // Căn trái và cho phép xuống dòng cho ô Ghi chú
-    row.getCell(11).alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
-    
+
     row.eachCell((cell) => applyBorder(cell, 'thin'));
   });
 
-  // ===== SUMMARY =====
+  // ===== SUMMARY (KHỚP THEO ẢNH UI) =====
   const summaryStart = dataRowStart + rows.length + 1;
-  worksheet.mergeCells(`A${summaryStart}:G${summaryStart}`);
-  worksheet.mergeCells(`H${summaryStart}:K${summaryStart}`);
-  worksheet.mergeCells(`A${summaryStart + 1}:G${summaryStart + 1}`);
-  worksheet.mergeCells(`H${summaryStart + 1}:K${summaryStart + 1}`);
-  worksheet.mergeCells(`A${summaryStart + 2}:G${summaryStart + 2}`);
-  worksheet.mergeCells(`H${summaryStart + 2}:K${summaryStart + 2}`);
 
-  worksheet.getCell(`A${summaryStart}`).value = 'TỔNG CỘNG';
-  worksheet.getCell(`H${summaryStart}`).value = hoaDon.tongTien || 0;
-  worksheet.getCell(`A${summaryStart + 1}`).value = 'CHIẾT KHẤU';
-  worksheet.getCell(`H${summaryStart + 1}`).value = hoaDon.tongChietKhau || 0;
-  worksheet.getCell(`A${summaryStart + 2}`).value = 'GIÁ TRỊ THANH TOÁN';
-  worksheet.getCell(`H${summaryStart + 2}`).value = hoaDon.thanhTien || 0;
+  // Tính lại % chiết khấu và thuế để hiển thị ra giống ảnh
+  const tongCong = hoaDon.tongCong || 0;
+  const ckAmount = hoaDon.chietKhau || 0;
+  const thueAmount = hoaDon.thue || 0;
 
-  ['A', 'H'].forEach((col) => {
-    worksheet.getCell(`${col}${summaryStart}`).font = { bold: true, size: 12 };
-    worksheet.getCell(`${col}${summaryStart + 1}`).font = { bold: true, size: 12 };
-    worksheet.getCell(`${col}${summaryStart + 2}`).font = { bold: true, size: 12 };
-  });
+  const ckPercent = tongCong > 0 ? Math.round((ckAmount / tongCong) * 100) : 0;
+  const sauCk = tongCong - ckAmount;
+  const thuePercent = sauCk > 0 ? Math.round((thueAmount / sauCk) * 100) : 0;
 
-  worksheet.getCell(`H${summaryStart}`).numFmt = '#,##0';
-  worksheet.getCell(`H${summaryStart + 1}`).numFmt = '#,##0';
-  worksheet.getCell(`H${summaryStart + 2}`).numFmt = '#,##0';
+  const summaryItems = [
+    { label: 'Tổng cộng', value: tongCong },
+    { label: `Chiết khấu                ${ckPercent} % =`, value: ckAmount },
+    { label: `Thuế                     ${thuePercent} % =`, value: thueAmount },
+    { label: 'Chi phí khác', value: hoaDon.chiPhiKhac || 0 },
+    { label: 'Giá trị thanh toán', value: hoaDon.giaTriThanhToan || 0 },
+    { label: 'Đã thanh toán', value: hoaDon.daThanhToan || 0 },
+    { label: 'Còn nợ', value: hoaDon.conLai || 0 },
+  ];
 
-  [summaryStart, summaryStart + 1, summaryStart + 2].forEach((r) => {
-    worksheet.getCell(`A${r}`).alignment = { horizontal: 'center', vertical: 'middle' };
-    worksheet.getCell(`H${r}`).alignment = { horizontal: 'right', vertical: 'middle' };
-    applyBorder(worksheet.getCell(`A${r}`), 'medium');
-    applyBorder(worksheet.getCell(`H${r}`), 'medium');
+  summaryItems.forEach((item, i) => {
+    const r = summaryStart + i;
+    worksheet.mergeCells(`A${r}:J${r}`); // Cột Label (từ A đến J)
+    worksheet.mergeCells(`K${r}:M${r}`); // Cột Value (từ K đến M)
+
+    const labelCell = worksheet.getCell(`A${r}`);
+    const valueCell = worksheet.getCell(`K${r}`);
+
+    labelCell.value = item.label;
+    valueCell.value = item.value;
+
+    // In đậm các dòng quan trọng như trên Web
+    if (['Tổng cộng', 'Giá trị thanh toán', 'Đã thanh toán', 'Còn nợ'].includes(item.label)) {
+      labelCell.font = { bold: true, size: 12 };
+      valueCell.font = { bold: true, size: 12 };
+    } else {
+      labelCell.font = { size: 11, color: { argb: 'FF333333' } };
+      valueCell.font = { size: 11 };
+    }
+
+    valueCell.numFmt = '#,##0';
+    labelCell.alignment = { horizontal: 'right', vertical: 'middle' };
+    valueCell.alignment = { horizontal: 'right', vertical: 'middle' };
+
+    // Format viền dưới nhạt giống Web
+    if (item.label.includes('Chiết khấu') || item.label.includes('Thuế') || item.label.includes('Chi phí khác')) {
+      labelCell.border = { bottom: { style: 'hair', color: { argb: 'FFCCCCCC' } } };
+      valueCell.border = { bottom: { style: 'hair', color: { argb: 'FFCCCCCC' } } };
+    } else {
+      applyBorder(labelCell, 'thin');
+      applyBorder(valueCell, 'thin');
+    }
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const clinicNameRaw = nhaKhoaInfo?.hoVaTen || 'Nha khoa';
-  const clinicNameSafe = clinicNameRaw.replace(/[\\/:*?"<>|]/g, '').trim();
-  const fileName = `Hoá đơn ${clinicNameSafe}.xlsx`;
+  const safeClinicName = tenKhachHang.replace(/[\\/:*?"<>|]/g, '').trim();
+  const fileName = `Hoa_don_${hoaDon.soHoaDon || 'TAN'}_${safeClinicName}.xlsx`;
   saveAs(new Blob([buffer]), fileName);
 };
+
+// ==========================================
+// CÁC HÀM XUẤT EXCEL KHÁC GIỮ NGUYÊN BÊN DƯỚI
+// ==========================================
 
 export const exportPhieuThuToExcel = async (
   phieuThuList = [],
@@ -832,9 +816,9 @@ export const exportBangGiaRiengToExcel = async (nhaKhoaInfo, bangGiaData = []) =
   const worksheet = workbook.addWorksheet('Bảng Giá Riêng');
 
   worksheet.columns = [
-    { width: 10 }, 
-    { width: 45 }, 
-    { width: 25 }, 
+    { width: 10 },
+    { width: 45 },
+    { width: 25 },
   ];
 
   // ===== PHẦN ĐẦU =====
@@ -884,7 +868,7 @@ export const exportBangGiaRiengToExcel = async (nhaKhoaInfo, bangGiaData = []) =
   // ===== TABLE DATA =====
   bangGiaData.forEach((item, idx) => {
     const rowIndex = headerRow + 1 + idx;
-    
+
     // MAPPING ĐÚNG VỚI BACKEND (tenSanPham, donGia)
     const tenSp = item.tenSanPham || '---';
     const giaRieng = item.donGia || 0;
@@ -907,17 +891,12 @@ export const exportBangGiaRiengToExcel = async (nhaKhoaInfo, bangGiaData = []) =
     giaCell.numFmt = '#,##0'; // Format tiền tệ có dấu phẩy
     giaCell.alignment = { horizontal: 'right', vertical: 'middle' };
     applyBorder(giaCell, 'thin');
-    
-    // Nếu thích, bạn có thể làm nổi bật những dòng là "Giá riêng" thực sự
-    // if (item.laGiaRieng) {
-    //   giaCell.font = { color: { argb: 'FFFF0000' } }; // Màu đỏ cho giá riêng
-    // }
   });
 
   // ===== XUẤT FILE =====
   const buffer = await workbook.xlsx.writeBuffer();
   const safeClinicName = tenNhaKhoa.replace(/[\\/:*?"<>|]/g, '').trim();
   const fileName = `Bang_Gia_Rieng_${safeClinicName}.xlsx`;
-  
+
   saveAs(new Blob([buffer]), fileName);
 };

@@ -20,10 +20,14 @@ const fmt = (n) =>
 const fmtStrict = (n) =>
     n == null ? '—' : new Intl.NumberFormat('vi-VN').format(n);
 
-const THANG_LIST = Array.from({ length: 12 }, (_, i) => i + 1);
-const NAM_LIST = [2024, 2025, 2026, 2027];
-
+// Lấy mốc thời gian hiện tại
 const now = new Date();
+const currentYear = now.getFullYear();
+const currentMonth = now.getMonth() + 1;
+
+// Danh sách năm tự động từ năm gốc (ví dụ 2024) đến năm hiện tại
+const BASE_YEAR = 2024;
+const NAM_LIST = Array.from({ length: currentYear - BASE_YEAR + 1 }, (_, i) => BASE_YEAR + i).reverse(); // Đảo ngược để năm mới nhất lên đầu
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
@@ -119,7 +123,6 @@ async function exportToExcel(data, thang, nam) {
         const dataRow = ws.addRow([
             row.stt,
             row.tenNhaKhoa,
-            // FIX: Dùng ?? 0 để giữ số 0 thay vì biến thành null
             row.noDauKy ?? 0,
             row.phatSinh ?? 0,
             row.thanhToan ?? 0,
@@ -152,11 +155,28 @@ async function exportToExcel(data, thang, nam) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function BaoCaoDoanhThuPage() {
-    const [thang, setThang] = useState(now.getMonth() + 1);
-    const [nam, setNam] = useState(now.getFullYear());
+    const [nam, setNam] = useState(currentYear);
+    const [thang, setThang] = useState(currentMonth);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Xác định danh sách tháng hợp lệ dựa trên năm đang chọn
+    // Nếu là năm hiện tại thì max là tháng hiện tại, nếu năm cũ thì đủ 12 tháng
+    const availableMonths = nam === currentYear
+        ? Array.from({ length: currentMonth }, (_, i) => i + 1)
+        : Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const handleNamChange = (e) => {
+        const selectedNam = Number(e.target.value);
+        setNam(selectedNam);
+
+        // Nếu chọn lại năm hiện tại mà tháng đang ở (vd: tháng 12) lớn hơn tháng hiện tại, 
+        // thì tự động lùi về tháng hiện tại để không bị lỗi logic
+        if (selectedNam === currentYear && thang > currentMonth) {
+            setThang(currentMonth);
+        }
+    };
 
     const handleSearch = useCallback(async () => {
         setLoading(true);
@@ -173,7 +193,6 @@ export default function BaoCaoDoanhThuPage() {
         }
     }, [thang, nam]);
 
-    // FIX: Tự động fetch data lần đầu tiên khi vào trang
     useEffect(() => {
         handleSearch();
     }, [handleSearch]);
@@ -205,20 +224,23 @@ export default function BaoCaoDoanhThuPage() {
 
             {/* ── Filter ── */}
             <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                <FormControl size="small" sx={{ minWidth: 110 }}>
-                    <InputLabel>Tháng</InputLabel>
-                    <Select value={thang} label="Tháng" onChange={e => setThang(e.target.value)}>
-                        {THANG_LIST.map(t => (
-                            <MenuItem key={t} value={t}>Tháng {t}</MenuItem>
+
+                {/* Đưa Năm lên trước */}
+                <FormControl size="small" sx={{ minWidth: 100 }}>
+                    <InputLabel>Năm</InputLabel>
+                    <Select value={nam} label="Năm" onChange={handleNamChange}>
+                        {NAM_LIST.map(y => (
+                            <MenuItem key={y} value={y}>{y}</MenuItem>
                         ))}
                     </Select>
                 </FormControl>
 
-                <FormControl size="small" sx={{ minWidth: 100 }}>
-                    <InputLabel>Năm</InputLabel>
-                    <Select value={nam} label="Năm" onChange={e => setNam(e.target.value)}>
-                        {NAM_LIST.map(y => (
-                            <MenuItem key={y} value={y}>{y}</MenuItem>
+                {/* Tháng tự động co giãn theo Năm */}
+                <FormControl size="small" sx={{ minWidth: 110 }}>
+                    <InputLabel>Tháng</InputLabel>
+                    <Select value={thang} label="Tháng" onChange={e => setThang(Number(e.target.value))}>
+                        {availableMonths.map(t => (
+                            <MenuItem key={t} value={t}>Tháng {t}</MenuItem>
                         ))}
                     </Select>
                 </FormControl>

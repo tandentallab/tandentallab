@@ -13,8 +13,12 @@ const generateQRCode = () => {
 };
 
 const addYearsToDate = (dateValue, years) => {
+  if (!dateValue) return "";
   const start = new Date(dateValue);
-  const result = new Date(start.getFullYear() + years, start.getMonth(), start.getDate());
+  if (isNaN(start.getTime())) return "";
+  const numYears = Number(years) || 0;
+  const result = new Date(start.getFullYear() + numYears, start.getMonth(), start.getDate());
+  if (isNaN(result.getTime())) return "";
   return result.toISOString().slice(0, 10);
 };
 
@@ -27,10 +31,29 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [fullDonHang, setFullDonHang] = useState(null);
   const [generatedQR, setGeneratedQR] = useState("");
-  const [selectedProductIndex, setSelectedProductIndex] = useState("");
-  const [selectedYears, setSelectedYears] = useState(null);
-  const [customEndDate, setCustomEndDate] = useState("");
+  const [productWarrantyConfigs, setProductWarrantyConfigs] = useState({});
   const [ghiChu, setGhiChu] = useState("");
+  const [mauTheList, setMauTheList] = useState([]);
+  const [selectedMauTheId, setSelectedMauTheId] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      const fetchMauThe = async () => {
+        try {
+          const res = await api.get("/mau-the-bao-hanh");
+          if (res.data?.success) {
+            setMauTheList(res.data.data);
+            if (res.data.data.length > 0) {
+              setSelectedMauTheId(res.data.data[0]._id);
+            }
+          }
+        } catch (err) {
+          toast.error("Không thể tải danh sách mẫu thẻ");
+        }
+      };
+      fetchMauThe();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open || !donHang?._id) return;
@@ -41,9 +64,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
         const data = res.data?.data;
         setFullDonHang(data);
         setGeneratedQR(generateQRCode());
-        setSelectedProductIndex("");
-        setSelectedYears(1);
-        setCustomEndDate("");
+        setProductWarrantyConfigs({});
         setGhiChu("");
       } catch (error) {
         toast.error("Lỗi khi tải thông tin đơn hàng");
@@ -59,37 +80,69 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   }, [fullDonHang]);
 
   const productOptions = fullDonHang?.danhSachSanPham || [];
-  const selectedProduct = selectedProductIndex === "" ? null : productOptions[Number(selectedProductIndex)];
-  
+
   // Lọc sản phẩm đã có phiếu bảo hành từ database, chỉ hiển thị sản phẩm chưa có phiếu
-  const sanPhamDaCoPhieu = fullDonHang?.phieuBaoHanh?.danhSachBaoHanh?.map(item => 
+  const sanPhamDaCoPhieu = fullDonHang?.phieuBaoHanh?.danhSachBaoHanh?.map(item =>
     item.sanPham?._id || item.sanPham
   ) || [];
-  
+
   const availableProducts = productOptions.filter((sp) => {
     const spId = sp.sanPham?._id || sp.sanPham;
     return !sanPhamDaCoPhieu.includes(spId);
   });
 
-  // Lấy thời gian bảo hành mặc định từ sản phẩm
-  const getDefaultWarrantyEndDate = () => {
-    if (!selectedProduct || !selectedProduct.sanPham) return "";
-    const defaultYears = selectedProduct.sanPham.baoHanhMacDinh || 0;
-    return addYearsToDate(fullDonHang.ngayNhan, defaultYears);
+  // Khởi tạo state cấu hình bảo hành cho từng sản phẩm
+  useEffect(() => {
+    if (availableProducts.length > 0 && Object.keys(productWarrantyConfigs).length === 0) {
+      const initialConfigs = {};
+      availableProducts.forEach((sp, idx) => {
+        initialConfigs[idx] = {
+          customEndDate: "",
+          selectedYears: sp.sanPham?.baoHanhMacDinh || 0,
+        };
+      });
+      setProductWarrantyConfigs(initialConfigs);
+    }
+  }, [availableProducts, productWarrantyConfigs]);
+
+  const handleConfigChange = (idx, field, value) => {
+    setProductWarrantyConfigs(prev => ({
+      ...prev,
+      [idx]: {
+        ...prev[idx],
+        [field]: value
+      }
+    }));
   };
 
   // Tính ngày kết thúc dựa trên lựa chọn của admin
-  const getCalculatedEndDate = () => {
-    if (customEndDate) return customEndDate;
-    if (selectedYears !== null) return addYearsToDate(fullDonHang.ngayNhan, selectedYears);
-    return getDefaultWarrantyEndDate();
+  const getCalculatedEndDate = (sp, config) => {
+    if (!config) return "";
+    if (config.customEndDate) return config.customEndDate;
+    if (!fullDonHang?.ngayNhan) return "";
+    if (config.selectedYears !== null && config.selectedYears !== "") {
+      return addYearsToDate(fullDonHang.ngayNhan, config.selectedYears);
+    }
+    const defaultYears = sp.sanPham?.baoHanhMacDinh || 0;
+    return addYearsToDate(fullDonHang.ngayNhan, defaultYears);
   };
 
   const handleSubmit = async () => {
+    console.log("Dữ liệu gửi lên:", {
+      donHang: fullDonHang._id,
+      mauTheId: selectedMauTheId, // Kiểm tra kỹ chỗ này
+      ghiChu
+    });
     try {
+
       // Kiểm tra nếu chưa chọn sản phẩm
-      if (selectedProductIndex === "") {
-        toast.error("Vui lòng chọn sản phẩm");
+      if (!selectedMauTheId) {
+        toast.error("Vui lòng chọn mẫu thẻ trước khi lưu!");
+        return;
+      }
+
+      if (availableProducts.length === 0) {
+        toast.error("Không có sản phẩm nào để bảo hành");
         return;
       }
 
@@ -98,51 +151,49 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
         return;
       }
 
-      const index = Number(selectedProductIndex);
-      const product = productOptions[index];
-      if (!product) {
-        toast.error("Sản phẩm không hợp lệ");
-        return;
-      }
-
       setLoading(true);
 
-      // Lấy ID sản phẩm từ dữ liệu
-      const sanPhamId = product.sanPham?._id || product.sanPham;
-      const endDate = getCalculatedEndDate();
+      const danhSachBaoHanh = availableProducts.map((product, idx) => {
+        const config = productWarrantyConfigs[idx] || {};
+        const sanPhamId = product.sanPham?._id || product.sanPham;
+        const endDate = getCalculatedEndDate(product, config);
+        const startDate = fullDonHang.ngayNhan ? new Date(fullDonHang.ngayNhan).toISOString() : new Date().toISOString();
+        const finalEndDate = endDate ? new Date(endDate).toISOString() : new Date().toISOString();
 
-      // Tạo payload cho 1 sản phẩm duy nhất
+        return {
+          sanPham: sanPhamId,
+          viTriRang: product.viTri?.map((v) => {
+            if (!v.soRang || v.soRang.length === 0) return "";
+            if (v.kieu === "Rời" || v.soRang.length === 1) return v.soRang.join(", ");
+            return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+          }).filter(Boolean).join("; ") || "---",
+          soLuong: product.soLuong || 1,
+          mau: product.mau || "",
+          baoHanhTu: startDate,
+          baoHanhDen: finalEndDate,
+        };
+      });
+
       const payload = {
         donHang: fullDonHang._id,
-        danhSachBaoHanh: [
-          {
-            sanPham: sanPhamId,
-            viTriRang: product.viTri?.map((v) => `${v.kieu}: ${v.soRang.join(", ")}`).join("; ") || "---",
-            soLuong: product.soLuong || 1,
-            mau: product.mau || "",
-            baoHanhTu: new Date(fullDonHang.ngayNhan).toISOString(),
-            baoHanhDen: new Date(endDate).toISOString(),
-          },
-        ],
-        mauTheTi: "Mẫu in Lab",
+        danhSachBaoHanh,
+        mauTheId: selectedMauTheId,
         ghiChu,
       };
 
       const res = await api.post("/phieu-bao-hanh", payload);
       if (res.data?.success) {
         toast.success(`Tạo phiếu bảo hành thành công! Mã: ${res.data.data.maBaoHanh}`);
-        
+
         // Reload lại fullDonHang để cập nhật danh sách phiếu bảo hành
         const reloadRes = await api.get(`/donhang/${fullDonHang._id}`);
         if (reloadRes.data?.data) {
           setFullDonHang(reloadRes.data.data);
         }
-        
+
         // Reset form
-        setSelectedProductIndex("");
-        setSelectedYears(1);
-        setCustomEndDate("");
-        
+        setProductWarrantyConfigs({});
+
         onSuccess?.();
       } else {
         toast.error(res.data?.message || "Lỗi khi tạo phiếu bảo hành");
@@ -169,7 +220,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
       </DialogTitle>
 
       <DialogContent className="pt-6 flex flex-col gap-4 px-8">
-        {/* Hàng 1: Mã bảo hành | Sản phẩm */}
+        {/* Hàng 1: Mã bảo hành | Mẫu thẻ */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-gray-600 font-bold block mb-2">Mã bảo hành</label>
@@ -182,100 +233,82 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-600 font-bold block mb-2">Sản phẩm *</label>
+            <label className="text-xs text-gray-600 font-bold block mb-2">Mẫu thẻ *</label>
             <TextField
               select
-              value={selectedProductIndex}
-              onChange={(e) => {
-                setSelectedProductIndex(e.target.value);
-                setSelectedYears(null);
-                setCustomEndDate("");
-              }}
               fullWidth
               size="small"
+              value={selectedMauTheId || ""}
+              onChange={(e) => setSelectedMauTheId(e.target.value)}
             >
-              <MenuItem value="">Chọn sản phẩm</MenuItem>
-              {availableProducts.map((sp) => {
-                const originalIndex = productOptions.findIndex(p => p === sp);
-                return (
-                  <MenuItem key={originalIndex} value={String(originalIndex)}>
-                    {sp.sanPham?.tenSanPham || `Sản phẩm ${originalIndex + 1}`}
-                  </MenuItem>
-                );
-              })}
-            </TextField>
-          </div>
-        </div>
-
-        {/* Hàng 2: Bảo hành từ | Bảo hành đến | Chọn năm bảo hành */}
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="text-xs text-gray-600 font-bold block mb-2">Bảo hành từ</label>
-            <TextField
-              disabled
-              value={fullDonHang.ngayNhan ? formatDateVN(fullDonHang.ngayNhan) : ""}
-              fullWidth
-              size="small"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-600 font-bold block mb-2">Bảo hành đến</label>
-            <div className="flex gap-2">
-              <TextField
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                fullWidth
-                size="small"
-                disabled={!selectedProduct}
-                inputProps={{ style: { minHeight: 40 } }}
-              />
-              {customEndDate && (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setCustomEndDate("")}
-                  sx={{ minWidth: "40px", px: 0 }}
-                >
-                  ✕
-                </Button>
-              )}
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-gray-600 font-bold block mb-2">Chọn năm bảo hành</label>
-            <TextField
-              select
-              value={selectedYears ?? (selectedProduct?.sanPham?.baoHanhMacDinh || 0)}
-              onChange={(e) => {
-                setSelectedYears(e.target.value === "" ? null : Number(e.target.value));
-              }}
-              fullWidth
-              size="small"
-              disabled={!selectedProduct}
-            >
-              {Array.from({ length: 11 }, (_, i) => i).map((year) => (
-                <MenuItem key={year} value={year}>
-                  {year} năm {year === (selectedProduct?.sanPham?.baoHanhMacDinh || 0) && selectedYears === null ? "(Mặc định)" : ""}
+              {mauTheList.map((mau) => (
+                <MenuItem key={mau._id} value={mau._id}>
+                  {mau.tenMau}
                 </MenuItem>
               ))}
             </TextField>
           </div>
         </div>
 
-        {/* Hàng 2.5: Hiển thị thời gian bảo hành cụ thể */}
-        {selectedProduct && (
-          <div className="bg-blue-50 p-3 rounded border border-blue-200">
-            <p className="text-sm text-gray-700">
-              <span className="font-medium">Thời gian bảo hành:</span> {formatDateVN(fullDonHang.ngayNhan)} → {formatDateVN(getCalculatedEndDate())} 
-              <span className="text-gray-500 ml-2">
-                ({Math.ceil((new Date(getCalculatedEndDate()) - new Date(fullDonHang.ngayNhan)) / (1000 * 60 * 60 * 24))} ngày)
-              </span>
-            </p>
-          </div>
-        )}
+        {/* Danh sách sản phẩm */}
+        <div className="flex flex-col gap-3 my-2">
+          <label className="text-xs text-gray-600 font-bold block">Danh sách sản phẩm bảo hành</label>
+          {availableProducts.map((sp, idx) => {
+            const config = productWarrantyConfigs[idx] || {};
+            const calculatedEndDate = getCalculatedEndDate(sp, config);
+            return (
+              <div key={idx} className="border border-blue-100 rounded p-3 bg-blue-50/30 grid grid-cols-12 gap-4 items-center">
+                <div className="col-span-4 flex flex-col gap-1">
+                  <span className="font-bold text-sm text-blue-800">{sp.sanPham?.tenSanPham || `Sản phẩm ${idx + 1}`}</span>
+                  <span className="text-xs text-gray-600">
+                    Vị trí: {sp.viTri?.map((v) => {
+                      if (!v.soRang || v.soRang.length === 0) return "";
+                      if (v.kieu === "Rời" || v.soRang.length === 1) return v.soRang.join(", ");
+                      return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+                    }).filter(Boolean).join("; ") || "---"} | SL: {sp.soLuong || 1}
+                  </span>
+                </div>
 
-        {/* Hàng 3: Tên nha khoa trên thẻ | Vị trí răng | Số lượng */}
+                <div className="col-span-4 flex flex-col gap-1 text-xs text-gray-700">
+                  <span className="font-medium">Từ: <span className="font-normal">{formatDateVN(fullDonHang.ngayNhan)}</span></span>
+                  <span className="font-medium">Đến: <span className="font-normal text-blue-700 font-semibold">{formatDateVN(calculatedEndDate)}</span></span>
+                </div>
+
+                <div className="col-span-2">
+                  <TextField
+                    type="date"
+                    value={config.customEndDate || ""}
+                    onChange={(e) => handleConfigChange(idx, "customEndDate", e.target.value)}
+                    fullWidth
+                    size="small"
+                    inputProps={{ style: { fontSize: '13px' } }}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <TextField
+                    select
+                    value={config.selectedYears ?? (sp.sanPham?.baoHanhMacDinh || 0)}
+                    onChange={(e) => {
+                      handleConfigChange(idx, "selectedYears", e.target.value === "" ? null : Number(e.target.value));
+                      handleConfigChange(idx, "customEndDate", "");
+                    }}
+                    fullWidth
+                    size="small"
+                    inputProps={{ style: { fontSize: '13px' } }}
+                  >
+                    {Array.from({ length: 11 }, (_, i) => i).map((year) => (
+                      <MenuItem key={year} value={year}>
+                        {year} năm
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Thông tin nha khoa, bác sĩ, bệnh nhân */}
         <div className="grid grid-cols-3 gap-4">
           <TextField
             label="Tên nha khoa trên thẻ"
@@ -285,24 +318,6 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
             size="small"
           />
           <TextField
-            label="Vị trí răng"
-            disabled
-            value={selectedProduct?.viTri?.map((v) => `${v.kieu}: ${v.soRang.join(", ")}`).join("; ") || "---"}
-            fullWidth
-            size="small"
-          />
-          <TextField
-            label="Số lượng"
-            disabled
-            value={selectedProduct?.soLuong || ""}
-            fullWidth
-            size="small"
-          />
-        </div>
-
-        {/* Hàng 4: Bác sĩ | Mẫu thẻ */}
-        <div className="grid grid-cols-2 gap-4">
-          <TextField
             label="Bác sĩ"
             disabled
             value={fullDonHang?.bacSi?.hoVaTen || "---"}
@@ -310,34 +325,20 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
             size="small"
           />
           <TextField
-            label="Mẫu thẻ"
+            label="Tên bệnh nhân trên thẻ"
             disabled
-            value="Mẫu in Lab"
+            value={fullDonHang?.benhNhan?.hoVaTen || "---"}
             fullWidth
             size="small"
           />
         </div>
 
-        {/* Hàng 5: Tên bệnh nhân */}
-        <TextField
-          label="Tên bệnh nhân trên thẻ"
-          disabled
-          value={fullDonHang?.benhNhan?.hoVaTen || "---"}
-          fullWidth
-          size="small"
-        />
-
-        {/* Hàng 6: Điện thoại | Số CCCD */}
+        {/* Thông tin liên hệ */}
         <div className="grid grid-cols-2 gap-4">
           <TextField
             label="Điện thoại"
             disabled
             value={fullDonHang?.nhaKhoa?.soDienThoai || "---"}
-            fullWidth
-            size="small"
-          />
-          <TextField
-            label="Số CCCD"
             fullWidth
             size="small"
           />
@@ -357,10 +358,10 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
 
       <DialogActions>
         <Button onClick={onClose}>Hủy</Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
-          disabled={loading || selectedProductIndex === ""}
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={loading || availableProducts.length === 0}
         >
           {loading ? "Đang lưu..." : "Lưu"}
         </Button>

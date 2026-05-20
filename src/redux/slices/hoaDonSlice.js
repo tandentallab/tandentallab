@@ -71,12 +71,16 @@ export const fetchHoaDonByNhaKhoa = createAsyncThunk(
   }
 );
 
-// 🔥 Lấy chi tiết hóa đơn theo ID
 export const fetchHoaDonById = createAsyncThunk(
   "hoaDon/fetchById",
 
   async (id) => {
-    const res = await api.get(`/hoa-don/${id}`);
+    console.log("FETCH ID:", id);
+
+    const url = `/hoa-don/${id}`;
+    console.log("URL:", url);
+
+    const res = await api.get(url);
 
     return res.data;
   }
@@ -361,13 +365,7 @@ const slice = createSlice({
         (state, action) => {
           state.loading = false;
 
-          const createdOrders =
-            action.meta.arg
-              .danhSachDonHang;
-
-          const ids = createdOrders.map(
-            (item) => item.donHangId
-          );
+          const ids = action.meta.arg.danhSachDonHangIds;
 
           // 🔥 Xóa các đơn hàng đã chọn khỏi danh sách chờ
           state.donHangs =

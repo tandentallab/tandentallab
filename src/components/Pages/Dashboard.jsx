@@ -3,7 +3,7 @@ import { Box } from "@mui/material";
 import { useTheme, useMediaQuery } from "@mui/material";
 import Sidebar from "../Layout/Sidebar";
 import Header from "../Layout/Header";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getAuthSelector } from "../../redux/selector";
 import {
@@ -25,7 +25,7 @@ import VaiTro from "../Settings/VaiTro";
 import StaffProfile from "../Staff/StaffProfile";
 import SanPhamPage from "../SanPham/SanPhamPage";
 import CongDoanPage from "../CongDoan/CongDoanPage";
-import HoaDonTable from "../HoaDon/HoaDonTable";
+import HoaDonPage from "../HoaDon/HoaDonPage";
 import DonHangChuaXuatPage from "../DonHangChuaXuat/DonHangChuaXuatPage";
 import HoaDonDetail from "../HoaDon/HoaDonDetail";
 import KeHoachGiaoHangTable from "../KeHoachGiaoHang/KeHoachGiaoHangTable";
@@ -38,6 +38,7 @@ import BangLuongPage from "../BangLuong/BangLuongPage";
 import PhieuBaoHanhPage from "../PhieuBaoHanh";
 import MauTheBaoHanhPage from "../PhieuBaoHanh/MauTheBaoHanhPage";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
+import NhanVienDetail from "../NhanVien/NhanVienDetail";
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -45,6 +46,8 @@ const Dashboard = () => {
 
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useSelector(getAuthSelector);
+  const location = useLocation();
+  const isPrintPage = /\/(print|delivery-note)$/.test(location.pathname);
   const fallbackPath = getDefaultPathForUser(user);
 
   // Calculate responsive header height
@@ -77,14 +80,25 @@ const Dashboard = () => {
 
   return (
     <Box sx={{ display: "flex" }}>
-      <Header onToggleSidebar={() => setCollapsed(!collapsed)} />
-      <Sidebar collapsed={collapsed} />
+      {!isPrintPage && (
+        <Header onToggleSidebar={() => setCollapsed(!collapsed)} />
+      )}
+      {!isPrintPage && <Sidebar collapsed={collapsed} />}
       <Box
         component="main"
-        className="bg-gray-100 min-h-screen w-full"
+        className="bg-gray-100"
         sx={{
-          mt: "66px",
           transition: "all 0.3s",
+          flexGrow: 1,
+          minWidth: 0,
+          mt: isPrintPage ? 0 : `${headerMarginTop}px`,
+          height: isPrintPage ? "100vh" : `calc(100vh - ${headerMarginTop}px)`,
+          display: "flex",
+          flexDirection: "column",
+          transition: theme.transitions.create("margin-left", {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         }}
       >
         <Routes>
@@ -172,8 +186,72 @@ const Dashboard = () => {
           />
           <Route
             path="/hoa-don"
-            element={renderProtected("/hoa-don", <HoaDonTable />)}
+            element={renderProtected("/hoa-don", <HoaDonPage />)}
           />
+          <Route
+            path="/bao-cao"
+            element={renderProtected("/bao-cao", <BaoCaoPage />)}
+          />
+
+          <Route
+            path="/phieu-bao-hanh"
+            element={renderProtected("/phieu-bao-hanh", <PhieuBaoHanhPage />)}
+          />
+          <Route
+            path="/mau-the-bao-hanh"
+            element={renderProtected(
+              "/mau-the-bao-hanh",
+              <MauTheBaoHanhPage />
+            )}
+          />
+          <Route
+            path="/nha-khoa"
+            element={renderProtected("/nha-khoa", <NhaKhoaPage />)}
+          />
+          <Route
+            path="/nguoi-lien-he"
+            element={renderProtected("/nguoi-lien-he", <NguoiLienHePage />)}
+          />
+          <Route
+            path="/benh-nhan"
+            element={renderProtected("/benh-nhan", <BenhNhanPage />)}
+          />
+          <Route
+            path="/tai-khoan"
+            element={renderProtected("/tai-khoan", <StaffPage />)}
+          />
+          <Route
+            path="/nhap-du-lieu"
+            element={renderProtected("/nhap-du-lieu", <NhapDuLieu />)}
+          />
+          <Route
+            path="/cong-ty"
+            element={renderProtected("/cong-ty", <CongTy />)}
+          />
+          <Route
+            path="/quyen-su-dung"
+            element={renderProtected("/quyen-su-dung", <VaiTro />)}
+          />
+          <Route
+            path="/ho-so"
+            element={renderProtected("/ho-so", <StaffProfile />)}
+          />
+          <Route
+            path="/san-pham"
+            element={renderProtected("/san-pham", <SanPhamPage />)}
+          />
+          <Route
+            path="/cong-doan"
+            element={renderProtected("/cong-doan", <CongDoanPage />)}
+          />
+          <Route
+            path="/cho-xuat-hoa-don"
+            element={renderProtected(
+              "/cho-xuat-hoa-don",
+              <DonHangChuaXuatPage />
+            )}
+          />
+          {/* <Route path="/hoa-don" element={renderProtected("/hoa-don", <HoaDonTable />)} /> */}
           <Route
             path="/bao-cao"
             element={renderProtected("/bao-cao", <BaoCaoPage />)}

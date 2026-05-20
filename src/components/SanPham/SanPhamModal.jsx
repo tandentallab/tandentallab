@@ -23,6 +23,8 @@ import {
 } from "../../data/sanPhamConfig";
 import ChonCongDoanModal from "./ChonCongDoanModal";
 
+// 👉 DANH SÁCH DROPDOWN BẢO HÀNH CHO SẴN
+const BAO_HANH_OPTIONS = [1, 2, 3, 4, 5];
 const INITIAL_FORM = {
   tenSanPham: "",
   donGiaChung: "",

@@ -20,9 +20,6 @@ const formatDateSafe = (value) => {
 
 const toFileDateSafe = (value) => formatDateSafe(value).replaceAll('/', '-');
 
-// ==========================================
-// 1. XUẤT EXCEL CHI TIẾT 1 HÓA ĐƠN (ĐÃ FIX)
-// ==========================================
 export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Hóa Đơn');

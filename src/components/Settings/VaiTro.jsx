@@ -26,7 +26,7 @@ export default function QuyenSuDung() {
   const [openModal, setOpenModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ ten: "", moTa: "" });
-  const [setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // 📌 Fetch data
   const fetchQuyens = async () => {

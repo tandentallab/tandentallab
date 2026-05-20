@@ -67,6 +67,8 @@ const Sidebar = ({ collapsed }) => {
   const menu = [
     { name: "Thống kê", router: "/", icon: <Dashboard /> },
     { name: "Đơn Hàng", router: "/don-hang", icon: <ShoppingCart /> },
+    { name: "Phiếu Bảo Hành", router: "/phieu-bao-hanh", icon: <Receipt /> },
+    { name: "Mẫu Thẻ Bảo Hành", router: "/mau-the-bao-hanh", icon: <Category /> },
     { name: "Sản Phẩm", router: "/san-pham", icon: <Category /> },
     { name: "Công Đoạn", router: "/cong-doan", icon: <AccountTree /> },
   ];

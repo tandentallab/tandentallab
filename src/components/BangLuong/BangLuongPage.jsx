@@ -203,45 +203,47 @@ const BangLuongPage = () => {
     >
       {/* ── TOP BAR ── */}
       <div
-        className="shrink-0 flex items-center justify-between px-5 py-3 shadow-md"
+        className="shrink-0 flex flex-col md:flex-row md:items-center justify-between px-4 py-4 md:px-5 md:py-3 shadow-md gap-4 md:gap-2"
         style={{
           background: "linear-gradient(90deg, #0f172a 0%, #1e3a5f 100%)",
           minHeight: 60,
         }}
       >
-        {/* Left */}
-        <div className="flex items-center gap-3">
-          <IconButton
-            size="small"
-            onClick={() => navigate(-1)}
-            sx={{
-              color: "#94a3b8",
-              "&:hover": {
-                color: "#fff",
-                background: "rgba(255,255,255,0.08)",
-              },
-            }}
-          >
-            <ChevronLeftIcon />
-          </IconButton>
-
-          <div>
-            <div
-              className="text-white font-bold text-base tracking-wide"
-              style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
-                letterSpacing: 2,
+        {/* Left Section */}
+        <div className="flex items-center justify-between md:justify-start gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-3">
+            <IconButton
+              size="small"
+              onClick={() => navigate(-1)}
+              sx={{
+                color: "#94a3b8",
+                "&:hover": {
+                  color: "#fff",
+                  background: "rgba(255,255,255,0.08)",
+                },
               }}
             >
-              BẢNG LƯƠNG
-            </div>
-            <div className="text-slate-400 text-xs">
-              Tháng {thang} / {nam}
+              <ChevronLeftIcon />
+            </IconButton>
+
+            <div>
+              <div
+                className="text-white font-bold text-sm sm:text-base tracking-wide"
+                style={{
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  letterSpacing: 2,
+                }}
+              >
+                BẢNG LƯƠNG
+              </div>
+              <div className="text-slate-400 text-xs">
+                Tháng {thang} / {nam}
+              </div>
             </div>
           </div>
 
           <span
-            className="text-xs font-semibold px-2.5 py-0.5 rounded-full ml-1"
+            className="text-[11px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap"
             style={
               hasData
                 ? {
@@ -261,51 +263,59 @@ const BangLuongPage = () => {
         </div>
 
         {/* Right controls */}
-        <div className="flex items-center gap-2">
-          {/* Month / Year selects */}
-          {[
-            {
-              label: "Tháng",
-              value: thang,
-              setter: setThang,
-              items: months.map((m) => ({ val: m, label: `Tháng ${m}` })),
-            },
-            {
-              label: "Năm",
-              value: nam,
-              setter: setNam,
-              items: years.map((y) => ({ val: y, label: `${y}` })),
-            },
-          ].map(({ label, value, setter, items }) => (
-            <FormControl key={label} size="small" sx={{ minWidth: 110 }}>
-              <Select
-                value={value}
-                onChange={(e) => setter(e.target.value)}
-                sx={{
-                  background: "rgba(255,255,255,0.07)",
-                  color: "#e2e8f0",
-                  borderRadius: 1.5,
-                  fontSize: 13,
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "rgba(255,255,255,0.15)",
-                  },
-                  "&:hover .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "rgba(255,255,255,0.35)",
-                  },
-                  "& .MuiSvgIcon-root": { color: "#94a3b8" },
-                }}
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full md:w-auto justify-start md:justify-end">
+          {/* Month / Year selects wrapped together */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {[
+              {
+                label: "Tháng",
+                value: thang,
+                setter: setThang,
+                items: months.map((m) => ({ val: m, label: `Tháng ${m}` })),
+              },
+              {
+                label: "Năm",
+                value: nam,
+                setter: setNam,
+                items: years.map((y) => ({ val: y, label: `${y}` })),
+              },
+            ].map(({ label, value, setter, items }) => (
+              <FormControl
+                key={label}
+                size="small"
+                className="flex-1 sm:flex-none"
+                sx={{ minWidth: { xs: 0, sm: 110 } }}
               >
-                {items.map(({ val, label: lbl }) => (
-                  <MenuItem key={val} value={val}>
-                    {lbl}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          ))}
+                <Select
+                  value={value}
+                  onChange={(e) => setter(e.target.value)}
+                  sx={{
+                    background: "rgba(255,255,255,0.07)",
+                    color: "#e2e8f0",
+                    borderRadius: 1.5,
+                    fontSize: 13,
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255,255,255,0.15)",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255,255,255,0.35)",
+                    },
+                    "& .MuiSvgIcon-root": { color: "#94a3b8" },
+                  }}
+                >
+                  {items.map(({ val, label: lbl }) => (
+                    <MenuItem key={val} value={val}>
+                      {lbl}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ))}
+          </div>
 
-          {/* Divider */}
+          {/* Vertical Divider - Hidden on Mobile/Tablet stack layout */}
           <div
+            className="hidden lg:block"
             style={{
               width: 1,
               height: 28,
@@ -314,89 +324,98 @@ const BangLuongPage = () => {
             }}
           />
 
-          {/* Save */}
-          <button
-            onClick={handleSave}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all"
-            style={{
-              background: "#2563eb",
-              color: "#fff",
-              border: "none",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#1d4ed8")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#2563eb")}
-          >
-            <SaveIcon sx={{ fontSize: 16 }} />
-            {hasData ? "Cập nhật" : "Tạo bảng lương"}
-          </button>
-
-          {/* Staff */}
-          <button
-            onClick={() => navigate("/nhan-vien")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-            style={{
-              background: "rgba(255,255,255,0.08)",
-              color: "#cbd5e1",
-              border: "1px solid rgba(255,255,255,0.13)",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = "rgba(255,255,255,0.14)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "rgba(255,255,255,0.08)")
-            }
-          >
-            <PeopleAltIcon sx={{ fontSize: 16 }} />
-            Nhân viên
-          </button>
-
-          {/* Export */}
-          {salaryData?.length > 0 && (
+          {/* Actions Buttons Group */}
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
+            {/* Save */}
             <button
-              onClick={handleExport}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+              onClick={handleSave}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all w-full sm:w-auto"
               style={{
-                background: "#065f46",
-                color: "#6ee7b7",
-                border: "1px solid #065f46",
+                background: "#2563eb",
+                color: "#fff",
+                border: "none",
                 cursor: "pointer",
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#047857")
+                (e.currentTarget.style.background = "#1d4ed8")
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "#065f46")
+                (e.currentTarget.style.background = "#2563eb")
               }
             >
-              <DownloadIcon sx={{ fontSize: 16 }} />
-              Xuất Excel
+              <SaveIcon sx={{ fontSize: 16 }} />
+              <span className="whitespace-nowrap">
+                {hasData ? "Cập nhật" : "Tạo bảng lương"}
+              </span>
             </button>
-          )}
 
-          {/* Delete all */}
-          {hasData && (
+            {/* Staff */}
             <button
-              onClick={handleDeleteAll}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+              onClick={() => navigate("/nhan-vien")}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all w-full sm:w-auto"
               style={{
-                background: "rgba(239,68,68,0.1)",
-                color: "#fca5a5",
-                border: "1px solid rgba(239,68,68,0.25)",
+                background: "rgba(255,255,255,0.08)",
+                color: "#cbd5e1",
+                border: "1px solid rgba(255,255,255,0.13)",
                 cursor: "pointer",
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "rgba(239,68,68,0.2)")
+                (e.currentTarget.style.background = "rgba(255,255,255,0.14)")
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "rgba(239,68,68,0.1)")
+                (e.currentTarget.style.background = "rgba(255,255,255,0.08)")
               }
             >
-              <DeleteSweepIcon sx={{ fontSize: 16 }} />
-              Xóa tất cả
+              <PeopleAltIcon sx={{ fontSize: 16 }} />
+              <span className="whitespace-nowrap">Nhân viên</span>
             </button>
-          )}
+
+            {/* Export */}
+            {salaryData?.length > 0 && (
+              <button
+                onClick={handleExport}
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all w-full sm:w-auto"
+                style={{
+                  background: "#065f46",
+                  color: "#6ee7b7",
+                  border: "1px solid #065f46",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#047857")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "#065f46")
+                }
+              >
+                <DownloadIcon sx={{ fontSize: 16 }} />
+                <span className="whitespace-nowrap">Xuất Excel</span>
+              </button>
+            )}
+
+            {/* Delete all */}
+            {hasData && (
+              <button
+                onClick={handleDeleteAll}
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all w-full sm:w-auto col-span-2 sm:col-span-1"
+                style={{
+                  background: "rgba(239,68,68,0.1)",
+                  color: "#fca5a5",
+                  border: "1px solid rgba(239,68,68,0.25)",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "rgba(239,68,68,0.2)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "rgba(239,68,68,0.1)")
+                }
+              >
+                <DeleteSweepIcon sx={{ fontSize: 16 }} />
+                <span className="whitespace-nowrap">Xóa tất cả</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

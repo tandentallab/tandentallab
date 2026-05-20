@@ -13,7 +13,7 @@ const HoaDonPrintPreview = () => {
       try {
         setLoading(true);
         // Gọi API lấy chi tiết hóa đơn theo ID
-        const res = await api.get(`/hoadon/${id}`);
+        const res = await api.get(`/hoa-don/${id}`);
         const data = res.data?.data || res.data;
         setHoaDon(data);
       } catch (err) {

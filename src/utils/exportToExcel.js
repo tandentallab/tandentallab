@@ -378,10 +378,7 @@ export const exportHoaDonListToExcel = async (
   const fromDateLabel = formatDateSafe(fromDate);
   const toDateLabel = formatDateSafe(toDate);
 
-  worksheet.getCell('A6').value = `Từ ngày: ${fromDateLabel || ''}   Đến ngày: ${toDateLabel || ''}`;
-  worksheet.getCell('A7').value = `Nha khoa: ${nhaKhoaName || 'Tất cả'}`;
-
-  const headerRow = 9;
+  const headerRow = 6;
   const headers = [
     'Ngày xuất',
     'Số',
@@ -426,9 +423,9 @@ export const exportHoaDonListToExcel = async (
       hd.ngayXuatHoaDon ? new Date(hd.ngayXuatHoaDon).toLocaleDateString('vi-VN') : '',
       so,
       nk.hoVaTen || nk.tenGiaoDich || '',
-      hd.tongTien || 0,
-      hd.tongChietKhau || 0,
-      hd.thanhTien || 0,
+      hd.tongCong || 0,
+      hd.chietKhau || 0,
+      hd.giaTriThanhToan || 0,
       hd.daThanhToan || 0,
       hd.conLai || 0,
       hd.chiPhiKhac || 0,

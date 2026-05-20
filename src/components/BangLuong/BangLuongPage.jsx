@@ -198,7 +198,7 @@ const BangLuongPage = () => {
 
   return (
     <div
-      className="pt-16 fixed inset-0 z-[1200] flex flex-col overflow-hidden"
+      className="fixed h-full w-full inset-0 z-[1299] flex flex-col overflow-hidden"
       style={{ background: "#f1f5f9" }}
     >
       {/* ── TOP BAR ── */}

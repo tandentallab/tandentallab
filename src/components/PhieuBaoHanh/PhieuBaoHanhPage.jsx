@@ -268,18 +268,15 @@ const PhieuBaoHanhPage = () => {
                         <Button
                           variant="text"
                           onClick={() => {
-                            if (phieu.donHang?.soDonHang)
+                            if (phieu.donHang?._id)
                               navigate(
-                                `/donhang/${phieu.donHang?.soDonHang}/edit`
+                                `/donhang/${phieu.donHang?._id}/edit`
                               );
                           }}
                         >
-                          {phieu.donHang?.soDonHang || phieu.maBaoHanh || "---"}
+                          {phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}
                         </Button>
                       </TableCell>
-                      {/* <TableCell className="font-medium text-slate-600">
-                        {phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}
-                      </TableCell> */}
                       <TableCell className="font-semibold text-slate-900">
                         {phieu.benhNhan?.hoVaTen || "---"}
                       </TableCell>
@@ -419,9 +416,15 @@ const PhieuBaoHanhPage = () => {
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                       Mã Đơn Hàng
                     </span>
-                    <span className="font-semibold text-slate-800 text-sm">
+                    <button
+                      onClick={() => {
+                        if (phieu.donHang?._id)
+                          navigate(`/donhang/${phieu.donHang?._id}/edit`);
+                      }}
+                      className="font-semibold text-slate-800 text-sm hover:text-blue-600 cursor-pointer transition-colors"
+                    >
                       {phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}
-                    </span>
+                    </button>
                   </div>
                   <div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">

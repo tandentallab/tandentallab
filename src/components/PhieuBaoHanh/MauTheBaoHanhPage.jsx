@@ -60,7 +60,7 @@ const AVAILABLE_FIELDS = [
 
 // 👉 ĐÂY CHÍNH LÀ DỮ LIỆU MẪU ĐỂ ƯỚM THỬ (MOCK DATA)
 const PREVIEW_MOCK_DATA = {
-  maThe: "TAN26050036",
+  maThe: "26050036",
   nhaKhoa: "NHA KHOA Á CHÂU",
   bacSi: "BS. Nguyễn Hùng Thịnh",
   benhNhan: "Nguyễn Văn A",

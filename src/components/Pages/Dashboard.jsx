@@ -84,12 +84,11 @@ const Dashboard = () => {
         component="main"
         className="bg-gray-100"
         sx={{
-          mt: isPrintPage ? 0 : "66px",
           transition: "all 0.3s",
           flexGrow: 1,
           minWidth: 0,
-          mt: `${headerMarginTop}px`,
-          height: `calc(100vh - ${headerMarginTop}px)`,
+          mt: isPrintPage ? 0 : `${headerMarginTop}px`,
+          height: isPrintPage ? "100vh" : `calc(100vh - ${headerMarginTop}px)`,
           display: "flex",
           flexDirection: "column",
           transition: theme.transitions.create("margin-left", {
@@ -191,7 +190,7 @@ const Dashboard = () => {
           <Route path="/san-pham" element={renderProtected("/san-pham", <SanPhamPage />)} />
           <Route path="/cong-doan" element={renderProtected("/cong-doan", <CongDoanPage />)} />
           <Route path="/cho-xuat-hoa-don" element={renderProtected("/cho-xuat-hoa-don", <DonHangChuaXuatPage />)} />
-          <Route path="/hoa-don" element={renderProtected("/hoa-don", <HoaDonTable />)} />
+          {/* <Route path="/hoa-don" element={renderProtected("/hoa-don", <HoaDonTable />)} /> */}
           <Route path="/bao-cao" element={renderProtected("/bao-cao", <BaoCaoPage />)} />
           <Route
             path="/ke-hoach-giao-hang"

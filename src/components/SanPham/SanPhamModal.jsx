@@ -23,8 +23,6 @@ import {
 } from "../../data/sanPhamConfig";
 import ChonCongDoanModal from "./ChonCongDoanModal";
 
-// 👉 DANH SÁCH DROPDOWN BẢO HÀNH CHO SẴN
-const BAO_HANH_OPTIONS = [1, 2, 3, 4, 5];
 const INITIAL_FORM = {
   tenSanPham: "",
   donGiaChung: "",
@@ -35,7 +33,7 @@ const INITIAL_FORM = {
   loai: "Sản xuất",
   coMauRang: true,
   quyTrinh: [],
-  baoHanhMacDinh: 0,
+  baoHanhMacDinh: "0",
 };
 
 export default function SanPhamModal({
@@ -58,7 +56,7 @@ export default function SanPhamModal({
           ...editData,
           donGiaChung: editData.donGiaChung?.toString() || "",
           quyTrinh: editData.quyTrinh || [],
-          baoHanhMacDinh: editData.baoHanhMacDinh ?? 0,
+          baoHanhMacDinh: (editData.baoHanhMacDinh || 0).toString(),
         });
       } else {
         setForm(INITIAL_FORM);
@@ -91,7 +89,11 @@ export default function SanPhamModal({
   const handleSubmit = async () => {
     if (!validateForm()) return;
     try {
-      const payload = { ...form, donGiaChung: Number(form.donGiaChung) };
+      const payload = {
+        ...form,
+        donGiaChung: Number(form.donGiaChung),
+        baoHanhMacDinh: Number(form.baoHanhMacDinh),
+      };
       if (isEdit) {
         await dispatch(
           updateSanPham({ id: editData._id, data: payload })
@@ -101,7 +103,7 @@ export default function SanPhamModal({
       }
       handleClose();
     } catch (err) {
-      console.error(err);
+      alert(`Lỗi: ${err?.message || JSON.stringify(err)}`);
     }
   };
 
@@ -240,22 +242,26 @@ export default function SanPhamModal({
 
                   <TextField
                     select
-                    label="Bảo hành mặc định"
+                    label="Thời gian bảo hành mặc định"
                     variant="standard"
                     fullWidth
-                    value={form.baoHanhMacDinh}
+                    value={form.baoHanhMacDinh || "0"}
                     onChange={(e) =>
-                      handleChange("baoHanhMacDinh", Number(e.target.value))
+                      handleChange("baoHanhMacDinh", e.target.value)
                     }
                     InputLabelProps={{ shrink: true }}
                   >
-                    <MenuItem value={0}>Không bảo hành</MenuItem>
-
-                    {BAO_HANH_OPTIONS.map((year) => (
-                      <MenuItem key={year} value={year}>
-                        {year} năm
-                      </MenuItem>
-                    ))}
+                    <MenuItem value="0">Không có bảo hành</MenuItem>
+                    <MenuItem value="1">1 năm</MenuItem>
+                    <MenuItem value="2">2 năm</MenuItem>
+                    <MenuItem value="3">3 năm</MenuItem>
+                    <MenuItem value="4">4 năm</MenuItem>
+                    <MenuItem value="5">5 năm</MenuItem>
+                    <MenuItem value="6">6 năm</MenuItem>
+                    <MenuItem value="7">7 năm</MenuItem>
+                    <MenuItem value="8">8 năm</MenuItem>
+                    <MenuItem value="9">9 năm</MenuItem>
+                    <MenuItem value="10">10 năm</MenuItem>
                   </TextField>
 
                   <TextField
@@ -279,18 +285,20 @@ export default function SanPhamModal({
                 className="flex flex-col items-center pt-2 md:pt-4 pl-0 md:pl-4"
               >
                 <Typography
-                  className={`font-bold text-[11px] mb-4 text-center ${errors.quyTrinh ? "text-red-500" : "text-[#f57c00]"
-                    }`}
+                  className={`font-bold text-[11px] mb-4 text-center ${
+                    errors.quyTrinh ? "text-red-500" : "text-[#f57c00]"
+                  }`}
                 >
                   {errors.quyTrinh
                     ? "* Chưa thiết lập quy trình!"
                     : "* Quy trình sản xuất"}
                 </Typography>
                 <Box
-                  className={`rounded-xl p-3 cursor-pointer border transition w-full ${errors.quyTrinh
-                    ? "bg-red-50 border-red-300"
-                    : "bg-blue-50 hover:border-blue-400"
-                    }`}
+                  className={`rounded-xl p-3 cursor-pointer border transition w-full ${
+                    errors.quyTrinh
+                      ? "bg-red-50 border-red-300"
+                      : "bg-blue-50 hover:border-blue-400"
+                  }`}
                   onClick={() => setOpenCD(true)}
                 >
                   <div className="flex justify-between items-center mb-2">

@@ -35,7 +35,10 @@ import PhieuThuPage from "../PhieuThu/PhieuThuPage";
 import PhieuThuPrintPreview from "../PhieuThu/PhieuThuPrintPreview";
 import NhanVienTable from "../NhanVien/NhanVienTable";
 import BangLuongPage from "../BangLuong/BangLuongPage";
-import NhanVienDetail from "../NhanVien/NhanVienDetail";
+import PhieuBaoHanhPage from "../PhieuBaoHanh";
+import MauTheBaoHanhPage from "../PhieuBaoHanh/MauTheBaoHanhPage";
+import TextSnippetIcon from "@mui/icons-material/TextSnippet";
+
 const Dashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -107,6 +110,17 @@ const Dashboard = () => {
             element={renderProtected(
               "/donhang",
               <DonHangDeliveryNotePrintPreview />
+            )}
+          />
+          <Route
+            path="/phieu-bao-hanh"
+            element={renderProtected("/phieu-bao-hanh", <PhieuBaoHanhPage />)}
+          />
+          <Route
+            path="/mau-the-bao-hanh"
+            element={renderProtected(
+              "/mau-the-bao-hanh",
+              <MauTheBaoHanhPage />
             )}
           />
           <Route
@@ -192,13 +206,6 @@ const Dashboard = () => {
             element={renderProtected(
               "/nhan-vien",
               <NhanVienTable></NhanVienTable>
-            )}
-          ></Route>
-          <Route
-            path="/nhan-vien/:id"
-            element={renderProtected(
-              "/nhan-vien",
-              <NhanVienDetail></NhanVienDetail>
             )}
           ></Route>
           <Route

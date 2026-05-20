@@ -287,6 +287,13 @@ const Dashboard = () => {
             )}
           ></Route>
           <Route
+            path="/nhan-vien/:id"
+            element={renderProtected(
+              "/nhan-vien",
+              <NhanVienDetail></NhanVienDetail>
+            )}
+          ></Route>
+          <Route
             path="/bang-luong"
             element={renderProtected(
               "/bang-luong",

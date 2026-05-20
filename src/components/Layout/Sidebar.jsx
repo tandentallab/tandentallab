@@ -24,6 +24,7 @@ import {
   People,
   Assignment,
   BarChart,
+  Receipt,
   Settings,
   Category,
   AccountTree,
@@ -86,6 +87,12 @@ const Sidebar = ({ collapsed }) => {
     },
     { name: "Sản Phẩm", router: "/san-pham", icon: <Category /> },
     { name: "Công Đoạn", router: "/cong-doan", icon: <AccountTree /> },
+    { name: "Phiếu Bảo Hành", router: "/phieu-bao-hanh", icon: <Receipt /> },
+    {
+      name: "Mẫu Thẻ Bảo Hành",
+      router: "/mau-the-bao-hanh",
+      icon: <Category />,
+    },
   ];
 
   const customerMenu = [

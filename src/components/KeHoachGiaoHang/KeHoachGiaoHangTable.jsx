@@ -173,21 +173,6 @@ const KeHoachGiaoHangTable = () => {
           >
             <FiRefreshCw size={17} />
           </button>
-          <button
-            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
-            title="Xuất Excel"
-          >
-            <FiDownload size={17} />
-          </button>
-          <button
-            className="w-8 h-8 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition shadow"
-            title="Thêm mới"
-          >
-            <FiPlus size={17} />
-          </button>
-          <button className="p-2 rounded hover:bg-gray-200 text-gray-500 transition">
-            <FiMoreVertical size={17} />
-          </button>
         </div>
 
         {/* ================= FILTER BAR ================= */}

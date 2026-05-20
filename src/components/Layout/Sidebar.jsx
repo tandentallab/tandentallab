@@ -23,7 +23,6 @@ import {
   Contacts,
   People,
   Assignment,
-  Receipt,
   BarChart,
   Settings,
   Category,
@@ -32,7 +31,9 @@ import {
   Menu as MenuIcon,
   Close as CloseIcon,
 } from "@mui/icons-material";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 
+import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import BadgeIcon from "@mui/icons-material/Badge";
 
@@ -60,19 +61,29 @@ const Sidebar = ({ collapsed }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Kích thước & Trạng thái Drawer
-  const drawerWidth = isMobileSize ? 250 : (collapsed ? 74 : 250);
+  const drawerWidth = isMobileSize ? 250 : collapsed ? 74 : 250;
   const isOpen = isMobileSize || !collapsed;
 
   /* ===== MENU DATA ===== */
   const menu = [
     { name: "Thống kê", router: "/", icon: <Dashboard /> },
     { name: "Đơn Hàng", router: "/don-hang", icon: <ShoppingCart /> },
-    { name: "Kế Hoạch Giao Hàng", router: "/ke-hoach-giao-hang", icon: <Assignment /> },
-    { name: "Chờ xuất hóa đơn", router: "/cho-xuat-hoa-don", icon: <ReceiptLong /> },
-    { name: "Hóa Đơn", router: "/hoa-don", icon: <Receipt /> },
-    { name: "Phiếu Thu", router: "/phieu-thu", icon: <Receipt /> },
-    { name: "Phiếu Bảo Hành", router: "/phieu-bao-hanh", icon: <Receipt /> },
-    { name: "Mẫu Thẻ Bảo Hành", router: "/mau-the-bao-hanh", icon: <Category /> },
+    {
+      name: "Kế Hoạch Giao Hàng",
+      router: "/ke-hoach-giao-hang",
+      icon: <Assignment />,
+    },
+    {
+      name: "Chờ xuất hóa đơn",
+      router: "/cho-xuat-hoa-don",
+      icon: <ReceiptLong />,
+    },
+    { name: "Hóa Đơn", router: "/hoa-don", icon: <RequestQuoteIcon /> },
+    {
+      name: "Phiếu Thu",
+      router: "/phieu-thu",
+      icon: <AccountBalanceWalletIcon />,
+    },
     { name: "Sản Phẩm", router: "/san-pham", icon: <Category /> },
     { name: "Công Đoạn", router: "/cong-doan", icon: <AccountTree /> },
   ];
@@ -97,10 +108,18 @@ const Sidebar = ({ collapsed }) => {
   ];
 
   /* ===== LỌC MENU DỰA TRÊN QUYỀN (SỬ DỤNG currentUser) ===== */
-  const filteredMainMenu = menu.filter((item) => hasRouteAccess(currentUser, item.router));
-  const filteredCustomerMenu = customerMenu.filter((item) => hasRouteAccess(currentUser, item.router));
-  const filteredOtherMenu = otherMenu.filter((item) => hasRouteAccess(currentUser, item.router));
-  const filteredSettingMenu = settingMenu.filter((item) => hasRouteAccess(currentUser, item.router));
+  const filteredMainMenu = menu.filter((item) =>
+    hasRouteAccess(currentUser, item.router)
+  );
+  const filteredCustomerMenu = customerMenu.filter((item) =>
+    hasRouteAccess(currentUser, item.router)
+  );
+  const filteredOtherMenu = otherMenu.filter((item) =>
+    hasRouteAccess(currentUser, item.router)
+  );
+  const filteredSettingMenu = settingMenu.filter((item) =>
+    hasRouteAccess(currentUser, item.router)
+  );
 
   const hasCustomerGroup = filteredCustomerMenu.length > 0;
   const hasSettingGroup = filteredSettingMenu.length > 0;
@@ -115,8 +134,10 @@ const Sidebar = ({ collapsed }) => {
   const [openSetting, setOpenSetting] = useState(false);
 
   useEffect(() => {
-    if (customerMenu.some(item => location.pathname.startsWith(item.router))) setOpenCustomer(true);
-    if (settingMenu.some(item => location.pathname.startsWith(item.router))) setOpenSetting(true);
+    if (customerMenu.some((item) => location.pathname.startsWith(item.router)))
+      setOpenCustomer(true);
+    if (settingMenu.some((item) => location.pathname.startsWith(item.router)))
+      setOpenSetting(true);
   }, [location.pathname]);
 
   const handleNavigate = (router) => {
@@ -144,7 +165,7 @@ const Sidebar = ({ collapsed }) => {
     mr: 2, // Đẩy chữ cách icon đúng 16px
     justifyContent: "center",
     flexShrink: 0,
-    color: "inherit"
+    color: "inherit",
   };
 
   /* ===== RENDER MENU ITEM ===== */
@@ -164,9 +185,7 @@ const Sidebar = ({ collapsed }) => {
           onClick={() => handleNavigate(item.router)}
           sx={getListItemSx(paddingLeft, active)}
         >
-          <ListItemIcon sx={iconSx}>
-            {item.icon}
-          </ListItemIcon>
+          <ListItemIcon sx={iconSx}>{item.icon}</ListItemIcon>
           <ListItemText primary={item.name} sx={{ whiteSpace: "nowrap" }} />
         </ListItemButton>
       </Tooltip>
@@ -176,7 +195,14 @@ const Sidebar = ({ collapsed }) => {
   const drawerContent = (
     <>
       <Toolbar sx={{ px: 2, overflow: "hidden" }}>
-        <Box sx={{ fontWeight: 700, fontSize: 18, color: "#2563eb", whiteSpace: "nowrap" }}>
+        <Box
+          sx={{
+            fontWeight: 700,
+            fontSize: 18,
+            color: "#2563eb",
+            whiteSpace: "nowrap",
+          }}
+        >
           TẤN DENTAL
         </Box>
         {isMobileSize && (
@@ -199,9 +225,17 @@ const Sidebar = ({ collapsed }) => {
               <ListItemIcon sx={iconSx}>
                 <People />
               </ListItemIcon>
-              <ListItemText primary="Quản lý khách hàng" sx={{ whiteSpace: "nowrap" }} />
+              <ListItemText
+                primary="Quản lý khách hàng"
+                sx={{ whiteSpace: "nowrap" }}
+              />
               {/* Chỉ hiện mũi tên khi mở rộng, tránh bị dồn ép layout khi thu nhỏ */}
-              {isOpen && (openCustomer ? <ExpandLess sx={{ flexShrink: 0 }} /> : <ExpandMore sx={{ flexShrink: 0 }} />)}
+              {isOpen &&
+                (openCustomer ? (
+                  <ExpandLess sx={{ flexShrink: 0 }} />
+                ) : (
+                  <ExpandMore sx={{ flexShrink: 0 }} />
+                ))}
             </ListItemButton>
             {/* Vẫn cho xổ xuống ngay cả khi sidebar chỉ có icon */}
             <Collapse in={openCustomer} timeout="auto" unmountOnExit>
@@ -224,7 +258,12 @@ const Sidebar = ({ collapsed }) => {
                 <Settings />
               </ListItemIcon>
               <ListItemText primary="Thiết lập" sx={{ whiteSpace: "nowrap" }} />
-              {isOpen && (openSetting ? <ExpandLess sx={{ flexShrink: 0 }} /> : <ExpandMore sx={{ flexShrink: 0 }} />)}
+              {isOpen &&
+                (openSetting ? (
+                  <ExpandLess sx={{ flexShrink: 0 }} />
+                ) : (
+                  <ExpandMore sx={{ flexShrink: 0 }} />
+                ))}
             </ListItemButton>
             <Collapse in={openSetting} timeout="auto" unmountOnExit>
               <List component="div" disablePadding>
@@ -243,10 +282,13 @@ const Sidebar = ({ collapsed }) => {
         <IconButton
           onClick={() => setMobileOpen(!mobileOpen)}
           sx={{
-            position: "fixed", top: 12, left: 12,
+            position: "fixed",
+            top: 12,
+            left: 12,
             zIndex: 1201,
-            bgcolor: "#fff", boxShadow: 2,
-            "&:hover": { bgcolor: "#f3f4f6" }
+            bgcolor: "#fff",
+            boxShadow: 2,
+            "&:hover": { bgcolor: "#f3f4f6" },
           }}
         >
           <MenuIcon />
@@ -275,7 +317,10 @@ const Sidebar = ({ collapsed }) => {
               duration: theme.transitions.duration.enteringScreen,
             }),
             "&::-webkit-scrollbar": { width: "6px" },
-            "&::-webkit-scrollbar-thumb": { background: "#d1d5db", borderRadius: "10px" },
+            "&::-webkit-scrollbar-thumb": {
+              background: "#d1d5db",
+              borderRadius: "10px",
+            },
           },
         }}
       >

@@ -16,14 +16,21 @@ import {
   IconButton,
   Chip,
   MenuItem,
+  InputAdornment,
+  Tooltip,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import SearchIcon from "@mui/icons-material/Search";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import CloseIcon from "@mui/icons-material/Close";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { api } from "../../config/api";
 import { toast } from "sonner";
 import FullScreenLoader from "../Loader/FullScreenLoader";
+import { useNavigate } from "react-router-dom";
 
-// Helper functions
+// Helper functions (Giữ nguyên logic gốc)
 const addYearsToDate = (dateValue, years) => {
   const start = new Date(dateValue);
   const result = new Date(
@@ -50,7 +57,9 @@ const PhieuBaoHanhPage = () => {
     danhSachBaoHanh: [],
   });
 
-  // Load danh sách phiếu bảo hành
+  const navigate = useNavigate();
+
+  // Load danh sách phiếu bảo hành (Giữ nguyên)
   useEffect(() => {
     loadPhieuList();
   }, []);
@@ -71,7 +80,7 @@ const PhieuBaoHanhPage = () => {
     }
   };
 
-  // Filter danh sách
+  // Filter danh sách (Giữ nguyên)
   const filteredPhieu = phieuList.filter((phieu) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -81,7 +90,7 @@ const PhieuBaoHanhPage = () => {
     );
   });
 
-  // Mở modal edit
+  // Mở modal edit (Giữ nguyên)
   const handleOpenEdit = (phieu) => {
     setEditingPhieu(phieu);
 
@@ -108,11 +117,10 @@ const PhieuBaoHanhPage = () => {
     setIsEditModalOpen(true);
   };
 
-  // Lưu chỉnh sửa
+  // Lưu chỉnh sửa (Giữ nguyên)
   const handleSaveEdit = async () => {
     try {
       setLoading(true);
-
       const cleanedDanhSach = editForm.danhSachBaoHanh.map(
         ({ selectedYears, customEndDate, ...rest }) => rest
       );
@@ -135,7 +143,7 @@ const PhieuBaoHanhPage = () => {
     }
   };
 
-  // Xóa phiếu bảo hành
+  // Xóa phiếu bảo hành (Giữ nguyên)
   const handleDelete = async (phieuId) => {
     if (!window.confirm("Bạn chắc chắn muốn xóa phiếu bảo hành này?")) return;
 
@@ -158,48 +166,89 @@ const PhieuBaoHanhPage = () => {
   if (loading && phieuList.length === 0) return <FullScreenLoader />;
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-3xl font-bold text-gray-800">
-          Quản lý Phiếu Bảo Hành
-        </h1>
-        <Button variant="contained" color="primary" onClick={loadPhieuList}>
-          Làm mới
+    <div className="p-4 md:p-8 max-w-7xl mx-auto bg-slate-50 min-h-screen">
+      {/* Header Section */}
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <CalendarMonthIcon className="text-blue-600" /> Quản lý Phiếu Bảo
+            Hành
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Theo dõi, cập nhật và xử lý thông tin bảo hành của bệnh nhân
+          </p>
+        </div>
+        <Button
+          variant="contained"
+          color="primary"
+          disableElevation
+          startIcon={<RefreshIcon />}
+          onClick={loadPhieuList}
+          className="bg-blue-600 hover:bg-blue-700 font-medium px-5 py-2.5 rounded-xl normal-case transition-all"
+        >
+          Làm mới dữ liệu
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="mb-6">
+      {/* Search Bar */}
+      <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
         <TextField
-          label="Tìm kiếm theo mã phiếu, mã đơn hàng, tên bệnh nhân..."
+          placeholder="Tìm kiếm nhanh theo mã phiếu, mã đơn hàng, tên bệnh nhân..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           fullWidth
           size="small"
           variant="outlined"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon className="text-slate-400" />
+              </InputAdornment>
+            ),
+            className: "bg-slate-50/50 rounded-lg text-sm",
+          }}
         />
       </div>
 
-      {/* Desktop: Table, Mobile: Cards */}
+      {/* Desktop: Table Layout */}
       <div className="hidden md:block">
-        <div
-          style={{ WebkitOverflowScrolling: "touch" }}
-          className="overflow-x-auto"
+        <TableContainer
+          component={Paper}
+          elevation={0}
+          className="border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
         >
-          <TableContainer component={Paper} sx={{ minWidth: 900 }}>
-            <Table size="small" sx={{ minWidth: 900 }}>
-              <TableHead className="bg-gray-100">
+          <div className="overflow-x-auto">
+            <Table size="medium" sx={{ minWidth: 1000 }}>
+              <TableHead className="bg-slate-50 border-b border-slate-200">
                 <TableRow>
-                  <TableCell className="font-bold">Mã BH</TableCell>
-                  <TableCell className="font-bold">Mã Đơn Hàng</TableCell>
-                  <TableCell className="font-bold">Bệnh Nhân</TableCell>
-                  <TableCell className="font-bold">Nha Khoa</TableCell>
-                  <TableCell className="font-bold">Số Sản Phẩm</TableCell>
-                  <TableCell className="font-bold">
-                    Danh Sách Sản Phẩm
+                  <TableCell className="font-semibold text-slate-700 py-4">
+                    Mã BH
                   </TableCell>
-                  <TableCell className="font-bold">Ghi Chú</TableCell>
-                  <TableCell align="center" className="font-bold">
+                  <TableCell className="font-semibold text-slate-700 py-4">
+                    Mã Đơn Hàng
+                  </TableCell>
+                  <TableCell className="font-semibold text-slate-700 py-4">
+                    Bệnh Nhân
+                  </TableCell>
+                  <TableCell className="font-semibold text-slate-700 py-4">
+                    Nha Khoa
+                  </TableCell>
+                  <TableCell className="font-semibold text-slate-700 py-4">
+                    Sản Phẩm
+                  </TableCell>
+                  <TableCell
+                    className="font-semibold text-slate-700 py-4"
+                    style={{ width: "320px" }}
+                  >
+                    Chi Tiết Thời Hạn
+                  </TableCell>
+                  <TableCell className="font-semibold text-slate-700 py-4">
+                    Ghi Chú
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    className="font-semibold text-slate-700 py-4"
+                  >
                     Hành Động
                   </TableCell>
                 </TableRow>
@@ -207,204 +256,231 @@ const PhieuBaoHanhPage = () => {
               <TableBody>
                 {filteredPhieu.length > 0 ? (
                   filteredPhieu.map((phieu) => (
-                    <TableRow key={phieu._id} hover>
-                      <TableCell className="font-medium">
+                    <TableRow
+                      key={phieu._id}
+                      hover
+                      className="transition-colors hover:bg-slate-50/80"
+                    >
+                      <TableCell className="font-bold text-blue-600">
                         {phieu.maBaoHanh}
                       </TableCell>
-                      <TableCell>
-                        {phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}
+                      <TableCell className="font-medium text-slate-600">
+                        <Button
+                          variant="text"
+                          onClick={() => {
+                            if (phieu.donHang?._id)
+                              navigate(
+                                `/donhang/${phieu.donHang?._id}/edit`
+                              );
+                          }}
+                        >
+                          {phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}
+                        </Button>
                       </TableCell>
-                      <TableCell>{phieu.benhNhan?.hoVaTen || "---"}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-semibold text-slate-900">
+                        {phieu.benhNhan?.hoVaTen || "---"}
+                      </TableCell>
+                      <TableCell className="text-slate-600 text-sm">
                         {phieu.nhaKhoa?.hoVaTen ||
                           phieu.nhaKhoa?.tenGiaoDich ||
                           "---"}
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={`${phieu.danhSachBaoHanh?.length || 0
-                            } sản phẩm`}
+                          label={`${phieu.danhSachBaoHanh?.length || 0} mục`}
                           color="primary"
                           size="small"
-                          variant="outlined"
+                          variant="soft"
+                          className="bg-blue-50 text-blue-700 font-semibold border-none"
                         />
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1 max-w-xs">
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1 py-1">
                           {phieu.danhSachBaoHanh?.map((item, idx) => (
                             <div
                               key={idx}
-                              className="text-sm p-2 bg-blue-50 rounded border border-blue-200"
+                              className="text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg shadow-sm"
                             >
-                              <div className="font-medium">
+                              <div className="font-bold text-slate-800 mb-0.5">
                                 {idx + 1}.{" "}
                                 {item.sanPham?.tenSanPham ||
                                   item.sanPham ||
                                   "---"}
                               </div>
-                              <div className="text-xs text-gray-600">
-                                {item.viTriRang && `Vị trí: ${item.viTriRang}`}
-                                {item.soLuong && ` | SL: ${item.soLuong}`}
-                                {item.mau && ` | Màu: ${item.mau}`}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                BH:{" "}
-                                {new Date(item.baoHanhTu).toLocaleDateString(
-                                  "vi-VN"
-                                )}{" "}
-                                →{" "}
-                                {new Date(item.baoHanhDen).toLocaleDateString(
-                                  "vi-VN"
+                              <div className="text-slate-500 font-medium flex flex-wrap gap-x-2 gap-y-0.5">
+                                {item.viTriRang && (
+                                  <span>Vị trí: {item.viTriRang}</span>
                                 )}
+                                {item.soLuong && (
+                                  <span>| SL: {item.soLuong}</span>
+                                )}
+                                {item.mau && <span>| Màu: {item.mau}</span>}
+                              </div>
+                              <div className="text-blue-700 font-medium mt-1 bg-blue-50/50 inline-block px-1.5 py-0.5 rounded">
+                                {formatDateVN(item.baoHanhTu)} →{" "}
+                                {formatDateVN(item.baoHanhDen)}
                               </div>
                             </div>
                           ))}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm text-gray-600 max-w-xs truncate">
+                        <div
+                          className="text-sm text-slate-500 max-w-xs truncate"
+                          title={phieu.ghiChu}
+                        >
                           {phieu.ghiChu || "---"}
                         </div>
                       </TableCell>
                       <TableCell align="center">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handleOpenEdit(phieu)}
-                          title="Sửa"
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDelete(phieu._id)}
-                          title="Xóa"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
+                        <div className="flex justify-center items-center gap-1">
+                          <Tooltip title="Chỉnh sửa">
+                            <IconButton
+                              size="small"
+                              className="text-blue-600 hover:bg-blue-50"
+                              onClick={() => handleOpenEdit(phieu)}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Xóa bỏ">
+                            <IconButton
+                              size="small"
+                              className="text-rose-600 hover:bg-rose-50"
+                              onClick={() => handleDelete(phieu._id)}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan="8"
+                      colSpan={8}
                       align="center"
-                      className="py-8 text-gray-500"
+                      className="py-12 text-slate-400 font-medium"
                     >
-                      Không tìm thấy phiếu bảo hành nào
+                      Không tìm thấy dữ liệu phiếu bảo hành phù hợp
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
-        </div>
+          </div>
+        </TableContainer>
       </div>
 
       {/* Mobile: Card Layout */}
       <div className="md:hidden space-y-4">
         {filteredPhieu.length > 0 ? (
           filteredPhieu.map((phieu) => (
-            <Paper key={phieu._id} className="p-4 border-l-4 border-blue-500">
-              <div className="space-y-3">
+            <Paper
+              key={phieu._id}
+              elevation={0}
+              className="p-5 border border-slate-200 rounded-xl shadow-sm bg-white relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+              <div className="space-y-4">
                 <div className="flex justify-between items-start gap-2">
                   <div>
-                    <div className="text-xs text-gray-500 uppercase">Mã BH</div>
-                    <div className="font-bold text-lg text-blue-700">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Mã Bảo Hành
+                    </span>
+                    <span className="font-bold text-base text-blue-600">
                       {phieu.maBaoHanh}
-                    </div>
+                    </span>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 bg-slate-50 p-1 rounded-lg">
                     <IconButton
                       size="small"
-                      color="primary"
+                      className="text-blue-600"
                       onClick={() => handleOpenEdit(phieu)}
                     >
-                      <EditIcon />
+                      <EditIcon fontSize="small" />
                     </IconButton>
                     <IconButton
                       size="small"
-                      color="error"
+                      className="text-rose-600"
                       onClick={() => handleDelete(phieu._id)}
                     >
-                      <DeleteIcon />
+                      <DeleteIcon fontSize="small" />
                     </IconButton>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4 bg-slate-50/50 p-3 rounded-lg border border-slate-100">
                   <div>
-                    <div className="text-xs text-gray-500 uppercase">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                       Mã Đơn Hàng
-                    </div>
-                    <div className="font-semibold text-gray-800">
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (phieu.donHang?._id)
+                          navigate(`/donhang/${phieu.donHang?._id}/edit`);
+                      }}
+                      className="font-semibold text-slate-800 text-sm hover:text-blue-600 cursor-pointer transition-colors"
+                    >
                       {phieu.donHang?.maDonHang || phieu.maBaoHanh || "---"}
-                    </div>
+                    </button>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500 uppercase">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                       Bệnh Nhân
-                    </div>
-                    <div className="font-semibold text-gray-800">
+                    </span>
+                    <span className="font-bold text-slate-900 text-sm">
                       {phieu.benhNhan?.hoVaTen || "---"}
-                    </div>
+                    </span>
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-xs text-gray-500 uppercase">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                     Nha Khoa
-                  </div>
-                  <div className="font-semibold text-gray-800">
+                  </span>
+                  <span className="font-medium text-slate-700 text-sm">
                     {phieu.nhaKhoa?.hoVaTen ||
                       phieu.nhaKhoa?.tenGiaoDich ||
                       "---"}
-                  </div>
+                  </span>
                 </div>
 
-                <Chip
-                  label={`${phieu.danhSachBaoHanh?.length || 0} sản phẩm`}
-                  color="primary"
-                  size="small"
-                  variant="outlined"
-                  className="w-fit"
-                />
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Trạng thái:
+                  </span>
+                  <Chip
+                    label={`${phieu.danhSachBaoHanh?.length || 0} sản phẩm`}
+                    color="primary"
+                    size="small"
+                    variant="soft"
+                    className="bg-blue-50 text-blue-700 font-bold text-xs"
+                  />
+                </div>
 
                 {phieu.danhSachBaoHanh?.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t">
+                  <div className="space-y-2 pt-3 border-t border-slate-100">
                     {phieu.danhSachBaoHanh?.map((item, idx) => (
                       <div
                         key={idx}
-                        className="text-sm p-2 bg-blue-50 rounded border border-blue-200"
+                        className="text-xs p-3 bg-slate-50 rounded-lg border border-slate-200"
                       >
-                        <div className="font-medium">
+                        <div className="font-bold text-slate-800">
                           {idx + 1}.{" "}
                           {item.sanPham?.tenSanPham || item.sanPham || "---"}
                         </div>
-                        {item.viTriRang && (
-                          <div className="text-xs text-gray-600">
-                            Vị trí: {item.viTriRang}
-                          </div>
-                        )}
-                        {item.soLuong && (
-                          <div className="text-xs text-gray-600">
-                            SL: {item.soLuong}
-                          </div>
-                        )}
-                        {item.mau && (
-                          <div className="text-xs text-gray-600">
-                            Màu: {item.mau}
-                          </div>
-                        )}
-                        <div className="text-xs text-gray-500 mt-1">
-                          BH:{" "}
-                          {new Date(item.baoHanhTu).toLocaleDateString("vi-VN")}{" "}
-                          →{" "}
-                          {new Date(item.baoHanhDen).toLocaleDateString(
-                            "vi-VN"
+                        <div className="text-slate-500 mt-1 flex flex-wrap gap-2">
+                          {item.viTriRang && (
+                            <span>Vị trí: {item.viTriRang}</span>
                           )}
+                          {item.soLuong && <span>SL: {item.soLuong}</span>}
+                          {item.mau && <span>Màu: {item.mau}</span>}
+                        </div>
+                        <div className="text-blue-700 font-semibold mt-1.5 bg-white border border-blue-100 inline-block px-2 py-0.5 rounded shadow-xs">
+                          {formatDateVN(item.baoHanhTu)} →{" "}
+                          {formatDateVN(item.baoHanhDen)}
                         </div>
                       </div>
                     ))}
@@ -412,18 +488,20 @@ const PhieuBaoHanhPage = () => {
                 )}
 
                 {phieu.ghiChu && (
-                  <div className="pt-2 border-t">
-                    <div className="text-xs text-gray-500 uppercase">
+                  <div className="pt-3 border-t border-slate-100">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                       Ghi Chú
-                    </div>
-                    <div className="text-sm text-gray-700">{phieu.ghiChu}</div>
+                    </span>
+                    <span className="text-xs text-slate-600 italic mt-0.5 block">
+                      {phieu.ghiChu}
+                    </span>
                   </div>
                 )}
               </div>
             </Paper>
           ))
         ) : (
-          <Paper className="p-8 text-center text-gray-500">
+          <Paper className="p-8 text-center text-slate-400 font-medium border border-slate-200 rounded-xl">
             Không tìm thấy phiếu bảo hành nào
           </Paper>
         )}
@@ -435,69 +513,83 @@ const PhieuBaoHanhPage = () => {
         onClose={() => setIsEditModalOpen(false)}
         maxWidth="md"
         fullWidth
+        PaperProps={{ className: "rounded-2xl overflow-hidden shadow-xl" }}
       >
-        <DialogTitle className="bg-blue-600 text-white font-bold">
-          Sửa Phiếu Bảo Hành
+        <DialogTitle className="bg-blue-500 text-white font-bold text-lg flex justify-between items-center px-6 py-4">
+          <span>Cập Nhật Phiếu Bảo Hành</span>
+          <IconButton
+            size="small"
+            onClick={() => setIsEditModalOpen(false)}
+            className="text-slate-400 hover:text-white transition-colors"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
-        <DialogContent className="pt-6 space-y-4">
+
+        <DialogContent className="p-6 space-y-6 bg-slate-50/50">
           {editingPhieu && (
             <>
-              <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-200 shadow-sm">
-                <div className="text-base space-y-2">
-                  <div>
-                    <span className="font-bold text-blue-900">Mã BH:</span>{" "}
-                    <span className="font-semibold text-gray-800">
-                      {editingPhieu.maBaoHanh}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-blue-900">Đơn Hàng:</span>{" "}
-                    <span className="font-semibold text-gray-800">
-                      {editingPhieu.donHang?.maDonHang}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-blue-900">Bệnh Nhân:</span>{" "}
-                    <span className="font-bold text-blue-700">
-                      {editingPhieu.benhNhan?.hoVaTen}
-                    </span>
-                  </div>
+              {/* Thông tin chung */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase block mb-0.5">
+                    Mã Bảo Hành
+                  </span>
+                  <span className="font-bold text-slate-800">
+                    {editingPhieu.maBaoHanh}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase block mb-0.5">
+                    Mã Đơn Hàng
+                  </span>
+                  <span className="font-semibold text-slate-700">
+                    {editingPhieu.donHang?.maDonHang || "---"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase block mb-0.5">
+                    Họ Tên Bệnh Nhân
+                  </span>
+                  <span className="font-bold text-blue-600">
+                    {editingPhieu.benhNhan?.hoVaTen || "---"}
+                  </span>
                 </div>
               </div>
 
+              {/* Danh sách sản phẩm bảo hành */}
               <div>
-                <h3 className="font-semibold text-gray-700 mb-3">
-                  Danh Sách Sản Phẩm & Năm Bảo Hành:
+                <h3 className="font-bold text-sm text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <span className="w-1.5 h-3.5 bg-blue-600 rounded-full inline-block"></span>
+                  Cấu hình thời hạn sản phẩm
                 </h3>
-                <div className="space-y-4 max-h-96 overflow-y-auto">
+
+                <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2 py-1">
                   {editForm.danhSachBaoHanh?.map((item, idx) => (
                     <div
                       key={idx}
-                      className="p-4 bg-blue-50/30 rounded-lg border border-blue-200 mb-4 shadow-sm"
+                      className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm transition-all hover:border-slate-300"
                     >
-                      <div className="mb-4 flex flex-col gap-1">
-                        <div className="font-bold text-base text-blue-800">
+                      <div className="mb-4 bg-slate-50/50 p-3 rounded-lg border border-slate-100">
+                        <div className="font-bold text-slate-900 text-sm mb-1">
                           {idx + 1}. {item.sanPham?.tenSanPham || item.sanPham}
                         </div>
-                        {item.viTriRang && (
-                          <div className="text-gray-700 text-sm">
-                            Vị trí: {item.viTriRang}
-                          </div>
-                        )}
-                        {item.soLuong && (
-                          <div className="text-gray-700 text-sm">
-                            SL: {item.soLuong}
-                          </div>
-                        )}
-                        {item.mau && (
-                          <div className="text-gray-700 text-sm">
-                            Màu: {item.mau}
-                          </div>
-                        )}
-                        <div className="text-gray-600 text-sm mt-1">
-                          Ngày bắt đầu: {formatDateVN(item.baoHanhTu)} | Hạn BH
-                          hiện tại:{" "}
-                          <span className="font-semibold text-gray-800">
+                        <div className="text-xs text-slate-500 flex flex-wrap gap-x-3 gap-y-1 font-medium">
+                          {item.viTriRang && (
+                            <span>Vị trí: {item.viTriRang}</span>
+                          )}
+                          {item.soLuong && (
+                            <span>Số lượng: {item.soLuong}</span>
+                          )}
+                          {item.mau && <span>Màu: {item.mau}</span>}
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-2 pt-2 border-t border-slate-200/60">
+                          Bắt đầu:{" "}
+                          <span className="text-slate-600 font-semibold">
+                            {formatDateVN(item.baoHanhTu)}
+                          </span>{" "}
+                          | Hạn hiện tại:{" "}
+                          <span className="text-slate-600 font-semibold">
                             {formatDateVN(
                               editingPhieu.danhSachBaoHanh?.[idx]?.baoHanhDen
                             )}
@@ -505,10 +597,11 @@ const PhieuBaoHanhPage = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-12 gap-3 items-center">
-                        <div className="col-span-5">
-                          <label className="block text-xs font-semibold text-gray-700 mb-1">
-                            Chọn năm bảo hành:
+                      {/* Các input thay đổi ngày (Giữ nguyên logic gốc) */}
+                      <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
+                        <div className="md:col-span-5">
+                          <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                            Theo số năm cố định:
                           </label>
                           <TextField
                             select
@@ -535,28 +628,30 @@ const PhieuBaoHanhPage = () => {
                             }}
                             fullWidth
                             size="small"
-                            inputProps={{ style: { fontSize: "14px" } }}
+                            InputProps={{
+                              className: "rounded-lg text-sm bg-slate-50/30",
+                            }}
                           >
-                            <MenuItem value="">-- Chọn năm --</MenuItem>
+                            <MenuItem value="">-- Chọn số năm --</MenuItem>
                             {Array.from({ length: 11 }, (_, i) => i).map(
                               (year) => (
                                 <MenuItem key={year} value={year}>
-                                  {year} năm
+                                  {year} năm bảo hành
                                 </MenuItem>
                               )
                             )}
                           </TextField>
                         </div>
 
-                        <div className="col-span-2 flex items-center justify-center mt-4">
-                          <span className="text-gray-400 text-xs font-medium">
+                        <div className="md:col-span-1 flex items-center justify-center pt-4 md:pt-0">
+                          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-md">
                             hoặc
                           </span>
                         </div>
 
-                        <div className="col-span-5">
-                          <label className="block text-xs font-semibold text-gray-700 mb-1">
-                            Chọn ngày bảo hành đến:
+                        <div className="md:col-span-5">
+                          <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                            Chọn ngày tùy chỉnh cụ thể:
                           </label>
                           <TextField
                             type="date"
@@ -579,47 +674,66 @@ const PhieuBaoHanhPage = () => {
                             }}
                             fullWidth
                             size="small"
-                            inputProps={{ style: { fontSize: "14px" } }}
+                            InputProps={{
+                              className: "rounded-lg text-sm bg-slate-50/30",
+                            }}
                           />
                         </div>
+                      </div>
 
-                        <div className="mt-2 pt-3 border-t border-green-200 bg-green-50 rounded px-3 py-2 flex items-center gap-2">
-                          <span className="font-semibold text-sm text-green-900">
-                            Kết quả:
-                          </span>
-                          <span className="text-sm text-green-800">
-                            {formatDateVN(item.baoHanhTu)} →{" "}
-                            {formatDateVN(item.baoHanhDen)}
-                          </span>
-                        </div>
+                      {/* Banner kết quả trực quan hơn */}
+                      <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 flex items-center justify-between">
+                        <span className="font-bold text-xs text-emerald-800 uppercase tracking-wide">
+                          Thời hạn áp dụng mới:
+                        </span>
+                        <span className="text-sm font-bold text-emerald-700 bg-white border border-emerald-100 px-3 py-1 rounded shadow-xs">
+                          {formatDateVN(item.baoHanhTu)}{" "}
+                          <span className="mx-1 text-emerald-400">→</span>{" "}
+                          {formatDateVN(item.baoHanhDen)}
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <TextField
-                label="Ghi chú"
-                value={editForm.ghiChu}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, ghiChu: e.target.value })
-                }
-                fullWidth
-                multiline
-                rows={2}
-                size="small"
-              />
+              {/* Input ghi chú */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  Ghi chú tổng quát
+                </label>
+                <TextField
+                  placeholder="Nhập các ghi chú, lưu ý đặc biệt liên quan tới phiếu bảo hành này..."
+                  value={editForm.ghiChu}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, ghiChu: e.target.value })
+                  }
+                  fullWidth
+                  multiline
+                  rows={3}
+                  size="small"
+                  InputProps={{ className: "rounded-xl text-sm bg-white" }}
+                />
+              </div>
             </>
           )}
         </DialogContent>
-        <DialogActions className="p-4">
-          <Button onClick={() => setIsEditModalOpen(false)}>Hủy</Button>
+
+        <DialogActions className="p-4 bg-white border-t border-slate-100 gap-2">
+          <Button
+            onClick={() => setIsEditModalOpen(false)}
+            className="text-slate-500 font-semibold px-4 py-2 normal-case rounded-lg hover:bg-slate-100"
+          >
+            Hủy thao tác
+          </Button>
           <Button
             onClick={handleSaveEdit}
             variant="contained"
+            disableElevation
             disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 normal-case rounded-lg min-w-[100px]"
           >
-            {loading ? "Đang lưu..." : "Lưu"}
+            {loading ? "Đang lưu..." : "Lưu thay đổi"}
           </Button>
         </DialogActions>
       </Dialog>

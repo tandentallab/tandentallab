@@ -424,16 +424,19 @@ const HoaDonDetail = () => {
         </div>
 
         {/* ── Địa chỉ box (mobile: order-4 | desktop: order-2 / 30%) ── */}
-        <div className="order-4 lg:order-2 lg:w-[30%] text-[13px] text-gray-700 space-y-1.5 p-4 bg-[#e6f7ff] rounded-xl flex flex-col justify-center">
+        <div className="order-4 lg:order-2 lg:w-[40%] text-[13px] text-gray-700 space-y-1.5 p-4 bg-[#e6f7ff] rounded-xl flex flex-col justify-center">
           <p><span className="text-gray-500 inline-block w-20">Địa chỉ:</span><span className="font-medium">{hoaDon.nhaKhoa?.diaChiCuThe || ""}</span></p>
           <p><span className="text-gray-500 inline-block w-20">Điện thoại:</span><span className="font-medium">{hoaDon.nhaKhoa?.soDienThoai || ""}</span></p>
           <p><span className="text-gray-500 inline-block w-20">Mô tả:</span><span className="font-medium">{hoaDon.nhaKhoa?.moTa || ""}</span></p>
-          {hoaDon.trangThai !== "Chưa thanh toán" && (
-            <p className="pt-1.5 border-t border-sky-200 mt-1">
-              <span className="text-gray-500 inline-block w-20">Công nợ:</span>
-              <span className="font-bold text-gray-900">{fmtVND(fin.conLai)}</span>
-            </p>
-          )}
+          <p className="pt-1.5 mt-1">
+            <span className="text-gray-500 inline-block w-20">
+              Công nợ:
+            </span>
+
+            <span className="font-bold text-gray-900">
+              {fmtVND(hoaDon.congNoNhaKhoa || 0)}
+            </span>
+          </p>
         </div>
 
         {/* ── MOBILE-ONLY: Chính sách TT (order-5) ── */}
@@ -451,7 +454,7 @@ const HoaDonDetail = () => {
         </div>
 
         {/* ── DESKTOP-ONLY: Left panel 40% — Nha khoa + Chính sách ── */}
-        <div className="hidden lg:flex lg:order-1 lg:w-[40%] pr-4 flex-col gap-6">
+        <div className="hidden lg:flex lg:order-1 lg:w-[30%] pr-4 flex-col gap-6 ">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-white font-bold text-base shrink-0">
               {initials}
@@ -478,7 +481,7 @@ const HoaDonDetail = () => {
         </div>
 
         {/* ── DESKTOP-ONLY: Right panel 30% — Giá trị TT + Ngày xuất ── */}
-        <div className="hidden lg:flex lg:order-3 lg:w-[30%] pl-8 flex-col justify-center">
+        <div className="hidden lg:flex lg:order-3 lg:w-[30%] pl-8 flex-col justify-center ">
           <p className="text-[11px] text-gray-400 font-medium">Giá trị thanh toán</p>
           <p className="text-3xl font-black text-gray-900 leading-tight mt-1 mb-3">
             {fmtVND(fin.giaTriThanhToan)}

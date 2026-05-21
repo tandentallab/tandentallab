@@ -222,9 +222,8 @@ const PhieuBaoHanhPage = () => {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={`${
-                            phieu.danhSachBaoHanh?.length || 0
-                          } sản phẩm`}
+                          label={`${phieu.danhSachBaoHanh?.length || 0
+                            } sản phẩm`}
                           color="primary"
                           size="small"
                           variant="outlined"

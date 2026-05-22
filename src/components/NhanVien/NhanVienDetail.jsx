@@ -6,7 +6,7 @@ import {
   uploadCCCDNhanVien,
   deleteCCCDImage,
 } from "../../redux/slices/nhanVienSlice";
-import { CircularProgress, IconButton } from "@mui/material";
+import { CircularProgress } from "@mui/material";
 import UploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import BadgeIcon from "@mui/icons-material/Badge";
@@ -16,6 +16,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import WorkIcon from "@mui/icons-material/Work";
 import PaidIcon from "@mui/icons-material/Paid";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth"; // 🔥 Thêm icon lịch cho ngày công tháng
 import { API_URL } from "../../config/api";
 
 const InfoRow = ({ icon, label, value, highlight }) => (
@@ -158,13 +159,26 @@ const NhanVienDetail = () => {
                 <WorkIcon sx={{ fontSize: 15 }} />
                 <span>{nhanVien.chucVu || "Nhân viên"}</span>
               </div>
-              {/* Salary highlight */}
-              <div className="mt-3 inline-flex items-center gap-2 bg-white/10 rounded-xl px-4 py-2">
-                <PaidIcon sx={{ fontSize: 16, color: "#86efac" }} />
-                <span className="text-sm font-bold text-emerald-300">
-                  Lương cơ bản:{" "}
-                  {Number(nhanVien.luongCanBan || 0).toLocaleString("vi-VN")} đ
-                </span>
+
+              {/* Badges thông tin nhanh */}
+              <div className="mt-3 flex flex-wrap items-center justify-center md:justify-start gap-2">
+                {/* Lương cơ bản */}
+                <div className="inline-flex items-center gap-2 bg-white/10 rounded-xl px-4 py-2">
+                  <PaidIcon sx={{ fontSize: 16, color: "#86efac" }} />
+                  <span className="text-sm font-bold text-emerald-300">
+                    Lương cơ bản:{" "}
+                    {Number(nhanVien.luongCanBan || 0).toLocaleString("vi-VN")}{" "}
+                    đ
+                  </span>
+                </div>
+
+                {/* 🔥 Ngày công tháng hiển thị nhanh trên Hero Card */}
+                <div className="inline-flex items-center gap-2 bg-white/10 rounded-xl px-4 py-2">
+                  <CalendarMonthIcon sx={{ fontSize: 16, color: "#fef08a" }} />
+                  <span className="text-sm font-bold text-yellow-300">
+                    Ngày công: {nhanVien.ngayCongThang ?? 28} ngày
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -210,6 +224,12 @@ const NhanVienDetail = () => {
                 "vi-VN"
               )} đ`}
               highlight
+            />
+            {/* 🔥 Row hiển thị Ngày công tháng trong bảng chi tiết */}
+            <InfoRow
+              icon={<CalendarMonthIcon />}
+              label="Ngày công mặc định / tháng"
+              value={`${nhanVien.ngayCongThang ?? 28} ngày`}
             />
           </div>
 

@@ -42,6 +42,7 @@ const NhanVienTable = () => {
     dispatch(deleteNhanVien(id));
   };
 
+  // 🔥 Đã thêm tiêu đề "Ngày công tháng" vào mảng COLS
   const COLS = [
     "Họ tên",
     "Chức vụ",
@@ -50,6 +51,7 @@ const NhanVienTable = () => {
     "Email",
     "Địa chỉ",
     "Lương cơ bản",
+    "Ngày công tháng",
     "",
   ];
 
@@ -180,6 +182,15 @@ const NhanVienTable = () => {
                       >
                         {Number(nv.luongCanBan).toLocaleString("vi-VN")} đ
                       </td>
+
+                      {/* 🔥 Đã thêm ô hiển thị Ngày công tháng (Mặc định hiển thị 28 nếu chưa có dữ liệu cũ) */}
+                      <td
+                        className="px-4 py-3 whitespace-nowrap font-medium text-slate-600 text-sm text-center"
+                        style={{ borderBottom: "1px solid #f1f5f9" }}
+                      >
+                        {nv.ngayCongThang || 28} ngày
+                      </td>
+
                       <td
                         className="px-4 py-3 whitespace-nowrap"
                         style={{ borderBottom: "1px solid #f1f5f9" }}
@@ -218,8 +229,9 @@ const NhanVienTable = () => {
                   ))
                 ) : (
                   <tr>
+                    {/* 🔥 Tăng colSpan từ 8 lên 9 để vừa vặn với số lượng cột mới */}
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="text-center py-12 text-slate-400 text-sm"
                     >
                       Không có dữ liệu

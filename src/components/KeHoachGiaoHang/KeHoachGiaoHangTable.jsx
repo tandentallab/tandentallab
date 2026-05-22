@@ -11,6 +11,7 @@ import {
 } from "date-fns";
 import ThongKeKeHoachGiaoHang from "./ThongKeKeHoachGiaoHang";
 import { useNavigate } from "react-router-dom";
+import { exportKeHoachGiaoHangToExcel } from "../../utils/exportToExcel";
 import {
   FiFilter,
   FiSearch,
@@ -18,6 +19,7 @@ import {
   FiPlus,
   FiMoreVertical,
   FiDownload,
+  FiPrinter,
 } from "react-icons/fi";
 
 const KeHoachGiaoHangTable = () => {
@@ -172,24 +174,29 @@ const KeHoachGiaoHangTable = () => {
       .join(", ");
   };
 
+  const handleExportExcel = async () => {
+    await exportKeHoachGiaoHangToExcel(filteredOrders, formatDanhSachSanPham);
+  };
+
   return (
     <div className="p-4 bg-gray-100 min-h-screen font-sans">
       <div className="max-w-full mx-auto">
         {/* ================= HEADER STATS ================= */}
-        <ThongKeKeHoachGiaoHang
-          countToday={countToday}
-          countOverdue={countOverdue}
-          countDone={countDone}
-        />
+        <div className="print:hidden">
+          <ThongKeKeHoachGiaoHang
+            countToday={countToday}
+            countOverdue={countOverdue}
+            countDone={countDone}
+          />
+        </div>
 
         {/* ================= TOOLBAR ================= */}
-        <div className="flex items-center gap-2 mb-2 px-1">
+        <div className="flex items-center gap-2 mb-2 px-1 print:hidden">
           {/* Filter icon toggle */}
           <button
             onClick={() => setShowFilterBar((v) => !v)}
-            className={`p-2 rounded hover:bg-gray-200 transition ${
-              showFilterBar ? "text-blue-600" : "text-gray-500"
-            }`}
+            className={`p-2 rounded hover:bg-gray-200 transition ${showFilterBar ? "text-blue-600" : "text-gray-500"
+              }`}
             title="Lọc"
           >
             <FiFilter size={18} />
@@ -214,6 +221,20 @@ const KeHoachGiaoHangTable = () => {
 
           {/* Actions */}
           <button
+            onClick={handleExportExcel}
+            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
+            title="Xuất Excel"
+          >
+            <FiDownload size={17} />
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
+            title="In danh sách"
+          >
+            <FiPrinter size={17} />
+          </button>
+          <button
             onClick={() => dispatch(fetchDonHangAll())}
             className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
             title="Làm mới"
@@ -224,7 +245,7 @@ const KeHoachGiaoHangTable = () => {
 
         {/* ================= FILTER BAR ================= */}
         {showFilterBar && (
-          <div className="flex flex-wrap gap-2 mb-3 px-1 py-2 bg-white rounded border text-sm">
+          <div className="flex flex-wrap gap-2 mb-3 px-1 py-2 bg-white rounded border text-sm print:hidden">
             {/* Loại lọc ngày */}
             <select
               value={filterType}
@@ -279,7 +300,7 @@ const KeHoachGiaoHangTable = () => {
         )}
 
         {/* ================= TABLE ================= */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow overflow-hidden print:hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-sm border-collapse">
               <thead>
@@ -349,13 +370,12 @@ const KeHoachGiaoHangTable = () => {
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <button
                           onClick={() => navigate(`/donhang/${order._id}/edit`)}
-                          className={`font-medium text-sm hover:underline ${
-                            overdue
+                          className={`font-medium text-sm hover:underline ${overdue
                               ? "text-red-500"
                               : today
-                              ? "text-blue-600"
-                              : "text-gray-700"
-                          }`}
+                                ? "text-blue-600"
+                                : "text-gray-700"
+                            }`}
                         >
                           {maDon}
                         </button>
@@ -364,13 +384,12 @@ const KeHoachGiaoHangTable = () => {
                       {/* HẸN GIAO */}
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <span
-                          className={`text-sm font-medium ${
-                            overdue
+                          className={`text-sm font-medium ${overdue
                               ? "text-red-500"
                               : today
-                              ? "text-gray-800"
-                              : "text-gray-700"
-                          }`}
+                                ? "text-gray-800"
+                                : "text-gray-700"
+                            }`}
                         >
                           {format(date, "dd/MM/yyyy HH:mm")}
                         </span>
@@ -399,13 +418,12 @@ const KeHoachGiaoHangTable = () => {
                       {/* TRẠNG THÁI */}
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <span
-                          className={`text-xs font-medium ${
-                            order.trangThai === "Hoàn thành"
+                          className={`text-xs font-medium ${order.trangThai === "Hoàn thành"
                               ? "text-green-700"
                               : order.trangThai === "Đang sản xuất"
-                              ? "text-blue-700"
-                              : "text-gray-600"
-                          }`}
+                                ? "text-blue-700"
+                                : "text-gray-600"
+                            }`}
                         >
                           {order.trangThai
                             ? order.trangThai.length > 10
@@ -496,6 +514,65 @@ const KeHoachGiaoHangTable = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ================= PRINT VIEW ================= */}
+        <div id="print-section" className="hidden print:block w-full">
+          <style>{`
+            @media print {
+              @page { size: A4 landscape; margin: 10mm; }
+              body * { visibility: hidden; }
+              #print-section, #print-section * { visibility: visible; }
+              #print-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background-color: white !important;
+              }
+            }
+          `}</style>
+          <h2 className="text-xl font-bold text-center mb-4 uppercase">Kế Hoạch Giao Hàng</h2>
+          <table className="w-full border-collapse border border-black text-sm">
+            <thead>
+              <tr>
+                <th className="border border-black px-2 py-1 text-center font-semibold">Nhận lúc</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold">Số</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold">Khách hàng</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold">Bệnh nhân</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold w-1/4">Răng</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold">Hẹn giao</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold w-1/6">Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredOrders.map((order) => {
+                const maDon = order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`;
+                return (
+                  <tr key={order._id}>
+                    <td className="border border-black px-2 py-1 text-center text-xs">
+                      {order.ngayNhan ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm") : "—"}
+                    </td>
+                    <td className="border border-black px-2 py-1 text-center font-semibold text-xs">{maDon}</td>
+                    <td className="border border-black px-2 py-1 text-xs">{order.nhaKhoa?.hoVaTen}</td>
+                    <td className="border border-black px-2 py-1 text-xs">{order.benhNhan?.hoVaTen}</td>
+                    <td className="border border-black px-2 py-1 text-xs">{formatDanhSachSanPham(order.danhSachSanPham)}</td>
+                    <td className="border border-black px-2 py-1 text-center text-xs">
+                      {order.henGiao ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm") : "—"}
+                    </td>
+                    <td className="border border-black px-2 py-1 text-xs">{order.ghiChuChung}</td>
+                  </tr>
+                );
+              })}
+              {filteredOrders.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="border border-black text-center py-4 text-xs">
+                    Không có dữ liệu
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

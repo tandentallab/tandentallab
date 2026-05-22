@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Typography, CircularProgress } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
@@ -11,6 +11,8 @@ export default function DonHangChuaXuatFilter({
   selectedClinic,
   setSelectedClinic,
 }) {
+  const [searchText, setSearchText] = useState(""); // ✅ thêm state search
+
   const dispatch = useDispatch();
   const { data = [], loading: loadingNhaKhoa } = useSelector(
     (state) => state.nhaKhoa
@@ -82,8 +84,56 @@ export default function DonHangChuaXuatFilter({
 
   const selectedNhaKhoa = data.find((nk) => nk._id === selectedClinic);
 
+  const filteredData = useMemo(() => {
+    if (!searchText.trim()) return sortedData;
+    return sortedData.filter((nk) =>
+      nk.hoVaTen?.toLowerCase().includes(searchText.toLowerCase().trim())
+    );
+  }, [sortedData, searchText]);
+
   return (
     <div className="w-72 flex-shrink-0 border-r flex flex-col bg-white overflow-hidden">
+      <div className="px-3 py-2 border-b bg-white">
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 focus-within:border-blue-400 focus-within:bg-white transition-all">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#9ca3af"
+            strokeWidth="2.5"
+            className="flex-shrink-0"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Tìm nha khoa..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
+          />
+          {searchText && (
+            <button
+              onClick={() => setSearchText("")}
+              className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
       {/* SELECTED CLINIC CHIP ở trên cùng */}
       {selectedClinic && selectedNhaKhoa && (
         <div className="px-3 pt-3 pb-2 border-b bg-gray-50 flex items-center gap-2">
@@ -130,14 +180,29 @@ export default function DonHangChuaXuatFilter({
         </div>
       )}
 
-      {/* DANH SÁCH */}
       <div className="flex-1 overflow-y-auto">
         {isGlobalLoading ? (
           <div className="flex justify-center py-8">
             <CircularProgress size={20} />
           </div>
+        ) : filteredData.length === 0 ? (
+          // ✅ Hiển thị khi không tìm thấy
+          <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <p className="text-xs mt-2">Không tìm thấy nha khoa</p>
+          </div>
         ) : (
-          sortedData.map((nk) => {
+          filteredData.map((nk) => {
             const info = infoMap[nk._id] || {
               count: 0,
               ngayXuatHoaDonCuoi: null,

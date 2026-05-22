@@ -3,6 +3,21 @@ import { api } from "../../config/api";
 
 /* ================= ASYNC THUNKS ================= */
 
+// 🔥 Lấy ngày xuất hóa đơn gần nhất của tất cả nha khoa
+export const fetchNgayXuatHoaDonGanNhatAll = createAsyncThunk(
+  "hoaDon/fetchNgayXuatHoaDonGanNhatAll",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/hoa-don/ngay-gan-nhat-all");
+      return res.data; // Trả về toàn bộ object gồm { success, total, data }
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data || err.message
+      );
+    }
+  }
+);
+
 // 🔥 Lấy đơn hàng chưa xuất hóa đơn
 export const fetchDonHangChuaHoaDon = createAsyncThunk(
   "hoaDon/fetchDonHangChuaHoaDon",
@@ -244,6 +259,8 @@ const slice = createSlice({
     },
 
     countDonHangChuaXuat: [],
+
+    ngayXuatHoaDonGanNhatAll: [],
 
     pagination: {},
 
@@ -641,7 +658,20 @@ const slice = createSlice({
             action.payload?.message ||
             action.error.message;
         }
-      );
+      )
+
+      .addCase(fetchNgayXuatHoaDonGanNhatAll.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchNgayXuatHoaDonGanNhatAll.fulfilled, (state, action) => {
+        state.loading = false;
+        state.ngayXuatHoaDonGanNhatAll = action.payload.data; // Lưu mảng kết quả từ API vào state
+      })
+      .addCase(fetchNgayXuatHoaDonGanNhatAll.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || action.error.message;
+      })
   },
 });
 

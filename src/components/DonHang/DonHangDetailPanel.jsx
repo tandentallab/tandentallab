@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
-import { useMediaQuery, useTheme } from "@mui/material";
+import {
+  useMediaQuery,
+  useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  MenuItem,
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import {
@@ -12,7 +22,6 @@ import { toast } from "sonner";
 import { api } from "../../config/api";
 import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 import WarrantyCardPrint from "./WarrantyCardPrint";
-
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -21,10 +30,22 @@ import PrintIcon from '@mui/icons-material/Print';
 import CheckIcon from '@mui/icons-material/Check';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 
+// Helpers for warranty edit
+const addYearsToDate = (dateValue, years) => {
+  const start = new Date(dateValue);
+  return new Date(start.getFullYear() + years, start.getMonth(), start.getDate())
+    .toISOString()
+    .slice(0, 10);
+};
+const formatDateVN = (dateValue) => {
+  if (!dateValue) return "---";
+  return new Date(dateValue).toLocaleDateString("vi-VN");
+};
+
 const DonHangDetailPanel = ({ donHang, onClose }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const isVerySmall = useMediaQuery("(max-width:450px)");
+  const isVerySmall = useMediaQuery("(max-width:550px)");
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -32,21 +53,24 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
   const [isPhieuBaoHanhOpen, setIsPhieuBaoHanhOpen] = useState(false);
   const [warranty, setWarranty] = useState(null);
   const [openPrintWarranty, setOpenPrintWarranty] = useState(false);
+  const [openWarrantyDialog, setOpenWarrantyDialog] = useState(false);
+  const [warrantyEditForm, setWarrantyEditForm] = useState({ ghiChu: "", danhSachBaoHanh: [] });
+  const [savingWarranty, setSavingWarranty] = useState(false);
   const [selectedProductIndex, setSelectedProductIndex] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null); // { spIndex, thuTu, top, right }
   const isOpen = !!donHang;
   const [fullDonHang, setFullDonHang] = useState(donHang);
 
-    // Thêm useEffect để fetch dữ liệu chi tiết khi donHang._id thay đổi
-    useEffect(() => {
-      if (donHang?._id) {
-        api.get(`/don-hang/${donHang._id}`) // Gọi đúng API chi tiết (có populate)
-          .then((res) => {
-            setFullDonHang(res.data.data);
-          })
-          .catch((err) => console.error("Lỗi fetch full donHang:", err));
-      }
-    }, [donHang?._id]);
+  // Thêm useEffect để fetch dữ liệu chi tiết khi donHang._id thay đổi
+  useEffect(() => {
+    if (donHang?._id) {
+      api.get(`/don-hang/${donHang._id}`) // Gọi đúng API chi tiết (có populate)
+        .then((res) => {
+          setFullDonHang(res.data.data);
+        })
+        .catch((err) => console.error("Lỗi fetch full donHang:", err));
+    }
+  }, [donHang?._id]);
 
   // Close dropdown on outside click or scroll
   useEffect(() => {
@@ -80,8 +104,6 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
         });
     }
   }, [donHang?._id]);
-
-  console.log(donHang)
 
   const trangThaiColor = {
     "Chờ xử lý": "bg-yellow-200 text-yellow-900",
@@ -157,6 +179,50 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
   const handleOpenPrintWarranty = () => {
     setOpenPrintWarranty(true);
   };
+
+  const handleOpenWarrantyView = () => {
+    if (!warranty) return;
+    const enriched = (warranty.danhSachBaoHanh || []).map((item) => {
+      const startDate = new Date(item.baoHanhTu);
+      const endDate = new Date(item.baoHanhDen);
+      const yearsDiff = endDate.getFullYear() - startDate.getFullYear();
+      const expectedEnd = addYearsToDate(item.baoHanhTu, yearsDiff);
+      const actualEndStr = endDate.toISOString().slice(0, 10);
+      const isExactYears = expectedEnd === actualEndStr;
+      return {
+        ...item,
+        selectedYears: isExactYears ? yearsDiff : "",
+        customEndDate: isExactYears ? "" : actualEndStr,
+      };
+    });
+    setWarrantyEditForm({ ghiChu: warranty.ghiChu || "", danhSachBaoHanh: enriched });
+    setOpenWarrantyDialog(true);
+  };
+
+  const handleSaveWarrantyEdit = async () => {
+    try {
+      setSavingWarranty(true);
+      const cleanedDanhSach = warrantyEditForm.danhSachBaoHanh.map(
+        ({ selectedYears, customEndDate, ...rest }) => rest
+      );
+      const res = await api.put(`/phieu-bao-hanh/${warranty._id}`, {
+        ghiChu: warrantyEditForm.ghiChu,
+        danhSachBaoHanh: cleanedDanhSach,
+      });
+      if (res.data?.success) {
+        toast.success("Cập nhật phiếu bảo hành thành công");
+        setOpenWarrantyDialog(false);
+        api.get(`/phieu-bao-hanh/don-hang/${donHang._id}`)
+          .then((r) => setWarranty(r.data.data || r.data));
+      } else {
+        toast.error(res.data?.message || "Lỗi khi cập nhật");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Lỗi khi cập nhật");
+    } finally {
+      setSavingWarranty(false);
+    }
+  };
   const CONG_DOAN_TRANG_THAI_OPTIONS = ["Chưa sẵn sàng", "Chờ sản xuất"];
 
   const CONG_DOAN_TRANG_THAI_STYLE = {
@@ -164,8 +230,8 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
     "Chờ sản xuất": "text-cyan-600 font-medium",
   };
 
-  const panelTop = isMobile ? 112 : 70;
-  const panelWidth = isVerySmall ? "100vw" : "530px";
+  const panelTop = 70;
+  const panelWidth = isVerySmall ? "100%" : "530px";
   const panelHeight = `calc(100vh - ${panelTop}px)`;
 
   const getCongDoanTrangThai = (sp, thuTu) => {
@@ -206,7 +272,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
   }, {});
 
   const hasWarranty = warranty && (
-    (warranty.danhSachSanPham && warranty.danhSachSanPham.length > 0) || warranty.isValid
+    (warranty.danhSachBaoHanh && warranty.danhSachBaoHanh.length > 0) || warranty.isValid
   );
 
   return (
@@ -340,8 +406,8 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
                   <div className="text-gray-400 text-sm italic">Chưa có sản phẩm</div>
                 )}
                 <button
-                  onClick={handleOpenPhieuBaoHanh}
-                  className="mt-2 font-medium text-sm px-2 py-1 rounded-full bg-slate-500 text-white flex items-center gap-2"
+                  onClick={hasWarranty ? handleOpenWarrantyView : handleOpenPhieuBaoHanh}
+                  className={`mt-2 font-medium text-sm px-2 py-1 rounded-full text-white flex items-center gap-2 ${hasWarranty ? "bg-teal-500" : "bg-slate-500"}`}
                 >
                   <ReceiptIcon sx={{ fontSize: 18 }} /> Thẻ bảo hành
                 </button>
@@ -501,7 +567,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
             Phiếu giao hàng
           </button>
         </div>
-      </div>
+      </div >
 
       {donHang && isPhieuBaoHanhOpen && (
         <PhieuBaoHanhModal
@@ -514,16 +580,116 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
               .then((res) => setWarranty(res.data.data || res.data));
           }}
         />
-      )}
+      )
+      }
 
-      {warranty && (
-        <WarrantyCardPrint
-          open={openPrintWarranty}
-          onClose={() => setOpenPrintWarranty(false)}
-          warranty={warranty}
-          donHang={{ ...fullDonHang, bacSi: fullDonHang?.bacSi?.hoVaTen ? fullDonHang.bacSi : donHang?.bacSi }} 
-        />
-      )}
+      {
+        warranty && (
+          <WarrantyCardPrint
+            open={openPrintWarranty}
+            onClose={() => setOpenPrintWarranty(false)}
+            warranty={warranty}
+            donHang={{ ...fullDonHang, bacSi: fullDonHang?.bacSi?.hoVaTen ? fullDonHang.bacSi : donHang?.bacSi }}
+          />
+        )
+      }
+
+      {/* Warranty edit dialog */}
+      <Dialog open={openWarrantyDialog} onClose={() => setOpenWarrantyDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ bgcolor: "#1976d2", color: "white", fontWeight: "bold" }}>
+          Phiếu Bảo Hành
+        </DialogTitle>
+        <DialogContent className="pt-4" sx={{ pt: 3 }}>
+          {warranty && (
+            <>
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
+                <div className="text-sm space-y-1">
+                  <div><span className="font-bold text-blue-900">Mã BH:</span> <span className="font-semibold">{warranty.maBaoHanh}</span></div>
+                  <div><span className="font-bold text-blue-900">Đơn hàng:</span> <span className="font-semibold">{warranty.donHang?.maDonHang || donHang?.maDonHang}</span></div>
+                  <div><span className="font-bold text-blue-900">Bệnh nhân:</span> <span className="font-semibold text-blue-700">{warranty.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen}</span></div>
+                </div>
+              </div>
+
+              <h3 className="font-semibold text-gray-700 mb-3">Danh sách sản phẩm &amp; bảo hành:</h3>
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {warrantyEditForm.danhSachBaoHanh.map((item, idx) => (
+                  <div key={idx} className="p-3 bg-blue-50/30 rounded-lg border border-blue-200 shadow-sm">
+                    <div className="mb-3 flex flex-col gap-0.5">
+                      <div className="font-bold text-blue-800 text-sm">
+                        {idx + 1}. {item.sanPham?.tenSanPham || item.sanPham}
+                      </div>
+                      {item.viTriRang && <div className="text-xs text-gray-600">Vị trí: {item.viTriRang}</div>}
+                      {item.soLuong && <div className="text-xs text-gray-600">SL: {item.soLuong}</div>}
+                      {item.mau && <div className="text-xs text-gray-600">Màu: {item.mau}</div>}
+                      <div className="text-xs text-gray-500 mt-1">
+                        Ngày bắt đầu: {formatDateVN(item.baoHanhTu)} &nbsp;|&nbsp; Hạn hiện tại:{" "}
+                        <span className="font-semibold text-gray-800">{formatDateVN(warranty.danhSachBaoHanh?.[idx]?.baoHanhDen)}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-12 gap-2 items-center">
+                      <div className="col-span-5">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Chọn năm bảo hành:</label>
+                        <TextField
+                          select
+                          value={item.selectedYears ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const newList = [...warrantyEditForm.danhSachBaoHanh];
+                            const newEnd = val === "" ? item.baoHanhTu : addYearsToDate(item.baoHanhTu, Number(val));
+                            newList[idx] = { ...newList[idx], selectedYears: val === "" ? "" : Number(val), customEndDate: "", baoHanhDen: new Date(newEnd).toISOString() };
+                            setWarrantyEditForm({ ...warrantyEditForm, danhSachBaoHanh: newList });
+                          }}
+                          fullWidth size="small"
+                        >
+                          <MenuItem value="">-- Chọn năm --</MenuItem>
+                          {Array.from({ length: 11 }, (_, i) => i).map((y) => (
+                            <MenuItem key={y} value={y}>{y} năm</MenuItem>
+                          ))}
+                        </TextField>
+                      </div>
+                      <div className="col-span-2 flex items-center justify-center mt-4">
+                        <span className="text-gray-400 text-xs">hoặc</span>
+                      </div>
+                      <div className="col-span-5">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Ngày bảo hành đến:</label>
+                        <TextField
+                          type="date"
+                          value={item.customEndDate || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const newList = [...warrantyEditForm.danhSachBaoHanh];
+                            newList[idx] = { ...newList[idx], customEndDate: val, selectedYears: "", baoHanhDen: val ? new Date(val).toISOString() : new Date(item.baoHanhTu).toISOString() };
+                            setWarrantyEditForm({ ...warrantyEditForm, danhSachBaoHanh: newList });
+                          }}
+                          fullWidth size="small"
+                        />
+                      </div>
+                      <div className="col-span-12 mt-1 pt-2 border-t border-green-200 bg-green-50 rounded px-3 py-1.5 flex items-center gap-2">
+                        <span className="font-semibold text-xs text-green-900">Kết quả:</span>
+                        <span className="text-xs text-green-800">{formatDateVN(item.baoHanhTu)} → {formatDateVN(item.baoHanhDen)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <TextField
+                label="Ghi chú"
+                value={warrantyEditForm.ghiChu}
+                onChange={(e) => setWarrantyEditForm({ ...warrantyEditForm, ghiChu: e.target.value })}
+                fullWidth multiline rows={2} size="small"
+                sx={{ mt: 2 }}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setOpenWarrantyDialog(false)}>Hủy</Button>
+          <Button onClick={handleSaveWarrantyEdit} variant="contained" disabled={savingWarranty}>
+            {savingWarranty ? "Đang lưu..." : "Lưu"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

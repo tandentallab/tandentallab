@@ -54,9 +54,9 @@ const Dashboard = () => {
   const getHeaderMarginTop = () => {
     // xs: 56px (Toolbar height) + 56px (search mobile) = 112px
     // sm+: Only Toolbar height (64px or 70px)
-    if (isMobile) {
-      return 112; // 56 (toolbar) + 56 (search mobile)
-    }
+    // if (isMobile) {
+    //   return 112; // 56 (toolbar) + 56 (search mobile)
+    // }
     // On sm: 64px, on md+: 70px
     return 70;
   };

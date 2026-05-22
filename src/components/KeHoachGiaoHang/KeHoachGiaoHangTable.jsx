@@ -125,6 +125,53 @@ const KeHoachGiaoHangTable = () => {
   if (loading)
     return <div className="p-6 text-center text-gray-500">Đang tải...</div>;
 
+  // Hàm format danh sách sản phẩm của đơn hàng
+  const formatDanhSachSanPham = (danhSachSanPham = []) => {
+    // Mapping loại đơn
+    const loaiDonMap = {
+      Mới: "",
+      "Hàng sửa": "Sửa",
+      "Hàng bảo hành": "Bảo hành",
+      "Hàng làm lại": "Làm lại",
+    };
+
+    // Hàm format vị trí răng
+    const formatViTri = (viTriArr) => {
+      if (!viTriArr || viTriArr.length === 0) return "";
+      return viTriArr
+        .map((v) =>
+          v.kieu === "Rời"
+            ? v.soRang.join(", ")
+            : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+        )
+        .join("; ");
+    };
+
+    return danhSachSanPham
+      .map((item) => {
+        const loaiDon = loaiDonMap[item.loaiDon] || "";
+
+        const soLuong = item.soLuong || 1;
+
+        // Tên sản phẩm
+        const tenSanPham = item.sanPham?.tenSanPham || item.sanPham?.ten || "";
+
+        // Vị trí
+        const viTri = formatViTri(item.viTri);
+
+        // Màu
+        const mau = item.mau ? `(${item.mau})` : "";
+
+        // Ghép chuỗi
+        return [loaiDon, soLuong, tenSanPham, viTri, mau]
+          .filter(Boolean)
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+      })
+      .join(", ");
+  };
+
   return (
     <div className="p-4 bg-gray-100 min-h-screen font-sans">
       <div className="max-w-full mx-auto">
@@ -238,10 +285,10 @@ const KeHoachGiaoHangTable = () => {
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Số
+                    Nhận lúc
                   </th>
                   <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Nhận lúc
+                    Số
                   </th>
                   <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
                     Hẹn giao
@@ -256,7 +303,13 @@ const KeHoachGiaoHangTable = () => {
                     Bệnh nhân
                   </th>
                   <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
+                    Răng
+                  </th>{" "}
+                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
                     Trạng thái
+                  </th>
+                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
+                    Ghi chú
                   </th>
                   {/* <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
                     Tiến độ
@@ -286,6 +339,12 @@ const KeHoachGiaoHangTable = () => {
                       key={order._id}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                     >
+                      {/* NHẬN LÚC */}
+                      <td className="px-4 py-2.5 text-gray-600 font-bold whitespace-nowrap text-xs">
+                        {order.ngayNhan
+                          ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
+                          : "—"}
+                      </td>
                       {/* SỐ ĐƠN */}
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <button
@@ -300,13 +359,6 @@ const KeHoachGiaoHangTable = () => {
                         >
                           {maDon}
                         </button>
-                      </td>
-
-                      {/* NHẬN LÚC */}
-                      <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap text-xs">
-                        {order.ngayNhan
-                          ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
-                          : "—"}
                       </td>
 
                       {/* HẸN GIAO */}
@@ -340,6 +392,9 @@ const KeHoachGiaoHangTable = () => {
                       <td className="px-4 py-2.5 min-w-[140px] text-gray-700 text-sm">
                         {order.benhNhan?.hoVaTen}
                       </td>
+                      <td className="px-4 py-2.5 min-w-[140px] text-gray-700 text-sm">
+                        {formatDanhSachSanPham(order.danhSachSanPham)}
+                      </td>
 
                       {/* TRẠNG THÁI */}
                       <td className="px-4 py-2.5 whitespace-nowrap">
@@ -358,6 +413,10 @@ const KeHoachGiaoHangTable = () => {
                               : order.trangThai
                             : "—"}
                         </span>
+                      </td>
+
+                      <td className="px-4 py-2.5 min-w-[140px] text-gray-700 text-sm">
+                        {order.ghiChuChung}
                       </td>
 
                       {/* TIẾN ĐỘ */}

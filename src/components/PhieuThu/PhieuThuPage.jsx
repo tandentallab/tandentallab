@@ -389,16 +389,15 @@ export default function PhieuThuPage() {
                             className="bg-green-500 text-white rounded-full hover:bg-green-600 flex items-center justify-center w-8 h-8 shadow-sm">
                             <AddIcon sx={{ fontSize: 20 }} />
                         </button>
-                        <button onClick={handleRefresh} title="Tải lại" className="text-gray-600 hover:bg-gray-100 p-1.5 rounded">
-                            <RefreshIcon sx={{ fontSize: 20 }} />
-                        </button>
                         <button
                             onClick={() => setOpenExport(true)}
-                            title="Xuất excel phiếu thu"
-                            className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1"
+                            title="Xuất Excel"
+                            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
                         >
-                            <DownloadIcon sx={{ fontSize: 17 }} />
-                            <span className="hidden sm:inline">Xuất excel</span>
+                            <DownloadIcon sx={{ fontSize: 20 }} />
+                        </button>
+                        <button onClick={handleRefresh} title="Tải lại" className="text-gray-600 hover:bg-gray-100 p-1.5 rounded">
+                            <RefreshIcon sx={{ fontSize: 20 }} />
                         </button>
                     </div>
                 </div>

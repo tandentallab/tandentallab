@@ -267,11 +267,13 @@ const HoaDonPage = () => {
                             <AddIcon sx={{ fontSize: 20 }} />
                         </IconButton>
                     </Tooltip>
-                    <Tooltip title="Xuất Excel">
-                        <IconButton onClick={() => setOpenExport(true)} size="small">
-                            <ExcelIcon sx={{ fontSize: 22, color: "#1b7a34" }} />
-                        </IconButton>
-                    </Tooltip>
+                    <button
+                        onClick={() => setOpenExport(true)}
+                        title="Xuất Excel"
+                        className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
+                    >
+                        <DownloadIcon sx={{ fontSize: 20 }} />
+                    </button>
                     <Tooltip title="Làm mới">
                         <IconButton onClick={() => dispatch(fetchAllHoaDonAdmin())} size="small" sx={{ color: "#555" }}>
                             <RefreshIcon fontSize="small" />

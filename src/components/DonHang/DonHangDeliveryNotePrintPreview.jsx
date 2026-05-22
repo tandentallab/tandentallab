@@ -101,7 +101,13 @@ const DonHangDeliveryNotePrintPreview = () => {
             <span className="font-bold">{formatDateTime(donHang.henGiao)}</span>
           </div>
 
-          <div className="border-b border-gray-300 mt-4" />
+          <div className="border-b border-gray-300 mt-3" />
+          <div className="mt-2 text-left">
+            <span>Ghi chú SX: </span>
+            <span className="font-bold">{donHang.ghiChuSanXuat || "---"}</span>
+          </div>
+
+          <div className="border-b border-gray-300 mt-3" />
           <div className="text-center mt-2 font-bold">Xin cảm ơn quý Nha khoa!</div>
         </div>
 

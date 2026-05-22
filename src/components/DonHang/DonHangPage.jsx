@@ -1001,11 +1001,10 @@ const DonHangPage = () => {
             </button>
             <button
               onClick={() => setOpenExport(true)}
-              title="Xuất excel"
-              className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1"
+              title="Xuất Excel"
+              className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
             >
-              <DownloadIcon sx={{ fontSize: 17 }} />
-              <span className="hidden sm:inline">Xuất excel</span>
+              <DownloadIcon sx={{ fontSize: 20 }} />
             </button>
             <button
               onClick={handleRefresh}

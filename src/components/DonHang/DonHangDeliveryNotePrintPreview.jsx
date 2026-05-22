@@ -77,8 +77,8 @@ const DonHangDeliveryNotePrintPreview = () => {
       </div>
 
       <div className="flex flex-col items-center print:items-start py-6 px-4 print:p-0">
-        <div 
-          className="print-area bg-white w-full max-w-[320px] shadow-lg border border-gray-400 p-6 print:p-0 text-sm"
+        <div
+          className="print-area bg-white w-full max-w-[300px] shadow-lg border border-gray-400 p-6 print:p-0 text-sm"
           style={{ fontFamily: "'Cambria', Georgia, serif" }}
         >
           <div className="text-center">

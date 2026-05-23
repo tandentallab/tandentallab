@@ -15,7 +15,7 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
     try {
       setLoading(true);
       const mauTheId = typeof warranty?.mauThe === 'object' ? warranty.mauThe?._id : warranty?.mauThe;
-      
+
       let res;
       if (mauTheId) {
         res = await api.get(`/mau-the-bao-hanh/${mauTheId}`);
@@ -36,63 +36,63 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
     }
   };
 
-const getFieldValue = (loaiTruong) => {
-  if (!warranty && !donHang) return "---";
-  
-  switch (loaiTruong) {
-    case "maThe": 
-      const maBaoHanh = warranty?.maBaoHanh || "";
-      return maBaoHanh.replace(/^TAN/, "") || "---";
-    
-    case "nhaKhoa": 
-      return warranty?.nhaKhoa?.tenGiaoDich || warranty?.nhaKhoa?.hoVaTen || donHang?.nhaKhoa?.tenGiaoDich || donHang?.nhaKhoa?.hoVaTen || "---";
-      
-    case "bacSi": 
-      return warranty?.bacSi?.hoVaTen || donHang?.bacSi?.hoVaTen || "---";
-      
-    case "benhNhan": 
-      return warranty?.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen || "---";
-      
-    case "sanPham": 
-      return warranty?.danhSachBaoHanh?.[0]?.sanPham?.tenSanPham || donHang?.danhSachSanPham?.[0]?.sanPham?.tenSanPham || "---";
-      
-    case "viTriRang": {
-      const viTriStr = warranty?.danhSachBaoHanh?.[0]?.viTriRang;
-      if (typeof viTriStr === "string" && viTriStr !== "---" && viTriStr.trim() !== "") {
-        return viTriStr;
+  const getFieldValue = (loaiTruong) => {
+    if (!warranty && !donHang) return "---";
+
+    switch (loaiTruong) {
+      case "maThe":
+        const maBaoHanh = warranty?.maBaoHanh || "";
+        return maBaoHanh.replace(/^TAN/, "") || "---";
+
+      case "nhaKhoa":
+        return warranty?.nhaKhoa?.tenGiaoDich || warranty?.nhaKhoa?.hoVaTen || donHang?.nhaKhoa?.tenGiaoDich || donHang?.nhaKhoa?.hoVaTen || "---";
+
+      case "bacSi":
+        return warranty?.bacSi?.hoVaTen || donHang?.bacSi?.hoVaTen || "---";
+
+      case "benhNhan":
+        return warranty?.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen || "---";
+
+      case "sanPham":
+        return warranty?.danhSachBaoHanh?.[0]?.sanPham?.tenSanPham || donHang?.danhSachSanPham?.[0]?.sanPham?.tenSanPham || "---";
+
+      case "viTriRang": {
+        const viTriStr = warranty?.danhSachBaoHanh?.[0]?.viTriRang;
+        if (typeof viTriStr === "string" && viTriStr !== "---" && viTriStr.trim() !== "") {
+          return viTriStr;
+        }
+        const viTriArr = donHang?.danhSachSanPham?.[0]?.viTri || [];
+        if (!Array.isArray(viTriArr) || viTriArr.length === 0) return "---";
+        const parts = viTriArr
+          .map((v) => {
+            if (!Array.isArray(v.soRang) || v.soRang.length === 0) return "";
+            if (v.kieu === "Rời") return v.soRang.join(", ");
+            if (v.soRang.length === 1) return String(v.soRang[0]);
+            return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+          })
+          .filter(Boolean);
+        return parts.join("; ") || "---";
       }
-      const viTriArr = donHang?.danhSachSanPham?.[0]?.viTri || [];
-      if (!Array.isArray(viTriArr) || viTriArr.length === 0) return "---";
-      const parts = viTriArr
-        .map((v) => {
-          if (!Array.isArray(v.soRang) || v.soRang.length === 0) return "";
-          if (v.kieu === "Rời") return v.soRang.join(", ");
-          if (v.soRang.length === 1) return String(v.soRang[0]);
-          return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
-        })
-        .filter(Boolean);
-      return parts.join("; ") || "---";
+
+      case "baoHanhTu":
+        return warranty?.danhSachBaoHanh?.[0]?.baoHanhTu
+          ? new Date(warranty.danhSachBaoHanh[0].baoHanhTu).toLocaleDateString("vi-VN")
+          : "---";
+
+      case "baoHanhDen":
+        return warranty?.danhSachBaoHanh?.[0]?.baoHanhDen
+          ? new Date(warranty.danhSachBaoHanh[0].baoHanhDen).toLocaleDateString("vi-VN")
+          : "---";
+
+      default: return "";
     }
+  };
 
-    case "baoHanhTu": 
-      return warranty?.danhSachBaoHanh?.[0]?.baoHanhTu 
-        ? new Date(warranty.danhSachBaoHanh[0].baoHanhTu).toLocaleDateString("vi-VN") 
-        : "---";
-        
-    case "baoHanhDen": 
-      return warranty?.danhSachBaoHanh?.[0]?.baoHanhDen 
-        ? new Date(warranty.danhSachBaoHanh[0].baoHanhDen).toLocaleDateString("vi-VN") 
-        : "---";
-        
-    default: return "";
-  }
-};
-
-return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="sm" 
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
       fullWidth
       PaperProps={{ style: { boxShadow: 'none', border: 'none' } }} // Xóa bóng mờ của khung dialog
     >
@@ -101,13 +101,13 @@ return (
           /* Xóa border: "1px dashed #ccc" ở đây */
           <div style={{ position: "relative", width: "100%", height: "297mm", border: "none" }}>
             {mauThe.cacTruong?.map((field, idx) => {
-              const left = Number(field.leTrai) || 0; 
+              const left = Number(field.leTrai) || 0;
               const top = Number(field.leTren) || 0;
-              
+
               if (field.loaiTruong === "maQR") {
                 // 1. Lấy mã và loại bỏ chữ "TAN" ở đầu
                 const rawCode = (warranty?.maQR || "N/A").replace(/^TAN/, "");
-                
+
                 // 2. Tạo đường dẫn đầy đủ
                 const fullUrl = `https://tan-dental-frontend-snmb.vercel.app/warranty/?qrcode=${rawCode}`;
 

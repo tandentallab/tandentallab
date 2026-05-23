@@ -178,7 +178,18 @@ const donHangSlice = createSlice({
                     (item) => item._id === action.payload._id
                 );
                 if (index !== -1) {
-                    state.data[index] = action.payload;
+                    // Only update trangThaiCongDoan per sanPham and overall trangThai,
+                    // preserving populated fields (nhaKhoa, bacSi, benhNhan, sanPham, ...)
+                    const updatedSanPham = action.payload.danhSachSanPham;
+                    if (updatedSanPham) {
+                        state.data[index].danhSachSanPham = state.data[index].danhSachSanPham.map((sp, i) => ({
+                            ...sp,
+                            trangThaiCongDoan: updatedSanPham[i]?.trangThaiCongDoan ?? sp.trangThaiCongDoan,
+                        }));
+                    }
+                    if (action.payload.trangThai) {
+                        state.data[index].trangThai = action.payload.trangThai;
+                    }
                 }
             })
 

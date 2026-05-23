@@ -10,7 +10,6 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import CloseIcon from "@mui/icons-material/Close";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import StoreIcon from "@mui/icons-material/Store";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import DownloadIcon from "@mui/icons-material/Download";
 import { api } from "../../config/api";
@@ -72,6 +71,7 @@ const getDateRange = (preset) => {
 };
 
 const ROWS_PER_PAGE = 20;
+const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
 
 export default function PhieuThuPage() {
     const dispatch = useDispatch();
@@ -85,20 +85,16 @@ export default function PhieuThuPage() {
     const [selectedPhieuThu, setSelectedPhieuThu] = useState(null);
 
     // Applied filter (drives API calls)
-    const [appliedDatePreset, setAppliedDatePreset] = useState(null);
-    const [appliedCustomFrom, setAppliedCustomFrom] = useState("");
-    const [appliedCustomTo, setAppliedCustomTo] = useState("");
+    const [appliedNgayThu, setAppliedNgayThu] = useState(EMPTY_DATE);
     const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(null); // { _id, name }
 
     // Filter panel UI
     const [showFilter, setShowFilter] = useState(false);
-    const [draftDatePreset, setDraftDatePreset] = useState(null);
-    const [draftCustomFrom, setDraftCustomFrom] = useState("");
-    const [draftCustomTo, setDraftCustomTo] = useState("");
+    const [draftNgayThu, setDraftNgayThu] = useState(EMPTY_DATE);
     const [draftNhaKhoa, setDraftNhaKhoa] = useState(null);
-    const [openDateSection, setOpenDateSection] = useState(false);
-    const [openCustomerSection, setOpenCustomerSection] = useState(false);
-    const [customerSearch, setCustomerSearch] = useState("");
+    const [openDateModal, setOpenDateModal] = useState(null);
+    const [openPickerModal, setOpenPickerModal] = useState(null);
+    const [nhaKhoaSearch, setNhaKhoaSearch] = useState("");
     const filterRef = useRef(null);
     const [openExport, setOpenExport] = useState(false);
     const [exportDateFilter, setExportDateFilter] = useState(EMPTY_EXPORT_DATE_FILTER);
@@ -114,20 +110,21 @@ export default function PhieuThuPage() {
 
     useEffect(() => {
         const handleClick = (e) => {
-            if (filterRef.current && !filterRef.current.contains(e.target)) setShowFilter(false);
+            if (filterRef.current && !filterRef.current.contains(e.target)) {
+                if (e.target.closest?.('.MuiPopover-root, .MuiMenu-root, .MuiModal-root')) return;
+                setShowFilter(false);
+            }
         };
         document.addEventListener("mousedown", handleClick);
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
 
     const handleOpenFilter = () => {
-        setDraftDatePreset(appliedDatePreset);
-        setDraftCustomFrom(appliedCustomFrom);
-        setDraftCustomTo(appliedCustomTo);
+        setDraftNgayThu(appliedNgayThu);
         setDraftNhaKhoa(appliedNhaKhoa);
-        setOpenDateSection(false);
-        setOpenCustomerSection(false);
-        setCustomerSearch("");
+        setOpenDateModal(null);
+        setOpenPickerModal(null);
+        setNhaKhoaSearch("");
         setShowFilter(true);
     };
 
@@ -144,33 +141,33 @@ export default function PhieuThuPage() {
     }, []);
 
     const loadData = useCallback(() => {
-        const { dateFrom, dateTo } = getApiDates(appliedDatePreset, appliedCustomFrom, appliedCustomTo);
+        const { dateFrom, dateTo } = getApiDates(appliedNgayThu.preset, appliedNgayThu.customFrom, appliedNgayThu.customTo);
         dispatch(fetchAllPhieuThu({
             page, limit: ROWS_PER_PAGE, search: debouncedSearch,
             nhaKhoaId: appliedNhaKhoa?._id || "",
             dateFrom, dateTo,
         }));
-    }, [dispatch, page, debouncedSearch, appliedDatePreset, appliedCustomFrom, appliedCustomTo, appliedNhaKhoa, getApiDates]);
+    }, [dispatch, page, debouncedSearch, appliedNgayThu, appliedNhaKhoa, getApiDates]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
     const handleRefresh = () => {
         setSearchTerm(""); setDebouncedSearch("");
-        setAppliedDatePreset(null); setAppliedCustomFrom(""); setAppliedCustomTo(""); setAppliedNhaKhoa(null);
+        setAppliedNgayThu(EMPTY_DATE); setAppliedNhaKhoa(null);
         setPage(1);
     };
 
     const handleApplyFilters = () => {
-        setAppliedDatePreset(draftDatePreset);
-        setAppliedCustomFrom(draftCustomFrom);
-        setAppliedCustomTo(draftCustomTo);
+        setAppliedNgayThu(draftNgayThu);
         setAppliedNhaKhoa(draftNhaKhoa);
         setPage(1);
+        setOpenDateModal(null);
+        setOpenPickerModal(null);
         setShowFilter(false);
     };
 
     const handleResetDraft = () => {
-        setDraftDatePreset(null); setDraftCustomFrom(""); setDraftCustomTo(""); setDraftNhaKhoa(null);
+        setDraftNgayThu(EMPTY_DATE); setDraftNhaKhoa(null);
     };
 
     const handleRowClick = (pt) => setSelectedPhieuThu((prev) => (prev?._id === pt._id ? null : pt));
@@ -218,15 +215,46 @@ export default function PhieuThuPage() {
         }
     };
 
-    const filteredCustomers = nhaKhoaList.filter((nk) => {
-        if (!customerSearch.trim()) return true;
-        const s = customerSearch.toLowerCase();
-        return (nk.hoVaTen || "").toLowerCase().includes(s) || (nk.tenGiaoDich || "").toLowerCase().includes(s);
-    });
+    const filteredNhaKhoaOpts = nhaKhoaList
+        .map((nk) => ({ _id: nk._id, name: nk.tenGiaoDich || nk.hoVaTen || "" }))
+        .filter((nk) => !nhaKhoaSearch.trim() || nk.name.toLowerCase().includes(nhaKhoaSearch.toLowerCase()));
 
-    const appliedDateLabel = DATE_PRESETS.find((p) => p.key === appliedDatePreset)?.label || "";
-    const isFiltered = !!appliedDatePreset || !!appliedNhaKhoa;
+    const getDateLabel = (f) => DATE_PRESETS.find((p) => p.key === f.preset)?.label || "";
+    const isFiltered = !!appliedNgayThu.preset || !!appliedNhaKhoa;
     const totalPages = pagination.totalPages || 1;
+
+    const renderDateDropdown = (cf, scf) => (
+        <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+            {DATE_PRESETS.map((p) => (
+                <div key={p.key}>
+                    <button
+                        onClick={() => {
+                            scf((prev) => ({ ...prev, preset: prev.preset === p.key ? null : p.key }));
+                            if (!p.isCalendar) setOpenDateModal(null);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${cf.preset === p.key ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
+                    >
+                        {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
+                        {p.label}
+                    </button>
+                    {p.isCalendar && cf.preset === "custom" && (
+                        <div className="px-4 py-3 space-y-2 bg-blue-50/30 border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500 w-8 shrink-0">Từ</span>
+                                <input type="date" value={cf.customFrom} onChange={(e) => scf((prev) => ({ ...prev, customFrom: e.target.value }))}
+                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500 w-8 shrink-0">Đến</span>
+                                <input type="date" value={cf.customTo} onChange={(e) => scf((prev) => ({ ...prev, customTo: e.target.value }))}
+                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <div className="p-4 bg-gray-100 min-h-screen">
@@ -249,115 +277,71 @@ export default function PhieuThuPage() {
 
                             {/* Filter dropdown */}
                             {showFilter && (
-                                <div className="absolute left-0 top-full mt-1 z-50 w-80 max-w-[90vw] bg-white rounded-xl shadow-2xl border border-gray-200">
+                                <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-white rounded-xl shadow-2xl border border-gray-200" onClick={() => { setOpenDateModal(null); setOpenPickerModal(null); }}>
 
                                     {/* Ngày thu */}
-                                    <div className="border-b border-gray-100">
+                                    <div className="relative border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
                                         <button
                                             className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
-                                            onClick={() => setOpenDateSection((v) => !v)}
+                                            onClick={() => { setOpenPickerModal(null); setOpenDateModal(openDateModal === "ngayThu" ? null : "ngayThu"); }}
                                         >
-                                            <div className="flex items-center gap-2">
-                                                <CalendarTodayIcon sx={{ fontSize: 15, color: "#6b7280" }} />
-                                                <span className="text-gray-700 font-medium">Ngày thu</span>
-                                                {draftDatePreset && (
-                                                    <span className="text-blue-600 text-xs font-semibold">
-                                                        {DATE_PRESETS.find((p) => p.key === draftDatePreset)?.label}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <ExpandMoreIcon sx={{ fontSize: 18, color: "#9ca3af", transform: openDateSection ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+                                            <span className={draftNgayThu.preset ? "text-blue-600 font-medium" : "text-gray-600"}>
+                                                {draftNgayThu.preset ? getDateLabel(draftNgayThu) : "Ngày thu"}
+                                            </span>
+                                            <CalendarTodayIcon sx={{ fontSize: 16, color: "#9ca3af" }} />
                                         </button>
-                                        {openDateSection && (
-                                            <div className="border-t border-gray-100 max-h-64 overflow-y-auto pb-1">
-                                                {DATE_PRESETS.map((p) => (
-                                                    <div key={p.key}>
-                                                        <button
-                                                            onClick={() => setDraftDatePreset((prev) => prev === p.key ? null : p.key)}
-                                                            className={`w-full text-left px-6 py-2 text-sm flex items-center gap-2 transition ${draftDatePreset === p.key ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
-                                                        >
-                                                            {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 13 }} />}
-                                                            {p.label}
-                                                        </button>
-                                                        {p.isCalendar && draftDatePreset === "custom" && (
-                                                            <div className="px-6 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-xs text-gray-500 w-8 shrink-0">Từ</span>
-                                                                    <input type="date" value={draftCustomFrom}
-                                                                        onChange={(e) => setDraftCustomFrom(e.target.value)}
-                                                                        className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
-                                                                    />
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-xs text-gray-500 w-8 shrink-0">Đến</span>
-                                                                    <input type="date" value={draftCustomTo}
-                                                                        onChange={(e) => setDraftCustomTo(e.target.value)}
-                                                                        className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                                        {openDateModal === "ngayThu" && renderDateDropdown(draftNgayThu, setDraftNgayThu)}
                                     </div>
 
-                                    {/* Khách hàng */}
-                                    <div className="border-b border-gray-100">
-                                        <button
-                                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
-                                            onClick={() => setOpenCustomerSection((v) => !v)}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <StoreIcon sx={{ fontSize: 15, color: "#6b7280" }} />
-                                                <span className="text-gray-700 font-medium">Khách hàng</span>
-                                                {draftNhaKhoa && (
-                                                    <span className="text-blue-600 text-xs font-semibold truncate max-w-[140px]">{draftNhaKhoa.name}</span>
-                                                )}
+                                    {/* Nha khoa */}
+                                    <div className="relative border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                                        {openPickerModal === "nhaKhoa" ? (
+                                            <div className="px-3 py-2">
+                                                <input
+                                                    type="text"
+                                                    value={nhaKhoaSearch}
+                                                    onChange={(e) => setNhaKhoaSearch(e.target.value)}
+                                                    placeholder="Tìm nha khoa..."
+                                                    autoFocus
+                                                    className="w-full border-b border-blue-400 px-3 py-1.5 text-sm focus:outline-none"
+                                                />
                                             </div>
-                                            <ExpandMoreIcon sx={{ fontSize: 18, color: "#9ca3af", transform: openCustomerSection ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
-                                        </button>
-                                        {openCustomerSection && (
-                                            <div className="border-t border-gray-100">
-                                                <div className="px-4 py-2">
-                                                    <div className="relative flex items-center">
-                                                        <span className="absolute left-2.5 text-gray-400 flex items-center">
-                                                            <SearchIcon sx={{ fontSize: 15 }} />
-                                                        </span>
-                                                        <input
-                                                            type="text"
-                                                            value={customerSearch}
-                                                            onChange={(e) => setCustomerSearch(e.target.value)}
-                                                            placeholder="Tìm khách hàng..."
-                                                            className="w-full border border-gray-200 rounded-lg pl-7 pr-3 py-1.5 text-sm focus:outline-none focus:border-blue-400"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="max-h-44 overflow-y-auto pb-1">
-                                                    {filteredCustomers.map((nk) => (
-                                                        <button key={nk._id}
-                                                            onClick={() => setDraftNhaKhoa(draftNhaKhoa?._id === nk._id ? null : { _id: nk._id, name: nk.hoVaTen || nk.tenGiaoDich })}
-                                                            className={`w-full text-left px-4 py-2 text-sm transition ${draftNhaKhoa?._id === nk._id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}>
-                                                            {nk.hoVaTen || nk.tenGiaoDich}
-                                                        </button>
-                                                    ))}
-                                                    {filteredCustomers.length === 0 && (
-                                                        <p className="text-center text-xs text-gray-400 py-4">Không tìm thấy</p>
-                                                    )}
-                                                </div>
+                                        ) : (
+                                            <button
+                                                className="w-full flex items-start px-4 py-3 hover:bg-gray-50 transition text-sm"
+                                                onClick={() => { setOpenDateModal(null); setNhaKhoaSearch(""); setOpenPickerModal("nhaKhoa"); }}
+                                            >
+                                                <span className={draftNhaKhoa ? "text-blue-600 font-medium truncate" : "text-gray-400"}>
+                                                    {draftNhaKhoa ? draftNhaKhoa.name : "Nha khoa"}
+                                                </span>
+                                            </button>
+                                        )}
+                                        {openPickerModal === "nhaKhoa" && (
+                                            <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded-xl shadow-xl border border-gray-200 max-h-56 overflow-y-auto">
+                                                {draftNhaKhoa && (
+                                                    <button onClick={() => { setDraftNhaKhoa(null); setOpenPickerModal(null); }}
+                                                        className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 border-b border-gray-100 transition">
+                                                        Bỏ chọn
+                                                    </button>
+                                                )}
+                                                {filteredNhaKhoaOpts.map((item) => (
+                                                    <button key={item._id} onClick={() => { setDraftNhaKhoa(item); setOpenPickerModal(null); }}
+                                                        className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftNhaKhoa?._id === item._id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}>
+                                                        {item.name}
+                                                    </button>
+                                                ))}
+                                                {filteredNhaKhoaOpts.length === 0 && <p className="text-center text-xs text-gray-400 py-4">Không tìm thấy</p>}
                                             </div>
                                         )}
                                     </div>
 
                                     {/* Bottom buttons */}
                                     <div className="flex items-center justify-between px-4 py-3">
-                                        <button onClick={handleResetDraft} className="text-sm text-gray-500 hover:text-red-500 transition font-medium">
-                                            Reset lọc
+                                        <button onClick={handleResetDraft} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 transition" title="Reset lọc">
+                                            <RefreshIcon sx={{ fontSize: 20 }} />
                                         </button>
-                                        <button onClick={handleApplyFilters}
-                                            className="px-4 py-1.5 bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-semibold rounded-lg transition shadow-sm">
-                                            Lưu lọc
+                                        <button onClick={handleApplyFilters} className="flex items-center gap-1 px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition shadow-sm">
+                                            ✓ Lưu
                                         </button>
                                     </div>
                                 </div>
@@ -405,14 +389,14 @@ export default function PhieuThuPage() {
                 {/* Active filter chips */}
                 {isFiltered && (
                     <div className="flex items-center gap-2 px-3 pb-2.5 flex-wrap">
-                        {appliedDatePreset && (
+                        {appliedNgayThu.preset && (
                             <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
                                 <CalendarTodayIcon sx={{ fontSize: 11 }} />
-                                {appliedDateLabel}
-                                {appliedDatePreset === "custom" && appliedCustomFrom && ` ${appliedCustomFrom}`}
-                                {appliedDatePreset === "custom" && appliedCustomTo && ` → ${appliedCustomTo}`}
+                                {getDateLabel(appliedNgayThu)}
+                                {appliedNgayThu.preset === "custom" && appliedNgayThu.customFrom && ` ${appliedNgayThu.customFrom}`}
+                                {appliedNgayThu.preset === "custom" && appliedNgayThu.customTo && ` → ${appliedNgayThu.customTo}`}
                                 <button
-                                    onClick={() => { setAppliedDatePreset(null); setAppliedCustomFrom(""); setAppliedCustomTo(""); setPage(1); }}
+                                    onClick={() => { setAppliedNgayThu(EMPTY_DATE); setPage(1); }}
                                     className="ml-0.5 hover:text-blue-900 flex items-center"
                                 >
                                     <CloseIcon sx={{ fontSize: 12 }} />

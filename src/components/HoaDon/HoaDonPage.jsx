@@ -19,6 +19,9 @@ import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import CloseIcon from "@mui/icons-material/Close";
+import StoreIcon from "@mui/icons-material/Store";
 import DownloadIcon from "@mui/icons-material/Download";
 import SvgIcon from "@mui/material/SvgIcon";
 
@@ -46,6 +49,55 @@ function ExcelIcon(props) {
     );
 }
 
+const DATE_PRESETS = [
+    { key: "custom", label: "Chọn trên Lịch", isCalendar: true },
+    { key: "today", label: "Hôm nay" },
+    { key: "yesterday", label: "Hôm qua" },
+    { key: "this_week", label: "Tuần này" },
+    { key: "this_month", label: "Tháng này" },
+    { key: "this_year", label: "Năm nay" },
+    { key: "last_week", label: "Tuần trước" },
+    { key: "last_month", label: "Tháng trước" },
+    { key: "last_year", label: "Năm trước" },
+    { key: "last_7", label: "Trong vòng 7 ngày" },
+    { key: "last_10", label: "Trong vòng 10 ngày" },
+    { key: "last_30", label: "Trong vòng 30 ngày" },
+];
+
+const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
+
+const _getDateRange = (preset) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    switch (preset) {
+        case "today": return { from: today, to: tomorrow };
+        case "yesterday": { const f = new Date(today); f.setDate(f.getDate() - 1); return { from: f, to: today }; }
+        case "this_week": { const d = today.getDay(); const f = new Date(today); f.setDate(today.getDate() - (d === 0 ? 6 : d - 1)); return { from: f, to: tomorrow }; }
+        case "this_month": return { from: new Date(today.getFullYear(), today.getMonth(), 1), to: tomorrow };
+        case "this_year": return { from: new Date(today.getFullYear(), 0, 1), to: tomorrow };
+        case "last_week": { const d = today.getDay(); const f = new Date(today); f.setDate(today.getDate() - (d === 0 ? 6 : d - 1) - 7); const t = new Date(f); t.setDate(f.getDate() + 7); return { from: f, to: t }; }
+        case "last_month": return { from: new Date(today.getFullYear(), today.getMonth() - 1, 1), to: new Date(today.getFullYear(), today.getMonth(), 1) };
+        case "last_year": return { from: new Date(today.getFullYear() - 1, 0, 1), to: new Date(today.getFullYear(), 0, 1) };
+        case "last_7": { const f = new Date(today); f.setDate(f.getDate() - 7); return { from: f, to: tomorrow }; }
+        case "last_10": { const f = new Date(today); f.setDate(f.getDate() - 10); return { from: f, to: tomorrow }; }
+        case "last_30": { const f = new Date(today); f.setDate(f.getDate() - 30); return { from: f, to: tomorrow }; }
+        default: return { from: null, to: null };
+    }
+};
+
+const computeDateRange = (filter) => {
+    if (!filter?.preset) return { fromDate: "", toDate: "" };
+    if (filter.preset === "custom") {
+        return {
+            fromDate: filter.customFrom ? new Date(filter.customFrom).toISOString() : "",
+            toDate: filter.customTo ? new Date(filter.customTo + "T23:59:59").toISOString() : "",
+        };
+    }
+    const { from, to } = _getDateRange(filter.preset);
+    return { fromDate: from ? from.toISOString() : "", toDate: to ? to.toISOString() : "" };
+};
+
 const HoaDonPage = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -55,9 +107,9 @@ const HoaDonPage = () => {
 
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [filterNgayXuat, setFilterNgayXuat] = useState("");
-    const [filterNhaKhoa, setFilterNhaKhoa] = useState("");
-    const [filterTrangThai, setFilterTrangThai] = useState("");
+    const [appliedNgayXuat, setAppliedNgayXuat] = useState(EMPTY_DATE);
+    const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(null);
+    const [appliedTrangThai, setAppliedTrangThai] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const [openFilter, setOpenFilter] = useState(false);
@@ -84,21 +136,24 @@ const HoaDonPage = () => {
     }, [searchTerm]);
 
     useEffect(() => {
+        const { fromDate, toDate } = computeDateRange(appliedNgayXuat);
         dispatch(
             fetchAllHoaDonAdmin({
                 page: page + 1,
                 limit: rowsPerPage,
-                nhaKhoaId: filterNhaKhoa,
-                trangThai: filterTrangThai,
-                ngayXuat: filterNgayXuat,
+                nhaKhoaId: appliedNhaKhoa?._id || "",
+                trangThai: appliedTrangThai.join(","),
+                fromDate,
+                toDate,
                 search: debouncedSearch,
             })
         );
-    }, [dispatch, page, rowsPerPage, filterNhaKhoa, filterTrangThai, filterNgayXuat, debouncedSearch]);
+    }, [dispatch, page, rowsPerPage, appliedNhaKhoa, appliedTrangThai, appliedNgayXuat, debouncedSearch]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (filterContainerRef.current && !filterContainerRef.current.contains(event.target)) {
+                if (event.target.closest?.('.MuiPopover-root, .MuiMenu-root, .MuiModal-root')) return;
                 setOpenFilter(false);
             }
         };
@@ -122,7 +177,7 @@ const HoaDonPage = () => {
 
         try {
             setExporting(true);
-            
+
             let fromISO, toISO;
             if (hasManualDateRange) {
                 fromISO = new Date(exportFrom).toISOString();
@@ -160,6 +215,8 @@ const HoaDonPage = () => {
             setExporting(false);
         }
     };
+
+    const isFiltered = !!appliedNgayXuat.preset || !!appliedNhaKhoa || appliedTrangThai.length > 0;
 
     return (
         <div className="bg-gray-50 flex-1 h-full flex flex-col overflow-hidden">
@@ -205,84 +262,112 @@ const HoaDonPage = () => {
             </div>
 
             {/* DÒNG 2: TOOLBAR */}
-            <div className="mt-4 shrink-0 flex flex-col md:flex-row items-center justify-between gap-4 rounded-t-lg bg-white p-4 border-b border-gray-100 shadow-sm relative z-30">
-                <div className="relative" ref={filterContainerRef}>
-                    <Tooltip title="Bộ lọc">
-                        <IconButton
-                            onClick={() => setOpenFilter(!openFilter)}
+            <div className="mt-4 shrink-0 rounded-t-lg bg-white shadow-sm relative z-30">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-b border-gray-100">
+                    <div className="relative" ref={filterContainerRef}>
+                        <Tooltip title="Bộ lọc">
+                            <IconButton
+                                onClick={() => setOpenFilter(!openFilter)}
+                                size="small"
+                                className={`transition-colors ${openFilter ? "bg-blue-50" : ""}`}
+                                sx={{ color: isFiltered ? "#1976d2" : "#555", p: "8px", position: "relative" }}
+                            >
+                                <FilterListIcon fontSize="small" />
+                                {isFiltered && (
+                                    <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-blue-500 border border-white" style={{ pointerEvents: "none" }} />
+                                )}
+                            </IconButton>
+                        </Tooltip>
+
+                        <HoaDonFilterDrawer
+                            open={openFilter}
+                            onClose={() => setOpenFilter(false)}
+                            appliedNgayXuat={appliedNgayXuat}
+                            appliedNhaKhoa={appliedNhaKhoa}
+                            appliedTrangThai={appliedTrangThai}
+                            nhaKhoaList={Array.isArray(nhaKhoa?.data) ? nhaKhoa.data : []}
+                            onApply={(ngayXuat, nhaKhoa, trangThai) => {
+                                setAppliedNgayXuat(ngayXuat);
+                                setAppliedNhaKhoa(nhaKhoa);
+                                setAppliedTrangThai(trangThai);
+                                setPage(0);
+                            }}
+                            onReset={() => {
+                                setAppliedNgayXuat(EMPTY_DATE);
+                                setAppliedNhaKhoa(null);
+                                setAppliedTrangThai([]);
+                                setPage(0);
+                            }}
+                        />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <TextField
                             size="small"
-                            className={`transition-colors ${openFilter ? "bg-gray-100" : ""}`}
-                            sx={{ color: "#555", p: "8px" }}
-                        >
-                            <FilterListIcon fontSize="small" />
+                            placeholder="Tìm kiếm..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            sx={{
+                                width: 220,
+                                "& .MuiOutlinedInput-root": {
+                                    borderRadius: "20px", bgcolor: "#f5f5f5", fontSize: "0.85rem", "& fieldset": { border: "none" },
+                                },
+                            }}
+                            InputProps={{
+                                startAdornment: <InputAdornment position="start"><SearchIcon size={15} style={{ color: "#9e9e9e" }} /></InputAdornment>,
+                                endAdornment: searchTerm && (
+                                    <InputAdornment position="end">
+                                        <IconButton size="small" onClick={() => setSearchTerm("")}><ClearIcon sx={{ fontSize: 14 }} /></IconButton>
+                                    </InputAdornment>
+                                ),
+                            }}
+                        />
+                        <Tooltip title="Tạo hóa đơn">
+                            <IconButton onClick={() => navigate("/cho-xuat-hoa-don")} className="bg-[#4CAF50] text-white w-8 h-8 hover:bg-[#388E3C] flex items-center justify-center rounded-full">
+                                <AddIcon sx={{ fontSize: 20 }} />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Xuất Excel">
+                            <IconButton onClick={() => setOpenExport(true)} size="small">
+                                <ExcelIcon sx={{ fontSize: 22, color: "#1b7a34" }} />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Làm mới">
+                            <IconButton onClick={() => dispatch(fetchAllHoaDonAdmin())} size="small" sx={{ color: "#555" }}>
+                                <RefreshIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                        <IconButton size="small" sx={{ color: "#555" }}>
+                            <MoreVertIcon fontSize="small" />
                         </IconButton>
-                    </Tooltip>
-
-                    <HoaDonFilterDrawer
-                        open={openFilter}
-                        onClose={() => setOpenFilter(false)}
-                        filterNgayXuat={filterNgayXuat}
-                        setFilterNgayXuat={(val) => { setFilterNgayXuat(val); setPage(0); }}
-                        filterNhaKhoa={filterNhaKhoa}
-                        setFilterNhaKhoa={(val) => { setFilterNhaKhoa(val); setPage(0); }}
-                        filterTrangThai={filterTrangThai}
-                        setFilterTrangThai={(val) => {
-                            const statusString = Array.isArray(val) ? val.join(",") : val;
-                            setFilterTrangThai(statusString);
-                            setPage(0);
-                        }}
-                        nhaKhoaList={Array.isArray(nhaKhoa?.data) ? nhaKhoa.data : []}
-                        onReset={() => {
-                            setFilterNgayXuat("");
-                            setFilterNhaKhoa("");
-                            setFilterTrangThai("");
-                            setPage(0);
-                        }}
-                    />
+                    </div>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                    <TextField
-                        size="small"
-                        placeholder="Tìm kiếm..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        sx={{
-                            width: 220,
-                            "& .MuiOutlinedInput-root": {
-                                borderRadius: "20px", bgcolor: "#f5f5f5", fontSize: "0.85rem", "& fieldset": { border: "none" },
-                            },
-                        }}
-                        InputProps={{
-                            startAdornment: <InputAdornment position="start"><SearchIcon size={15} style={{ color: "#9e9e9e" }} /></InputAdornment>,
-                            endAdornment: searchTerm && (
-                                <InputAdornment position="end">
-                                    <IconButton size="small" onClick={() => setSearchTerm("")}><ClearIcon sx={{ fontSize: 14 }} /></IconButton>
-                                </InputAdornment>
-                            ),
-                        }}
-                    />
-                    <Tooltip title="Tạo hóa đơn">
-                        <IconButton onClick={() => navigate("/cho-xuat-hoa-don")} className="bg-[#4CAF50] text-white w-8 h-8 hover:bg-[#388E3C] flex items-center justify-center rounded-full">
-                            <AddIcon sx={{ fontSize: 20 }} />
-                        </IconButton>
-                    </Tooltip>
-                    <button
-                        onClick={() => setOpenExport(true)}
-                        title="Xuất Excel"
-                        className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
-                    >
-                        <DownloadIcon sx={{ fontSize: 20 }} />
-                    </button>
-                    <Tooltip title="Làm mới">
-                        <IconButton onClick={() => dispatch(fetchAllHoaDonAdmin())} size="small" sx={{ color: "#555" }}>
-                            <RefreshIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                    <IconButton size="small" sx={{ color: "#555" }}>
-                        <MoreVertIcon fontSize="small" />
-                    </IconButton>
-                </div>
+                {isFiltered && (
+                    <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
+                        {appliedNgayXuat.preset && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+                                <CalendarTodayIcon sx={{ fontSize: 12 }} />
+                                {appliedNgayXuat.preset === "custom"
+                                    ? `${appliedNgayXuat.customFrom || "?"} → ${appliedNgayXuat.customTo || "?"}`
+                                    : DATE_PRESETS.find((p) => p.key === appliedNgayXuat.preset)?.label || appliedNgayXuat.preset}
+                                <button onClick={() => { setAppliedNgayXuat(EMPTY_DATE); setPage(0); }} className="ml-1 hover:text-blue-900 font-bold">×</button>
+                            </span>
+                        )}
+                        {appliedNhaKhoa && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+                                <StoreIcon sx={{ fontSize: 12 }} />
+                                {appliedNhaKhoa.name}
+                                <button onClick={() => { setAppliedNhaKhoa(null); setPage(0); }} className="ml-1 hover:text-blue-900 font-bold">×</button>
+                            </span>
+                        )}
+                        {appliedTrangThai.map((tt) => (
+                            <span key={tt} className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+                                {tt}
+                                <button onClick={() => { setAppliedTrangThai((prev) => prev.filter((x) => x !== tt)); setPage(0); }} className="ml-1 hover:text-blue-900 font-bold">×</button>
+                            </span>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* DÒNG 3: BẢNG DỮ LIỆU & PHÂN TRANG */}

@@ -1,147 +1,206 @@
 import React, { useState, useEffect } from "react";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import {
-    TextField,
-    Autocomplete,
-    Select,
-    MenuItem,
-    Checkbox,
-    ListItemText,
-    FormControl,
-    InputLabel
-} from "@mui/material";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+
+const DATE_PRESETS = [
+    { key: "custom", label: "Chọn trên Lịch", isCalendar: true },
+    { key: "today", label: "Hôm nay" },
+    { key: "yesterday", label: "Hôm qua" },
+    { key: "this_week", label: "Tuần này" },
+    { key: "this_month", label: "Tháng này" },
+    { key: "this_year", label: "Năm nay" },
+    { key: "last_week", label: "Tuần trước" },
+    { key: "last_month", label: "Tháng trước" },
+    { key: "last_year", label: "Năm trước" },
+    { key: "last_7", label: "Trong vòng 7 ngày" },
+    { key: "last_10", label: "Trong vòng 10 ngày" },
+    { key: "last_30", label: "Trong vòng 30 ngày" },
+];
+
+export const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
+
+const STATUS_OPTIONS = ["Chưa thanh toán", "Thanh toán một phần", "Đã thanh toán"];
 
 const HoaDonFilterDrawer = ({
     open,
     onClose,
-    filterNgayXuat,
-    setFilterNgayXuat,
-    filterNhaKhoa,
-    setFilterNhaKhoa,
-    filterTrangThai,
-    setFilterTrangThai,
+    appliedNgayXuat,
+    appliedNhaKhoa,
+    appliedTrangThai,
     nhaKhoaList = [],
+    onApply,
     onReset,
 }) => {
-    const [tempNgayXuat, setTempNgayXuat] = useState("");
-    const [tempNhaKhoa, setTempNhaKhoa] = useState("");
-    const [tempTrangThai, setTempTrangThai] = useState([]);
+    const [draftNgayXuat, setDraftNgayXuat] = useState(EMPTY_DATE);
+    const [draftNhaKhoa, setDraftNhaKhoa] = useState(null);
+    const [draftTrangThai, setDraftTrangThai] = useState([]);
+    const [openDateModal, setOpenDateModal] = useState(null);
+    const [openPickerModal, setOpenPickerModal] = useState(null);
+    const [nhaKhoaSearch, setNhaKhoaSearch] = useState("");
 
     useEffect(() => {
         if (open) {
-            setTempNgayXuat(filterNgayXuat || "");
-            setTempNhaKhoa(filterNhaKhoa || "");
-            setTempTrangThai(
-                Array.isArray(filterTrangThai)
-                    ? filterTrangThai
-                    : filterTrangThai
-                        ? filterTrangThai.split(",")
-                        : []
-            );
+            setDraftNgayXuat(appliedNgayXuat || EMPTY_DATE);
+            setDraftNhaKhoa(appliedNhaKhoa || null);
+            setDraftTrangThai(appliedTrangThai || []);
+            setOpenDateModal(null);
+            setOpenPickerModal(null);
+            setNhaKhoaSearch("");
         }
-    }, [open, filterNgayXuat, filterNhaKhoa, filterTrangThai]);
+    }, [open, appliedNgayXuat, appliedNhaKhoa, appliedTrangThai]);
 
     if (!open) return null;
 
-    const handleStatusChange = (event) => {
-        const { value } = event.target;
-        setTempTrangThai(value);
-    };
+    const filteredNhaKhoaOpts = nhaKhoaList
+        .map((nk) => ({ _id: nk._id, name: nk.tenGiaoDich || nk.hoVaTen || "" }))
+        .filter((nk) => !nhaKhoaSearch.trim() || nk.name.toLowerCase().includes(nhaKhoaSearch.toLowerCase()));
 
-    const handleApply = () => {
-        setFilterNgayXuat(tempNgayXuat);
-        setFilterNhaKhoa(tempNhaKhoa);
-        setFilterTrangThai(tempTrangThai);
-        onClose();
-    };
+    const getDateLabel = (f) => DATE_PRESETS.find((p) => p.key === f.preset)?.label || "";
 
-    const handleReset = () => {
-        onReset();
-        onClose();
-    };
+    const toggleTrangThai = (status) =>
+        setDraftTrangThai((prev) =>
+            prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
+        );
 
-    const STATUS_OPTIONS = [
-        "Chưa thanh toán",
-        "Thanh toán một phần",
-        "Đã thanh toán"
-    ];
+    const renderDateDropdown = () => (
+        <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+            {DATE_PRESETS.map((p) => (
+                <div key={p.key}>
+                    <button
+                        onClick={() => {
+                            setDraftNgayXuat((prev) => ({ ...prev, preset: prev.preset === p.key ? null : p.key }));
+                            if (!p.isCalendar) setOpenDateModal(null);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${draftNgayXuat.preset === p.key ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
+                    >
+                        {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
+                        {p.label}
+                    </button>
+                    {p.isCalendar && draftNgayXuat.preset === "custom" && (
+                        <div className="px-4 py-3 space-y-2 bg-blue-50/30 border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500 w-8 shrink-0">Từ</span>
+                                <input type="date" value={draftNgayXuat.customFrom}
+                                    onChange={(e) => setDraftNgayXuat((prev) => ({ ...prev, customFrom: e.target.value }))}
+                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500 w-8 shrink-0">Đến</span>
+                                <input type="date" value={draftNgayXuat.customTo}
+                                    onChange={(e) => setDraftNgayXuat((prev) => ({ ...prev, customTo: e.target.value }))}
+                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
 
     return (
-        <div className="absolute left-0 top-full mt-2 z-50 w-[320px] rounded-lg border border-gray-200 bg-white p-5 shadow-xl">
-            <div className="flex flex-col gap-5">
-
-                {/* Ngày xuất */}
-                <TextField
-                    label="Ngày xuất"
-                    type="date"
-                    variant="standard"
-                    fullWidth
-                    value={tempNgayXuat}
-                    onChange={(e) => setTempNgayXuat(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    sx={{
-                        // ĐÃ THÊM: CSS tàng hình chữ mm/dd/yyyy mặc định của trình duyệt khi trống
-                        "& input::-webkit-datetime-edit": {
-                            color: tempNgayXuat ? "inherit" : "transparent",
-                        },
-                        "& input:focus::-webkit-datetime-edit": {
-                            color: "inherit",
-                        },
-                    }}
-                />
-
-                {/* Nha khoa */}
-                <Autocomplete
-                    disablePortal
-                    options={nhaKhoaList}
-                    getOptionLabel={(option) => option.hoVaTen || option.tenGiaoDich || ""}
-                    value={nhaKhoaList.find((nk) => nk._id === tempNhaKhoa) || null}
-                    onChange={(event, newValue) => {
-                        setTempNhaKhoa(newValue ? newValue._id : "");
-                    }}
-                    renderInput={(params) => (
-                        <TextField
-                            {...params}
-                            label="Nha khoa"
-                            variant="standard"
-                            placeholder="Tìm kiếm hoặc chọn nha khoa..."
-                        />
-                    )}
-                    noOptionsText="Không tìm thấy nha khoa"
-                    ListboxProps={{ style: { maxHeight: 220, overflow: 'auto' } }}
-                />
-
-                {/* Trạng thái */}
-                <FormControl variant="standard" fullWidth>
-                    <InputLabel>Trạng thái</InputLabel>
-                    <Select
-                        multiple
-                        value={tempTrangThai}
-                        onChange={handleStatusChange}
-                        renderValue={(selected) => selected.join(", ")}
-                        MenuProps={{ disablePortal: true }}
-                    >
-                        {STATUS_OPTIONS.map((status) => (
-                            <MenuItem key={status} value={status}>
-                                <Checkbox checked={tempTrangThai.indexOf(status) > -1} />
-                                <ListItemText primary={status} />
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+        <div
+            className="absolute left-0 top-full mt-1 z-50 w-64 bg-white rounded-xl shadow-2xl border border-gray-200"
+            onClick={() => { setOpenDateModal(null); setOpenPickerModal(null); }}
+        >
+            {/* Ngày xuất */}
+            <div className="relative border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                <button
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
+                    onClick={() => { setOpenPickerModal(null); setOpenDateModal(openDateModal === "ngayXuat" ? null : "ngayXuat"); }}
+                >
+                    <span className={draftNgayXuat.preset ? "text-blue-600 font-medium" : "text-gray-600"}>
+                        {draftNgayXuat.preset ? getDateLabel(draftNgayXuat) : "Ngày xuất"}
+                    </span>
+                    <CalendarTodayIcon sx={{ fontSize: 16, color: "#9ca3af" }} />
+                </button>
+                {openDateModal === "ngayXuat" && renderDateDropdown()}
             </div>
 
-            <div className="mt-8 flex items-center justify-between">
-                <button
-                    onClick={handleReset}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm transition hover:bg-gray-100 text-gray-700"
-                >
-                    <RefreshIcon fontSize="small" />
-                </button>
+            {/* Nha khoa */}
+            <div className="relative border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                {openPickerModal === "nhaKhoa" ? (
+                    <div className="px-3 py-2">
+                        <input
+                            type="text"
+                            value={nhaKhoaSearch}
+                            onChange={(e) => setNhaKhoaSearch(e.target.value)}
+                            placeholder="Tìm nha khoa..."
+                            autoFocus
+                            className="w-full border-b border-blue-400 px-3 py-1.5 text-sm focus:outline-none"
+                        />
+                    </div>
+                ) : (
+                    <button
+                        className="w-full flex items-start px-4 py-3 hover:bg-gray-50 transition text-sm"
+                        onClick={() => { setOpenDateModal(null); setNhaKhoaSearch(""); setOpenPickerModal("nhaKhoa"); }}
+                    >
+                        <span className={draftNhaKhoa ? "text-blue-600 font-medium truncate" : "text-gray-400"}>
+                            {draftNhaKhoa ? draftNhaKhoa.name : "Nha khoa"}
+                        </span>
+                    </button>
+                )}
+                {openPickerModal === "nhaKhoa" && (
+                    <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded-xl shadow-xl border border-gray-200 max-h-56 overflow-y-auto">
+                        {draftNhaKhoa && (
+                            <button onClick={() => { setDraftNhaKhoa(null); setOpenPickerModal(null); }}
+                                className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 border-b border-gray-100 transition">
+                                Bỏ chọn
+                            </button>
+                        )}
+                        {filteredNhaKhoaOpts.map((item) => (
+                            <button key={item._id} onClick={() => { setDraftNhaKhoa(item); setOpenPickerModal(null); }}
+                                className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftNhaKhoa?._id === item._id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}>
+                                {item.name}
+                            </button>
+                        ))}
+                        {filteredNhaKhoaOpts.length === 0 && <p className="text-center text-xs text-gray-400 py-4">Không tìm thấy</p>}
+                    </div>
+                )}
+            </div>
 
+            {/* Trạng thái */}
+            <div className="relative border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
                 <button
-                    onClick={handleApply}
-                    className="flex items-center gap-1 rounded-full bg-[#4CAF50] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#388E3C]"
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
+                    onClick={() => { setOpenDateModal(null); setOpenPickerModal(openPickerModal === "trangThai" ? null : "trangThai"); }}
+                >
+                    <span className={draftTrangThai.length > 0 ? "text-blue-600 font-medium truncate" : "text-gray-600"}>
+                        {draftTrangThai.length > 0 ? draftTrangThai.join(", ") : "Trạng thái"}
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-gray-400 shrink-0 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                    </svg>
+                </button>
+                {openPickerModal === "trangThai" && (
+                    <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+                        {STATUS_OPTIONS.map((status) => (
+                            <button
+                                key={status}
+                                onClick={() => toggleTrangThai(status)}
+                                className={`flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm border-b border-gray-100 transition ${draftTrangThai.includes(status) ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
+                            >
+                                <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${draftTrangThai.includes(status) ? "bg-blue-500 border-blue-500" : "border-gray-300"}`}>
+                                    {draftTrangThai.includes(status) && <span className="text-white text-[10px] leading-none">✓</span>}
+                                </span>
+                                {status}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Bottom buttons */}
+            <div className="flex items-center justify-between px-4 py-3">
+                <button
+                    onClick={() => { setDraftNgayXuat(EMPTY_DATE); setDraftNhaKhoa(null); setDraftTrangThai([]); }}
+                    className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 transition"
+                    title="Reset lọc"
+                >
+                    <RefreshIcon sx={{ fontSize: 20 }} />
+                </button>
+                <button
+                    onClick={() => { onApply(draftNgayXuat, draftNhaKhoa, draftTrangThai); onClose(); }}
+                    className="flex items-center gap-1 px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition shadow-sm"
                 >
                     ✓ Lưu
                 </button>

@@ -161,35 +161,6 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                     </tbody>
                 </table>
             </div>
-
-            <div className="md:hidden space-y-3">
-                {renderData.length === 0 ? (
-                    <div className="bg-white rounded-xl border p-5 text-center text-gray-500">
-                        Không có dữ liệu đơn hàng
-                    </div>
-                ) : (
-                    renderData.map((dh) => (
-                        <div
-                            key={dh._id}
-                            onClick={() => onRowClick(dh)}
-                            className={`bg-white rounded-2xl border overflow-hidden shadow-sm cursor-pointer ${
-                                selectedId === dh._id ? "ring-2 ring-blue-300" : ""
-                            }`}
-                        >
-                            {rows(dh).map((row) => (
-                                <div key={row.label} className="grid grid-cols-[38%_62%] border-b border-gray-100 last:border-b-0">
-                                    <div className="px-3 py-2.5 text-[14px] text-gray-600">
-                                        {row.label}
-                                    </div>
-                                    <div className="px-3 py-2.5 text-[15px] text-gray-800 font-medium text-right truncate">
-                                        {row.value || ""}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ))
-                )}
-            </div>
         </div>
     );
 };

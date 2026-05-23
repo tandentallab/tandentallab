@@ -16,6 +16,7 @@ import WorkIcon from "@mui/icons-material/Work";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import PersonIcon from "@mui/icons-material/Person";
 import CloseIcon from "@mui/icons-material/Close";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth"; // 🔥 Thêm icon lịch cho ngày công
 import { useDispatch } from "react-redux";
 import {
   createNhanVien,
@@ -30,6 +31,7 @@ const initialState = {
   email: "",
   chucVu: "",
   luongCanBan: 0,
+  ngayCongThang: 28, // 🔥 Thiết lập mặc định 28 ngày công cho nhân viên mới
   trangThai: "Đang làm",
 };
 
@@ -60,6 +62,7 @@ const NhanVienFormModal = ({ open, onClose, initialData = null }) => {
             email: initialData.email || "",
             chucVu: initialData.chucVu || "",
             luongCanBan: initialData.luongCanBan || 0,
+            ngayCongThang: initialData.ngayCongThang || 28, // 🔥 Nhận dữ liệu cũ hoặc fallback về 28
             trangThai: initialData.trangThai || "Đang làm",
           }
         : initialState
@@ -78,6 +81,11 @@ const NhanVienFormModal = ({ open, onClose, initialData = null }) => {
       alert("Vui lòng nhập CCCD");
       return false;
     }
+    // Thêm kiểm tra hợp lệ ngày công nếu cần
+    if (formData.ngayCongThang < 0 || formData.ngayCongThang > 31) {
+      alert("Ngày công tháng không hợp lệ (Từ 0 đến 31 ngày)");
+      return false;
+    }
     return true;
   };
 
@@ -85,18 +93,21 @@ const NhanVienFormModal = ({ open, onClose, initialData = null }) => {
     if (!validate()) return;
     try {
       setLoading(true);
+
+      // Đồng bộ kiểu dữ liệu Number trước khi đẩy lên API/Redux
+      const submitData = {
+        ...formData,
+        luongCanBan: Number(formData.luongCanBan),
+        ngayCongThang: Number(formData.ngayCongThang),
+      };
+
       if (initialData?._id) {
         await dispatch(
-          updateNhanVien({ id: initialData._id, data: formData })
+          updateNhanVien({ id: initialData._id, data: submitData })
         ).unwrap();
         alert("Cập nhật nhân viên thành công");
       } else {
-        await dispatch(
-          createNhanVien({
-            ...formData,
-            luongCanBan: Number(formData.luongCanBan),
-          })
-        ).unwrap();
+        await dispatch(createNhanVien(submitData)).unwrap();
         alert("Tạo nhân viên thành công");
       }
       onClose();
@@ -287,7 +298,9 @@ const NhanVienFormModal = ({ open, onClose, initialData = null }) => {
               <MenuItem value="Nghỉ việc">Nghỉ việc</MenuItem>
             </TextField>
           </Grid>
-          <Grid item xs={12}>
+
+          {/* Thay đổi layout hàng cuối từ xs={12} thành md={6} để đặt 2 cột cạnh nhau */}
+          <Grid item xs={12} md={6}>
             <TextField
               fullWidth
               type="number"
@@ -307,6 +320,36 @@ const NhanVienFormModal = ({ open, onClose, initialData = null }) => {
                 endAdornment: (
                   <InputAdornment position="end">
                     <span className="text-slate-400 text-xs">VNĐ</span>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          {/* 🔥 Hàng Input mới cho thuộc tính ngayCongThang */}
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Ngày công tháng"
+              size="small"
+              value={formData.ngayCongThang}
+              onChange={(e) =>
+                handleChange("ngayCongThang", Number(e.target.value))
+              }
+              inputProps={{ min: 0, max: 31 }} // Giới hạn số ngày trong tháng tại UI
+              sx={fieldSx}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CalendarMonthIcon
+                      sx={{ fontSize: 18, color: "#eab308" }}
+                    />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <span className="text-slate-400 text-xs">Ngày</span>
                   </InputAdornment>
                 ),
               }}

@@ -42,6 +42,7 @@ import { useNavigate } from "react-router-dom";
 const COLUMNS = [
   "Nhân viên",
   "LCB",
+  "Ngày công tháng",
   "Lương/ngày",
   "Công",
   "Thành tiền",
@@ -75,6 +76,7 @@ const BangLuongPage = () => {
         bangLuongId: item._id,
         hoVaTen: item.nhanVien?.hoVaTen,
         luongCanBan: item.luongCanBan,
+        ngayCongThang: item.ngayCongThang,
         soNgayCong: item.soNgayCong,
         com: item.phuCapCom,
         dienThoai: item.phuCapDienThoai,
@@ -90,7 +92,11 @@ const BangLuongPage = () => {
         (nv) => nv?.trangThai?.trim() === "Đang làm"
       );
       const rows = activeNhanVien.map((nv) => {
-        const result = tinhLuong({ luongCoBan: nv.luongCanBan, soNgayCong: 0 });
+        const result = tinhLuong({
+          luongCoBan: nv.luongCanBan,
+          ngayCongThang: nv.ngayCongThang || 28,
+          soNgayCong: 0,
+        });
         return {
           ...nv,
           soNgayCong: 0,
@@ -112,6 +118,7 @@ const BangLuongPage = () => {
       const newItem = { ...item, [field]: Number(value) };
       const result = tinhLuong({
         luongCoBan: newItem.luongCanBan,
+        ngayCongThang: newItem.ngayCongThang,
         soNgayCong: newItem.soNgayCong,
         com: newItem.com,
         dienThoai: newItem.dienThoai,

@@ -1,13 +1,14 @@
 export const tinhLuong = ({
   luongCoBan,
+  ngayCongThang,
   soNgayCong,
   com,
   dienThoai,
   thuong,
+  phat,      // ✅ thêm vào
   ungTruoc,
 }) => {
-  const luongNgay = luongCoBan / 28;
-
+  const luongNgay = luongCoBan / ngayCongThang;
   const thanhTienCong = luongNgay * soNgayCong;
 
   const tongPhuCap =
@@ -16,12 +17,10 @@ export const tinhLuong = ({
     Number(thuong || 0);
 
   const thucNhan =
-    thanhTienCong + tongPhuCap - Number(ungTruoc || 0);
+    thanhTienCong +
+    tongPhuCap -
+    Number(phat || 0) -    // ✅ trừ phat
+    Number(ungTruoc || 0);
 
-  return {
-    luongNgay,
-    thanhTienCong,
-    tongPhuCap,
-    thucNhan,
-  };
+  return { luongNgay, thanhTienCong, tongPhuCap, thucNhan };
 };

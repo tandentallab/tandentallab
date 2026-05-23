@@ -44,7 +44,14 @@ function ExcelIcon(props) {
         <SvgIcon {...props} viewBox="0 0 24 24">
             <rect x="2" y="3" width="20" height="18" rx="2" ry="2" fill="#1b7a34" />
             <path d="M6 7h12v2H6z" fill="#fff" />
-            <path d="M7.2 15.5l1.6-2.3 1.6 2.3 1.6-2.3 1.6 2.3" stroke="#fff" strokeWidth="0.9" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+                d="M7.2 15.5l1.6-2.3 1.6 2.3 1.6-2.3 1.6 2.3"
+                stroke="#fff"
+                strokeWidth="0.9"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
         </SvgIcon>
     );
 }
@@ -69,20 +76,67 @@ const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
 const _getDateRange = (preset) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const tomorrow = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() + 1
+    );
     switch (preset) {
-        case "today": return { from: today, to: tomorrow };
-        case "yesterday": { const f = new Date(today); f.setDate(f.getDate() - 1); return { from: f, to: today }; }
-        case "this_week": { const d = today.getDay(); const f = new Date(today); f.setDate(today.getDate() - (d === 0 ? 6 : d - 1)); return { from: f, to: tomorrow }; }
-        case "this_month": return { from: new Date(today.getFullYear(), today.getMonth(), 1), to: tomorrow };
-        case "this_year": return { from: new Date(today.getFullYear(), 0, 1), to: tomorrow };
-        case "last_week": { const d = today.getDay(); const f = new Date(today); f.setDate(today.getDate() - (d === 0 ? 6 : d - 1) - 7); const t = new Date(f); t.setDate(f.getDate() + 7); return { from: f, to: t }; }
-        case "last_month": return { from: new Date(today.getFullYear(), today.getMonth() - 1, 1), to: new Date(today.getFullYear(), today.getMonth(), 1) };
-        case "last_year": return { from: new Date(today.getFullYear() - 1, 0, 1), to: new Date(today.getFullYear(), 0, 1) };
-        case "last_7": { const f = new Date(today); f.setDate(f.getDate() - 7); return { from: f, to: tomorrow }; }
-        case "last_10": { const f = new Date(today); f.setDate(f.getDate() - 10); return { from: f, to: tomorrow }; }
-        case "last_30": { const f = new Date(today); f.setDate(f.getDate() - 30); return { from: f, to: tomorrow }; }
-        default: return { from: null, to: null };
+        case "today":
+            return { from: today, to: tomorrow };
+        case "yesterday": {
+            const f = new Date(today);
+            f.setDate(f.getDate() - 1);
+            return { from: f, to: today };
+        }
+        case "this_week": {
+            const d = today.getDay();
+            const f = new Date(today);
+            f.setDate(today.getDate() - (d === 0 ? 6 : d - 1));
+            return { from: f, to: tomorrow };
+        }
+        case "this_month":
+            return {
+                from: new Date(today.getFullYear(), today.getMonth(), 1),
+                to: tomorrow,
+            };
+        case "this_year":
+            return { from: new Date(today.getFullYear(), 0, 1), to: tomorrow };
+        case "last_week": {
+            const d = today.getDay();
+            const f = new Date(today);
+            f.setDate(today.getDate() - (d === 0 ? 6 : d - 1) - 7);
+            const t = new Date(f);
+            t.setDate(f.getDate() + 7);
+            return { from: f, to: t };
+        }
+        case "last_month":
+            return {
+                from: new Date(today.getFullYear(), today.getMonth() - 1, 1),
+                to: new Date(today.getFullYear(), today.getMonth(), 1),
+            };
+        case "last_year":
+            return {
+                from: new Date(today.getFullYear() - 1, 0, 1),
+                to: new Date(today.getFullYear(), 0, 1),
+            };
+        case "last_7": {
+            const f = new Date(today);
+            f.setDate(f.getDate() - 7);
+            return { from: f, to: tomorrow };
+        }
+        case "last_10": {
+            const f = new Date(today);
+            f.setDate(f.getDate() - 10);
+            return { from: f, to: tomorrow };
+        }
+        case "last_30": {
+            const f = new Date(today);
+            f.setDate(f.getDate() - 30);
+            return { from: f, to: tomorrow };
+        }
+        default:
+            return { from: null, to: null };
     }
 };
 
@@ -90,19 +144,30 @@ const computeDateRange = (filter) => {
     if (!filter?.preset) return { fromDate: "", toDate: "" };
     if (filter.preset === "custom") {
         return {
-            fromDate: filter.customFrom ? new Date(filter.customFrom).toISOString() : "",
-            toDate: filter.customTo ? new Date(filter.customTo + "T23:59:59").toISOString() : "",
+            fromDate: filter.customFrom
+                ? new Date(filter.customFrom).toISOString()
+                : "",
+            toDate: filter.customTo
+                ? new Date(filter.customTo + "T23:59:59").toISOString()
+                : "",
         };
     }
     const { from, to } = _getDateRange(filter.preset);
-    return { fromDate: from ? from.toISOString() : "", toDate: to ? to.toISOString() : "" };
+    return {
+        fromDate: from ? from.toISOString() : "",
+        toDate: to ? to.toISOString() : "",
+    };
 };
 
 const HoaDonPage = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    const { danhSachHoaDon = [], pagination = {}, loading = false } = useSelector((state) => state.hoaDon);
+    const {
+        danhSachHoaDon = [],
+        pagination = {},
+        loading = false,
+    } = useSelector((state) => state.hoaDon);
     const nhaKhoa = useSelector((state) => state.nhaKhoa);
 
     const [page, setPage] = useState(0);
@@ -116,7 +181,9 @@ const HoaDonPage = () => {
     const filterContainerRef = useRef(null);
 
     const [openExport, setOpenExport] = useState(false);
-    const [exportDateFilter, setExportDateFilter] = useState(EMPTY_EXPORT_DATE_FILTER);
+    const [exportDateFilter, setExportDateFilter] = useState(
+        EMPTY_EXPORT_DATE_FILTER
+    );
     const [exportNhaKhoa, setExportNhaKhoa] = useState("");
     const [exportTrangThai, setExportTrangThai] = useState([]);
     const [exporting, setExporting] = useState(false);
@@ -148,12 +215,28 @@ const HoaDonPage = () => {
                 search: debouncedSearch,
             })
         );
-    }, [dispatch, page, rowsPerPage, appliedNhaKhoa, appliedTrangThai, appliedNgayXuat, debouncedSearch]);
+    }, [
+        dispatch,
+        page,
+        rowsPerPage,
+        appliedNhaKhoa,
+        appliedTrangThai,
+        appliedNgayXuat,
+        debouncedSearch,
+    ]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (filterContainerRef.current && !filterContainerRef.current.contains(event.target)) {
-                if (event.target.closest?.('.MuiPopover-root, .MuiMenu-root, .MuiModal-root')) return;
+            if (
+                filterContainerRef.current &&
+                !filterContainerRef.current.contains(event.target)
+            ) {
+                if (
+                    event.target.closest?.(
+                        ".MuiPopover-root, .MuiMenu-root, .MuiModal-root"
+                    )
+                )
+                    return;
                 setOpenFilter(false);
             }
         };
@@ -172,7 +255,9 @@ const HoaDonPage = () => {
         const hasPresetDateRange = isValidExportDateFilter(exportDateFilter);
 
         if (!hasManualDateRange && !hasPresetDateRange) {
-            return alert("Vui lòng chọn khoảng thời gian (thủ công hoặc từ danh sách).");
+            return alert(
+                "Vui lòng chọn khoảng thời gian (thủ công hoặc từ danh sách)."
+            );
         }
 
         try {
@@ -190,7 +275,8 @@ const HoaDonPage = () => {
 
             const res = await api.get("/hoa-don/all", {
                 params: {
-                    page: 1, limit: 5000,
+                    page: 1,
+                    limit: 5000,
                     fromDate: fromISO,
                     toDate: toISO,
                     nhaKhoaId: exportNhaKhoa || "",
@@ -202,7 +288,9 @@ const HoaDonPage = () => {
                 data = data.filter((hd) => exportTrangThai.includes(hd.trangThai));
             }
 
-            const selectedNk = (nhaKhoa?.data || []).find((nk) => nk._id === exportNhaKhoa);
+            const selectedNk = (nhaKhoa?.data || []).find(
+                (nk) => nk._id === exportNhaKhoa
+            );
             await exportHoaDonListToExcel(data, {
                 fromDate: fromISO,
                 toDate: toISO,
@@ -210,13 +298,16 @@ const HoaDonPage = () => {
             });
             setOpenExport(false);
         } catch (err) {
-            alert(`Xuất Excel thất bại: ${err?.response?.data?.message || err.message}`);
+            alert(
+                `Xuất Excel thất bại: ${err?.response?.data?.message || err.message}`
+            );
         } finally {
             setExporting(false);
         }
     };
 
-    const isFiltered = !!appliedNgayXuat.preset || !!appliedNhaKhoa || appliedTrangThai.length > 0;
+    const isFiltered =
+        !!appliedNgayXuat.preset || !!appliedNhaKhoa || appliedTrangThai.length > 0;
 
     return (
         <div className="bg-gray-50 flex-1 h-full flex flex-col overflow-hidden">
@@ -269,12 +360,20 @@ const HoaDonPage = () => {
                             <IconButton
                                 onClick={() => setOpenFilter(!openFilter)}
                                 size="small"
-                                className={`transition-colors ${openFilter ? "bg-blue-50" : ""}`}
-                                sx={{ color: isFiltered ? "#1976d2" : "#555", p: "8px", position: "relative" }}
+                                className={`transition-colors ${openFilter ? "bg-blue-50" : ""
+                                    }`}
+                                sx={{
+                                    color: isFiltered ? "#1976d2" : "#555",
+                                    p: "8px",
+                                    position: "relative",
+                                }}
                             >
                                 <FilterListIcon fontSize="small" />
                                 {isFiltered && (
-                                    <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-blue-500 border border-white" style={{ pointerEvents: "none" }} />
+                                    <span
+                                        className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-blue-500 border border-white"
+                                        style={{ pointerEvents: "none" }}
+                                    />
                                 )}
                             </IconButton>
                         </Tooltip>
@@ -310,20 +409,32 @@ const HoaDonPage = () => {
                             sx={{
                                 width: 220,
                                 "& .MuiOutlinedInput-root": {
-                                    borderRadius: "20px", bgcolor: "#f5f5f5", fontSize: "0.85rem", "& fieldset": { border: "none" },
+                                    borderRadius: "20px",
+                                    bgcolor: "#f5f5f5",
+                                    fontSize: "0.85rem",
+                                    "& fieldset": { border: "none" },
                                 },
                             }}
                             InputProps={{
-                                startAdornment: <InputAdornment position="start"><SearchIcon size={15} style={{ color: "#9e9e9e" }} /></InputAdornment>,
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon size={15} style={{ color: "#9e9e9e" }} />
+                                    </InputAdornment>
+                                ),
                                 endAdornment: searchTerm && (
                                     <InputAdornment position="end">
-                                        <IconButton size="small" onClick={() => setSearchTerm("")}><ClearIcon sx={{ fontSize: 14 }} /></IconButton>
+                                        <IconButton size="small" onClick={() => setSearchTerm("")}>
+                                            <ClearIcon sx={{ fontSize: 14 }} />
+                                        </IconButton>
                                     </InputAdornment>
                                 ),
                             }}
                         />
                         <Tooltip title="Tạo hóa đơn">
-                            <IconButton onClick={() => navigate("/cho-xuat-hoa-don")} className="bg-[#4CAF50] text-white w-8 h-8 hover:bg-[#388E3C] flex items-center justify-center rounded-full">
+                            <IconButton
+                                onClick={() => navigate("/cho-xuat-hoa-don")}
+                                className="bg-[#4CAF50] text-white w-8 h-8 hover:bg-[#388E3C] flex items-center justify-center rounded-full"
+                            >
                                 <AddIcon sx={{ fontSize: 20 }} />
                             </IconButton>
                         </Tooltip>
@@ -333,7 +444,11 @@ const HoaDonPage = () => {
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Làm mới">
-                            <IconButton onClick={() => dispatch(fetchAllHoaDonAdmin())} size="small" sx={{ color: "#555" }}>
+                            <IconButton
+                                onClick={() => dispatch(fetchAllHoaDonAdmin())}
+                                size="small"
+                                sx={{ color: "#555" }}
+                            >
                                 <RefreshIcon fontSize="small" />
                             </IconButton>
                         </Tooltip>
@@ -348,22 +463,51 @@ const HoaDonPage = () => {
                             <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
                                 <CalendarTodayIcon sx={{ fontSize: 12 }} />
                                 {appliedNgayXuat.preset === "custom"
-                                    ? `${appliedNgayXuat.customFrom || "?"} → ${appliedNgayXuat.customTo || "?"}`
-                                    : DATE_PRESETS.find((p) => p.key === appliedNgayXuat.preset)?.label || appliedNgayXuat.preset}
-                                <button onClick={() => { setAppliedNgayXuat(EMPTY_DATE); setPage(0); }} className="ml-1 hover:text-blue-900 font-bold">×</button>
+                                    ? `${appliedNgayXuat.customFrom || "?"} → ${appliedNgayXuat.customTo || "?"
+                                    }`
+                                    : DATE_PRESETS.find((p) => p.key === appliedNgayXuat.preset)
+                                        ?.label || appliedNgayXuat.preset}
+                                <button
+                                    onClick={() => {
+                                        setAppliedNgayXuat(EMPTY_DATE);
+                                        setPage(0);
+                                    }}
+                                    className="ml-1 hover:text-blue-900 font-bold"
+                                >
+                                    ×
+                                </button>
                             </span>
                         )}
                         {appliedNhaKhoa && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
                                 <StoreIcon sx={{ fontSize: 12 }} />
                                 {appliedNhaKhoa.name}
-                                <button onClick={() => { setAppliedNhaKhoa(null); setPage(0); }} className="ml-1 hover:text-blue-900 font-bold">×</button>
+                                <button
+                                    onClick={() => {
+                                        setAppliedNhaKhoa(null);
+                                        setPage(0);
+                                    }}
+                                    className="ml-1 hover:text-blue-900 font-bold"
+                                >
+                                    ×
+                                </button>
                             </span>
                         )}
                         {appliedTrangThai.map((tt) => (
-                            <span key={tt} className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+                            <span
+                                key={tt}
+                                className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700"
+                            >
                                 {tt}
-                                <button onClick={() => { setAppliedTrangThai((prev) => prev.filter((x) => x !== tt)); setPage(0); }} className="ml-1 hover:text-blue-900 font-bold">×</button>
+                                <button
+                                    onClick={() => {
+                                        setAppliedTrangThai((prev) => prev.filter((x) => x !== tt));
+                                        setPage(0);
+                                    }}
+                                    className="ml-1 hover:text-blue-900 font-bold"
+                                >
+                                    ×
+                                </button>
                             </span>
                         ))}
                     </div>
@@ -373,7 +517,6 @@ const HoaDonPage = () => {
             {/* DÒNG 3: BẢNG DỮ LIỆU & PHÂN TRANG */}
             {/* ĐÃ SỬA: Xóa thuộc tính style chứa calc() đi, chỉ giữ lại flex-1 min-h-0 */}
             <div className="flex-1 min-h-0 bg-white rounded-b-lg shadow-sm border border-gray-100 flex flex-col overflow-hidden custom-scrollbar table-wrapper">
-
                 {/* Khu vực bảng dữ liệu: Sẽ tự động lấy hết khoảng trống bên trong và cuộn */}
                 <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                     <HoaDonTable danhSachHoaDon={danhSachHoaDon} loading={loading} />
@@ -405,50 +548,99 @@ const HoaDonPage = () => {
 
                     <div className="flex flex-col gap-5">
                         <div>
-                            <p className="text-sm font-semibold mb-2 text-gray-800">Khoảng thời gian</p>
+                            <p className="text-sm font-semibold mb-2 text-gray-800">
+                                Khoảng thời gian
+                            </p>
                             <div className="flex gap-3 mb-2">
                                 <div className="w-full">
-                                    <span className="text-xs text-gray-500 mb-1 block">Từ ngày</span>
-                                    <TextField type="date" fullWidth size="small" value={exportFrom} onChange={(e) => setExportFrom(e.target.value)} />
+                                    <span className="text-xs text-gray-500 mb-1 block">
+                                        Từ ngày
+                                    </span>
+                                    <TextField
+                                        type="date"
+                                        fullWidth
+                                        size="small"
+                                        value={exportFrom}
+                                        onChange={(e) => setExportFrom(e.target.value)}
+                                    />
                                 </div>
                                 <div className="w-full">
-                                    <span className="text-xs text-gray-500 mb-1 block">Đến ngày</span>
-                                    <TextField type="date" fullWidth size="small" value={exportTo} onChange={(e) => setExportTo(e.target.value)} />
+                                    <span className="text-xs text-gray-500 mb-1 block">
+                                        Đến ngày
+                                    </span>
+                                    <TextField
+                                        type="date"
+                                        fullWidth
+                                        size="small"
+                                        value={exportTo}
+                                        onChange={(e) => setExportTo(e.target.value)}
+                                    />
                                 </div>
                             </div>
-                            <ExportDateSelector title="Ngày xuất hóa đơn" value={exportDateFilter} onChange={setExportDateFilter} />
+                            <ExportDateSelector
+                                title="Ngày xuất hóa đơn"
+                                value={exportDateFilter}
+                                onChange={setExportDateFilter}
+                            />
                         </div>
 
                         <div>
-                            <p className="text-sm font-semibold mb-2 text-gray-800">Nha khoa</p>
+                            <p className="text-sm font-semibold mb-2 text-gray-800">
+                                Nha khoa
+                            </p>
                             <FormControl fullWidth size="small">
-                                <Select displayEmpty value={exportNhaKhoa} onChange={(e) => setExportNhaKhoa(e.target.value)}>
+                                <Select
+                                    displayEmpty
+                                    value={exportNhaKhoa}
+                                    onChange={(e) => setExportNhaKhoa(e.target.value)}
+                                >
                                     <MenuItem value="">-- Tất cả nha khoa --</MenuItem>
-                                    {Array.isArray(nhaKhoa?.data) && nhaKhoa.data.map((nk) => (
-                                        <MenuItem key={nk._id} value={nk._id}>{nk.hoVaTen || nk.tenGiaoDich}</MenuItem>
-                                    ))}
+                                    {Array.isArray(nhaKhoa?.data) &&
+                                        nhaKhoa.data.map((nk) => (
+                                            <MenuItem key={nk._id} value={nk._id}>
+                                                {nk.hoVaTen || nk.tenGiaoDich}
+                                            </MenuItem>
+                                        ))}
                                 </Select>
                             </FormControl>
                         </div>
 
                         <div>
-                            <p className="text-sm font-semibold mb-2 text-gray-800">Trạng thái (chọn nhiều)</p>
+                            <p className="text-sm font-semibold mb-2 text-gray-800">
+                                Trạng thái (chọn nhiều)
+                            </p>
                             <FormControl fullWidth size="small">
                                 <Select
-                                    multiple displayEmpty value={exportTrangThai} onChange={(e) => setExportTrangThai(e.target.value)}
+                                    multiple
+                                    displayEmpty
+                                    value={exportTrangThai}
+                                    onChange={(e) => setExportTrangThai(e.target.value)}
                                     renderValue={(selected) => {
-                                        if (selected.length === 0) return <span className="text-gray-400">-- Tất cả trạng thái --</span>;
+                                        if (selected.length === 0)
+                                            return (
+                                                <span className="text-gray-400">
+                                                    -- Tất cả trạng thái --
+                                                </span>
+                                            );
                                         return (
                                             <div className="flex flex-wrap gap-1">
                                                 {selected.map((value) => (
-                                                    <Chip key={value} label={value} size="small" color="primary" variant="outlined" />
+                                                    <Chip
+                                                        key={value}
+                                                        label={value}
+                                                        size="small"
+                                                        color="primary"
+                                                        variant="outlined"
+                                                    />
                                                 ))}
                                             </div>
                                         );
                                     }}
                                 >
                                     <MenuItem value="Chưa thanh toán">Chưa thanh toán</MenuItem>
-                                    <MenuItem value="Thanh toán một phần">Thanh toán một phần</MenuItem>
+                                    <MenuItem value="Thanh toán một phần">
+                                        Thanh toán một phần
+                                    </MenuItem>
                                     <MenuItem value="Đã thanh toán">Đã thanh toán</MenuItem>
                                 </Select>
                             </FormControl>
@@ -457,13 +649,19 @@ const HoaDonPage = () => {
 
                     <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                         <button
-                            onClick={() => { setOpenExport(false); setExportDateFilter(EMPTY_EXPORT_DATE_FILTER); setExportNhaKhoa(""); setExportTrangThai([]); }}
+                            onClick={() => {
+                                setOpenExport(false);
+                                setExportDateFilter(EMPTY_EXPORT_DATE_FILTER);
+                                setExportNhaKhoa("");
+                                setExportTrangThai([]);
+                            }}
                             className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
                         >
                             Hủy
                         </button>
                         <button
-                            onClick={handleExport} disabled={exporting}
+                            onClick={handleExport}
+                            disabled={exporting}
                             className="px-4 py-2 text-sm font-medium text-white bg-[#1b7a34] rounded-md hover:bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50"
                         >
                             <DownloadIcon fontSize="small" />

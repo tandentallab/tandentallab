@@ -16,11 +16,13 @@ const NumInput = ({ value, onChange, wide }) => (
 const BangLuongRow = ({ item, onChange, isEven }) => {
   const { luongNgay, thanhTienCong, tongPhuCap, thucNhan } = tinhLuong({
     luongCoBan: item.luongCanBan,
+    ngayCongThang: item.ngayCongThang,
     soNgayCong: item.soNgayCong,
     com: item.com,
     dienThoai: item.dienThoai,
     thuong: item.thuong,
     ungTruoc: item.ungTruoc,
+    phat: item.phat,
   });
 
   const fmt = (n) => Number(n || 0).toLocaleString("vi-VN");
@@ -53,6 +55,14 @@ const BangLuongRow = ({ item, onChange, isEven }) => {
         style={{ borderBottom: "1px solid #f1f5f9" }}
       >
         {fmt(item.luongCanBan)}
+      </td>
+
+      {/* Lương cơ bản */}
+      <td
+        className="px-4 py-2 text-right text-sm text-gray-600 whitespace-nowrap"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
+        {fmt(item.ngayCongThang)}
       </td>
 
       {/* Lương ngày */}

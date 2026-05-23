@@ -34,7 +34,9 @@ import { fetchNguoiLienHe } from "../../redux/slices/nguoiLienHeSlice";
 import NguoiLienHeModal from "./NguoiLienHeModal";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DownloadIcon from "@mui/icons-material/Download";
 import NguoiLienHeUpdateModal from "./NguoiLienHeUpdateModal";
+import { exportDanhSachNguoiLienHeToExcel } from "../../utils/exportToExcel";
 
 export default function NguoiLienHeTable() {
   const dispatch = useDispatch();
@@ -176,6 +178,12 @@ export default function NguoiLienHeTable() {
           />
 
           <NguoiLienHeModal />
+
+          <Tooltip title="Xuất excel danh sách">
+            <IconButton onClick={() => exportDanhSachNguoiLienHeToExcel(filteredData)}>
+              <DownloadIcon />
+            </IconButton>
+          </Tooltip>
 
           <IconButton onClick={() => dispatch(fetchNguoiLienHe())}>
             <RefreshIcon />

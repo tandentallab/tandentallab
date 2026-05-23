@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../../config/api";
-import { exportBangGiaRiengToExcel } from "../../utils/exportToExcel";
+import { exportBangGiaRiengToExcel, exportDanhSachNhaKhoaToExcel } from "../../utils/exportToExcel";
 import {
   Table,
   TableBody,
@@ -228,14 +228,24 @@ export default function NhaKhoaTable() {
             }}
           />
 
-          {/* NÚT XUẤT EXCEL */}
+          {/* NÚT XUẤT DANH SÁCH */}
+          <button
+            onClick={() => exportDanhSachNhaKhoaToExcel(filteredData)}
+            title="Xuất excel danh sách nha khoa"
+            className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1 transition"
+          >
+            <DownloadIcon sx={{ fontSize: 17 }} />
+            <span className="hidden sm:inline">Xuất danh sách</span>
+          </button>
+
+          {/* NÚT XUẤT BẢNG GIÁ RIÊNG */}
           <button
             onClick={() => setOpenExport(true)}
             title="Xuất excel bảng giá riêng"
             className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1 transition"
           >
             <DownloadIcon sx={{ fontSize: 17 }} />
-            <span className="hidden sm:inline">Xuất excel</span>
+            <span className="hidden sm:inline">Xuất bảng giá</span>
           </button>
 
           <NhaKhoaModal />

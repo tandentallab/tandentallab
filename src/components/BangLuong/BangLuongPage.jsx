@@ -38,6 +38,8 @@ import { tinhLuong } from "../../utils/tinhLuong";
 import { exportBangLuongToExcel } from "../../utils/exportToExcel";
 import { FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import PrintIcon from "@mui/icons-material/Print";
+import InBangLuongModal from "./InBangLuongModal";
 
 const COLUMNS = [
   "Nhân viên",
@@ -63,6 +65,7 @@ const BangLuongPage = () => {
   const [thang, setThang] = useState(new Date().getMonth() + 1);
   const [nam, setNam] = useState(new Date().getFullYear());
   const [salaryData, setSalaryData] = useState([]);
+  const [openPrintModal, setOpenPrintModal] = useState(false);
 
   useEffect(() => {
     dispatch(fetchNhanVien());
@@ -400,6 +403,29 @@ const BangLuongPage = () => {
               </button>
             )}
 
+            {/* Print */}
+            {salaryData?.length > 0 && (
+              <button
+                onClick={() => setOpenPrintModal(true)}
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all w-full sm:w-auto"
+                style={{
+                  background: "#14b8a6",
+                  color: "#fff",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#0d9488")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "#14b8a6")
+                }
+              >
+                <PrintIcon sx={{ fontSize: 16 }} />
+                <span className="whitespace-nowrap">In bảng lương</span>
+              </button>
+            )}
+
             {/* Delete all */}
             {hasData && (
               <button
@@ -596,6 +622,15 @@ const BangLuongPage = () => {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* MODAL IN BẢNG LƯƠNG */}
+      <InBangLuongModal 
+        open={openPrintModal} 
+        onClose={() => setOpenPrintModal(false)} 
+        salaryData={salaryData} 
+        thang={thang} 
+        nam={nam} 
+      />
     </div>
   );
 };

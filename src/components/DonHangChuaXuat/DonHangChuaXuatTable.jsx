@@ -140,6 +140,7 @@ export default function DonHangChuaXuatTable({
           ngayNhan: order.ngayNhan,
           bacSi: order.bacSi?.hoVaTen,
           benhNhan: order.benhNhan?.hoVaTen,
+          ghiChuTaiChinh: order.ghiChuTaiChinh || "",
           ghiChu: order.ghiChuChung || "",
           sanPham: mapTen[sp.sanPham?.toString()] || "SP",
           // Mã = loại viết tắt (KL, UNC, ...)
@@ -350,6 +351,7 @@ export default function DonHangChuaXuatTable({
                 "Nhận lúc",
                 "Bác sĩ",
                 "Bệnh nhân",
+                "Ghi chú tài chính",
                 "Sản phẩm",
                 "Mã",
                 "Vị trí",
@@ -456,6 +458,11 @@ export default function DonHangChuaXuatTable({
                           ? row.benhNhan.slice(0, 13) + "…"
                           : row.benhNhan
                         : "-"}
+                    </TableCell>
+
+                    {/* GHI CHÚ TÀI CHÍNH */}
+                    <TableCell sx={{ fontSize: 13, fontWeight: 500, py: 0.8 }}>
+                      {row.ghiChuTaiChinh}
                     </TableCell>
 
                     {/* SẢN PHẨM */}

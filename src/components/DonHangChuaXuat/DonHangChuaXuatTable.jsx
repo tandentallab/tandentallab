@@ -422,7 +422,9 @@ export default function DonHangChuaXuatTable({
                     <TableCell sx={{ py: 0.8 }}>
                       <Typography
                         variant="body2"
-                        color="primary"
+                        color={
+                          row.ghiChuTaiChinh.length > 0 ? "error" : "primary"
+                        }
                         sx={{
                           cursor: "pointer",
                           fontWeight: 600,

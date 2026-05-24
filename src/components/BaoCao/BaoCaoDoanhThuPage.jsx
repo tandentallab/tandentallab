@@ -2,19 +2,19 @@ import React, { useState, useCallback } from 'react';
 import {
     Box, Paper, Typography, Button, CircularProgress,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Select, MenuItem, FormControl, InputLabel, Alert,
+    Select, MenuItem, FormControl, InputLabel, Alert, Tooltip,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import EditNoteIcon from '@mui/icons-material/EditNote';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { api } from '../../config/api';
+import SoDuDauKyDialog from './SoDuDauKyDialog';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const fmt = (n) =>
-    n == null
-        ? '0'
-        : new Intl.NumberFormat('vi-VN').format(n);
+    n == null ? '0' : new Intl.NumberFormat('vi-VN').format(n);
 
 const fmtStrict = (n) =>
     n == null ? '0' : new Intl.NumberFormat('vi-VN').format(n);
@@ -77,7 +77,6 @@ async function exportToExcel(data, thang, nam) {
     const ws = wb.addWorksheet(`THANG ${String(thang).padStart(2, '0')} ${nam}`);
 
     const COLS = 10;
-
     ws.getColumn(1).width = 5;
     ws.getColumn(2).width = 35;
     ws.getColumn(3).width = 18;
@@ -91,7 +90,6 @@ async function exportToExcel(data, thang, nam) {
 
     const numFmt = '#,##0;(#,##0);0';
 
-    // Row 1: Title
     ws.mergeCells(1, 1, 1, COLS);
     const titleCell = ws.getCell('A1');
     titleCell.value = `THÁNG ${String(thang).padStart(2, '0')} NĂM ${nam}`;
@@ -99,7 +97,6 @@ async function exportToExcel(data, thang, nam) {
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
     ws.getRow(1).height = 28;
 
-    // Row 2: Summary
     const { noDauKy, phatSinh, thanhToan, conNo } = data.tongHop;
     const sumRow = ws.addRow(['', '', noDauKy, phatSinh, thanhToan, conNo, '', '', '', '']);
     sumRow.eachCell((cell, col) => {
@@ -114,7 +111,6 @@ async function exportToExcel(data, thang, nam) {
     });
     ws.getRow(2).height = 22;
 
-    // Row 3: Headers
     const headers = ['STT', 'TÊN NHA KHOA', 'NỢ ĐẦU KỲ', 'PHÁT SINH', 'THANH TOÁN', 'CÒN NỢ', 'A', 'B', 'C', 'NOTE'];
     const headerRow = ws.addRow(headers);
     headerRow.eachCell((cell) => {
@@ -130,19 +126,14 @@ async function exportToExcel(data, thang, nam) {
     });
     ws.getRow(3).height = 24;
 
-    // Data rows
     data.chiTiet.forEach((row, i) => {
         const isOdd = i % 2 === 0;
         const hasDebt = row.conNo > 0;
         const bgArgb = hasDebt ? 'FFFFF3E0' : isOdd ? 'FFFFFFFF' : 'FFF5F5F5';
 
         const dataRow = ws.addRow([
-            row.stt,
-            row.tenNhaKhoa,
-            row.noDauKy ?? 0,
-            row.phatSinh ?? 0,
-            row.thanhToan ?? 0,
-            row.conNo ?? 0,
+            row.stt, row.tenNhaKhoa,
+            row.noDauKy ?? 0, row.phatSinh ?? 0, row.thanhToan ?? 0, row.conNo ?? 0,
             '', '', '', '',
         ]);
 
@@ -176,15 +167,19 @@ export default function BaoCaoDoanhThuPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // ── Số dư đầu kỳ ─────────────────────────────────────────────────────────
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    // ── Báo cáo ───────────────────────────────────────────────────────────────
     const availableMonths = nam === currentYear
-        ? Array.from({ length: currentMonth }, (_, i) => i + 1)
+        ? Array.from({ length: Math.min(currentMonth + 1, 12) }, (_, i) => i + 1)
         : Array.from({ length: 12 }, (_, i) => i + 1);
 
     const handleNamChange = (e) => {
         const selectedNam = Number(e.target.value);
         setNam(selectedNam);
-        if (selectedNam === currentYear && thang > currentMonth) {
-            setThang(currentMonth);
+        if (selectedNam === currentYear && thang > currentMonth + 1) {
+            setThang(currentMonth + 1);
         }
     };
 
@@ -251,7 +246,29 @@ export default function BaoCaoDoanhThuPage() {
                         Xuất Excel
                     </Button>
                 )}
+
+                <Tooltip title="Nhập số dư nợ đầu kỳ tháng 6/2026 từ hệ thống cũ">
+                    <Button
+                        variant="outlined"
+                        startIcon={<EditNoteIcon fontSize="small" />}
+                        onClick={() => setDialogOpen(true)}
+                        size="small"
+                        sx={{
+                            fontFamily: FONT,
+                            fontWeight: 600,
+                            borderRadius: 1.5,
+                            borderColor: '#1a237e',
+                            color: '#1a237e',
+                            '&:hover': { bgcolor: '#e8eaf6', borderColor: '#1a237e' },
+                            px: 2,
+                        }}
+                    >
+                        Số dư đầu kỳ
+                    </Button>
+                </Tooltip>
             </Box>
+
+            <SoDuDauKyDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
 
             {/* ── Filter ── */}
             <Paper

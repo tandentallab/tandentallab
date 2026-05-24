@@ -652,22 +652,28 @@ const DonHangForm = () => {
                 />
               </div>
               <div className="w-full sm:w-[40%] bg-gray-100 p-4 pt-0 text-sm flex flex-col gap-2">
-                <div className="bg-[#d7f3ff] w-full h-full p-3 rounded-xl text-lg">
-                  <div className="flex">
-                    <span className="text-gray-500 w-20">Địa chỉ:</span>{" "}
-                    <span className="font-medium text-gray-800">
+                <div className="bg-[#d7f3ff] w-full h-full p-3 rounded-xl">
+                  <div>
+                    <span className="text-gray-600">Tên nha khoa:</span>
+                    <span className="font-medium text-gray-800 ml-1">
+                      {selectedNhaKhoaInfo?.nameDisplay || ""}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Địa chỉ:</span>
+                    <span className="font-medium text-gray-800 ml-1">
                       {selectedNhaKhoaInfo?.diaChiCuThe || ""}
                     </span>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
-                    <span className="text-gray-500 w-20 shrink-0">Điện thoại:</span>
-                    <span className="font-medium text-gray-800 break-words">
+                  <div>
+                    <span className="text-gray-600">Điện thoại:</span>
+                    <span className="font-medium text-gray-800 ml-1">
                       {selectedNhaKhoaInfo?.soDienThoai || ""}
                     </span>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
-                    <span className="text-gray-500 w-20 shrink-0">Mô tả:</span>
-                    <span className="font-medium text-gray-800 break-words">
+                  <div>
+                    <span className="text-gray-600">Mô tả:</span>
+                    <span className="font-medium text-gray-800 ml-1">
                       {selectedNhaKhoaInfo?.moTa || ""}
                     </span>
                   </div>

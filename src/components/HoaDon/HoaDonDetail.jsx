@@ -69,7 +69,7 @@ const HoaDonDetail = () => {
           danhSachSanPham: (data.danhSachSanPham || []).map((sp) => ({
             ...sp,
             giamGiaPhanTram: sp.thanhTien
-              ? Math.round(((sp.giamGia || 0) / sp.thanhTien) * 100)
+              ? parseFloat(((sp.giamGia || 0) / sp.thanhTien * 100).toFixed(2))
               : 0,
           })),
         };
@@ -82,16 +82,25 @@ const HoaDonDetail = () => {
             ? Math.round(((mappedData.chietKhau || 0) / tongCongLoaded) * 100)
             : 0;
 
+        // 👇 1. TÍNH TOÁN TRƯỚC SỐ TIỀN THUẾ THỰC TẾ ĐỂ LOAD LÊN UI
+        const sauCKLoaded = tongCongLoaded - (mappedData.chietKhau || 0);
+        const thueTienLoaded = Math.round(sauCKLoaded * ((mappedData.thue || 0) / 100));
+
         setFormState({
           chinhSachThanhToan: mappedData.chinhSachThanhToan || "Thanh toán cuối tháng",
           ghiChuChoKhachHang: mappedData.ghiChuChoKhachHang || "",
           ghiChuNoiBo: mappedData.ghiChuNoiBo || "",
           chietKhauPhanTram,
           chietKhauTien: mappedData.chietKhau || 0,
-          chietKhauMode: "phanTram",
+          chietKhauMode: mappedData.chietKhau > 0 ? "tienMat" : "phanTram",
           thuePhanTram: mappedData.thue || 0,
-          thueTien: 0,
-          thueMode: "phanTram",
+
+          // 👇 2. CẬP NHẬT GIÁ TRỊ THUẾ THEO TIỀN MẶT ĐÃ TÍNH TOÁN
+          thueTien: thueTienLoaded,
+
+          // 👇 3. TỰ ĐỘNG BẬT Ô TIỀN MẶT NẾU GIÁ TRỊ THUẾ LÀ SỐ THẬP PHÂN LẺ (DO NHẬP TIỀN QUY ĐỔI)
+          thueMode: (mappedData.thue > 0 && mappedData.thue % 1 !== 0) ? "tienMat" : "phanTram",
+
           chiPhiKhac: mappedData.chiPhiKhac || 0,
           ngayXuatHoaDon: mappedData.ngayXuatHoaDon
             ? new Date(mappedData.ngayXuatHoaDon).toISOString().split("T")[0]
@@ -208,13 +217,22 @@ const HoaDonDetail = () => {
   // ================= SAVE =================
   const handleUpdate = async () => {
     try {
+      // 👇 CHÈN THÊM 2 DÒNG NÀY ĐỂ TÍNH % THUẾ CHÍNH XÁC TUYỆT ĐỐI
+      const sauCK = fin.tongCong - fin.chietKhauTien;
+      const thueChinhXac = formState.thueMode === "tienMat" && sauCK > 0
+        ? (fin.thueTien / sauCK) * 100
+        : fin.thuePhanTram;
+
       await dispatch(
         updateHoaDon({
           id,
           data: {
             ngayXuatHoaDon: formState.ngayXuatHoaDon,
             chietKhau: Math.round(fin.chietKhauTien),
-            thue: fin.thuePhanTram,
+
+            // 👇 SỬA DÒNG NÀY (Thay fin.thuePhanTram thành thueChinhXac)
+            thue: thueChinhXac,
+
             chiPhiKhac: Number(formState.chiPhiKhac),
             chinhSachThanhToan: formState.chinhSachThanhToan,
             ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
@@ -242,13 +260,22 @@ const HoaDonDetail = () => {
   // 🔥 Lưu rồi thoát
   const handleSaveAndExit = async () => {
     try {
+      // 👇 CHÈN THÊM 2 DÒNG NÀY NỮA
+      const sauCK = fin.tongCong - fin.chietKhauTien;
+      const thueChinhXac = formState.thueMode === "tienMat" && sauCK > 0
+        ? (fin.thueTien / sauCK) * 100
+        : fin.thuePhanTram;
+
       await dispatch(
         updateHoaDon({
           id,
           data: {
             ngayXuatHoaDon: formState.ngayXuatHoaDon,
             chietKhau: Math.round(fin.chietKhauTien),
-            thue: fin.thuePhanTram,
+
+            // 👇 SỬA DÒNG NÀY (Thay fin.thuePhanTram thành thueChinhXac)
+            thue: thueChinhXac,
+
             chiPhiKhac: Number(formState.chiPhiKhac),
             chinhSachThanhToan: formState.chinhSachThanhToan,
             ghiChuChoKhachHang: formState.ghiChuChoKhachHang,

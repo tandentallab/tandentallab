@@ -237,7 +237,7 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                                                 onChange={(e) =>
                                                     handleGiamGiaChange(
                                                         idx,
-                                                        sp.giamGia,
+                                                        e.target.value === "phanTram" ? (sp.giamGiaPhanTram || 0) : sp.giamGia,
                                                         e.target.value
                                                     )
                                                 }

@@ -240,7 +240,6 @@ const BangLuongPage = () => {
               <div
                 className="text-white font-bold text-sm sm:text-base tracking-wide"
                 style={{
-                  fontFamily: "'Barlow Condensed', sans-serif",
                   letterSpacing: 2,
                 }}
               >
@@ -257,15 +256,15 @@ const BangLuongPage = () => {
             style={
               hasData
                 ? {
-                    background: "#166534",
-                    color: "#86efac",
-                    border: "1px solid #166534",
-                  }
+                  background: "#166534",
+                  color: "#86efac",
+                  border: "1px solid #166534",
+                }
                 : {
-                    background: "#78350f",
-                    color: "#fde68a",
-                    border: "1px solid #78350f",
-                  }
+                  background: "#78350f",
+                  color: "#fde68a",
+                  border: "1px solid #78350f",
+                }
             }
           >
             {hasData ? "✓ Đã có bảng lương" : "⚠ Chưa tạo bảng lương"}
@@ -471,8 +470,8 @@ const BangLuongPage = () => {
               label: "Lương TB/người",
               value: salaryData.length
                 ? `${Math.round(tongLuong / salaryData.length).toLocaleString(
-                    "vi-VN"
-                  )} đ`
+                  "vi-VN"
+                )} đ`
                 : "—",
               accent: "#f59e0b",
             },
@@ -624,12 +623,12 @@ const BangLuongPage = () => {
       </div>
 
       {/* MODAL IN BẢNG LƯƠNG */}
-      <InBangLuongModal 
-        open={openPrintModal} 
-        onClose={() => setOpenPrintModal(false)} 
-        salaryData={salaryData} 
-        thang={thang} 
-        nam={nam} 
+      <InBangLuongModal
+        open={openPrintModal}
+        onClose={() => setOpenPrintModal(false)}
+        salaryData={salaryData}
+        thang={thang}
+        nam={nam}
       />
     </div>
   );

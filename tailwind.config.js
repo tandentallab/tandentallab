@@ -11,12 +11,8 @@ module.exports = {
       // Thêm đoạn cấu hình font chữ dưới đây 👇
       fontFamily: {
         sans: [
-          '"Inter"', 
-          '"Segoe UI"', 
-          'Roboto', 
-          'Helvetica', 
-          'Arial', 
-          'sans-serif'
+          'Cambria',
+          'serif',
         ],
       },
     },

@@ -20,7 +20,7 @@ const parseMoneyInput = (s) => parseInt(String(s).replace(/\D/g, ""), 10) || 0;
 const fmtDateTime = (d) => {
   if (!d) return "-";
   const dt = new Date(d);
-  return `${dt.toLocaleDateString("vi-VN")} ${dt.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}`;
+  return `${dt.toLocaleDateString("vi-VN")} ${dt.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", hour12: false })}`;
 };
 
 const TRANG_THAI_COLOR = {
@@ -421,7 +421,7 @@ const HoaDonDetail = () => {
   );
 
   return (
-    <div className="fixed inset-0 z-[1300] bg-white flex flex-col font-sans text-gray-800 overflow-hidden overflow-y-auto pb-20">
+    <div className="fixed inset-0 z-[1300] bg-white flex flex-col text-gray-800 overflow-hidden overflow-y-auto pb-20">
       <style>{`
         .no-spinner::-webkit-inner-spin-button,
         .no-spinner::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }

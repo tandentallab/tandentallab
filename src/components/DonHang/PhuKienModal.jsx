@@ -43,6 +43,12 @@ const PhuKienModal = ({ isOpen, onClose, initialSelected, onSave }) => {
         setSelectedList(newList);
     };
 
+    const setSoLuong = (index, value) => {
+        const newList = [...selectedList];
+        newList[index].soLuong = Math.max(0, parseInt(value) || 0);
+        setSelectedList(newList);
+    };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-40 z-[10000] flex justify-center items-center">
             <div className="bg-white w-[800px] h-[500px] rounded-lg shadow-2xl flex flex-col overflow-hidden">
@@ -87,7 +93,15 @@ const PhuKienModal = ({ isOpen, onClose, initialSelected, onSave }) => {
                             ) : (
                                 selectedList.map((item, idx) => (
                                     <div key={idx} className="flex items-center text-sm py-3 border-b border-gray-50 hover:bg-gray-50">
-                                        <div className="w-12 text-center font-medium">{item.soLuong}</div>
+                                        <div className="w-12 flex justify-center">
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                value={item.soLuong}
+                                                onChange={(e) => setSoLuong(idx, e.target.value)}
+                                                className="w-10 text-center border-b border-gray-300 focus:border-blue-500 outline-none font-medium bg-transparent"
+                                            />
+                                        </div>
                                         <div className="flex-1 text-gray-800 font-medium">{item.tenPhuKien}</div>
 
                                         <div className="w-40 flex justify-center gap-4">

@@ -129,8 +129,8 @@ const NhanVienTable = () => {
                         (e.currentTarget.style.background = "#eff6ff")
                       }
                       onMouseLeave={(e) =>
-                        (e.currentTarget.style.background =
-                          idx % 2 === 0 ? "#fff" : "#f8fafc")
+                      (e.currentTarget.style.background =
+                        idx % 2 === 0 ? "#fff" : "#f8fafc")
                       }
                     >
                       <td
@@ -153,7 +153,7 @@ const NhanVienTable = () => {
                         </span>
                       </td>
                       <td
-                        className="px-4 py-3 text-slate-500 text-sm font-mono"
+                        className="px-4 py-3 text-slate-500 text-sm"
                         style={{ borderBottom: "1px solid #f1f5f9" }}
                       >
                         {nv.cccd}

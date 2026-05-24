@@ -36,13 +36,13 @@ const ExcelSvgIcon = () => (
         <rect width="24" height="24" rx="3" fill="#217346" />
         <path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4z" fill="#185C37" />
         <path d="M14 3v4h4" fill="none" stroke="#fff" strokeWidth="1.2" strokeLinejoin="round" />
-        <text x="4" y="18" fill="white" fontSize="8" fontWeight="bold" fontFamily="Arial,sans-serif">XLS</text>
+        <text x="4" y="18" fill="white" fontSize="8" fontWeight="bold" fontFamily="Cambria,serif">XLS</text>
     </svg>
 );
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
-const FONT = "'Inter', 'Roboto', 'Segoe UI', sans-serif";
+const FONT = "'Cambria', 'serif'";
 
 const headerSx = {
     backgroundColor: '#1a237e',
@@ -60,6 +60,7 @@ const headerSx = {
 const sumRowSx = {
     backgroundColor: '#e8eaf6',
     fontWeight: 700,
+    fontFamily: FONT,
 };
 
 const cellSx = {

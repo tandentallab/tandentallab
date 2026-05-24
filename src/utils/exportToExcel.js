@@ -587,6 +587,7 @@ export const exportDonHangListToExcel = async (
           year: "numeric",
           hour: "2-digit",
           minute: "2-digit",
+          hour12: false,
         })
         : "",
       dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
@@ -600,6 +601,7 @@ export const exportDonHangListToExcel = async (
           year: "numeric",
           hour: "2-digit",
           minute: "2-digit",
+          hour12: false,
         })
         : "",
       getProgress(dh?.trangThai),
@@ -952,8 +954,8 @@ export const exportKeHoachGiaoHangToExcel = async (filteredOrders, formatDanhSac
   // Thêm dữ liệu
   filteredOrders.forEach((order) => {
     const maDon = order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`;
-    const nhanLuc = order.ngayNhan ? new Date(order.ngayNhan).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : "—";
-    const henGiao = order.henGiao ? new Date(order.henGiao).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : "—";
+    const nhanLuc = order.ngayNhan ? new Date(order.ngayNhan).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : "—";
+    const henGiao = order.henGiao ? new Date(order.henGiao).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : "—";
 
     const row = worksheet.addRow([
       nhanLuc,

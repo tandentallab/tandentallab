@@ -106,7 +106,7 @@ const HoaDonPrintPreview = () => {
   });
 
   return (
-<div className="h-screen flex flex-col bg-gray-200 overflow-hidden">
+    <div className="h-screen flex flex-col bg-gray-200 overflow-hidden">
       {/* Header Bar - Fixed Top */}
       <div className="h-10 bg-[#00a8ff] flex justify-between items-center px-4 shrink-0 print:hidden z-[1000]">
         <span className="text-white font-medium text-sm tracking-wide uppercase">Xem trước hóa đơn</span>
@@ -116,7 +116,7 @@ const HoaDonPrintPreview = () => {
       {/* Main Content Area - Scrollable */}
       <div className="flex-1 overflow-y-auto pt-6 px-4 pb-4 scrollbar-thin">
         <div className="w-full flex justify-center">
-          <div 
+          <div
             className="print-area bg-white w-full max-w-[210mm] shadow-lg p-8 mb-4"
             style={{ fontFamily: "'Cambria', serif", fontSize: "10.5pt" }}
           >
@@ -144,6 +144,19 @@ const HoaDonPrintPreview = () => {
 
             {/* ĐÃ SỬA CHỖ NÀY: XÓA 'border border-black' khỏi className của table để bỏ viền bao ngoài cùng */}
             <table className="w-full border-collapse" style={{ fontSize: "10.5pt" }}>
+              <colgroup>
+                <col style={{ width: "30px" }} />   {/* STT */}
+                <col style={{ width: "48px" }} />   {/* NGÀY */}
+                <col style={{ width: "70px" }} />   {/* BÁC SĨ */}
+                <col style={{ width: "80px" }} />   {/* BỆNH NHÂN */}
+                <col />                             {/* SẢN PHẨM - flex */}
+                <col style={{ width: "44px" }} />   {/* RĂNG */}
+                <col style={{ width: "28px" }} />   {/* S.L */}
+                <col style={{ width: "72px" }} />   {/* ĐƠN GIÁ */}
+                <col style={{ width: "52px" }} />   {/* GIẢM GIÁ */}
+                <col style={{ width: "72px" }} />   {/* THÀNH TIỀN */}
+                <col style={{ width: "60px" }} />   {/* GHI CHÚ */}
+              </colgroup>
               <thead>
                 <tr className="font-bold text-center">
                   <th className="border border-black p-1">STT</th>
@@ -167,7 +180,7 @@ const HoaDonPrintPreview = () => {
                     <td className="border border-black p-1">{row.bacSi}</td>
                     <td className="border border-black p-1 whitespace-nowrap">{row.benhNhan}</td>
                     <td className="border border-black p-1">{row.sanPham}</td>
-                    <td className="border border-black text-center p-1">{row.rang}</td>
+                    <td className="border border-black text-center p-1" style={{ whiteSpace: "nowrap", overflow: "hidden", maxWidth: "44px", fontSize: "9pt" }}>{row.rang}</td>
                     <td className="border border-black text-center p-1">{row.soLuong}</td>
                     <td className="border border-black text-right p-1">{formatCurrency(row.donGia)}</td>
                     <td className="border border-black text-center p-1">{row.giamGia}</td>
@@ -179,37 +192,28 @@ const HoaDonPrintPreview = () => {
                 {/* KHỐI TỔNG HỢP CHI PHÍ */}
                 <tr>
                   <td colSpan={6} style={{ border: "none" }}></td>
-                  <td colSpan={3} className="border border-black p-1 text-left uppercase">
-                    PHÁT SINH TRONG KỲ:
+                  <td colSpan={3} className="border border-black p-1 text-left uppercase" style={{ whiteSpace: "nowrap" }}>
+                    TỔNG CỘNG:
                   </td>
-                  <td colSpan={2} className="border border-black p-1 font-bold text-right">
+                  <td colSpan={2} className="border border-black p-1 font-bold text-right" style={{ whiteSpace: "nowrap" }}>
                     {formatCurrency(hoaDon.tongCong || 0)}
                   </td>
                 </tr>
                 <tr>
                   <td colSpan={6} style={{ border: "none" }}></td>
-                  <td colSpan={3} className="border border-black p-1 text-left uppercase">
+                  <td colSpan={3} className="border border-black p-1 text-left uppercase" style={{ whiteSpace: "nowrap" }}>
                     CHIẾT KHẤU:
                   </td>
-                  <td colSpan={2} className="border border-black p-1 font-bold text-right">
+                  <td colSpan={2} className="border border-black p-1 font-bold text-right" style={{ whiteSpace: "nowrap" }}>
                     {formatCurrency(hoaDon.chietKhau || 0)}
                   </td>
                 </tr>
                 <tr>
                   <td colSpan={6} style={{ border: "none" }}></td>
-                  <td colSpan={3} className="border border-black p-1 text-left uppercase">
-                    NỢ ĐẦU KỲ:
-                  </td>
-                  <td colSpan={2} className="border border-black p-1 font-bold text-right">
-                    0
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan={6} style={{ border: "none" }}></td>
-                  <td colSpan={3} className="border border-black p-1 text-left uppercase">
+                  <td colSpan={3} className="border border-black p-1 text-left uppercase" style={{ whiteSpace: "nowrap" }}>
                     GIÁ TRỊ THANH TOÁN:
                   </td>
-                  <td colSpan={2} className="border border-black p-1 font-bold text-right">
+                  <td colSpan={2} className="border border-black p-1 font-bold text-right" style={{ whiteSpace: "nowrap" }}>
                     {formatCurrency(hoaDon.giaTriThanhToan || 0)}
                   </td>
                 </tr>
@@ -217,7 +221,7 @@ const HoaDonPrintPreview = () => {
             </table>
 
             <div className="mt-4 text-left leading-normal" style={{ fontSize: "10.5pt" }}>
-              
+
               <div className="mt-1 whitespace-pre-wrap text-gray-800">
                 *Ghi chú:
               </div>
@@ -232,14 +236,14 @@ const HoaDonPrintPreview = () => {
 
       {/* Footer Bar - Fixed Bottom */}
       <div className="h-16 bg-white border-t flex justify-center items-center gap-4 shrink-0 print:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
-        <button 
-          onClick={() => window.print()} 
+        <button
+          onClick={() => window.print()}
           className="bg-green-600 text-white px-10 py-2 rounded shadow font-bold hover:bg-green-700 transition transform active:scale-95"
         >
           IN HÓA ĐƠN
         </button>
-        <button 
-          onClick={() => navigate(-1)} 
+        <button
+          onClick={() => navigate(-1)}
           className="bg-gray-500 text-white px-10 py-2 rounded shadow font-bold hover:bg-gray-600 transition transform active:scale-95"
         >
           QUAY LẠI

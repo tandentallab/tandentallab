@@ -1,16 +1,21 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchHoaDonById, updateHoaDon } from "../../redux/slices/hoaDonSlice";
+import { fetchHoaDonById, updateHoaDon, deleteHoaDon } from "../../redux/slices/hoaDonSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import { fetchPhieuThuByHoaDon } from "../../redux/slices/phieuThuSlice";
-import { X, Printer, FileDown, Save, Upload } from "lucide-react";
+import { X, Printer, FileDown, Save, Upload, Trash2 } from "lucide-react";
 import { exportHoaDonToExcel } from "../../utils/exportToExcel";
 import HoaDonDetailTable from "./HoaDonDetailTable";
 import PhieuThuModal from "../PhieuThu/PhieuThuModal";
 
 const fmtVND = (v) =>
   new Intl.NumberFormat("vi-VN").format(Math.round(v || 0));
+
+// Format số tiền cho input (hiển thị dấu chấm phân cách nghìn)
+const fmtMoneyInput = (v) =>
+  v ? new Intl.NumberFormat("vi-VN").format(Math.round(Number(v) || 0)) : "";
+const parseMoneyInput = (s) => parseInt(String(s).replace(/\D/g, ""), 10) || 0;
 
 const fmtDateTime = (d) => {
   if (!d) return "-";
@@ -35,13 +40,17 @@ const HoaDonDetail = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [ptOpen, setPtOpen] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false); // 🔥 NEW
-
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formState, setFormState] = useState({
     chinhSachThanhToan: "Thanh toán cuối tháng",
     ghiChuChoKhachHang: "",
     ghiChuNoiBo: "",
     chietKhauPhanTram: 0,
+    chietKhauTien: 0,
+    chietKhauMode: "phanTram", // "phanTram" | "tienMat"
     thuePhanTram: 0,
+    thueTien: 0,
+    thueMode: "phanTram",     // "phanTram" | "tienMat"
     chiPhiKhac: 0,
     ngayXuatHoaDon: "",
   });
@@ -78,7 +87,11 @@ const HoaDonDetail = () => {
           ghiChuChoKhachHang: mappedData.ghiChuChoKhachHang || "",
           ghiChuNoiBo: mappedData.ghiChuNoiBo || "",
           chietKhauPhanTram,
+          chietKhauTien: mappedData.chietKhau || 0,
+          chietKhauMode: "phanTram",
           thuePhanTram: mappedData.thue || 0,
+          thueTien: 0,
+          thueMode: "phanTram",
           chiPhiKhac: mappedData.chiPhiKhac || 0,
           ngayXuatHoaDon: mappedData.ngayXuatHoaDon
             ? new Date(mappedData.ngayXuatHoaDon).toISOString().split("T")[0]
@@ -160,17 +173,36 @@ const HoaDonDetail = () => {
 
   // ================= FINANCIAL SUMMARY =================
   const fin = useMemo(() => {
-    if (!hoaDon) return { tongCong: 0, chietKhauTien: 0, thueTien: 0, giaTriThanhToan: 0, conLai: 0 };
+    if (!hoaDon) return {
+      tongCong: 0, chietKhauTien: 0, chietKhauPhanTram: 0,
+      thueTien: 0, thuePhanTram: 0, giaTriThanhToan: 0, conLai: 0,
+    };
     const tongCong = (hoaDon.danhSachSanPham || []).reduce(
       (s, sp) => s + (sp.tongCongSanPham || 0),
       0
     );
-    const chietKhauTien = tongCong * (formState.chietKhauPhanTram / 100);
+
+    // Chiết khấu — tính theo mode đang active
+    const chietKhauTien = formState.chietKhauMode === "phanTram"
+      ? Math.round(tongCong * (formState.chietKhauPhanTram / 100))
+      : Math.min(Number(formState.chietKhauTien || 0), tongCong);
+    const chietKhauPhanTram = formState.chietKhauMode === "tienMat"
+      ? (tongCong > 0 ? parseFloat((chietKhauTien / tongCong * 100).toFixed(2)) : 0)
+      : formState.chietKhauPhanTram;
+
     const sauCK = tongCong - chietKhauTien;
-    const thueTien = sauCK * (formState.thuePhanTram / 100);
+
+    // Thuế — tính theo mode đang active
+    const thueTien = formState.thueMode === "phanTram"
+      ? Math.round(sauCK * (formState.thuePhanTram / 100))
+      : Number(formState.thueTien || 0);
+    const thuePhanTram = formState.thueMode === "tienMat"
+      ? (sauCK > 0 ? parseFloat((thueTien / sauCK * 100).toFixed(2)) : 0)
+      : formState.thuePhanTram;
+
     const giaTriThanhToan = sauCK + thueTien + Number(formState.chiPhiKhac || 0);
     const conLai = giaTriThanhToan - (hoaDon.daThanhToan || 0);
-    return { tongCong, chietKhauTien, thueTien, giaTriThanhToan, conLai };
+    return { tongCong, chietKhauTien, chietKhauPhanTram, thueTien, thuePhanTram, giaTriThanhToan, conLai };
   }, [hoaDon, formState]);
 
   // ================= SAVE =================
@@ -180,8 +212,9 @@ const HoaDonDetail = () => {
         updateHoaDon({
           id,
           data: {
+            ngayXuatHoaDon: formState.ngayXuatHoaDon,
             chietKhau: Math.round(fin.chietKhauTien),
-            thue: formState.thuePhanTram,
+            thue: fin.thuePhanTram,
             chiPhiKhac: Number(formState.chiPhiKhac),
             chinhSachThanhToan: formState.chinhSachThanhToan,
             ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
@@ -213,8 +246,9 @@ const HoaDonDetail = () => {
         updateHoaDon({
           id,
           data: {
+            ngayXuatHoaDon: formState.ngayXuatHoaDon,
             chietKhau: Math.round(fin.chietKhauTien),
-            thue: formState.thuePhanTram,
+            thue: fin.thuePhanTram,
             chiPhiKhac: Number(formState.chiPhiKhac),
             chinhSachThanhToan: formState.chinhSachThanhToan,
             ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
@@ -234,55 +268,105 @@ const HoaDonDetail = () => {
     navigate(`/hoa-don/${id}/print`);
   };
 
+  // 🔥 1. Hàm được gọi khi bấm nút Xóa ở Footer
+  const handleDeleteClick = () => {
+    if (hoaDon.trangThai !== "Chưa thanh toán") {
+      alert("Không thể xóa hóa đơn đã có giao dịch thanh toán!");
+      return;
+    }
+    // Mở custom modal thay vì dùng window.confirm
+    setShowDeleteConfirm(true);
+  };
+
+  // 🔥 2. Hàm thực thi gọi API khi người dùng xác nhận trên Modal
+  const executeDelete = async () => {
+    try {
+      await dispatch(deleteHoaDon(id)).unwrap();
+      setShowDeleteConfirm(false);
+      navigate(-1); // Quay về trang trước
+    } catch (err) {
+      console.error("Lỗi xóa hóa đơn:", err);
+      alert("Không thể xóa hóa đơn lúc này!");
+    }
+  };
   if (loading) return <div className="p-10 text-center text-gray-400">Đang tải...</div>;
   if (!hoaDon) return <div className="p-10 text-center text-red-500">Không tìm thấy hóa đơn!</div>;
 
   const initials = hoaDon.nhaKhoa?.hoVaTen?.slice(0, 2).toUpperCase() || "NK";
 
   // ===== JSX phần tài chính (dùng lại ở cả 2 layout) =====
-  const FinancialBlock = () => (
+  const renderFinancialBlock = () => (
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <span className="text-gray-800 text-sm">Tổng cộng</span>
         <span className="font-bold text-gray-900 text-[15px]">{fmtVND(fin.tongCong)}</span>
       </div>
 
+      {/* ── Chiết khấu ── */}
       <div className="flex items-center justify-between">
-        <span className="text-gray-800 text-sm">Chiết khấu</span>
+        <span className="text-gray-800 text-sm shrink-0">Chiết khấu</span>
         <div className="flex items-center flex-1 justify-end ml-4">
           <input
             type="number" min={0} max={100}
-            value={formState.chietKhauPhanTram}
-            onChange={(e) => setField("chietKhauPhanTram", Number(e.target.value))}
-            className="w-12 border-b border-gray-400 text-center text-sm outline-none bg-transparent pb-0.5"
+            value={formState.chietKhauMode === "phanTram" ? formState.chietKhauPhanTram : fin.chietKhauPhanTram}
+            onChange={(e) => {
+              const val = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+              setFormState((p) => ({ ...p, chietKhauPhanTram: val, chietKhauMode: "phanTram" }));
+              setIsDirty(true);
+            }}
+            className="w-12 border-b border-gray-400 text-center text-sm outline-none bg-transparent pb-0.5 no-spinner"
           />
-          <span className="mx-3 text-gray-800">% =</span>
-          <span className="w-[100px] text-right border-b border-gray-400 text-[15px] pb-0.5">{fmtVND(fin.chietKhauTien)}</span>
+          <span className="mx-2 text-gray-800 text-sm">% =</span>
+          <input
+            type="text" inputMode="numeric"
+            value={fmtMoneyInput(formState.chietKhauMode === "tienMat" ? formState.chietKhauTien : fin.chietKhauTien)}
+            onChange={(e) => {
+              const val = parseMoneyInput(e.target.value);
+              setFormState((p) => ({ ...p, chietKhauTien: val, chietKhauMode: "tienMat" }));
+              setIsDirty(true);
+            }}
+            className="w-[100px] text-right border-b border-gray-400 text-[15px] pb-0.5 outline-none bg-transparent"
+          />
         </div>
       </div>
 
+      {/* ── Thuế ── */}
       <div className="flex items-center justify-between">
-        <span className="text-gray-800 text-sm">Thuế</span>
+        <span className="text-gray-800 text-sm shrink-0">Thuế</span>
         <div className="flex items-center flex-1 justify-end ml-4">
           <input
             type="number" min={0} max={100}
-            value={formState.thuePhanTram}
-            onChange={(e) => setField("thuePhanTram", Number(e.target.value))}
-            className="w-12 border-b border-gray-400 text-center text-sm outline-none bg-transparent pb-0.5"
+            value={formState.thueMode === "phanTram" ? formState.thuePhanTram : fin.thuePhanTram}
+            onChange={(e) => {
+              const val = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+              setFormState((p) => ({ ...p, thuePhanTram: val, thueMode: "phanTram" }));
+              setIsDirty(true);
+            }}
+            className="w-12 border-b border-gray-400 text-center text-sm outline-none bg-transparent pb-0.5 no-spinner"
           />
-          <span className="mx-3 text-gray-800">% =</span>
-          <span className="w-[100px] text-right border-b border-gray-400 text-[15px] pb-0.5">{fmtVND(fin.thueTien)}</span>
+          <span className="mx-2 text-gray-800 text-sm">% =</span>
+          <input
+            type="text" inputMode="numeric"
+            value={fmtMoneyInput(formState.thueMode === "tienMat" ? formState.thueTien : fin.thueTien)}
+            onChange={(e) => {
+              const val = parseMoneyInput(e.target.value);
+              setFormState((p) => ({ ...p, thueTien: val, thueMode: "tienMat" }));
+              setIsDirty(true);
+            }}
+            className="w-[100px] text-right border-b border-gray-400 text-[15px] pb-0.5 outline-none bg-transparent"
+          />
         </div>
       </div>
 
+      {/* ── Chi phí khác ── */}
       <div className="flex items-center justify-between">
-        <span className="text-gray-800 text-sm">Chi phí khác</span>
+        <span className="text-gray-800 text-sm shrink-0">Chi phí khác</span>
         <div className="flex items-center flex-1 justify-end ml-4">
           <input
-            type="number" min={0}
-            value={formState.chiPhiKhac}
-            onChange={(e) => setField("chiPhiKhac", Number(e.target.value))}
-            className="w-[100px] text-right text-[15px] outline-none bg-transparent pb-0.5"
+            type="text" inputMode="numeric"
+            value={fmtMoneyInput(formState.chiPhiKhac)}
+            onChange={(e) => setField("chiPhiKhac", parseMoneyInput(e.target.value))}
+            className="w-[110px] border-b border-gray-400 text-right text-[15px] outline-none bg-transparent pb-0.5"
           />
         </div>
       </div>
@@ -338,6 +422,11 @@ const HoaDonDetail = () => {
 
   return (
     <div className="fixed inset-0 z-[1300] bg-white flex flex-col font-sans text-gray-800 overflow-hidden overflow-y-auto pb-20">
+      <style>{`
+        .no-spinner::-webkit-inner-spin-button,
+        .no-spinner::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .no-spinner { -moz-appearance: textfield; }
+      `}</style>
 
       {/* ===== 🔥 EXIT CONFIRM MODAL ===== */}
       {showExitConfirm && (
@@ -361,6 +450,43 @@ const HoaDonDetail = () => {
                 <Save className="w-4 h-4" /> Lưu
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* ===== 🔥 DELETE CONFIRM MODAL (MỚI) ===== */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm mx-4">
+
+            {/* Tiêu đề & Icon */}
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <p className="text-gray-900 font-bold text-lg">Xóa hóa đơn?</p>
+            </div>
+
+            {/* Nội dung cảnh báo */}
+            <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+              Hành động này không thể hoàn tác. Các đơn hàng trong hóa đơn này sẽ được trả về trạng thái <span className="font-semibold text-gray-700">Chờ xuất hóa đơn</span>.
+            </p>
+
+            {/* Nút hành động */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={executeDelete}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition-colors shadow-sm"
+              >
+                Xóa ngay
+              </button>
+            </div>
+
           </div>
         </div>
       )}
@@ -559,7 +685,7 @@ const HoaDonDetail = () => {
           {/* ── Tổng cộng (mobile: full | md: phải 40% | lg: 30%) ── */}
           <div className="w-full md:w-[40%] lg:w-[30%] p-4 md:p-6 lg:p-8 flex flex-col justify-center border-t md:border-t-0 md:border-l border-gray-100">
             <div className="w-full md:max-w-none lg:max-w-[320px] lg:ml-auto space-y-4">
-              <FinancialBlock />
+              {renderFinancialBlock()}
             </div>
           </div>
 
@@ -576,6 +702,15 @@ const HoaDonDetail = () => {
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
+          {hoaDon.trangThai === "Chưa thanh toán" && (
+            <button
+              onClick={handleDeleteClick} // <--- GỌI HÀM NÀY NÈ
+              className="flex items-center gap-1.5 px-3 md:px-4 py-2 border border-red-200 bg-red-50 text-red-600 rounded-md text-[13px] font-bold hover:bg-red-100 hover:border-red-300 transition-colors shadow-sm"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Xóa</span>
+            </button>
+          )}
           <button onClick={handlePrint} className="hidden md:flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-md text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors">
             <Printer className="w-4 h-4" /> In hóa đơn
           </button>

@@ -67,13 +67,23 @@ const HoaDonPrintPreview = () => {
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
   };
 
-  const formatDiscount = (value, type) => {
-    if (!value) return "0";
-    if (type === "phanTram") {
-      const raw = String(value).replace("%", "").trim();
-      return raw ? `${raw}%` : "0";
-    }
-    return formatCurrency(Number(value) || 0);
+  const formatViTriRang = (viTriArr) => {
+    if (!viTriArr || viTriArr.length === 0) return "";
+    return viTriArr
+      .map((v) =>
+        v.kieu === "Cầu" && v.soRang?.length > 1
+          ? `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+          : v.soRang?.join(", ")
+      )
+      .filter(Boolean)
+      .join("; ");
+  };
+
+  // Hàm tiện ích chỉ lấy phần Tên cuối cùng của Bác sĩ
+  const getFirstName = (fullName) => {
+    if (!fullName || fullName === "---") return "---";
+    const parts = fullName.trim().split(" ");
+    return parts[parts.length - 1];
   };
 
   const rows = [];
@@ -81,7 +91,6 @@ const HoaDonPrintPreview = () => {
     const loaiGiamGia = sp.loaiGiamGia || "phanTram";
     const baseAmount = sp.thanhTien || (sp.soLuong || 1) * (sp.donGia || 0);
 
-    // Hiển thị giảm giá theo đúng loại đã lưu
     let displayDiscount = "0";
     if (loaiGiamGia === "phanTram") {
       const percent = sp.giamGiaPhanTram || (baseAmount ? Math.round((sp.giamGia || 0) / baseAmount * 100) : 0);
@@ -93,10 +102,10 @@ const HoaDonPrintPreview = () => {
     rows.push({
       stt: idx + 1,
       ngay: sp.donHang?.ngayNhan || hoaDon.ngayXuatHoaDon,
-      bacSi: sp.donHang?.bacSi?.hoVaTen || "---",
+      bacSi: getFirstName(sp.donHang?.bacSi?.hoVaTen), // Chỉ lấy tên bác sĩ ở đây
       benhNhan: sp.donHang?.benhNhan?.hoVaTen || "---",
       sanPham: sp.tenSanPham || "---",
-      rang: sp.viTri?.map(v => v.soRang?.join(", ")).filter(Boolean).join(" | ") || "",
+      rang: formatViTriRang(sp.viTri),
       soLuong: sp.soLuong || 1,
       donGia: sp.donGia || 0,
       giamGia: displayDiscount,
@@ -107,21 +116,18 @@ const HoaDonPrintPreview = () => {
 
   return (
     <div className="h-screen flex flex-col bg-gray-200 overflow-hidden">
-      {/* Header Bar - Fixed Top */}
       <div className="h-10 bg-[#00a8ff] flex justify-between items-center px-4 shrink-0 print:hidden z-[1000]">
         <span className="text-white font-medium text-sm tracking-wide uppercase">Xem trước hóa đơn</span>
         <button onClick={() => navigate(-1)} className="text-white text-2xl hover:opacity-80 leading-none">&times;</button>
       </div>
 
-      {/* Main Content Area - Scrollable */}
       <div className="flex-1 overflow-y-auto pt-6 px-4 pb-4 scrollbar-thin">
         <div className="w-full flex justify-center">
           <div
-            className="print-area bg-white w-full max-w-[210mm] shadow-lg p-8 mb-4"
+            className="print-area bg-white w-full max-w-[210mm] shadow-lg p-4 mb-2"
             style={{ fontFamily: "'Cambria', serif", fontSize: "10.5pt" }}
           >
-            {/* ĐÃ SỬA: ĐƯA TÊN CÔNG TY VÀ TÊN LOẠI GIẤY VÀO BẢNG CÓ VIỀN */}
-            <table className="w-full border-collapse border border-black mb-4" style={{ fontSize: "10.5pt" }}>
+            <table className="w-full border-collapse border border-black mb-2" style={{ fontSize: "10.5pt" }}>
               <tbody>
                 <tr>
                   <td className="border border-black p-2 w-1/2 align-top leading-tight font-bold text-center">
@@ -130,90 +136,124 @@ const HoaDonPrintPreview = () => {
                     <div>TP Cần Thơ</div>
                     <div>Điện thoại: 0842312828</div>
                   </td>
-                  <td className="border border-black p-2 w-1/2 text-center align-middle font-bold  uppercase">
+                  <td className="border border-black p-2 w-1/2 text-center align-middle font-bold uppercase text-lg">
                     Giấy báo thanh toán
                   </td>
                 </tr>
               </tbody>
             </table>
-            {/* Căn giữa Khách hàng và Ngày */}
-            <div className="mb-6 leading-tight text-center">
-              <div className="font-bold">Khách hàng: <span className="font-bold uppercase">{nhaKhoaInfo?.hoVaTen || nhaKhoaInfo?.tenGiaoDich || "---"}</span></div>
+
+            <div className="mb-2 leading-tight text-center">
+              <div className="font-bold mb-2">Khách hàng: <span className="font-bold uppercase">{nhaKhoaInfo?.hoVaTen || nhaKhoaInfo?.tenGiaoDich || "---"}</span></div>
               <div>Từ Ngày: {formatDate(hoaDon.ngayXuatHoaDon)} - Đến Ngày: {formatDate(hoaDon.ngayXuatHoaDon)}</div>
             </div>
 
-            {/* ĐÃ SỬA CHỖ NÀY: XÓA 'border border-black' khỏi className của table để bỏ viền bao ngoài cùng */}
             <table className="w-full border-collapse" style={{ fontSize: "10.5pt" }}>
               <colgroup>
-                <col style={{ width: "30px" }} />   {/* STT */}
-                <col style={{ width: "48px" }} />   {/* NGÀY */}
-                <col style={{ width: "70px" }} />   {/* BÁC SĨ */}
-                <col style={{ width: "80px" }} />   {/* BỆNH NHÂN */}
-                <col />                             {/* SẢN PHẨM - flex */}
-                <col style={{ width: "44px" }} />   {/* RĂNG */}
-                <col style={{ width: "28px" }} />   {/* S.L */}
-                <col style={{ width: "72px" }} />   {/* ĐƠN GIÁ */}
-                <col style={{ width: "52px" }} />   {/* GIẢM GIÁ */}
-                <col style={{ width: "72px" }} />   {/* THÀNH TIỀN */}
-                <col style={{ width: "60px" }} />   {/* GHI CHÚ */}
+                <col style={{ width: "3%" }} />
+                <col style={{ width: "6%" }} />
+                <col style={{ width: "5%" }} />   {/* Bác sĩ rút xuống 5% vì chỉ hiện tên ngắn */}
+                <col style={{ width: "18%" }} />  {/* Bệnh nhân được cộng thêm diện tích thành 18% */}
+                <col />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "4%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "7%" }} />   {/* Giữ nguyên 7% */}
+                <col style={{ width: "11%" }} />
+                <col style={{ width: "8%" }} />
               </colgroup>
               <thead>
                 <tr className="font-bold text-center">
-                  <th className="border border-black p-1">STT</th>
-                  <th className="border border-black p-1">NGÀY</th>
-                  <th className="border border-black p-1">BÁC SĨ</th>
-                  <th className="border border-black p-1">BỆNH NHÂN</th>
-                  <th className="border border-black p-1">SẢN PHẨM</th>
-                  <th className="border border-black p-1">RĂNG</th>
-                  <th className="border border-black p-1">S.L</th>
-                  <th className="border border-black p-1">ĐƠN GIÁ</th>
-                  <th className="border border-black p-1">GIẢM GIÁ</th>
-                  <th className="border border-black p-1">THÀNH TIỀN</th>
-                  <th className="border border-black p-1">GHI CHÚ</th>
+                  {/* BƯỚC 1: GIẢM PADDING TỪ P-1 (4PX) XUỐNG P-0.5 (2PX) TOÀN TABLE THHEAD */}
+                  <th className="border border-black p-0.5 whitespace-nowrap">STT</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">NGÀY</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">BÁC SĨ</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">BỆNH NHÂN</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">SẢN PHẨM</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">RĂNG</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">S.L</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">ĐƠN GIÁ</th>
+                  {/* BƯỚC 2: VIẾT ĐẦY ĐỦ CHỮ GIẢM GIÁ */}
+                  <th className="border border-black p-0.5 whitespace-nowrap">GIẢM GIÁ</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">THÀNH TIỀN</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">GHI CHÚ</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, index) => (
                   <tr key={index}>
-                    <td className="border border-black text-center p-1">{index + 1}</td>
-                    <td className="border border-black text-center p-1">{formatShortDate(row.ngay)}</td>
-                    <td className="border border-black p-1">{row.bacSi}</td>
-                    <td className="border border-black p-1 whitespace-nowrap">{row.benhNhan}</td>
-                    <td className="border border-black p-1">{row.sanPham}</td>
-                    <td className="border border-black text-center p-1" style={{ whiteSpace: "nowrap", overflow: "hidden", maxWidth: "44px", fontSize: "9pt" }}>{row.rang}</td>
-                    <td className="border border-black text-center p-1">{row.soLuong}</td>
-                    <td className="border border-black text-right p-1">{formatCurrency(row.donGia)}</td>
-                    <td className="border border-black text-center p-1">{row.giamGia}</td>
-                    <td className="border border-black text-center p-1">{row.thanhTien ? formatCurrency(row.thanhTien) : "0"}</td>
-                    <td className="border border-black p-1">{row.ghiChu}</td>
+                    {/* BƯỚC 1: GIẢM PADDING TỪ P-1 (4PX) XUỐNG P-0.5 (2PX) TOÀN TABLE TBODY */}
+                    <td className="border border-black text-center p-0.5">{index + 1}</td>
+                    <td className="border border-black text-center p-0.5">{formatShortDate(row.ngay)}</td>
+                    <td className="border border-black text-center p-0.5">{row.bacSi}</td>
+                    <td className="border border-black text-center p-0.5">{row.benhNhan}</td>
+                    <td className="border border-black text-center p-0.5">{row.sanPham}</td>
+                    <td className="border border-black text-center p-0.5">{row.rang}</td>
+                    <td className="border border-black text-center p-0.5">{row.soLuong}</td>
+                    <td className="border border-black text-center p-0.5">{formatCurrency(row.donGia)}</td>
+                    <td className="border border-black text-center p-0.5">{row.giamGia}</td>
+                    <td className="border border-black text-center p-0.5">{row.thanhTien ? formatCurrency(row.thanhTien) : "0"}</td>
+                    <td className="border border-black text-center p-0.5">{row.ghiChu}</td>
                   </tr>
                 ))}
 
-                {/* KHỐI TỔNG HỢP CHI PHÍ */}
+                {/* KHỐI TỔNG HỢP CHI PHÍ - Ép căn lề phải hoàn toàn */}
                 <tr>
                   <td colSpan={6} style={{ border: "none" }}></td>
-                  <td colSpan={3} className="border border-black p-1 text-left uppercase" style={{ whiteSpace: "nowrap" }}>
-                    TỔNG CỘNG:
+                  <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
+                    TỔNG CỘNG
                   </td>
-                  <td colSpan={2} className="border border-black p-1 font-bold text-right" style={{ whiteSpace: "nowrap" }}>
+                  <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
                     {formatCurrency(hoaDon.tongCong || 0)}
                   </td>
                 </tr>
                 <tr>
                   <td colSpan={6} style={{ border: "none" }}></td>
-                  <td colSpan={3} className="border border-black p-1 text-left uppercase" style={{ whiteSpace: "nowrap" }}>
-                    CHIẾT KHẤU:
+                  <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
+                    CHIẾT KHẤU
                   </td>
-                  <td colSpan={2} className="border border-black p-1 font-bold text-right" style={{ whiteSpace: "nowrap" }}>
+                  <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
                     {formatCurrency(hoaDon.chietKhau || 0)}
                   </td>
                 </tr>
+
+                {/* TỰ ĐỘNG THÊM DÒNG THUẾ NẾU CÓ THUẾ > 0 */}
+                {hoaDon.thue > 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ border: "none" }}></td>
+                    <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
+                      {/* 👇 Sửa dòng này để làm tròn tỷ lệ hiển thị */}
+                      THUẾ
+                    </td>
+                    <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
+                      {formatCurrency(
+                        Math.round(
+                          Math.max(0, (hoaDon.tongCong || 0) - (hoaDon.chietKhau || 0)) * (hoaDon.thue / 100)
+                        )
+                      )}
+                    </td>
+                  </tr>
+                )}
+
+                {/* 👇 CHÈN THÊM KHỐI CHI PHÍ KHÁC VÀO ĐÂY 👇 */}
+                {hoaDon.chiPhiKhac > 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ border: "none" }}></td>
+                    <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
+                      CHI PHÍ KHÁC
+                    </td>
+                    <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
+                      {formatCurrency(hoaDon.chiPhiKhac || 0)}
+                    </td>
+                  </tr>
+                )}
+
                 <tr>
                   <td colSpan={6} style={{ border: "none" }}></td>
-                  <td colSpan={3} className="border border-black p-1 text-left uppercase" style={{ whiteSpace: "nowrap" }}>
-                    GIÁ TRỊ THANH TOÁN:
+                  <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
+                    GIÁ TRỊ THANH TOÁN
                   </td>
-                  <td colSpan={2} className="border border-black p-1 font-bold text-right" style={{ whiteSpace: "nowrap" }}>
+                  <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
                     {formatCurrency(hoaDon.giaTriThanhToan || 0)}
                   </td>
                 </tr>
@@ -221,7 +261,6 @@ const HoaDonPrintPreview = () => {
             </table>
 
             <div className="mt-4 text-left leading-normal" style={{ fontSize: "10.5pt" }}>
-
               <div className="mt-1 whitespace-pre-wrap text-gray-800">
                 *Ghi chú:
               </div>
@@ -234,7 +273,6 @@ const HoaDonPrintPreview = () => {
         </div>
       </div>
 
-      {/* Footer Bar - Fixed Bottom */}
       <div className="h-16 bg-white border-t flex justify-center items-center gap-4 shrink-0 print:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
         <button
           onClick={() => window.print()}

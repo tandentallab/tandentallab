@@ -439,7 +439,7 @@ const slice = createSlice({
               updatedHoaDon;
           }
 
-          // 🔥 Update luôn chi tiết hóa đơn nếu đang mở
+
           if (
             state.chiTietHoaDon?._id ===
             updatedHoaDon._id
@@ -448,7 +448,6 @@ const slice = createSlice({
               updatedHoaDon;
           }
 
-          alert("Cập nhật thành công");
         }
       )
 

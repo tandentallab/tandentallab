@@ -114,7 +114,7 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
                 return (
                   <div key={idx} style={{ position: "absolute", left: `${left}mm`, top: `${top}mm` }}>
                     {/* 3. Truyền đường dẫn đầy đủ vào QR */}
-                    <QRCodeSVG value={fullUrl} size={field.coChu ? field.coChu * 4 : 65} />
+                    <QRCodeSVG value={fullUrl} size={field.coChu ? field.coChu * 4 : 65} level="L" />
                   </div>
                 );
               }

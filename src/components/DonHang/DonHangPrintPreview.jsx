@@ -128,7 +128,7 @@ const DonHangPrintPreview = () => {
 
             {/* Center: QR */}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "2px" }}>
-              <QRCodeSVG value={maDonHang} size={56} level="M" />
+              <QRCodeSVG value={maDonHang} size={56} level="L" />
             </div>
 
             {/* Right */}

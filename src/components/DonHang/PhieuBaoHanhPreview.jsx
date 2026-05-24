@@ -35,7 +35,7 @@ const PhieuBaoHanhPreview = ({ phieuBaoHanh }) => {
           <QRCodeSVG 
             value={qrLink} 
             size={100} 
-            level="M" 
+            level="L" 
             includeMargin={true}
           />
         </div>

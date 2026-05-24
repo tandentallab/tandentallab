@@ -353,16 +353,15 @@ const HoaDonPage = () => {
       </div>
 
       {/* DÒNG 2: TOOLBAR */}
-      <div className="mt-4 shrink-0 rounded-t-lg bg-white shadow-sm relative z-30">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-b border-gray-100">
+      <div className="shrink-0 rounded-t-lg bg-white shadow-sm relative z-30">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-2 border-b border-gray-100">
           <div className="relative" ref={filterContainerRef}>
             <Tooltip title="Bộ lọc">
               <IconButton
                 onClick={() => setOpenFilter(!openFilter)}
                 size="small"
-                className={`transition-colors ${
-                  openFilter ? "bg-blue-50" : ""
-                }`}
+                className={`transition-colors ${openFilter ? "bg-blue-50" : ""
+                  }`}
                 sx={{
                   color: isFiltered ? "#1976d2" : "#555",
                   p: "8px",
@@ -453,9 +452,6 @@ const HoaDonPage = () => {
                 <RefreshIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <IconButton size="small" sx={{ color: "#555" }}>
-              <MoreVertIcon fontSize="small" />
-            </IconButton>
           </div>
         </div>
         {isFiltered && (
@@ -464,11 +460,10 @@ const HoaDonPage = () => {
               <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
                 <CalendarTodayIcon sx={{ fontSize: 12 }} />
                 {appliedNgayXuat.preset === "custom"
-                  ? `${appliedNgayXuat.customFrom || "?"} → ${
-                      appliedNgayXuat.customTo || "?"
-                    }`
+                  ? `${appliedNgayXuat.customFrom || "?"} → ${appliedNgayXuat.customTo || "?"
+                  }`
                   : DATE_PRESETS.find((p) => p.key === appliedNgayXuat.preset)
-                      ?.label || appliedNgayXuat.preset}
+                    ?.label || appliedNgayXuat.preset}
                 <button
                   onClick={() => {
                     setAppliedNgayXuat(EMPTY_DATE);
@@ -517,7 +512,6 @@ const HoaDonPage = () => {
       </div>
 
       {/* DÒNG 3: BẢNG DỮ LIỆU & PHÂN TRANG */}
-      {/* ĐÃ SỬA: Xóa thuộc tính style chứa calc() đi, chỉ giữ lại flex-1 min-h-0 */}
       <div className="flex-1 min-h-0 bg-white rounded-b-lg shadow-sm border border-gray-100 flex flex-col overflow-hidden custom-scrollbar table-wrapper">
         {/* Khu vực bảng dữ liệu: Sẽ tự động lấy hết khoảng trống bên trong và cuộn */}
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">

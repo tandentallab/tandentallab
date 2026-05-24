@@ -47,7 +47,7 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
         thanhTien: 140,
         giamGia: 160,
         tongCongSanPham: 110,
-        ghiChu: 140,
+        ghiChu: 120,
     });
 
     const totalTableWidth = Object.values(columnWidths).reduce((a, b) => a + b, 0);
@@ -229,7 +229,7 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                                                         sp.loaiGiamGia || "phanTram"
                                                     );
                                                 }}
-                                                className="w-[70%] border border-gray-300 rounded-md px-2 py-1 outline-none text-right bg-white focus:border-blue-500"
+                                                className="w-[calc(100%-34px)] border border-gray-300 rounded-md px-2 py-1 outline-none text-right bg-white focus:border-blue-500"
                                             />
 
                                             <select
@@ -241,7 +241,7 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                                                         e.target.value
                                                     )
                                                 }
-                                                className="w-[30%] h-[34px] rounded-md border border-gray-300 bg-gray-50 cursor-pointer outline-none text-sm px-1"
+                                                className="w-[34px] h-[34px] rounded-md border border-gray-300 bg-gray-50 cursor-pointer outline-none text-sm"
                                             >
                                                 <option value="phanTram">%</option>
                                                 <option value="tienMat">đ</option>

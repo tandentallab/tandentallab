@@ -18,10 +18,16 @@ import {
   Typography,
   Drawer,
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Box,
 } from "@mui/material";
 
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -32,8 +38,9 @@ import {
 
 import { APP_ROLES, resolveAppRoleFromUser } from "../../config/permissions";
 
+
+
 import { api } from "../../config/api";
-import { Box } from "lucide-react";
 
 /* ================= MAIN TABLE ================= */
 export default function StaffTable() {
@@ -300,26 +307,121 @@ function StaffEditModal({ staffId, onClose }) {
         setOpen(false);
         onClose();
       }}
+      sx={{ 
+        zIndex: 1200, 
+        '& .MuiDrawer-paper': { 
+          top: { xs: 64, sm: 70 }, 
+          height: { xs: 'calc(100vh - 64px)', sm: 'calc(100vh - 70px)' } 
+        } 
+      }}
     >
-      <Box p={2} width={350}>
-        <Typography variant="h6">Chỉnh sửa nhân viên</Typography>
+      <Box sx={{ width: { xs: "100vw", sm: 450 } }} className="flex flex-col h-full bg-white">
+        {/* Header giống trang đơn hàng */}
+        <div className="bg-[#4fc3f7] border-b px-4 py-3 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 text-white">
+            <div 
+              onClick={() => {
+                setOpen(false);
+                onClose();
+              }} 
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-500 hover:cursor-pointer transition-all duration-100"
+            >
+              <ArrowForwardIcon sx={{ fontSize: 22 }} />
+            </div>
+            <span className="text-xl">Chỉnh sửa: {form.MSNV || form.HoTenNV}</span>
+          </div>
+        </div>
 
-        {/* form simplified */}
-        <TextField
-          fullWidth
-          label="Tên"
-          value={form.HoTenNV}
-          onChange={(e) => handleChange("HoTenNV", e.target.value)}
-        />
+        <Box className="flex-grow space-y-4 overflow-y-auto p-4 pr-3">
+          <TextField
+            fullWidth
+            label="Mã NV"
+            value={form.MSNV}
+            onChange={(e) => handleChange("MSNV", e.target.value)}
+          />
 
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={loading}
-        >
-          Lưu
-        </Button>
+          <TextField
+            fullWidth
+            label="Tên"
+            value={form.HoTenNV}
+            onChange={(e) => handleChange("HoTenNV", e.target.value)}
+          />
+
+          <TextField
+            fullWidth
+            label="Email"
+            type="email"
+            value={form.Email}
+            onChange={(e) => handleChange("Email", e.target.value)}
+          />
+
+          <TextField
+            fullWidth
+            label="Điện thoại"
+            value={form.DienThoai}
+            onChange={(e) => handleChange("DienThoai", e.target.value)}
+          />
+
+          <FormControl fullWidth>
+            <InputLabel>Quyền sử dụng</InputLabel>
+            <Select
+              label="Quyền sử dụng"
+              value={form.quyenSuDung}
+              onChange={(e) => handleChange("quyenSuDung", e.target.value)}
+            >
+              {loadingQuyens ? (
+                <MenuItem disabled>Đang tải...</MenuItem>
+              ) : (
+                quyens.map((q) => (
+                  <MenuItem key={q._id} value={q._id}>
+                    {q.ten}
+                  </MenuItem>
+                ))
+              )}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel>Trạng thái</InputLabel>
+            <Select
+              label="Trạng thái"
+              value={form.Status}
+              onChange={(e) => handleChange("Status", e.target.value)}
+            >
+              <MenuItem value={1}>Hoạt động</MenuItem>
+              <MenuItem value={0}>Bị khoá</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            fullWidth
+            label="Địa chỉ"
+            value={form.DiaChi}
+            onChange={(e) => handleChange("DiaChi", e.target.value)}
+            multiline
+            rows={2}
+          />
+
+          <TextField
+            fullWidth
+            label="Giới thiệu"
+            value={form.GioiThieu}
+            onChange={(e) => handleChange("GioiThieu", e.target.value)}
+            multiline
+            rows={3}
+          />
+        </Box>
+
+        {/* Footer có nút Lưu */}
+        <div className="border-t bg-white px-3 py-2.5 flex gap-2 shrink-0">
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="flex-1 py-2 rounded-lg font-medium text-sm bg-blue-500 hover:bg-blue-600 text-white transition flex items-center justify-center gap-1.5 uppercase"
+          >
+            Lưu thay đổi
+          </button>
+        </div>
       </Box>
     </Drawer>
   );

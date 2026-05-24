@@ -17,15 +17,20 @@ import {
   DialogActions,
   IconButton,
   Tooltip,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  Divider,
 } from "@mui/material";
 import { Edit, Delete, Add } from "@mui/icons-material";
 import { api } from "../../config/api";
+import { ALL_MENUS } from "../../config/menuConfig";
 
 export default function QuyenSuDung() {
   const [quyens, setQuyens] = useState([]);
   const [openModal, setOpenModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ ten: "", moTa: "" });
+  const [formData, setFormData] = useState({ ten: "", moTa: "", permissions: [] });
   const [loading, setLoading] = useState(false);
 
   // 📌 Fetch data
@@ -48,14 +53,14 @@ export default function QuyenSuDung() {
   // 📌 Mở modal thêm mới
   const handleOpenAdd = () => {
     setEditingId(null);
-    setFormData({ ten: "", moTa: "" });
+    setFormData({ ten: "", moTa: "", permissions: [] });
     setOpenModal(true);
   };
 
   // 📌 Mở modal sửa
   const handleOpenEdit = (quyen) => {
     setEditingId(quyen._id);
-    setFormData({ ten: quyen.ten, moTa: quyen.moTa });
+    setFormData({ ten: quyen.ten, moTa: quyen.moTa, permissions: quyen.permissions || [] });
     setOpenModal(true);
   };
 
@@ -63,7 +68,18 @@ export default function QuyenSuDung() {
   const handleCloseModal = () => {
     setOpenModal(false);
     setEditingId(null);
-    setFormData({ ten: "", moTa: "" });
+    setFormData({ ten: "", moTa: "", permissions: [] });
+  };
+
+  const handleTogglePermission = (path) => {
+    setFormData((prev) => {
+      const perms = prev.permissions;
+      if (perms.includes(path)) {
+        return { ...prev, permissions: perms.filter((p) => p !== path) };
+      } else {
+        return { ...prev, permissions: [...perms, path] };
+      }
+    });
   };
 
   // 📌 Xử lý thay đổi input
@@ -189,7 +205,7 @@ export default function QuyenSuDung() {
         <DialogTitle>
           {editingId ? "Sửa Quyền Sử Dụng" : "Thêm Quyền Sử Dụng"}
         </DialogTitle>
-        <DialogContent className="space-y-4 pt-4">
+        <DialogContent className="space-y-4 pt-4 mt-2">
           <TextField
             fullWidth
             label="Tên Quyền Sử Dụng"
@@ -208,6 +224,39 @@ export default function QuyenSuDung() {
             multiline
             rows={3}
           />
+
+          <Box mt={3}>
+            <Typography variant="subtitle1" className="font-bold mb-2">
+              Quyền truy cập Menu
+            </Typography>
+            <Paper variant="outlined" className="p-4 max-h-[300px] overflow-y-auto">
+              {ALL_MENUS.map((group, index) => (
+                <Box key={index} mb={2}>
+                  <Typography variant="body2" className="font-bold text-gray-600 mb-1">
+                    {group.title}
+                  </Typography>
+                  <FormGroup row>
+                    {group.items.map((menu) => (
+                      <FormControlLabel
+                        key={menu.router}
+                        control={
+                          <Checkbox
+                            checked={formData.permissions.includes(menu.router)}
+                            onChange={() => handleTogglePermission(menu.router)}
+                            color="primary"
+                            size="small"
+                          />
+                        }
+                        label={<Typography variant="body2">{menu.name}</Typography>}
+                        sx={{ width: "45%", mb: 0.5 }}
+                      />
+                    ))}
+                  </FormGroup>
+                  {index < ALL_MENUS.length - 1 && <Divider className="my-2" />}
+                </Box>
+              ))}
+            </Paper>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseModal}>Huỷ</Button>

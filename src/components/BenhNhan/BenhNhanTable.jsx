@@ -27,11 +27,13 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import EditIcon from "@mui/icons-material/Edit";
+import DownloadIcon from "@mui/icons-material/Download";
 
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBenhNhan } from "../../redux/slices/benhNhanSlice";
 import BenhNhanModal from "./BenhNhanModal";
 import BenhNhanUpdateModal from "./BenhNhanUpdateModal";
+import { exportDanhSachBenhNhanToExcel } from "../../utils/exportToExcel";
 
 export default function BenhNhanTable() {
   const dispatch = useDispatch();
@@ -188,6 +190,12 @@ export default function BenhNhanTable() {
           />
 
           <BenhNhanModal />
+
+          <Tooltip title="Xuất excel danh sách">
+            <IconButton onClick={() => exportDanhSachBenhNhanToExcel(filteredData)}>
+              <DownloadIcon />
+            </IconButton>
+          </Tooltip>
 
           <IconButton onClick={() => dispatch(fetchBenhNhan())}>
             <RefreshIcon />

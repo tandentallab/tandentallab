@@ -411,7 +411,7 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
                 <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" isLast />
 
                 {/* Cột ảo fill space */}
-                <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff" }} />
+                < TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff" }} />
               </TableRow>
             </TableHead>
 
@@ -453,7 +453,6 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
                       {/* MÃ ĐƠN */}
                       <TableCell
                         sx={{ ...getCellStyle("maDonHang"), color: "#00a8df", fontWeight: 600, cursor: "pointer" }}
-
                       >
                         {row.maDonHang}
                       </TableCell>
@@ -485,10 +484,10 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
             </TableBody>
           </Table>
         </TableContainer>
-      </div>
+      </div >
 
       {/* FOOTER */}
-      <div className="px-4 py-2 border-t bg-white flex-shrink-0 flex justify-between items-center">
+      < div className="px-4 py-2 border-t bg-white flex-shrink-0 flex justify-between items-center" >
         <Typography variant="caption" color="text.secondary" fontSize={12}>
           {visibleCount < displayedData.length
             ? `${visibleCount} / ${displayedData.length} dòng`
@@ -497,8 +496,8 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
         <Typography variant="caption" color="text.secondary" fontSize={12}>
           Tổng: <strong>{fmtVND(displayedData.reduce((s, r) => s + r.tongCong, 0))}</strong>
         </Typography>
-      </div>
+      </div >
 
-    </div>
+    </div >
   );
 }

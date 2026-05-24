@@ -222,7 +222,8 @@ const HoaDonPrintPreview = () => {
                   <tr>
                     <td colSpan={6} style={{ border: "none" }}></td>
                     <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
-                      THUẾ ({hoaDon.thue}%):
+                      {/* 👇 Sửa dòng này để làm tròn tỷ lệ hiển thị */}
+                      THUẾ
                     </td>
                     <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
                       {formatCurrency(
@@ -239,7 +240,7 @@ const HoaDonPrintPreview = () => {
                   <tr>
                     <td colSpan={6} style={{ border: "none" }}></td>
                     <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
-                      CHI PHÍ KHÁC:
+                      CHI PHÍ KHÁC
                     </td>
                     <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
                       {formatCurrency(hoaDon.chiPhiKhac || 0)}

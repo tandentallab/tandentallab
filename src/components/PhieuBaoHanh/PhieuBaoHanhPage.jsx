@@ -25,6 +25,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CloseIcon from "@mui/icons-material/Close";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import { api } from "../../config/api";
 import { toast } from "sonner";
 import FullScreenLoader from "../Loader/FullScreenLoader";
@@ -334,6 +335,18 @@ const PhieuBaoHanhPage = () => {
                       </TableCell>
                       <TableCell align="center">
                         <div className="flex justify-center items-center gap-1">
+                          <Tooltip title="Check thẻ bảo hành">
+                            <IconButton
+                              size="small"
+                              className="text-teal-600 hover:bg-teal-50"
+                              onClick={() => {
+                                const qrCode = phieu.maQR || phieu.maBaoHanh || "";
+                                window.open(`${window.location.origin}/warranty/?qrcode=${qrCode}`, "_blank");
+                              }}
+                            >
+                              <QrCodeScannerIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                           <Tooltip title="Chỉnh sửa">
                             <IconButton
                               size="small"
@@ -394,6 +407,16 @@ const PhieuBaoHanhPage = () => {
                     </span>
                   </div>
                   <div className="flex gap-1 bg-slate-50 p-1 rounded-lg">
+                    <IconButton
+                      size="small"
+                      className="text-teal-600"
+                      onClick={() => {
+                        const qrCode = phieu.maQR || phieu.maBaoHanh || "";
+                        window.open(`${window.location.origin}/warranty/?qrcode=${qrCode}`, "_blank");
+                      }}
+                    >
+                      <QrCodeScannerIcon fontSize="small" />
+                    </IconButton>
                     <IconButton
                       size="small"
                       className="text-blue-600"

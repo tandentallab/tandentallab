@@ -668,7 +668,7 @@ const MauTheBaoHanhPage = () => {
                           }}
                         >
                           <QRCodeSVG
-                            value="https://tan-dental-frontend-snmb.vercel.app/warranty/?qrcode=12345"
+                            value={`${window.location.origin}/warranty/?qrcode=12345`}
                             size={conf.coChu * 4 || 60}
                             level="L"
                           />

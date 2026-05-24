@@ -168,27 +168,41 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
     row.eachCell((cell) => applyBorder(cell, 'thin'));
   });
 
-  // ===== SUMMARY (KHỚP THEO ẢNH UI) =====
+  // ===== SUMMARY (KHỚP THEO BẢN CẬP NHẬT MỚI NHẤT) =====
   const summaryStart = dataRowStart + rows.length + 1;
 
-  // Tính lại % chiết khấu và thuế để hiển thị ra giống ảnh
   const tongCong = hoaDon.tongCong || 0;
   const ckAmount = hoaDon.chietKhau || 0;
-  const thueAmount = hoaDon.thue || 0;
 
-  const ckPercent = tongCong > 0 ? Math.round((ckAmount / tongCong) * 100) : 0;
-  const sauCk = tongCong - ckAmount;
-  const thuePercent = sauCk > 0 ? Math.round((thueAmount / sauCk) * 100) : 0;
+  // Tính % chiết khấu để in ra chữ (làm tròn 2 chữ số)
+  const ckPercent = tongCong > 0 ? Number(Number((ckAmount / tongCong) * 100).toFixed(2)) : 0;
+  const sauCk = Math.max(0, tongCong - ckAmount);
 
+  // 👇 Tách biệt: Dùng % làm tròn để hiển thị chữ, dùng % gốc (hoaDon.thue) để tính tiền
+  const thuePercent = Number(Number(hoaDon.thue || 0).toFixed(2));
+  const thueAmount = Math.round(sauCk * ((hoaDon.thue || 0) / 100)); // ✅ Lấy tỷ lệ gốc cực lẻ để nhân, ra tiền chẵn bóc!
+
+  const chiPhiKhac = hoaDon.chiPhiKhac || 0;
+
+  // Tạo danh sách các dòng summary động (ẩn Thuế và Chi phí khác nếu bằng 0 giống hệt trên web)
   const summaryItems = [
     { label: 'Tổng cộng', value: tongCong },
     { label: `Chiết khấu                ${ckPercent} % =`, value: ckAmount },
-    { label: `Thuế                     ${thuePercent} % =`, value: thueAmount },
-    { label: 'Chi phí khác', value: hoaDon.chiPhiKhac || 0 },
+  ];
+
+  if (thuePercent > 0) {
+    summaryItems.push({ label: `Thuế                     ${thuePercent} % =`, value: thueAmount });
+  }
+
+  if (chiPhiKhac > 0) {
+    summaryItems.push({ label: 'Chi phí khác', value: chiPhiKhac });
+  }
+
+  summaryItems.push(
     { label: 'Giá trị thanh toán', value: hoaDon.giaTriThanhToan || 0 },
     { label: 'Đã thanh toán', value: hoaDon.daThanhToan || 0 },
-    { label: 'Còn nợ', value: hoaDon.conLai || 0 },
-  ];
+    { label: 'Còn nợ', value: hoaDon.conLai || 0 }
+  );
 
   summaryItems.forEach((item, i) => {
     const r = summaryStart + i;
@@ -229,7 +243,6 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
   const fileName = `Hoa_don_${hoaDon.soHoaDon || 'TAN'}_${safeClinicName}.xlsx`;
   saveAs(new Blob([buffer]), fileName);
 };
-
 // ==========================================
 // CÁC HÀM XUẤT EXCEL KHÁC GIỮ NGUYÊN BÊN DƯỚI
 // ==========================================

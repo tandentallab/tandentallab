@@ -88,6 +88,7 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
     soLuong: 60,
     donGia: 115,
     tongCong: 120,
+    ghiChuTaiChinh: 160,
   });
 
   const totalTableWidth = Object.values(columnWidths).reduce((a, b) => a + b, 0) + 48; // 48 = checkbox col
@@ -180,7 +181,6 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   /* ================= MAP TÊN + GIÁ ================= */
   const mapTen = useMemo(() => buildProductNameMap(bangGia), [bangGia]);
 
-  // donGia map: sanPhamId → donGia (field tên có thể là donGia hoặc gia)
   const donGiaMap = useMemo(() => {
     const map = {};
     bangGia.forEach((item) => {
@@ -213,6 +213,7 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
           soLuong,
           donGia,
           tongCong: donGia * soLuong,
+          ghiChuTaiChinh: order.ghiChuTaiChinh,
         });
       });
     });
@@ -226,10 +227,8 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
     );
   }, [flattenedData, searchMaDon]);
 
-  // Reset về 25 mỗi khi data thay đổi
   useEffect(() => { setVisibleCount(25); }, [displayedData]);
 
-  // IntersectionObserver — load thêm 25 khi sentinel xuất hiện
   useEffect(() => {
     const container = containerRef.current;
     const sentinel = sentinelRef.current;
@@ -301,58 +300,69 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
 
-      {/* TOOLBAR */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b bg-white flex-shrink-0">
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel>Lọc theo ngày nhận</InputLabel>
-          <Select value={dateFilter} label="Lọc theo ngày nhận" onChange={(e) => setDateFilter(e.target.value)}>
-            <MenuItem value="all">Tất cả đơn hàng</MenuItem>
-            <MenuItem value="custom">Chọn khoảng ngày</MenuItem>
-            <MenuItem value="today">Hôm nay</MenuItem>
-            <MenuItem value="yesterday">Hôm qua</MenuItem>
-            <MenuItem value="thisWeek">Tuần này</MenuItem>
-            <MenuItem value="lastWeek">Tuần trước</MenuItem>
-            <MenuItem value="thisMonth">Tháng này</MenuItem>
-            <MenuItem value="lastMonth">Tháng trước</MenuItem>
-          </Select>
-        </FormControl>
+      {/* TOOLBAR RESPONSIVE */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-2 border-b bg-white flex-shrink-0">
 
-        {dateFilter === "custom" && (
-          <>
-            <TextField label="Từ ngày" type="date" size="small" value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
-            <TextField label="Đến ngày" type="date" size="small" value={toDate}
-              onChange={(e) => setToDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
-          </>
-        )}
+        {/* Nhóm Lọc & Tìm kiếm */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto flex-1">
+          <FormControl size="small" sx={{ minWidth: 200, width: { xs: '100%', sm: 'auto' } }}>
+            <InputLabel>Lọc theo ngày nhận</InputLabel>
+            <Select value={dateFilter} label="Lọc theo ngày nhận" onChange={(e) => setDateFilter(e.target.value)}>
+              <MenuItem value="all">Tất cả đơn hàng</MenuItem>
+              <MenuItem value="custom">Chọn khoảng ngày</MenuItem>
+              <MenuItem value="today">Hôm nay</MenuItem>
+              <MenuItem value="yesterday">Hôm qua</MenuItem>
+              <MenuItem value="thisWeek">Tuần này</MenuItem>
+              <MenuItem value="lastWeek">Tuần trước</MenuItem>
+              <MenuItem value="thisMonth">Tháng này</MenuItem>
+              <MenuItem value="lastMonth">Tháng trước</MenuItem>
+            </Select>
+          </FormControl>
 
-        {/* Search mã đơn hàng */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 focus-within:border-blue-400 focus-within:bg-white transition-all" style={{ minWidth: 180 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" className="flex-shrink-0">
-            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Tìm mã đơn hàng..."
-            value={searchMaDon}
-            onChange={(e) => setSearchMaDon(e.target.value)}
-            className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
-          />
-          {searchMaDon && (
-            <button onClick={() => setSearchMaDon("")} className="text-gray-400 hover:text-gray-600 transition-colors">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+          {dateFilter === "custom" && (
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <TextField label="Từ ngày" type="date" size="small" value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 140, flex: { xs: 1, sm: "none" } }} />
+              <TextField label="Đến ngày" type="date" size="small" value={toDate}
+                onChange={(e) => setToDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 140, flex: { xs: 1, sm: "none" } }} />
+            </div>
           )}
+
+          {/* Search mã đơn hàng */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 focus-within:border-blue-400 focus-within:bg-white transition-all w-full sm:w-auto" style={{ minWidth: 180 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" className="flex-shrink-0">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Tìm mã đơn hàng..."
+              value={searchMaDon}
+              onChange={(e) => setSearchMaDon(e.target.value)}
+              className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400 w-full"
+            />
+            {searchMaDon && (
+              <button onClick={() => setSearchMaDon("")} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex-1" />
-
+        {/* Nhóm Nút Tạo hóa đơn */}
         {selectedOrders.length > 0 && (
-          <Button variant="contained" color="primary" size="small" onClick={handleCreateHoaDon}>
-            Tạo hóa đơn ({selectedOrders.length} đơn)
-          </Button>
+          <div className="w-full md:w-auto flex justify-end">
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={handleCreateHoaDon}
+              sx={{ width: { xs: '100%', md: 'auto' } }}
+            >
+              Tạo hóa đơn ({selectedOrders.length} đơn)
+            </Button>
+          </div>
         )}
       </div>
 
@@ -381,7 +391,6 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
 
             <TableHead sx={{ position: "sticky", top: 0, zIndex: 20, bgcolor: "#e6f7ff" }}>
               <TableRow className="group" sx={{ border: "none !important" }}>
-                {/* Checkbox header — không resizable */}
                 <TableCell
                   padding="checkbox"
                   sx={{
@@ -408,23 +417,24 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
                 <ResizableHeaderCell label="Loại" columnKey="loai" />
                 <ResizableHeaderCell label="S.L" columnKey="soLuong" />
                 <ResizableHeaderCell label="Đơn giá" columnKey="donGia" />
-                <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" isLast />
+                <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" />
+                <ResizableHeaderCell label="Ghi chú TC" columnKey="ghiChuTaiChinh" isLast />
 
                 {/* Cột ảo fill space */}
-                < TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff" }} />
+                <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff" }} />
               </TableRow>
             </TableHead>
 
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={12} align="center" sx={{ py: 8, borderBottom: "none" }}>
+                  <TableCell colSpan={13} align="center" sx={{ py: 8, borderBottom: "none" }}>
                     <CircularProgress size={24} sx={{ color: "#00a8df" }} />
                   </TableCell>
                 </TableRow>
               ) : displayedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} align="center" sx={{ py: 8, color: "text.secondary", borderBottom: "none" }}>
+                  <TableCell colSpan={13} align="center" sx={{ py: 8, color: "text.secondary", borderBottom: "none" }}>
                     Không có đơn hàng nào
                   </TableCell>
                 </TableRow>
@@ -440,7 +450,6 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
                         "&:hover": { bgcolor: isSelected ? "#daeefa" : "#f8fafc" },
                       }}
                     >
-                      {/* CHECKBOX */}
                       <TableCell padding="checkbox" sx={{ borderBottom: "1px solid #cbd5e1", position: "sticky", left: 0, bgcolor: isSelected ? "#e8f4fd" : "white", zIndex: 1 }}>
                         <Checkbox
                           size="small"
@@ -450,9 +459,9 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
                         />
                       </TableCell>
 
-                      {/* MÃ ĐƠN */}
                       <TableCell
                         sx={{ ...getCellStyle("maDonHang"), color: "#00a8df", fontWeight: 600, cursor: "pointer" }}
+                        onClick={() => navigate(`/donhang/${row.orderId}/edit`)}
                       >
                         {row.maDonHang}
                       </TableCell>
@@ -467,16 +476,21 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
                       <TableCell sx={getCellStyle("donGia")}>{fmtVND(row.donGia)}</TableCell>
                       <TableCell sx={{ ...getCellStyle("tongCong"), fontWeight: "bold" }}>{fmtVND(row.tongCong)}</TableCell>
 
-                      {/* Cột ảo */}
+                      <TableCell
+                        sx={{ ...getCellStyle("ghiChuTaiChinh"), textOverflow: "ellipsis" }}
+                        title={row.ghiChuTaiChinh}
+                      >
+                        {row.ghiChuTaiChinh || "-"}
+                      </TableCell>
+
                       <TableCell sx={{ padding: 0, borderBottom: "1px solid #cbd5e1", width: "auto", minWidth: 0 }} />
                     </TableRow>
                   );
                 })
               )}
-              {/* Sentinel để trigger load more */}
               {!loading && visibleCount < displayedData.length && (
                 <TableRow ref={sentinelRef}>
-                  <TableCell colSpan={12} align="center" sx={{ py: 2, borderBottom: "none" }}>
+                  <TableCell colSpan={13} align="center" sx={{ py: 2, borderBottom: "none" }}>
                     <CircularProgress size={18} sx={{ color: "#00a8df" }} />
                   </TableCell>
                 </TableRow>

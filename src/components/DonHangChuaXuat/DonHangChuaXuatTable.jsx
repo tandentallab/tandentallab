@@ -278,7 +278,7 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
         createHoaDon({ nhaKhoaId, danhSachDonHangIds: selectedOrders.map((o) => o._id) })
       ).unwrap();
       toast.success("Tạo hóa đơn thành công!");
-      navigate(`/hoa-don/${result.data?._id}/edit`);
+      navigate(`/hoa-don`);
       setSelectedOrders([]);
     } catch (err) {
       toast.error(err?.message || "Tạo hóa đơn thất bại");

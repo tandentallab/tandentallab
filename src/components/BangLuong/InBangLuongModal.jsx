@@ -60,11 +60,20 @@ export default function InBangLuongModal({ open, onClose, salaryData, thang, nam
             .text-center { text-align: center; }
             @media print {
               .no-print { display: none; }
+              @page { size: A5 portrait; margin: 10mm; }
+              .col-container {
+                flex-direction: column !important;
+              }
+              .col-item {
+                margin-bottom: 12px !important;
+              }
             }
           </style>
         </head>
         <body>
-          ${printContent.innerHTML}
+          <div class="print-wrapper">
+            ${printContent.innerHTML}
+          </div>
         </body>
       </html>
     `);
@@ -110,9 +119,9 @@ export default function InBangLuongModal({ open, onClose, salaryData, thang, nam
                 <p style={{ margin: "0 0 8px 0" }}><strong>Họ và tên:</strong> {selectedData.hoVaTen}</p>
               </div>
 
-              <div style={{ display: "flex", gap: "12px", fontSize: "14px", alignItems: "stretch" }}>
+              <div className="col-container" style={{ display: "flex", gap: "12px", fontSize: "14px", alignItems: "stretch" }}>
                 {/* CỘT 1: Lương chính */}
-                <div style={{ flex: 1, border: "1px solid #000", padding: "8px", borderRadius: "4px" }}>
+                <div className="col-item" style={{ flex: 1, border: "1px solid #000", padding: "8px", borderRadius: "4px" }}>
                   <strong style={{ display: "block", textAlign: "center", borderBottom: "1px solid #000", paddingBottom: "4px", marginBottom: "8px", fontSize: "15px" }}>
                     I. CÔNG TÁC & LƯƠNG CHÍNH
                   </strong>
@@ -141,7 +150,7 @@ export default function InBangLuongModal({ open, onClose, salaryData, thang, nam
                 </div>
 
                 {/* CỘT 2: Phụ cấp & Khấu trừ */}
-                <div style={{ flex: 1, border: "1px solid #000", padding: "8px", borderRadius: "4px" }}>
+                <div className="col-item" style={{ flex: 1, border: "1px solid #000", padding: "8px", borderRadius: "4px" }}>
                   <strong style={{ display: "block", textAlign: "center", borderBottom: "1px solid #000", paddingBottom: "4px", marginBottom: "8px", fontSize: "15px" }}>
                     II. PHỤ CẤP & KHẤU TRỪ
                   </strong>
@@ -186,7 +195,7 @@ export default function InBangLuongModal({ open, onClose, salaryData, thang, nam
                   <span style={{ fontSize: "12px", color: "#4b5563" }}>(Thành tiền công + Tổng phụ cấp - Tổng khấu trừ)</span>
                 </div>
                 <div style={{ textAlign: "right", color: "#b91c1c", fontSize: "20px", fontWeight: "bold" }}>
-                  {Number(selectedData.thucNhan || result.thucNhan || 0).toLocaleString("vi-VN")} đ
+                  {Math.round(Number(selectedData.thucNhan || result.thucNhan || 0)).toLocaleString("vi-VN")} đ
                 </div>
               </div>
             </div>

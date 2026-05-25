@@ -12,7 +12,11 @@ const NumInput = ({ value, onChange, wide }) => (
     value={value ?? 0}
     onChange={(e) => onChange(Number(e.target.value))}
     className={inputClass}
-    style={{ width: wide ? 100 : 72, padding: "4px 6px", MozAppearance: "textfield" }}
+    style={{
+      width: wide ? 100 : 72,
+      padding: "4px 6px",
+      MozAppearance: "textfield",
+    }}
     onWheel={(e) => e.target.blur()}
   />
 );
@@ -70,7 +74,10 @@ const BangLuongRow = ({ item, onChange, isEven }) => {
       onMouseLeave={(e) => (e.currentTarget.style.background = rowBg)}
     >
       {/* Tên nhân viên */}
-      <td className="px-4 py-2 whitespace-nowrap" style={{ borderBottom: "1px solid #f1f5f9" }}>
+      <td
+        className="px-4 py-2 whitespace-nowrap"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
         <button
           onClick={() => navigate(`/nhan-vien/${item._id}`)}
           className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-sm"
@@ -80,22 +87,34 @@ const BangLuongRow = ({ item, onChange, isEven }) => {
       </td>
 
       {/* Lương cơ bản */}
-      <td className="px-4 py-2 text-right text-sm text-gray-600 whitespace-nowrap" style={{ borderBottom: "1px solid #f1f5f9" }}>
+      <td
+        className="px-4 py-2 text-right text-sm text-gray-600 whitespace-nowrap"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
         {fmt(item.luongCanBan)}
       </td>
 
       {/* Ngày công tháng */}
-      <td className="px-4 py-2 text-right text-sm text-gray-600 whitespace-nowrap" style={{ borderBottom: "1px solid #f1f5f9" }}>
-        {fmt(item.ngayCongThang)}
+      <td
+        className="px-4 py-2 text-right text-sm text-gray-600 whitespace-nowrap"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
+        {item.ngayCongThang}
       </td>
 
       {/* Lương ngày */}
-      <td className="px-4 py-2 text-right text-sm text-gray-600 whitespace-nowrap" style={{ borderBottom: "1px solid #f1f5f9" }}>
+      <td
+        className="px-4 py-2 text-right text-sm text-gray-600 whitespace-nowrap"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
         {fmt(luongNgay)}
       </td>
 
       {/* Ngày công */}
-      <td className="px-4 py-2 text-center" style={{ borderBottom: "1px solid #f1f5f9" }}>
+      <td
+        className="px-4 py-2 text-center"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
         <NumInput
           value={item.soNgayCong}
           wide
@@ -104,42 +123,81 @@ const BangLuongRow = ({ item, onChange, isEven }) => {
       </td>
 
       {/* Thành tiền công */}
-      <td className="px-4 py-2 text-right text-sm font-medium text-slate-700 whitespace-nowrap" style={{ borderBottom: "1px solid #f1f5f9" }}>
+      <td
+        className="px-4 py-2 text-right text-sm font-medium text-slate-700 whitespace-nowrap"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
         {fmt(thanhTienCong)}
       </td>
 
       {/* Cơm */}
-      <td className="px-4 py-2 text-center" style={{ borderBottom: "1px solid #f1f5f9" }}>
-        <VndInput value={item.com} onChange={(v) => onChange(item._id, "com", v)} />
+      <td
+        className="px-4 py-2 text-center"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
+        <VndInput
+          value={item.com}
+          onChange={(v) => onChange(item._id, "com", v)}
+        />
       </td>
 
       {/* Điện thoại */}
-      <td className="px-4 py-2 text-center" style={{ borderBottom: "1px solid #f1f5f9" }}>
-        <VndInput value={item.dienThoai} onChange={(v) => onChange(item._id, "dienThoai", v)} />
+      <td
+        className="px-4 py-2 text-center"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
+        <VndInput
+          value={item.dienThoai}
+          onChange={(v) => onChange(item._id, "dienThoai", v)}
+        />
       </td>
 
       {/* Thưởng */}
-      <td className="px-4 py-2 text-center" style={{ borderBottom: "1px solid #f1f5f9" }}>
-        <VndInput value={item.thuong} onChange={(v) => onChange(item._id, "thuong", v)} />
+      <td
+        className="px-4 py-2 text-center"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
+        <VndInput
+          value={item.thuong}
+          onChange={(v) => onChange(item._id, "thuong", v)}
+        />
       </td>
 
       {/* Phạt */}
-      <td className="px-4 py-2 text-center" style={{ borderBottom: "1px solid #f1f5f9" }}>
-        <VndInput value={item.phat} onChange={(v) => onChange(item._id, "phat", v)} />
+      <td
+        className="px-4 py-2 text-center"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
+        <VndInput
+          value={item.phat}
+          onChange={(v) => onChange(item._id, "phat", v)}
+        />
       </td>
 
       {/* Ứng trước */}
-      <td className="px-4 py-2 text-center" style={{ borderBottom: "1px solid #f1f5f9" }}>
-        <VndInput value={item.ungTruoc} onChange={(v) => onChange(item._id, "ungTruoc", v)} />
+      <td
+        className="px-4 py-2 text-center"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
+        <VndInput
+          value={item.ungTruoc}
+          onChange={(v) => onChange(item._id, "ungTruoc", v)}
+        />
       </td>
 
       {/* Tổng phụ cấp */}
-      <td className="px-4 py-2 text-right text-sm text-slate-600 whitespace-nowrap" style={{ borderBottom: "1px solid #f1f5f9" }}>
+      <td
+        className="px-4 py-2 text-right text-sm text-slate-600 whitespace-nowrap"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
         {fmt(tongPhuCap)}
       </td>
 
       {/* Thực nhận */}
-      <td className="px-4 py-2 text-right text-sm font-extrabold whitespace-nowrap" style={{ borderBottom: "1px solid #f1f5f9", color: "#059669" }}>
+      <td
+        className="px-4 py-2 text-right text-sm font-extrabold whitespace-nowrap"
+        style={{ borderBottom: "1px solid #f1f5f9", color: "#059669" }}
+      >
         {fmt(thucNhan)}
       </td>
     </tr>

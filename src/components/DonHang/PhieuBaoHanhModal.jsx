@@ -221,7 +221,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
 
       <DialogContent className="pt-6 flex flex-col gap-4 px-8">
         {/* Hàng 1: Mã bảo hành | Mẫu thẻ */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 mt-6">
           <div>
             <label className="text-xs text-gray-600 font-bold block mb-2">Mã bảo hành</label>
             <TextField

@@ -70,7 +70,7 @@ const PhieuThuPrintPreview = () => {
   };
 
   const maPhieuThu = phieuThu.soPhieuThu || `PT${phieuThu._id.substring(phieuThu._id.length - 8).toUpperCase()}`;
-  const printDate = phieuThu.ngayThu || phieuThu.ngayTao || new Date(); // Thêm new Date() làm dự phòng
+  const printDate = phieuThu.ngayThu || phieuThu.ngayTao || new Date();
   const soTienText = numberToWords(phieuThu.soTienThu);
 
   return (
@@ -86,7 +86,7 @@ const PhieuThuPrintPreview = () => {
       </div>
 
       <div className="flex flex-col items-center py-6 px-4">
-        <div className="print-area bg-white shadow-lg border border-gray-300" style={{ width: "148mm", fontFamily: "Cambria", padding: "10mm" }}>
+        <div className="print-area bg-white shadow-lg border border-gray-300" style={{ width: "210mm", fontFamily: "Cambria", padding: "10mm" }}>
           {/* Header */}
           <div style={{ marginBottom: "6mm" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "3mm" }}>
@@ -137,11 +137,11 @@ const PhieuThuPrintPreview = () => {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11pt" }}>
               <thead>
                 <tr>
-                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center" }}>Hóa đơn</th>
-                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center" }}>Số tiền ban đầu</th>
-                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center" }}>Đã thanh toán</th>
-                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center" }}>Số tiền còn lại</th>
-                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center" }}>Thanh toán</th>
+                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center", padding: "2mm" }}>Hóa đơn</th>
+                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center", padding: "2mm" }}>Số tiền ban đầu</th>
+                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center", padding: "2mm" }}>Đã thanh toán</th>
+                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center", padding: "2mm" }}>Số tiền còn lại</th>
+                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center", padding: "2mm" }}>Thanh toán</th>
                 </tr>
               </thead>
               <tbody>
@@ -166,12 +166,11 @@ const PhieuThuPrintPreview = () => {
           </div>
 
           {/* Chữ ký */}
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11pt" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11pt", marginTop: "8mm" }}>
             {[["Người lập phiếu"], ["Người nộp tiền"], ["Thủ quỹ"], ["Kế toán"], ["Thủ trưởng đơn vị"]].map(([label]) => (
-              <div key={label} style={{ textAlign: "center" }}>
-                <div style={{ marginBottom: "1mm" }}></div>
+              <div key={label} style={{ textAlign: "center", width: "20%" }}>
                 <div style={{ fontWeight: "bold" }}>{label}</div>
-                <div>(Ký, họ tên)</div>
+                <div style={{ fontStyle: "italic", fontSize: "10pt" }}>(Ký, họ tên)</div>
               </div>
             ))}
           </div>
@@ -188,14 +187,15 @@ const PhieuThuPrintPreview = () => {
 
       <style>{`
         @media print {
-          @page { size: A5 portrait; margin: 0; }
+          @page { size: A5 landscape; margin: 0; }
           body { margin: 0; padding: 0; background: white; }
           .bg-gray-200 { background: white; }
           .print-area {
             box-shadow: none !important;
             border: none !important;
-            width: 148mm !important;
-            padding: 10mm !important;
+            width: 210mm !important;
+            /* Đã giảm padding top xuống còn 4mm để chừa thêm chỗ trống phía dưới */
+            padding: 4mm 10mm 10mm 10mm !important; 
           }
           button, .h-10 { display: none !important; }
         }

@@ -22,6 +22,7 @@ import {
   NHOM_SAN_PHAM_OPTIONS,
 } from "../../data/sanPhamConfig";
 import ChonCongDoanModal from "./ChonCongDoanModal";
+import { toast } from "sonner";
 
 // 👉 DANH SÁCH DROPDOWN BẢO HÀNH CHO SẴN
 const BAO_HANH_OPTIONS = [1, 2, 3, 4, 5];
@@ -105,7 +106,7 @@ export default function SanPhamModal({
       }
       handleClose();
     } catch (err) {
-      alert(`Lỗi: ${err?.message || JSON.stringify(err)}`);
+      toast.error(`Lỗi: ${err?.message || JSON.stringify(err)}`);
     }
   };
 

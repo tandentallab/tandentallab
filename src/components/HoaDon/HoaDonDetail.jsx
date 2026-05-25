@@ -8,6 +8,7 @@ import { X, Printer, FileDown, Save, Upload, Trash2 } from "lucide-react";
 import { exportHoaDonToExcel } from "../../utils/exportToExcel";
 import HoaDonDetailTable from "./HoaDonDetailTable";
 import PhieuThuModal from "../PhieuThu/PhieuThuModal";
+import { toast } from "sonner";
 
 const fmtVND = (v) =>
   new Intl.NumberFormat("vi-VN").format(Math.round(v || 0));
@@ -242,9 +243,9 @@ const HoaDonDetail = () => {
         })
       ).unwrap();
       setIsDirty(false);
-      alert("Đã lưu hóa đơn thành công!");
+      toast.success("Đã lưu hóa đơn thành công!");
     } catch (err) {
-      alert("Lỗi: " + (err.message || err));
+      toast.error("Lỗi: " + (err.message || err));
     }
   };
 
@@ -286,7 +287,7 @@ const HoaDonDetail = () => {
       ).unwrap();
       navigate(-1);
     } catch (err) {
-      alert("Lỗi khi lưu: " + (err.message || err));
+      toast.error("Lỗi khi lưu: " + (err.message || err));
     }
   };
 
@@ -298,7 +299,7 @@ const HoaDonDetail = () => {
   // 🔥 1. Hàm được gọi khi bấm nút Xóa ở Footer
   const handleDeleteClick = () => {
     if (hoaDon.trangThai !== "Chưa thanh toán") {
-      alert("Không thể xóa hóa đơn đã có giao dịch thanh toán!");
+      toast.error("Không thể xóa hóa đơn đã có giao dịch thanh toán!");
       return;
     }
     // Mở custom modal thay vì dùng window.confirm
@@ -313,7 +314,7 @@ const HoaDonDetail = () => {
       navigate(-1); // Quay về trang trước
     } catch (err) {
       console.error("Lỗi xóa hóa đơn:", err);
-      alert("Không thể xóa hóa đơn lúc này!");
+      toast.error("Không thể xóa hóa đơn lúc này!");
     }
   };
   if (loading) return <div className="p-10 text-center text-gray-400">Đang tải...</div>;

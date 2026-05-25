@@ -13,6 +13,7 @@ import DonHangTable from "./DonHangTable";
 import DonHangDetailPanel from "./DonHangDetailPanel";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import { fetchBenhNhan } from "../../redux/slices/benhNhanSlice";
+import { toast } from "sonner";
 import {
   Modal,
   Box,
@@ -438,7 +439,7 @@ const DonHangPage = () => {
 
   const handleExportExcel = async () => {
     if (!hasExportDateValue()) {
-      alert(
+      toast.error(
         "Vui lòng nhập ít nhất 1 trong 3 nhóm ngày: Ngày nhận đơn, Ngày yêu cầu giao hoặc Ngày hoàn thành."
       );
       return;
@@ -501,7 +502,7 @@ const DonHangPage = () => {
 
       handleCloseExport();
     } catch (err) {
-      alert(`Xuất Excel thất bại: ${err?.message || "Lỗi không xác định"}`);
+      toast.error(`Xuất Excel thất bại: ${err?.message || "Lỗi không xác định"}`);
     } finally {
       setExporting(false);
     }

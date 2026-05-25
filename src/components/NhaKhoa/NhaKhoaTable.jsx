@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../../config/api";
 import { exportBangGiaRiengToExcel, exportDanhSachNhaKhoaToExcel } from "../../utils/exportToExcel";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -117,7 +118,7 @@ export default function NhaKhoaTable() {
       setSelectedExportNhaKhoa("");
     } catch (error) {
       console.error("Lỗi khi xuất bảng giá:", error);
-      alert("Đã xảy ra lỗi khi lấy dữ liệu bảng giá. Vui lòng thử lại!");
+      toast.error("Đã xảy ra lỗi khi lấy dữ liệu bảng giá. Vui lòng thử lại!");
     }
   };
   return (

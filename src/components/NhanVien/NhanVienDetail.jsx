@@ -18,6 +18,7 @@ import PaidIcon from "@mui/icons-material/Paid";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth"; // 🔥 Thêm icon lịch cho ngày công tháng
 import { API_URL } from "../../config/api";
+import { toast } from "sonner";
 
 const InfoRow = ({ icon, label, value, highlight }) => (
   <div
@@ -71,9 +72,9 @@ const NhanVienDetail = () => {
     try {
       setUploading(true);
       await dispatch(uploadCCCDNhanVien({ id: nhanVien._id, files })).unwrap();
-      alert("Upload CCCD thành công");
+      toast.success("Upload CCCD thành công");
     } catch (err) {
-      alert(err || "Upload thất bại");
+      toast.error(err || "Upload thất bại");
     } finally {
       setUploading(false);
     }
@@ -83,9 +84,9 @@ const NhanVienDetail = () => {
     if (!window.confirm("Xóa ảnh này?")) return;
     try {
       await dispatch(deleteCCCDImage({ id: nhanVien._id, imageUrl })).unwrap();
-      alert("Đã xóa ảnh");
+      toast.success("Đã xóa ảnh");
     } catch (err) {
-      alert(err || "Xóa ảnh thất bại");
+      toast.error(err || "Xóa ảnh thất bại");
     }
   };
 

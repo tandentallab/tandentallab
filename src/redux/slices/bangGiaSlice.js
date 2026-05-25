@@ -63,6 +63,32 @@ export const deleteBangGia = createAsyncThunk(
   }
 );
 
+// 📋 Áp dụng bảng giá từ nha khoa khác
+export const applyBangGiaTemplate = createAsyncThunk(
+  "bangGia/applyTemplate",
+  async (
+    { sourceNhaKhoaId, targetNhaKhoaId },
+    { rejectWithValue }
+  ) => {
+    try {
+      const res = await api.post(
+        "/bang-gia/apply-template",
+        {
+          sourceNhaKhoaId,
+          targetNhaKhoaId,
+        }
+      );
+
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message ||
+          "Áp dụng bảng giá thất bại"
+      );
+    }
+  }
+);
+
 /* ================= SLICE ================= */
 
 const bangGiaSlice = createSlice({
@@ -152,7 +178,23 @@ const bangGiaSlice = createSlice({
 
       .addCase(deleteBangGia.rejected, (state, action) => {
         state.error = action.payload;
-      });
+      })
+
+      /* ================= APPLY TEMPLATE ================= */
+
+.addCase(applyBangGiaTemplate.pending, (state) => {
+  state.loading = true;
+  state.error = null;
+})
+
+.addCase(applyBangGiaTemplate.fulfilled, (state) => {
+  state.loading = false;
+})
+
+.addCase(applyBangGiaTemplate.rejected, (state, action) => {
+  state.loading = false;
+  state.error = action.payload;
+})
   },
 });
 

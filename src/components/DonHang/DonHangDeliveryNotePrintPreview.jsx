@@ -76,13 +76,15 @@ const DonHangDeliveryNotePrintPreview = () => {
         </button>
       </div>
 
-      <div className="flex flex-col items-center py-6 px-4">
-        <div className="print-area bg-white w-full max-w-md shadow-lg border border-gray-400 p-6 text-sm">
+      <div className="flex flex-col items-center print:items-start py-6 px-4 print:p-0">
+        <div
+          className="print-area bg-white w-full max-w-[300px] shadow-lg border border-gray-400 p-6 print:p-0 text-sm"
+          style={{ fontFamily: "'Cambria', Georgia, serif" }}
+        >
           <div className="text-center">
             <div className="font-bold text-lg">CÔNG TY TNHH TẤN DENTAL</div>
-            <div>Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ</div>
             <div>Điện thoại: 0842312828</div>
-            <div className="font-bold text-base mt-2">PHIẾU GIAO HÀNG</div>
+            <div className="text-base mt-2">PHIẾU GIAO HÀNG</div>
             <div className="border-b border-dashed border-gray-500 mt-2" />
           </div>
 
@@ -95,14 +97,18 @@ const DonHangDeliveryNotePrintPreview = () => {
             <span className="font-bold">{benhNhan || "---"}</span>
             <span> Sản phẩm:</span>
             <span className="font-bold">{sanPhamText || "---"}</span>
-            <span>Kèm theo:</span>
-            <span className="font-bold">{phuKienText || "---"}</span>
             <span>Giờ giao:</span>
             <span className="font-bold">{formatDateTime(donHang.henGiao)}</span>
           </div>
 
-          <div className="border-b border-gray-300 mt-4" />
-          <div className="text-center mt-2 font-bold">Xin cảm ơn quý Nha khoa!</div>
+          <div className="border-b border-gray-300 mt-3" />
+          <div className="mt-2 text-left">
+            <span>Ghi chú SX: </span>
+            <span className="font-bold">{donHang.ghiChuSanXuat || "---"}</span>
+          </div>
+
+          <div className="border-b border-gray-300 mt-3" />
+          <div className="text-center mt-2">Xin cảm ơn quý Nha khoa!</div>
         </div>
 
         <div className="mt-4 flex gap-2">
@@ -122,6 +128,9 @@ const DonHangDeliveryNotePrintPreview = () => {
       </div>
 
       <style>{`
+        @page {
+          margin: 12mm 15mm;
+        }
         @media print {
           body {
             background: white;
@@ -129,7 +138,6 @@ const DonHangDeliveryNotePrintPreview = () => {
           .print-area {
             box-shadow: none;
             border: none;
-            max-width: 100%;
           }
           button {
             display: none;

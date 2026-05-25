@@ -1,121 +1,155 @@
-import React, { useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
+import { Dialog, DialogContent, DialogActions, Button, CircularProgress } from "@mui/material";
+import { api } from "../../config/api";
 
 const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
-  const printRef = useRef();
+  const [mauThe, setMauThe] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  if (!warranty) return null;
+  useEffect(() => {
+    if (open) loadMauThe();
+  }, [open, warranty]);
 
-  const handlePrint = () => {
-    const printWindow = window.open("", "", "height=400,width=600");
-    printWindow.document.write(printRef.current.innerHTML);
-    printWindow.document.close();
-    printWindow.print();
+  const loadMauThe = async () => {
+    try {
+      setLoading(true);
+      const mauTheId = typeof warranty?.mauThe === 'object' ? warranty.mauThe?._id : warranty?.mauThe;
+
+      let res;
+      if (mauTheId) {
+        res = await api.get(`/mau-the-bao-hanh/${mauTheId}`);
+      } else {
+        const listRes = await api.get("/mau-the-bao-hanh", { params: { nhaKhoaId: warranty.nhaKhoa?._id } });
+        if (listRes.data?.success && listRes.data.data.length > 0) {
+          res = { data: { success: true, data: listRes.data.data[0] } };
+        }
+      }
+
+      if (res?.data?.success && res.data.data) {
+        setMauThe(res.data.data);
+      }
+    } catch (error) {
+      console.error("Lỗi tải mẫu:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
-  const qrValue = `http://${host}:3000/warranty/?qrcode=${warranty.maQR}`;
-  const warrantyCodeNumber = String(warranty.maBaoHanh || "").match(/\d+/g)?.join("") || warranty.maBaoHanh || "---";
+  const getFieldValue = (loaiTruong) => {
+    if (!warranty && !donHang) return "---";
+
+    switch (loaiTruong) {
+      case "maThe":
+        const maBaoHanh = warranty?.maBaoHanh || "";
+        return maBaoHanh.replace(/^TAN/, "") || "---";
+
+      case "nhaKhoa":
+        return warranty?.nhaKhoa?.tenGiaoDich || warranty?.nhaKhoa?.hoVaTen || donHang?.nhaKhoa?.tenGiaoDich || donHang?.nhaKhoa?.hoVaTen || "---";
+
+      case "bacSi":
+        return warranty?.bacSi?.hoVaTen || donHang?.bacSi?.hoVaTen || "---";
+
+      case "benhNhan":
+        return warranty?.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen || "---";
+
+      case "sanPham":
+        return warranty?.danhSachBaoHanh?.[0]?.sanPham?.tenSanPham || donHang?.danhSachSanPham?.[0]?.sanPham?.tenSanPham || "---";
+
+      case "viTriRang": {
+        const viTriStr = warranty?.danhSachBaoHanh?.[0]?.viTriRang;
+        if (typeof viTriStr === "string" && viTriStr !== "---" && viTriStr.trim() !== "") {
+          return viTriStr;
+        }
+        const viTriArr = donHang?.danhSachSanPham?.[0]?.viTri || [];
+        if (!Array.isArray(viTriArr) || viTriArr.length === 0) return "---";
+        const parts = viTriArr
+          .map((v) => {
+            if (!Array.isArray(v.soRang) || v.soRang.length === 0) return "";
+            if (v.kieu === "Rời") return v.soRang.join(", ");
+            if (v.soRang.length === 1) return String(v.soRang[0]);
+            return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+          })
+          .filter(Boolean);
+        return parts.join("; ") || "---";
+      }
+
+      case "baoHanhTu":
+        return warranty?.danhSachBaoHanh?.[0]?.baoHanhTu
+          ? new Date(warranty.danhSachBaoHanh[0].baoHanhTu).toLocaleDateString("vi-VN")
+          : "---";
+
+      case "baoHanhDen":
+        return warranty?.danhSachBaoHanh?.[0]?.baoHanhDen
+          ? new Date(warranty.danhSachBaoHanh[0].baoHanhDen).toLocaleDateString("vi-VN")
+          : "---";
+
+      default: return "";
+    }
+  };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: { maxHeight: "90vh", height: "auto" }
-      }}
+      PaperProps={{ style: { boxShadow: 'none', border: 'none' } }} // Xóa bóng mờ của khung dialog
     >
-      <DialogTitle className="bg-blue-600 text-white font-bold">
-        In thẻ bảo hành
-      </DialogTitle>
+      <DialogContent id="print-content" style={{ minHeight: "300px", padding: 0 }}>
+        {loading ? <CircularProgress /> : !mauThe ? <p>Không tìm thấy mẫu.</p> : (
+          /* Xóa border: "1px dashed #ccc" ở đây */
+          <div style={{ position: "relative", width: "100%", height: "297mm", border: "none" }}>
+            {mauThe.cacTruong?.map((field, idx) => {
+              const left = Number(field.leTrai) || 0;
+              const top = Number(field.leTren) || 0;
 
-      <DialogContent className="p-4">
-        {/* Card Preview */}
-        <div
-          ref={printRef}
-          style={{
-            width: "100%",
-            maxWidth: "450px",
-            margin: "0 auto",
-            height: "500px",
-            background: "#ffffff",
-            border: "2px solid #e5e7eb",
-            boxSizing: "border-box",
-            position: "relative",
-            overflow: "hidden",
-            padding: 0,
-            fontFamily: "sans-serif",
-          }}
-        >
-          <div style={{ position: "relative", width: "100%", height: "100%" }}>
-            {/* Tên nha khoa: top 37mm, left 10mm, size 12pt bold */}
-            <div
-              style={{
-                position: "absolute",
-                left: "8mm",
-                top: "36mm",
-                fontSize: "10pt",
-                fontWeight: 700,
-                color: "#111827",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {warranty.nhaKhoa?.tenGiaoDich || warranty.nhaKhoa?.hoVaTen || "---"}
-            </div>
+              if (field.loaiTruong === "maQR") {
+                // 1. Lấy mã và loại bỏ chữ "TAN" ở đầu
+                const rawCode = (warranty?.maQR || "N/A").replace(/^TAN/, "");
 
-            {/* Bệnh nhân: top 47mm, left 10mm, size 12pt bold */}
-            <div
-              style={{
-                position: "absolute",
-                left: "8mm",
-                top: "46mm",
-                fontSize: "10pt",
-                fontWeight: 700,
-                color: "#111827",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {warranty.benhNhan?.hoVaTen || "---"}
-            </div>
+                // 2. Tạo đường dẫn đầy đủ
+                const fullUrl = `${window.location.origin}/warranty/?qrcode=${rawCode}`;
 
-            {/* Mã thẻ: top 47mm, left 60mm, size 12pt bold */}
-            <div
-              style={{
-                position: "absolute",
-                left: "59mm",
-                top: "46mm",
-                fontSize: "10pt",
-                fontWeight: 700,
-                color: "#111827",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {warrantyCodeNumber}
-            </div>
+                return (
+                  <div key={idx} style={{ position: "absolute", left: `${left}mm`, top: `${top}mm` }}>
+                    {/* 3. Truyền đường dẫn đầy đủ vào QR */}
+                    <QRCodeSVG value={fullUrl} size={field.coChu ? field.coChu * 4 : 65} level="L" />
+                  </div>
+                );
+              }
 
-            {/* Mã QR: top 33mm, left 60mm */}
-            <div
-              style={{
-                position: "absolute",
-                left: "59mm",
-                top: "31mm",
-              }}
-            >
-              <QRCodeSVG value={qrValue} size={53} level="H" includeMargin={false} />
-            </div>
+              return (
+                <div key={idx} style={{
+                  position: "absolute",
+                  left: `${left}mm`,
+                  top: `${top}mm`,
+                  fontSize: `${field.coChu || 12}pt`,
+                  fontWeight: field.doDam ? "bold" : "normal",
+                  color: "#000",
+                  whiteSpace: "nowrap"
+                }}>
+                  {getFieldValue(field.loaiTruong) || "..."}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )}
       </DialogContent>
-
-      <DialogActions>
+      <DialogActions className="print-hidden">
         <Button onClick={onClose}>Đóng</Button>
-        <Button onClick={handlePrint} variant="contained" color="primary">
-          In
-        </Button>
+        <Button variant="contained" onClick={() => window.print()}>In</Button>
       </DialogActions>
+
+      <style>{`
+        @media print {
+          .print-hidden { display: none !important; }
+          @page { size: auto; margin: 0; }
+          body * { visibility: hidden; }
+          #print-content, #print-content * { visibility: visible; border: none !important; box-shadow: none !important; }
+          #print-content { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+      `}</style>
     </Dialog>
   );
 };

@@ -87,7 +87,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
 
       {/* Panel */}
       <div
-        className={`fixed right-0 top-10 md:top-0 pt-16 h-full w-full sm:w-[480px] bg-gray-100 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed right-0 top-0 pt-16 h-full w-full sm:w-[480px] bg-gray-100 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
           }`}
       >
         {/* ── HEADER ── */}
@@ -209,6 +209,10 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                     {danhSachHoaDon.map((item, idx) => {
                       const hd = item.hoaDon || {};
                       const soTienThanhToan = item.soTienThanhToan ?? (idx === 0 ? phieuThu?.soTienThu : 0);
+                      const daTTruocLanNay = item.daTTruocLanNay || 0;
+                      const giaTriHoaDon = item.giaTriHoaDon || hd.giaTriThanhToan || 0;
+                      const tongCong = daTTruocLanNay + (soTienThanhToan || 0);
+                      const conLai = giaTriHoaDon - tongCong;
                       return (
                         <div key={hd._id || idx} className={`${idx > 0 ? "border-t pt-3" : ""}`}>
                           <div className="flex justify-between items-center mb-2">
@@ -225,10 +229,10 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                             </span>
                           </div>
                           <div className="space-y-0">
-                            <InfoRow label="Giá trị hóa đơn:" value={formatNumber(hd.thanhTien)} />
+                            <InfoRow label="Giá trị hóa đơn:" value={formatNumber(giaTriHoaDon)} />
                             <InfoRow
                               label="Đã thanh toán:"
-                              value={formatNumber((hd.daThanhToan || 0) - (soTienThanhToan || 0))}
+                              value={formatNumber(daTTruocLanNay)}
                             />
                             <InfoRow
                               label="Thanh toán lần này:"
@@ -237,13 +241,13 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                             />
                             <InfoRow
                               label="Tổng cộng:"
-                              value={formatNumber(hd.daThanhToan)}
+                              value={formatNumber(tongCong)}
                               valueClass="font-bold"
                             />
                             <InfoRow
                               label="Còn lại:"
-                              value={formatNumber(hd.conLai)}
-                              valueClass={(hd.conLai || 0) > 0 ? "text-orange-500" : "text-green-600"}
+                              value={formatNumber(conLai)}
+                              valueClass={conLai > 0 ? "text-orange-500" : "text-green-600"}
                             />
                           </div>
                           {hd.trangThai && (
@@ -290,6 +294,7 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
           onSuccess={(updated) => {
             setOpenEdit(false);
             if (onUpdated) onUpdated(updated);
+            if (onClose) onClose();
           }}
         />
       )}

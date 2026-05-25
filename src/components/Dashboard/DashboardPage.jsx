@@ -96,7 +96,7 @@ const DashboardPage = () => {
           loading={chart1.loading}
           config={chart1.config}
           onConfigSave={handleConfigSave}
-          keys={['Mới', 'Sửa', 'Bảo hành', 'Làm lại']}
+          keys={['Mới', 'Hàng sửa', 'Hàng bảo hành', 'Hàng làm lại']}
           colors={['#3B82F6', '#F59E0B', '#10B981', '#EF4444']}
           yAxisLabel="Số lượng (Răng / Case)"
         />

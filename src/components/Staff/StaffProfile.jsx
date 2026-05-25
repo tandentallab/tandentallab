@@ -29,6 +29,10 @@ const StaffProfile = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
+    console.log("Nhân viên: ", staff);
+  }, [staff]);
+
+  useEffect(() => {
     if (user) {
       setStaff({
         MSNV: user.MSNV || "",
@@ -144,7 +148,6 @@ const StaffProfile = () => {
             <Typography className="text-gray-500">{staff.Email}</Typography>
 
             <div className="flex justify-center gap-2 mt-2">
-              <Chip label={staff.ChucVu} color="primary" />
               <Chip
                 label={staff.Status === 1 ? "Hoạt động" : "Ngưng"}
                 color={staff.Status === 1 ? "success" : "default"}
@@ -248,7 +251,11 @@ const StaffProfile = () => {
           <div className="flex justify-end mt-8 gap-3">
             {isEditing ? (
               <>
-                <Button variant="outlined" onClick={handleCancel} disabled={saving}>
+                <Button
+                  variant="outlined"
+                  onClick={handleCancel}
+                  disabled={saving}
+                >
                   Hủy
                 </Button>
                 <Button
@@ -273,4 +280,3 @@ const StaffProfile = () => {
 };
 
 export default StaffProfile;
-

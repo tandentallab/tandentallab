@@ -23,6 +23,8 @@ import {
 } from "../../data/sanPhamConfig";
 import ChonCongDoanModal from "./ChonCongDoanModal";
 
+// 👉 DANH SÁCH DROPDOWN BẢO HÀNH CHO SẴN
+const BAO_HANH_OPTIONS = [1, 2, 3, 4, 5];
 const INITIAL_FORM = {
   tenSanPham: "",
   donGiaChung: "",
@@ -33,6 +35,7 @@ const INITIAL_FORM = {
   loai: "Sản xuất",
   coMauRang: true,
   quyTrinh: [],
+  baoHanhMacDinh: "0",
 };
 
 export default function SanPhamModal({
@@ -50,12 +53,12 @@ export default function SanPhamModal({
   useEffect(() => {
     if (open) {
       if (isEdit && editData) {
-        // 👉 DÙNG MẸO TRỘN DỮ LIỆU ĐỂ TRÁNH TRƯỜNG HỢP API TRẢ VỀ THIẾU TRƯỜNG
         setForm({
           ...INITIAL_FORM,
           ...editData,
           donGiaChung: editData.donGiaChung?.toString() || "",
           quyTrinh: editData.quyTrinh || [],
+          baoHanhMacDinh: (editData.baoHanhMacDinh || 0).toString(),
         });
       } else {
         setForm(INITIAL_FORM);
@@ -88,7 +91,11 @@ export default function SanPhamModal({
   const handleSubmit = async () => {
     if (!validateForm()) return;
     try {
-      const payload = { ...form, donGiaChung: Number(form.donGiaChung) };
+      const payload = {
+        ...form,
+        donGiaChung: Number(form.donGiaChung),
+        baoHanhMacDinh: Number(form.baoHanhMacDinh),
+      };
       if (isEdit) {
         await dispatch(
           updateSanPham({ id: editData._id, data: payload })
@@ -98,7 +105,7 @@ export default function SanPhamModal({
       }
       handleClose();
     } catch (err) {
-      console.error(err);
+      alert(`Lỗi: ${err?.message || JSON.stringify(err)}`);
     }
   };
 
@@ -234,6 +241,31 @@ export default function SanPhamModal({
                       ))}
                     </TextField>
                   </div>
+
+                  <TextField
+                    select
+                    label="Thời gian bảo hành mặc định"
+                    variant="standard"
+                    fullWidth
+                    value={form.baoHanhMacDinh || "0"}
+                    onChange={(e) =>
+                      handleChange("baoHanhMacDinh", e.target.value)
+                    }
+                    InputLabelProps={{ shrink: true }}
+                  >
+                    <MenuItem value="0">Không có bảo hành</MenuItem>
+                    <MenuItem value="1">1 năm</MenuItem>
+                    <MenuItem value="2">2 năm</MenuItem>
+                    <MenuItem value="3">3 năm</MenuItem>
+                    <MenuItem value="4">4 năm</MenuItem>
+                    <MenuItem value="5">5 năm</MenuItem>
+                    <MenuItem value="6">6 năm</MenuItem>
+                    <MenuItem value="7">7 năm</MenuItem>
+                    <MenuItem value="8">8 năm</MenuItem>
+                    <MenuItem value="9">9 năm</MenuItem>
+                    <MenuItem value="10">10 năm</MenuItem>
+                  </TextField>
+
                   <TextField
                     label="Mô tả"
                     variant="standard"

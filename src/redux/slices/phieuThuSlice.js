@@ -51,6 +51,25 @@ export const updatePhieuThu = createAsyncThunk(
     }
 );
 
+// Lấy phiếu thu theo hóa đơn
+export const fetchPhieuThuByHoaDon = createAsyncThunk(
+    "phieuThu/fetchByHoaDon",
+    async (hoaDonId, { rejectWithValue }) => {
+        try {
+            const res = await api.get(
+                `/phieu-thu/hoa-don/${hoaDonId}`
+            );
+
+            return res.data;
+        } catch (err) {
+            return rejectWithValue(
+                err.response?.data?.message ||
+                "Lấy phiếu thu thất bại"
+            );
+        }
+    }
+);
+
 /* ================= SLICE ================= */
 
 const phieuThuSlice = createSlice({
@@ -62,6 +81,8 @@ const phieuThuSlice = createSlice({
         loading: false,
         loadingHoaDon: false,
         error: null,
+        phieuThuTheoHoaDon: [],
+        loadingPhieuThuHoaDon: false,
     },
 
     reducers: {},
@@ -129,7 +150,40 @@ const phieuThuSlice = createSlice({
             .addCase(updatePhieuThu.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
-            });
+            })
+
+            //Get phiếu thu theo hóa đơn id
+            // fetchPhieuThuByHoaDon
+            .addCase(
+                fetchPhieuThuByHoaDon.pending,
+                (state) => {
+                    state.loadingPhieuThuHoaDon = true;
+
+                    state.phieuThuTheoHoaDon = [];
+                }
+            )
+
+            .addCase(
+                fetchPhieuThuByHoaDon.fulfilled,
+                (state, action) => {
+                    state.loadingPhieuThuHoaDon = false;
+                    console.log("Phiếu thu theo hóa đơn: ", action.payload.data)
+
+                    state.phieuThuTheoHoaDon =
+                        action.payload.data || [];
+                }
+            )
+
+            .addCase(
+                fetchPhieuThuByHoaDon.rejected,
+                (state, action) => {
+                    state.loadingPhieuThuHoaDon = false;
+
+                    state.error = action.payload;
+
+                    state.phieuThuTheoHoaDon = [];
+                }
+            )
     },
 });
 

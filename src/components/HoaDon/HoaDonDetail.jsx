@@ -1,115 +1,117 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchHoaDonById, updateHoaDon } from "../../redux/slices/hoaDonSlice";
+import { fetchHoaDonById, updateHoaDon, deleteHoaDon } from "../../redux/slices/hoaDonSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
-import { Avatar, Button, IconButton } from "@mui/material";
-import { TrashIcon } from "lucide-react";
+import { fetchPhieuThuByHoaDon } from "../../redux/slices/phieuThuSlice";
+import { X, Printer, FileDown, Save, Upload, Trash2 } from "lucide-react";
 import { exportHoaDonToExcel } from "../../utils/exportToExcel";
-import DonHangChuaXuatModal from "../DonHangChuaXuat/DonHangChuaXuatModal";
-import AddIcon from "@mui/icons-material/Add";
+import HoaDonDetailTable from "./HoaDonDetailTable";
+import PhieuThuModal from "../PhieuThu/PhieuThuModal";
+
+const fmtVND = (v) =>
+  new Intl.NumberFormat("vi-VN").format(Math.round(v || 0));
+
+// Format số tiền cho input (hiển thị dấu chấm phân cách nghìn)
+const fmtMoneyInput = (v) =>
+  v ? new Intl.NumberFormat("vi-VN").format(Math.round(Number(v) || 0)) : "";
+const parseMoneyInput = (s) => parseInt(String(s).replace(/\D/g, ""), 10) || 0;
+
+const fmtDateTime = (d) => {
+  if (!d) return "-";
+  const dt = new Date(d);
+  return `${dt.toLocaleDateString("vi-VN")} ${dt.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", hour12: false })}`;
+};
+
+const TRANG_THAI_COLOR = {
+  "Chưa thanh toán": "bg-orange-500 text-white",
+  "Thanh toán một phần": "bg-yellow-500 text-white",
+  "Đã thanh toán": "bg-green-500 text-white",
+};
 
 const HoaDonDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const dispatch = useDispatch();
+
   const [loading, setLoading] = useState(true);
   const [hoaDon, setHoaDon] = useState(null);
-  const [nhaKhoaInfo, setNhaKhoaInfo] = useState(null);
+  const [phieuThuList, setPhieuThuList] = useState([]);
+  const [isDirty, setIsDirty] = useState(false);
+  const [ptOpen, setPtOpen] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false); // 🔥 NEW
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [formState, setFormState] = useState({
+    chinhSachThanhToan: "Thanh toán cuối tháng",
+    ghiChuChoKhachHang: "",
+    ghiChuNoiBo: "",
+    chietKhauPhanTram: 0,
+    chietKhauTien: 0,
+    chietKhauMode: "phanTram", // "phanTram" | "tienMat"
+    thuePhanTram: 0,
+    thueTien: 0,
+    thueMode: "phanTram",     // "phanTram" | "tienMat"
+    chiPhiKhac: 0,
+    ngayXuatHoaDon: "",
+  });
 
-  const dispatch = useDispatch();
-  const { data: bangGia = [] } = useSelector((state) => state.bangGia) || {};
-  const nhaKhoa = useSelector((state) => state.nhaKhoa);
-
-  const [chinhSachThanhToan, setChinhSachThanhToan] = useState(
-    hoaDon?.chinhSachThanhToan
-  );
-  const [ghiChuChoKhachHang, setGhiChuChoKhachHang] = useState(
-    hoaDon?.ghiChuKhachHang
-  );
-  const [ghiChuNoiBo, setGhiChuNoiBo] = useState(hoaDon?.ghiChuNoiBo);
-
-  const [thuePhanTram, setThuePhanTram] = useState(hoaDon?.thue);
-  const [chiPhiKhac, setChiPhiKhac] = useState(hoaDon?.chiPhiKhac);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedOrders, setSelectedOrders] = useState([]);
-
-  const handleAddOrders = (orders) => {
-    console.log("Orders từ modal:", orders);
-
-    setHoaDon((prev) => {
-      if (!prev) return prev;
-
-      // id đã tồn tại
-      const existingIds = prev.danhSachDonHang.map((i) => i.donHang?._id);
-
-      // chỉ lấy đơn mới
-      const newItems = orders.filter(
-        (o) => !existingIds.includes(o.donHang?._id)
-      );
-
-      if (!newItems.length) return prev;
-
-      const updatedItems = [...prev.danhSachDonHang, ...newItems];
-
-      // tính lại tổng
-      let tongTien = 0;
-      let tongChietKhau = 0;
-
-      updatedItems.forEach((i) => {
-        tongTien += Number(i.tongTien || 0);
-
-        tongChietKhau +=
-          Number(i.tongTien || 0) - Number(i.thanhTienSauCK || 0);
-      });
-
-      const thanhTien = tongTien - tongChietKhau;
-
-      return {
-        ...prev,
-        danhSachDonHang: updatedItems,
-        tongTien,
-        tongChietKhau,
-        thanhTien,
-        conLai: thanhTien - (prev.daThanhToan || 0),
-      };
-    });
-  };
-
+  // ================= LOAD DATA =================
   useEffect(() => {
-    dispatch(fetchNhaKhoa());
-  }, [dispatch]);
-
-  useEffect(() => {
-    console.log("Hóa đơn: ", hoaDon);
-    setGhiChuChoKhachHang(hoaDon?.ghiChuChoKhachHang);
-    setGhiChuNoiBo(hoaDon?.ghiChuNoiBo);
-    setChinhSachThanhToan(hoaDon?.chinhSachThanhToan);
-    setThuePhanTram(hoaDon?.thue);
-    setChiPhiKhac(hoaDon?.chiPhiKhac);
-  }, [hoaDon]);
-
-  useEffect(() => {
-    const fetchData = async () => {
+    const load = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-
+        await dispatch(fetchNhaKhoa());
         const res = await dispatch(fetchHoaDonById(id)).unwrap();
-        const found = res.data;
+        const data = res.data;
 
-        if (found) {
-          setHoaDon(found);
+        const mappedData = {
+          ...data,
+          danhSachSanPham: (data.danhSachSanPham || []).map((sp) => ({
+            ...sp,
+            giamGiaPhanTram: sp.thanhTien
+              ? parseFloat(((sp.giamGia || 0) / sp.thanhTien * 100).toFixed(2))
+              : 0,
+          })),
+        };
 
-          const nhaKhoaId =
-            typeof found.nhaKhoa === "string"
-              ? found.nhaKhoa
-              : found.nhaKhoa?._id;
+        setHoaDon(mappedData);
 
-          const foundNhaKhoa = nhaKhoa?.data?.find(
-            (nk) => nk._id === nhaKhoaId
-          );
+        const tongCongLoaded = mappedData.tongCong || 0;
+        const chietKhauPhanTram =
+          tongCongLoaded > 0
+            ? Math.round(((mappedData.chietKhau || 0) / tongCongLoaded) * 100)
+            : 0;
 
-          setNhaKhoaInfo(foundNhaKhoa || null);
+        // 👇 1. TÍNH TOÁN TRƯỚC SỐ TIỀN THUẾ THỰC TẾ ĐỂ LOAD LÊN UI
+        const sauCKLoaded = tongCongLoaded - (mappedData.chietKhau || 0);
+        const thueTienLoaded = Math.round(sauCKLoaded * ((mappedData.thue || 0) / 100));
+
+        setFormState({
+          chinhSachThanhToan: mappedData.chinhSachThanhToan || "Thanh toán cuối tháng",
+          ghiChuChoKhachHang: mappedData.ghiChuChoKhachHang || "",
+          ghiChuNoiBo: mappedData.ghiChuNoiBo || "",
+          chietKhauPhanTram,
+          chietKhauTien: mappedData.chietKhau || 0,
+          chietKhauMode: mappedData.chietKhau > 0 ? "tienMat" : "phanTram",
+          thuePhanTram: mappedData.thue || 0,
+
+          // 👇 2. CẬP NHẬT GIÁ TRỊ THUẾ THEO TIỀN MẶT ĐÃ TÍNH TOÁN
+          thueTien: thueTienLoaded,
+
+          // 👇 3. TỰ ĐỘNG BẬT Ô TIỀN MẶT NẾU GIÁ TRỊ THUẾ LÀ SỐ THẬP PHÂN LẺ (DO NHẬP TIỀN QUY ĐỔI)
+          thueMode: (mappedData.thue > 0 && mappedData.thue % 1 !== 0) ? "tienMat" : "phanTram",
+
+          chiPhiKhac: mappedData.chiPhiKhac || 0,
+          ngayXuatHoaDon: mappedData.ngayXuatHoaDon
+            ? new Date(mappedData.ngayXuatHoaDon).toISOString().split("T")[0]
+            : "",
+        });
+
+        try {
+          const ptRes = await dispatch(fetchPhieuThuByHoaDon(id)).unwrap();
+          setPhieuThuList(ptRes?.data || ptRes || []);
+        } catch (ptErr) {
+          console.error("Không tải được phiếu thu:", ptErr);
         }
       } catch (err) {
         console.error(err);
@@ -117,576 +119,676 @@ const HoaDonDetail = () => {
         setLoading(false);
       }
     };
+    load();
+  }, [id, dispatch]);
 
-    fetchData();
-  }, [id, dispatch, nhaKhoa]);
-
-  const formatDate = (dateTime) => {
-    if (!dateTime) return "-";
-    return new Date(dateTime).toLocaleString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const reloadData = async () => {
+    try {
+      const res = await dispatch(fetchHoaDonById(id)).unwrap();
+      const data = res.data;
+      if (data.danhSachSanPham) {
+        data.danhSachSanPham = data.danhSachSanPham.map((sp) => ({
+          ...sp,
+          giamGiaPhanTram: sp.thanhTien
+            ? Math.round(((sp.giamGia || 0) / sp.thanhTien) * 100)
+            : 0,
+        }));
+      }
+      setHoaDon(data);
+      const ptRes = await dispatch(fetchPhieuThuByHoaDon(id)).unwrap();
+      setPhieuThuList(ptRes?.data || ptRes || []);
+    } catch (err) {
+      console.error("Lỗi khi tải lại dữ liệu:", err);
+    }
   };
 
-  const formatCurrency = (amount = 0) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
+  const setField = (key, val) => {
+    setFormState((p) => ({ ...p, [key]: val }));
+    setIsDirty(true);
   };
 
-  const handleChangeChiPhiKhac = (chiPhi) => {
-    setChiPhiKhac(chiPhi);
-
+  const handleGiamGiaChange = (idx, val, loai) => {
+    let value = Number(val) || 0;
     const newHoaDon = { ...hoaDon };
+    newHoaDon.danhSachSanPham = [...newHoaDon.danhSachSanPham];
+    const sp = { ...newHoaDon.danhSachSanPham[idx] };
+    const baseAmount = Number(sp.thanhTien) || 0;
 
-    newHoaDon.chiPhiKhac = chiPhi;
-
-    newHoaDon.thanhTien += chiPhiKhac;
-
-    newHoaDon.conLai = newHoaDon.thanhTien - (newHoaDon.daThanhToan || 0);
-
-    setHoaDon(newHoaDon);
-  };
-
-  // LOGIC HANDLERS (Giữ nguyên logic của bạn)
-  const handleDiscountChange = (index, field, value) => {
-    const newHoaDon = { ...hoaDon };
-
-    const items = [...newHoaDon.danhSachDonHang];
-
-    const item = { ...items[index] };
-
-    // update field
-    item[field] = value;
-
-    const tong = Number(item.tongTien || 0);
-
-    let thanhTien = tong;
-
-    // tính sau chiết khấu
-    if (item.loaiChietKhau === "phanTram") {
-      const percent = Number(item.chietKhau) || 0;
-
-      thanhTien = tong - (tong * percent) / 100;
+    if (loai === "phanTram") {
+      const percent = Math.min(100, Math.max(0, value));
+      sp.giamGiaPhanTram = percent;
+      sp.loaiGiamGia = "phanTram";
+      sp.giamGia = Math.round(baseAmount * (percent / 100));
     } else {
-      const tien = Number(item.chietKhau) || 0;
-
-      thanhTien = tong - tien;
+      const amount = Math.min(baseAmount, Math.max(0, value));
+      sp.giamGiaPhanTram = 0;
+      sp.loaiGiamGia = "tienMat";
+      sp.giamGia = amount;
     }
 
-    item.thanhTienSauCK = Math.max(thanhTien, 0);
-
-    items[index] = item;
-
-    newHoaDon.danhSachDonHang = items;
-
-    /* ================= TÍNH LẠI TỔNG ================= */
-
-    let tongTien = 0;
-    let tongChietKhau = 0;
-
-    // ✅ thành tiền = tổng thanhTienSauCK
-    let thanhTienHoaDon = 0;
-
-    items.forEach((i) => {
-      const tong = Number(i.tongTien || 0);
-
-      const thanhTienSauCK = Number(i.thanhTienSauCK || 0);
-
-      tongTien += tong;
-
-      tongChietKhau += tong - thanhTienSauCK;
-
-      thanhTienHoaDon += thanhTienSauCK;
-    });
-
-    newHoaDon.tongTien = tongTien;
-
-    newHoaDon.tongChietKhau = tongChietKhau;
-
-    // ✅ logic mới
-    newHoaDon.thanhTien = thanhTienHoaDon + chiPhiKhac;
-
-    newHoaDon.conLai = newHoaDon.thanhTien - (newHoaDon.daThanhToan || 0);
-
+    sp.tongCongSanPham = baseAmount - sp.giamGia;
+    newHoaDon.danhSachSanPham[idx] = sp;
     setHoaDon(newHoaDon);
+    setIsDirty(true);
   };
 
-  const handleDelete = (index) => {
+  const handleGhiChuChange = (idx, val) => {
     const newHoaDon = { ...hoaDon };
-    const items = newHoaDon.danhSachDonHang.filter((_, i) => i !== index);
-    newHoaDon.danhSachDonHang = items;
-    let tongTien = 0;
-    let tongChietKhau = 0;
-    items.forEach((i) => {
-      tongTien += i.tongTien || 0;
-      tongChietKhau += (i.tongTien || 0) - (i.thanhTienSauCK || 0);
-    });
-    newHoaDon.tongTien = tongTien;
-    newHoaDon.tongChietKhau = tongChietKhau;
-    newHoaDon.thanhTien = tongTien - tongChietKhau;
-    newHoaDon.conLai = newHoaDon.thanhTien - (newHoaDon.daThanhToan || 0);
+    newHoaDon.danhSachSanPham = [...newHoaDon.danhSachSanPham];
+    newHoaDon.danhSachSanPham[idx] = { ...newHoaDon.danhSachSanPham[idx], ghiChu: val };
     setHoaDon(newHoaDon);
+    setIsDirty(true);
   };
 
-  const handleUpdateHoaDon = () => {
-    if (window.confirm("Bạn có chắc muốn cập nhật hóa đơn?")) {
-      dispatch(
+  // ================= FINANCIAL SUMMARY =================
+  const fin = useMemo(() => {
+    if (!hoaDon) return {
+      tongCong: 0, chietKhauTien: 0, chietKhauPhanTram: 0,
+      thueTien: 0, thuePhanTram: 0, giaTriThanhToan: 0, conLai: 0,
+    };
+    const tongCong = (hoaDon.danhSachSanPham || []).reduce(
+      (s, sp) => s + (sp.tongCongSanPham || 0),
+      0
+    );
+
+    // Chiết khấu — tính theo mode đang active
+    const chietKhauTien = formState.chietKhauMode === "phanTram"
+      ? Math.round(tongCong * (formState.chietKhauPhanTram / 100))
+      : Math.min(Number(formState.chietKhauTien || 0), tongCong);
+    const chietKhauPhanTram = formState.chietKhauMode === "tienMat"
+      ? (tongCong > 0 ? parseFloat((chietKhauTien / tongCong * 100).toFixed(2)) : 0)
+      : formState.chietKhauPhanTram;
+
+    const sauCK = tongCong - chietKhauTien;
+
+    // Thuế — tính theo mode đang active
+    const thueTien = formState.thueMode === "phanTram"
+      ? Math.round(sauCK * (formState.thuePhanTram / 100))
+      : Number(formState.thueTien || 0);
+    const thuePhanTram = formState.thueMode === "tienMat"
+      ? (sauCK > 0 ? parseFloat((thueTien / sauCK * 100).toFixed(2)) : 0)
+      : formState.thuePhanTram;
+
+    const giaTriThanhToan = sauCK + thueTien + Number(formState.chiPhiKhac || 0);
+    const conLai = giaTriThanhToan - (hoaDon.daThanhToan || 0);
+    return { tongCong, chietKhauTien, chietKhauPhanTram, thueTien, thuePhanTram, giaTriThanhToan, conLai };
+  }, [hoaDon, formState]);
+
+  // ================= SAVE =================
+  const handleUpdate = async () => {
+    try {
+      // 👇 CHÈN THÊM 2 DÒNG NÀY ĐỂ TÍNH % THUẾ CHÍNH XÁC TUYỆT ĐỐI
+      const sauCK = fin.tongCong - fin.chietKhauTien;
+      const thueChinhXac = formState.thueMode === "tienMat" && sauCK > 0
+        ? (fin.thueTien / sauCK) * 100
+        : fin.thuePhanTram;
+
+      await dispatch(
         updateHoaDon({
-          id: hoaDon._id,
+          id,
           data: {
-            ...hoaDon,
-            thue: thuePhanTram,
-            chiPhiKhac,
-            ghiChuChoKhachHang,
-            ghiChuNoiBo,
-            chinhSachThanhToan,
+            ngayXuatHoaDon: formState.ngayXuatHoaDon,
+            chietKhau: Math.round(fin.chietKhauTien),
+
+            // 👇 SỬA DÒNG NÀY (Thay fin.thuePhanTram thành thueChinhXac)
+            thue: thueChinhXac,
+
+            chiPhiKhac: Number(formState.chiPhiKhac),
+            chinhSachThanhToan: formState.chinhSachThanhToan,
+            ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
+            ghiChuNoiBo: formState.ghiChuNoiBo,
+            danhSachSanPham: hoaDon.danhSachSanPham,
           },
         })
-      );
+      ).unwrap();
+      setIsDirty(false);
+      alert("Đã lưu hóa đơn thành công!");
+    } catch (err) {
+      alert("Lỗi: " + (err.message || err));
     }
   };
 
-  if (loading) return <div className="p-4">Đang tải...</div>;
-  if (!hoaDon) return <div className="p-4">Không tìm thấy hóa đơn</div>;
+  // 🔥 Xử lý đóng — hiện confirm nếu có thay đổi chưa lưu
+  const handleClose = () => {
+    if (isDirty) {
+      setShowExitConfirm(true);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  // 🔥 Lưu rồi thoát
+  const handleSaveAndExit = async () => {
+    try {
+      // 👇 CHÈN THÊM 2 DÒNG NÀY NỮA
+      const sauCK = fin.tongCong - fin.chietKhauTien;
+      const thueChinhXac = formState.thueMode === "tienMat" && sauCK > 0
+        ? (fin.thueTien / sauCK) * 100
+        : fin.thuePhanTram;
+
+      await dispatch(
+        updateHoaDon({
+          id,
+          data: {
+            ngayXuatHoaDon: formState.ngayXuatHoaDon,
+            chietKhau: Math.round(fin.chietKhauTien),
+
+            // 👇 SỬA DÒNG NÀY (Thay fin.thuePhanTram thành thueChinhXac)
+            thue: thueChinhXac,
+
+            chiPhiKhac: Number(formState.chiPhiKhac),
+            chinhSachThanhToan: formState.chinhSachThanhToan,
+            ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
+            ghiChuNoiBo: formState.ghiChuNoiBo,
+            danhSachSanPham: hoaDon.danhSachSanPham,
+          },
+        })
+      ).unwrap();
+      navigate(-1);
+    } catch (err) {
+      alert("Lỗi khi lưu: " + (err.message || err));
+    }
+  };
+
+  // 🔥 In hóa đơn
+  const handlePrint = () => {
+    navigate(`/hoa-don/${id}/print`);
+  };
+
+  // 🔥 1. Hàm được gọi khi bấm nút Xóa ở Footer
+  const handleDeleteClick = () => {
+    if (hoaDon.trangThai !== "Chưa thanh toán") {
+      alert("Không thể xóa hóa đơn đã có giao dịch thanh toán!");
+      return;
+    }
+    // Mở custom modal thay vì dùng window.confirm
+    setShowDeleteConfirm(true);
+  };
+
+  // 🔥 2. Hàm thực thi gọi API khi người dùng xác nhận trên Modal
+  const executeDelete = async () => {
+    try {
+      await dispatch(deleteHoaDon(id)).unwrap();
+      setShowDeleteConfirm(false);
+      navigate(-1); // Quay về trang trước
+    } catch (err) {
+      console.error("Lỗi xóa hóa đơn:", err);
+      alert("Không thể xóa hóa đơn lúc này!");
+    }
+  };
+  if (loading) return <div className="p-10 text-center text-gray-400">Đang tải...</div>;
+  if (!hoaDon) return <div className="p-10 text-center text-red-500">Không tìm thấy hóa đơn!</div>;
+
+  const initials = hoaDon.nhaKhoa?.hoVaTen?.slice(0, 2).toUpperCase() || "NK";
+
+  // ===== JSX phần tài chính (dùng lại ở cả 2 layout) =====
+  const renderFinancialBlock = () => (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between">
+        <span className="text-gray-800 text-sm">Tổng cộng</span>
+        <span className="font-bold text-gray-900 text-[15px]">{fmtVND(fin.tongCong)}</span>
+      </div>
+
+      {/* ── Chiết khấu ── */}
+      <div className="flex items-center justify-between">
+        <span className="text-gray-800 text-sm shrink-0">Chiết khấu</span>
+        <div className="flex items-center flex-1 justify-end ml-4">
+          <input
+            type="number" min={0} max={100}
+            value={formState.chietKhauMode === "phanTram" ? formState.chietKhauPhanTram : fin.chietKhauPhanTram}
+            onChange={(e) => {
+              const val = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+              setFormState((p) => ({ ...p, chietKhauPhanTram: val, chietKhauMode: "phanTram" }));
+              setIsDirty(true);
+            }}
+            className="w-12 border-b border-gray-400 text-center text-sm outline-none bg-transparent pb-0.5 no-spinner"
+          />
+          <span className="mx-2 text-gray-800 text-sm">% =</span>
+          <input
+            type="text" inputMode="numeric"
+            value={fmtMoneyInput(formState.chietKhauMode === "tienMat" ? formState.chietKhauTien : fin.chietKhauTien)}
+            onChange={(e) => {
+              const val = parseMoneyInput(e.target.value);
+              setFormState((p) => ({ ...p, chietKhauTien: val, chietKhauMode: "tienMat" }));
+              setIsDirty(true);
+            }}
+            className="w-[100px] text-right border-b border-gray-400 text-[15px] pb-0.5 outline-none bg-transparent"
+          />
+        </div>
+      </div>
+
+      {/* ── Thuế ── */}
+      <div className="flex items-center justify-between">
+        <span className="text-gray-800 text-sm shrink-0">Thuế</span>
+        <div className="flex items-center flex-1 justify-end ml-4">
+          <input
+            type="number" min={0} max={100}
+            value={formState.thueMode === "phanTram" ? formState.thuePhanTram : fin.thuePhanTram}
+            onChange={(e) => {
+              const val = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+              setFormState((p) => ({ ...p, thuePhanTram: val, thueMode: "phanTram" }));
+              setIsDirty(true);
+            }}
+            className="w-12 border-b border-gray-400 text-center text-sm outline-none bg-transparent pb-0.5 no-spinner"
+          />
+          <span className="mx-2 text-gray-800 text-sm">% =</span>
+          <input
+            type="text" inputMode="numeric"
+            value={fmtMoneyInput(formState.thueMode === "tienMat" ? formState.thueTien : fin.thueTien)}
+            onChange={(e) => {
+              const val = parseMoneyInput(e.target.value);
+              setFormState((p) => ({ ...p, thueTien: val, thueMode: "tienMat" }));
+              setIsDirty(true);
+            }}
+            className="w-[100px] text-right border-b border-gray-400 text-[15px] pb-0.5 outline-none bg-transparent"
+          />
+        </div>
+      </div>
+
+      {/* ── Chi phí khác ── */}
+      <div className="flex items-center justify-between">
+        <span className="text-gray-800 text-sm shrink-0">Chi phí khác</span>
+        <div className="flex items-center flex-1 justify-end ml-4">
+          <input
+            type="text" inputMode="numeric"
+            value={fmtMoneyInput(formState.chiPhiKhac)}
+            onChange={(e) => setField("chiPhiKhac", parseMoneyInput(e.target.value))}
+            className="w-[110px] border-b border-gray-400 text-right text-[15px] outline-none bg-transparent pb-0.5"
+          />
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-gray-200/60 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-900 font-bold text-[15px]">Giá trị thanh toán</span>
+          <span className="font-bold text-gray-900 text-[16px]">{fmtVND(fin.giaTriThanhToan)}</span>
+        </div>
+
+        {hoaDon.trangThai !== "Chưa thanh toán" && (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-900 font-bold text-[15px]">Đã thanh toán</span>
+              <span className="font-bold text-gray-900 text-[16px]">{fmtVND(hoaDon.daThanhToan || 0)}</span>
+            </div>
+
+            {phieuThuList.length > 0 && (
+              <div className="flex flex-col gap-1.5 pl-12">
+                {phieuThuList.map((pt, idx) => {
+                  let tien = 0;
+                  if (pt.danhSachHoaDon && Array.isArray(pt.danhSachHoaDon)) {
+                    const hdItem = pt.danhSachHoaDon.find((x) => x.hoaDon === id || x.hoaDon?._id === id);
+                    if (hdItem) tien = hdItem.soTienThanhToan;
+                  }
+                  if (!tien) tien = pt.soTienThanhToan || pt.tongTien || pt.soTien || 0;
+
+                  const dateStr = pt.ngayThu
+                    ? new Date(pt.ngayThu).toLocaleDateString("vi-VN")
+                    : pt.createdAt
+                      ? new Date(pt.createdAt).toLocaleDateString("vi-VN")
+                      : "---";
+
+                  return (
+                    <div key={idx} className="flex items-center justify-between text-[14px] text-gray-700">
+                      <span>{dateStr}</span>
+                      <span>{fmtVND(tien)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+              <span className="text-gray-900 font-bold text-[16px]">Còn nợ</span>
+              <span className="font-bold text-gray-900 text-lg">{fmtVND(fin.conLai)}</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="fixed inset-0 z-[1299] bg-[#f0f2f5] flex flex-col w-screen h-screen overflow-hidden">
-      {/* TOP BAR */}
-      <div className="h-12 md:h-10 bg-[#00a8ff] flex justify-between items-center px-3 md:px-4 shrink-0 shadow-sm">
-        <span className="text-white font-medium text-xs md:text-sm truncate">
-          Chi tiết hóa đơn: {hoaDon.soHoaDon}
-        </span>
+    <div className="fixed inset-0 z-[1300] bg-white flex flex-col text-gray-800 overflow-hidden overflow-y-auto pb-20">
+      <style>{`
+        .no-spinner::-webkit-inner-spin-button,
+        .no-spinner::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .no-spinner { -moz-appearance: textfield; }
+      `}</style>
 
-        <button
-          onClick={() => navigate(-1)}
-          className="text-white text-2xl hover:opacity-70"
-        >
-          &times;
-        </button>
-      </div>
-
-      {/* BODY */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* LEFT */}
-        <div className="flex-1 overflow-y-auto p-2 md:p-4 flex flex-col gap-4">
-          {/* SECTION 1 */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 shrink-0">
-            {/* CUSTOMER */}
-            <div className="xl:col-span-2 bg-white p-3 md:p-4 shadow-sm border border-gray-200 rounded-lg">
-              <h3 className="text-blue-600 font-bold mb-3 border-b pb-2 uppercase text-[11px]">
-                Thông tin khách hàng
-              </h3>
-
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <Avatar>NK</Avatar>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm w-full">
-                  <span className="text-gray-500 break-words">
-                    Nha khoa:{" "}
-                    <span className="text-gray-900 font-semibold">
-                      {nhaKhoaInfo?.hoVaTen || "..."}
-                    </span>
-                  </span>
-
-                  <span className="text-gray-500 break-all">
-                    Email:{" "}
-                    <span className="text-gray-900">
-                      {nhaKhoaInfo?.email || "---"}
-                    </span>
-                  </span>
-
-                  <span className="text-gray-500 md:col-span-2 break-words">
-                    Địa chỉ:{" "}
-                    <span className="text-gray-900">
-                      {nhaKhoaInfo
-                        ? `${nhaKhoaInfo.diaChiCuThe}, ${nhaKhoaInfo.tinh}`
-                        : "---"}
-                    </span>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* CHỨNG TỪ */}
-            <div className="bg-white p-3 md:p-4 shadow-sm border border-gray-200 rounded-lg">
-              <h3 className="text-blue-600 font-bold mb-3 border-b pb-2 uppercase text-[11px]">
-                Chứng từ
-              </h3>
-
-              <div className="flex flex-col gap-2 text-sm">
-                <div className="flex justify-between gap-2">
-                  <span className="text-gray-500">Mã:</span>
-
-                  <span className="font-bold text-red-600 break-all text-right">
-                    {hoaDon.soHoaDon ||
-                      `TAN${hoaDon._id.slice(-8).toUpperCase()}`}
-                  </span>
-                </div>
-
-                <div className="flex justify-between gap-2">
-                  <span className="text-gray-500">Ngày xuất:</span>
-
-                  <span className="text-right">
-                    {formatDate(hoaDon.ngayXuatHoaDon)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* TABLE */}
-          <div className="bg-white shadow-md border border-gray-200 rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-[1100px] w-full text-sm text-left border-collapse">
-                <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] sticky top-0 z-10 border-b">
-                  <tr>
-                    <th className="p-3 text-center w-12">STT</th>
-                    <th className="p-3 min-w-[140px]">Mã đơn hàng</th>
-                    <th className="p-3 min-w-[180px]">Thông tin chung</th>
-                    <th className="p-3 min-w-[300px]">Sản phẩm & Vị trí</th>
-                    <th className="p-3 text-right min-w-[120px]">Tổng tiền</th>
-                    <th className="p-3 text-center min-w-[150px]">
-                      Chiết khấu
-                    </th>
-                    <th className="p-3 text-right min-w-[140px]">Thành tiền</th>
-                    <th className="p-3 text-center min-w-[80px]">Xóa</th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-gray-100">
-                  {hoaDon.danhSachDonHang.map((item, index) => (
-                    <tr
-                      key={item._id}
-                      className="hover:bg-blue-50/40 transition-colors"
-                    >
-                      <td className="p-3 text-center text-gray-400">
-                        {index + 1}
-                      </td>
-
-                      <td className="p-3">
-                        <button
-                          onClick={() =>
-                            navigate(`/donhang/${item.donHang?._id}/edit`)
-                          }
-                          className="font-bold text-blue-600 hover:underline text-xs whitespace-nowrap"
-                        >
-                          {item.donHang?.maDonHang ||
-                            `TAN${item.donHang?._id?.slice(-6).toUpperCase()}`}
-                        </button>
-                      </td>
-
-                      <td className="p-3">
-                        <div className="text-xs leading-relaxed min-w-[160px]">
-                          <div className="break-words">
-                            <span className="text-gray-400">BS:</span>{" "}
-                            {item.donHang?.bacSi?.hoVaTen}
-                          </div>
-
-                          <div className="font-medium break-words">
-                            <span className="text-gray-400">BN:</span>{" "}
-                            {item.donHang?.benhNhan?.hoVaTen}
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="p-3">
-                        <div className="space-y-1">
-                          {item.donHang?.danhSachSanPham?.map((sp, i) => (
-                            <div
-                              key={i}
-                              className="text-[12px] bg-gray-50 p-1 rounded border border-gray-100"
-                            >
-                              <span className="font-medium text-blue-700 break-words">
-                                {sp.sanPham?.tenSanPham}
-                              </span>
-
-                              <div className="text-[10px] text-gray-500 mt-0.5 break-words">
-                                {sp.viTri
-                                  ?.map(
-                                    (v) => `${v.kieu}: ${v.soRang.join(",")}`
-                                  )
-                                  .join(" | ")}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-
-                      <td className="p-3 text-right text-gray-600 font-medium whitespace-nowrap">
-                        {formatCurrency(item.tongTien)}
-                      </td>
-
-                      <td className="p-3">
-                        <div className="flex border rounded overflow-hidden h-8 min-w-[120px]">
-                          <input
-                            type="number"
-                            value={item.chietKhau || 0}
-                            onChange={(e) =>
-                              handleDiscountChange(
-                                index,
-                                "chietKhau",
-                                Number(e.target.value)
-                              )
-                            }
-                            className="w-full text-center text-xs outline-none border-r"
-                          />
-
-                          <select
-                            value={item.loaiChietKhau}
-                            onChange={(e) =>
-                              handleDiscountChange(
-                                index,
-                                "loaiChietKhau",
-                                e.target.value
-                              )
-                            }
-                            className="bg-gray-50 text-[10px] px-1 outline-none font-bold"
-                          >
-                            <option value="phanTram">%</option>
-                            <option value="tienMat">đ</option>
-                          </select>
-                        </div>
-                      </td>
-
-                      <td className="p-3 text-right font-bold text-gray-800 whitespace-nowrap">
-                        {formatCurrency(item.thanhTienSauCK)}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDelete(index)}
-                        >
-                          <TrashIcon size={16} />
-                        </IconButton>
-                      </td>
-                    </tr>
-                  ))}
-
-                  <tr>
-                    <td colSpan={8} className="p-3">
-                      <Button
-                        variant="outlined"
-                        startIcon={<AddIcon />}
-                        onClick={() => setIsModalOpen(true)}
-                        fullWidth={window.innerWidth < 640}
-                      >
-                        Thêm đơn hàng chưa xuất hóa đơn
-                      </Button>
-
-                      <DonHangChuaXuatModal
-                        open={isModalOpen}
-                        onClose={() => setIsModalOpen(false)}
-                        selectedClinic={nhaKhoaInfo?._id}
-                        selectedOrders={selectedOrders}
-                        setSelectedOrders={setSelectedOrders}
-                        onAddOrders={handleAddOrders}
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* NOTES + POLICY */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white p-4 md:p-6 shadow-sm rounded-lg mb-24">
-              {/* LEFT */}
-              <div className="lg:col-span-7 space-y-6">
-                <div className="w-full lg:w-1/2">
-                  <label className="text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1 block">
-                    Chính sách thanh toán
-                  </label>
-
-                  <select
-                    value={chinhSachThanhToan}
-                    onChange={(e) => setChinhSachThanhToan(e.target.value)}
-                    className="w-full border-b border-gray-300 py-2 text-sm outline-none focus:border-blue-500 bg-transparent cursor-pointer"
-                  >
-                    <option value="Thanh toán cuối tháng">
-                      Thanh toán cuối tháng
-                    </option>
-
-                    <option value="Thanh toán ngay">Thanh toán ngay</option>
-
-                    <option value="Thanh toán trong 7 ngày">
-                      Thanh toán trong 7 ngày
-                    </option>
-
-                    <option value="Thanh toán trong 10 ngày">
-                      Thanh toán trong 10 ngày
-                    </option>
-
-                    <option value="Thanh toán trong 30 ngày">
-                      Thanh toán trong 30 ngày
-                    </option>
-
-                    <option value="Thanh toán trong 60 ngày">
-                      Thanh toán trong 60 ngày
-                    </option>
-
-                    <option value="Thanh toán trong 90 ngày">
-                      Thanh toán trong 90 ngày
-                    </option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
-                    Ghi chú cho khách hàng
-                  </label>
-
-                  <textarea
-                    value={ghiChuChoKhachHang}
-                    onChange={(e) => setGhiChuChoKhachHang(e.target.value)}
-                    className="w-full mt-1 border-b border-gray-200 focus:border-blue-400 outline-none text-sm py-2 resize-none h-20 transition-all"
-                    placeholder="Nội dung này sẽ hiển thị trên bản in hóa đơn..."
-                  />
-                </div>
-              </div>
-
-              {/* RIGHT */}
-              <div className="lg:col-span-5">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
-                  Ghi chú nội bộ
-                </label>
-
-                <textarea
-                  value={ghiChuNoiBo}
-                  onChange={(e) => setGhiChuNoiBo(e.target.value)}
-                  className="w-full mt-1 border-b border-gray-200 focus:border-blue-400 outline-none text-sm py-2 resize-none h-20 transition-all"
-                  placeholder="Chỉ nhân viên nội bộ mới nhìn thấy ghi chú này..."
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT SIDEBAR */}
-        <div className="w-full lg:w-80 bg-white border-t lg:border-t-0 lg:border-l shadow-xl flex flex-col shrink-0 max-h-[420px] lg:max-h-full">
-          <div className="p-4 border-b bg-gray-50 shrink-0">
-            <h4 className="font-bold text-gray-700 uppercase text-xs">
-              Tổng kết tài chính
-            </h4>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 md:p-5 flex flex-col gap-4">
-            <div className="flex justify-between text-sm gap-3">
-              <span className="text-gray-500">Tổng tiền hàng</span>
-
-              <span className="font-medium text-right">
-                {formatCurrency(hoaDon.tongTien)}
-              </span>
-            </div>
-
-            <div className="flex justify-between text-sm text-red-500 italic gap-3">
-              <span>Giảm giá</span>
-
-              <span className="text-right">
-                - {formatCurrency(hoaDon.tongChietKhau)}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center text-sm px-2 gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-500">Thuế</span>
-
-                <div className="flex items-center border-b border-gray-200 focus-within:border-blue-400 w-16">
-                  <input
-                    type="number"
-                    value={thuePhanTram}
-                    onChange={(e) => setThuePhanTram(Number(e.target.value))}
-                    className="w-full text-center outline-none text-xs p-1 bg-transparent"
-                  />
-
-                  <span className="text-[10px] text-gray-400">% =</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center text-sm px-2 gap-3">
-              <span className="text-gray-500">Chi phí khác</span>
-
-              <div className="border-b border-gray-200 focus-within:border-blue-400 w-32">
-                <input
-                  type="number"
-                  value={chiPhiKhac}
-                  onChange={(e) => {
-                    setChiPhiKhac(Number(e.target.value));
-                  }}
-                  placeholder="Nhập VNĐ..."
-                  className="w-full text-right outline-none text-xs p-1 bg-transparent font-medium"
-                />
-              </div>
-            </div>
-
-            <div className="h-px bg-gray-200 my-2" />
-
-            <div className="flex justify-between gap-3">
-              <span className="font-bold">Thành tiền</span>
-
-              <span className="font-bold text-blue-600 text-lg text-right">
-                {formatCurrency(hoaDon.thanhTien)}
-              </span>
-            </div>
-
-            <div className="flex justify-between text-sm text-green-600 gap-3">
-              <span>Đã thanh toán</span>
-
-              <span className="text-right">
-                {formatCurrency(hoaDon.daThanhToan || 0)}
-              </span>
-            </div>
-
-            <div className="flex justify-between pt-4 border-t-2 border-dashed gap-3">
-              <span className="font-black text-gray-700">CÒN LẠI</span>
-
-              <span className="font-black text-red-600 text-xl text-right">
-                {formatCurrency(hoaDon.conLai)}
-              </span>
-            </div>
-
-            <div className="mt-6 space-y-2">
+      {/* ===== 🔥 EXIT CONFIRM MODAL ===== */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm mx-4">
+            <p className="text-gray-900 font-semibold text-base mb-1.5">Thoát mà không lưu?</p>
+            <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+              Bạn có thay đổi chưa được lưu. Bạn muốn làm gì?
+            </p>
+            <div className="flex gap-3">
               <button
-                onClick={handleUpdateHoaDon}
-                className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold shadow-md hover:bg-blue-700 active:scale-95 transition text-sm"
+                onClick={() => { setShowExitConfirm(false); navigate(-1); }}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
               >
-                CẬP NHẬT HÓA ĐƠN
+                Không lưu
               </button>
-
               <button
-                onClick={() => exportHoaDonToExcel(hoaDon, nhaKhoaInfo)}
-                className="w-full bg-emerald-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
+                onClick={handleSaveAndExit}
+                className="flex-1 px-4 py-2.5 bg-[#00a8df] text-white rounded-xl text-sm font-bold hover:bg-sky-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
               >
-                Xuất file Excel
-              </button>
-
-              <button
-                onClick={() => navigate(`/hoa-don/${hoaDon._id}/print`)}
-                className="w-full border border-blue-600 text-blue-600 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition"
-              >
-                In hóa đơn (F4)
+                <Save className="w-4 h-4" /> Lưu
               </button>
             </div>
           </div>
         </div>
+      )}
+      {/* ===== 🔥 DELETE CONFIRM MODAL (MỚI) ===== */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm mx-4">
+
+            {/* Tiêu đề & Icon */}
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <p className="text-gray-900 font-bold text-lg">Xóa hóa đơn?</p>
+            </div>
+
+            {/* Nội dung cảnh báo */}
+            <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+              Hành động này không thể hoàn tác. Các đơn hàng trong hóa đơn này sẽ được trả về trạng thái <span className="font-semibold text-gray-700">Chờ xuất hóa đơn</span>.
+            </p>
+
+            {/* Nút hành động */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={executeDelete}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition-colors shadow-sm"
+              >
+                Xóa ngay
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ===== HEADER ===== */}
+      <header className="h-12 bg-[#00a8df] flex items-center justify-between px-5 shrink-0">
+        <div className="flex items-center gap-3">
+          <h1 className="text-white text-base">
+            Hóa đơn <span className="font-bold">{hoaDon.soHoaDon || "---"}</span>
+          </h1>
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${TRANG_THAI_COLOR[hoaDon.trangThai] || "bg-orange-500 text-white"}`}>
+            {hoaDon.trangThai}
+          </span>
+        </div>
+        {/* 🔥 onClick → handleClose thay vì navigate(-1) trực tiếp */}
+        <button onClick={handleClose} className="text-white/80 hover:text-white p-1">
+          <X className="w-5 h-5" />
+        </button>
+      </header>
+
+      {/* ===== INFO ROW ===== */}
+      {/* ------------------------------------------------------------------ */}
+      {/* MOBILE: flex-col, thứ tự dùng order-X                              */}
+      {/*   order-1 → Giá trị TT                                             */}
+      {/*   order-2 → Ngày xuất  (nằm trong cùng block với giá trị TT)      */}
+      {/*   order-3 → Nha khoa info                                          */}
+      {/*   order-4 → Địa chỉ box                                            */}
+      {/*   order-5 → Chính sách TT                                          */}
+      {/* DESKTOP (lg+): flex-row 3 cột, order reset về tự nhiên            */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="bg-white px-4 lg:px-6 py-4 flex flex-col lg:flex-row items-stretch gap-3 lg:gap-4 shrink-0">
+
+        {/* ── MOBILE-ONLY: Giá trị TT + Ngày xuất (order-1) ── */}
+        <div className="order-1 lg:hidden px-1">
+          <p className="text-[11px] text-gray-400 font-medium">Giá trị thanh toán</p>
+          <p className="text-3xl font-black text-gray-900 leading-tight mt-1 mb-3">
+            {fmtVND(fin.giaTriThanhToan)}
+          </p>
+          <p className="text-[11px] text-gray-400 font-medium">Ngày xuất</p>
+          <div className="flex items-center mt-0.5">
+            <input
+              type="date"
+              value={formState.ngayXuatHoaDon}
+              onChange={(e) => setField("ngayXuatHoaDon", e.target.value)}
+              className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent w-36"
+            />
+          </div>
+        </div>
+
+        {/* ── MOBILE-ONLY: Nha khoa info (order-3) ── */}
+        <div className="order-3 lg:hidden px-1 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-white font-bold text-sm shrink-0">
+            {initials}
+          </div>
+          <div>
+            <p className="text-[11px] text-gray-400 font-medium">Nha khoa</p>
+            <p className="font-bold text-gray-900 text-base leading-tight mt-0.5 uppercase">
+              {hoaDon.nhaKhoa?.hoVaTen || "---"}
+            </p>
+          </div>
+        </div>
+
+        {/* ── Địa chỉ box (mobile: order-4 | desktop: order-2 / 30%) ── */}
+        <div className="order-4 lg:order-2 lg:w-[40%] text-[13px] text-gray-700 space-y-1.5 p-4 bg-[#e6f7ff] rounded-xl flex flex-col justify-center">
+          <p><span className="text-gray-500 inline-block w-20">Địa chỉ:</span><span className="font-medium">{hoaDon.nhaKhoa?.diaChiCuThe || ""}</span></p>
+          <p><span className="text-gray-500 inline-block w-20">Điện thoại:</span><span className="font-medium">{hoaDon.nhaKhoa?.soDienThoai || ""}</span></p>
+          <p><span className="text-gray-500 inline-block w-20">Mô tả:</span><span className="font-medium">{hoaDon.nhaKhoa?.moTa || ""}</span></p>
+          <p className="pt-1.5 mt-1">
+            <span className="text-gray-500 inline-block w-20">
+              Công nợ:
+            </span>
+
+            <span className="font-bold text-gray-900">
+              {fmtVND(hoaDon.congNoNhaKhoa || 0)}
+            </span>
+          </p>
+        </div>
+
+        {/* ── MOBILE-ONLY: Chính sách TT (order-5) ── */}
+        <div className="order-5 lg:hidden px-1">
+          <p className="text-[11px] text-gray-400 font-medium">Chính sách thanh toán</p>
+          <select
+            value={formState.chinhSachThanhToan}
+            onChange={(e) => setField("chinhSachThanhToan", e.target.value)}
+            className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent pr-4 py-0.5 mt-0.5 w-full"
+          >
+            {["Thanh toán trước", "Thanh toán ngay", "Thanh toán trong 7 ngày", "Thanh toán trong 10 ngày", "Thanh toán trong 30 ngày", "Thanh toán trong 60 ngày", "Thanh toán trong 90 ngày", "Thanh toán cuối tháng"].map((o) => (
+              <option key={o}>{o}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* ── DESKTOP-ONLY: Left panel 40% — Nha khoa + Chính sách ── */}
+        <div className="hidden lg:flex lg:order-1 lg:w-[30%] pr-4 flex-col gap-6 ">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-white font-bold text-base shrink-0">
+              {initials}
+            </div>
+            <div>
+              <p className="text-[11px] text-gray-400 font-medium">Nha khoa</p>
+              <p className="font-bold text-gray-900 text-base leading-tight mt-0.5 uppercase">
+                {hoaDon.nhaKhoa?.hoVaTen || "---"}
+              </p>
+            </div>
+          </div>
+          <div className="-mt-2">
+            <p className="text-[11px] text-gray-400 font-medium">Chính sách thanh toán</p>
+            <select
+              value={formState.chinhSachThanhToan}
+              onChange={(e) => setField("chinhSachThanhToan", e.target.value)}
+              className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent pr-4 py-0.5 mt-0.5 w-4/5"
+            >
+              {["Thanh toán trước", "Thanh toán ngay", "Thanh toán trong 7 ngày", "Thanh toán trong 10 ngày", "Thanh toán trong 30 ngày", "Thanh toán trong 60 ngày", "Thanh toán trong 90 ngày", "Thanh toán cuối tháng"].map((o) => (
+                <option key={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* ── DESKTOP-ONLY: Right panel 30% — Giá trị TT + Ngày xuất ── */}
+        <div className="hidden lg:flex lg:order-3 lg:w-[30%] pl-8 flex-col justify-center ">
+          <p className="text-[11px] text-gray-400 font-medium">Giá trị thanh toán</p>
+          <p className="text-3xl font-black text-gray-900 leading-tight mt-1 mb-3">
+            {fmtVND(fin.giaTriThanhToan)}
+          </p>
+          <div className="flex flex-col gap-1">
+            <p className="text-[11px] text-gray-400 font-medium">Ngày xuất</p>
+            <div className="flex items-center">
+              <input
+                type="date"
+                value={formState.ngayXuatHoaDon}
+                onChange={(e) => setField("ngayXuatHoaDon", e.target.value)}
+                className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent w-36"
+              />
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* FOOTER */}
-      <div className="h-14 md:h-12 bg-white border-t px-4 md:px-6 flex justify-end items-center shrink-0">
-        <button
-          onClick={() => navigate(-1)}
-          className="bg-gray-200 text-gray-700 px-6 py-2 md:py-1.5 rounded font-medium text-sm hover:bg-gray-300 transition"
-        >
-          Thoát
-        </button>
+      {/* ===== CONTENT AREA ===== */}
+      <div className="flex-1 bg-white flex flex-col">
+        <HoaDonDetailTable
+          rows={hoaDon.danhSachSanPham || []}
+          navigate={navigate}
+          handleGhiChuChange={handleGhiChuChange}
+          handleGiamGiaChange={handleGiamGiaChange}
+        />
+
+        {/* ===== BOTTOM SECTION ===== */}
+        {/* ------------------------------------------------------------------ */}
+        {/* Mobile:  stack dọc (ghi chú → tài liệu → tổng cộng)               */}
+        {/* md:      2 cột — trái: ghi chú + tài liệu | phải: tổng cộng       */}
+        {/* lg+:     3 cột — 55% ghi chú | 15% tài liệu | 30% tổng cộng       */}
+        {/* ------------------------------------------------------------------ */}
+        <div className="flex flex-col md:flex-row mt-6 bg-gray-50/30 shrink-0 items-stretch">
+
+          {/* ── Ghi chú (mobile: full | md: trái 60% | lg: 55%) ── */}
+          <div className="w-full md:w-[60%] lg:w-[55%] p-4 md:p-6 space-y-6">
+            <div>
+              <p className="text-xs text-gray-500 font-medium mb-1.5">Ghi chú cho khách hàng</p>
+              <textarea
+                value={formState.ghiChuChoKhachHang}
+                onChange={(e) => setField("ghiChuChoKhachHang", e.target.value)}
+                rows={2}
+                className="w-full border-b border-gray-300 text-sm outline-none resize-none bg-transparent focus:border-[#00a8df] transition-colors pb-1"
+              />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium mb-1.5">Ghi chú nội bộ</p>
+              <textarea
+                value={formState.ghiChuNoiBo}
+                onChange={(e) => setField("ghiChuNoiBo", e.target.value)}
+                rows={2}
+                className="w-full border-b border-gray-300 text-sm outline-none resize-none bg-transparent focus:border-[#00a8df] transition-colors pb-1"
+              />
+            </div>
+
+            {/* Tài liệu: trên md gộp vào cùng cột ghi chú, trên lg tách ra */}
+            <div className="block lg:hidden">
+              <div className="w-full min-h-[100px] bg-[#e6f7ff] rounded-xl border-2 border-dashed border-[#00a8df]/30 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00a8df] hover:bg-sky-50 transition-all p-4">
+                <p className="text-xs font-bold text-[#00a8df]">Tài liệu</p>
+                <Upload className="w-6 h-6 text-[#00a8df]" />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Tài liệu desktop (lg+): 15%, ẩn trên md vì đã gộp vào cột trái ── */}
+          <div className="hidden lg:flex lg:w-[15%] p-6 flex-col justify-start">
+            <div className="w-full h-3/5 min-h-[120px] bg-[#e6f7ff] rounded-xl border-2 border-dashed border-[#00a8df]/30 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00a8df] hover:bg-sky-50 transition-all p-4">
+              <p className="text-xs font-bold text-[#00a8df]">Tài liệu</p>
+              <Upload className="w-6 h-6 text-[#00a8df]" />
+            </div>
+          </div>
+
+          {/* ── Tổng cộng (mobile: full | md: phải 40% | lg: 30%) ── */}
+          <div className="w-full md:w-[40%] lg:w-[30%] p-4 md:p-6 lg:p-8 flex flex-col justify-center border-t md:border-t-0 md:border-l border-gray-100">
+            <div className="w-full md:max-w-none lg:max-w-[320px] lg:ml-auto space-y-4">
+              {renderFinancialBlock()}
+            </div>
+          </div>
+
+        </div>
       </div>
+
+      {/* ===== FOOTER ===== */}
+      <footer className="fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-gray-200 flex items-center justify-between px-4 md:px-6 z-[1310] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center gap-4">
+          <span className="text-gray-400">⋮</span>
+          <span className="hidden sm:block text-xs text-gray-400 font-medium">
+            Kế Toán Tạo lúc {fmtDateTime(hoaDon.createdAt)}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 md:gap-3">
+          {hoaDon.trangThai === "Chưa thanh toán" && (
+            <button
+              onClick={handleDeleteClick} // <--- GỌI HÀM NÀY NÈ
+              className="flex items-center gap-1.5 px-3 md:px-4 py-2 border border-red-200 bg-red-50 text-red-600 rounded-md text-[13px] font-bold hover:bg-red-100 hover:border-red-300 transition-colors shadow-sm"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Xóa</span>
+            </button>
+          )}
+          <button onClick={handlePrint} className="hidden md:flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-md text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors">
+            <Printer className="w-4 h-4" /> In hóa đơn
+          </button>
+          <button
+            onClick={() => exportHoaDonToExcel(hoaDon)}
+            className="hidden md:flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-md text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <FileDown className="w-4 h-4" /> Xuất excel
+          </button>
+          {/* Mobile: icon-only cho In + Xuất */}
+          <button onClick={handlePrint} className="flex md:hidden items-center justify-center w-9 h-9 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 transition-colors">
+            <Printer className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => exportHoaDonToExcel(hoaDon)}
+            className="flex md:hidden items-center justify-center w-9 h-9 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <FileDown className="w-4 h-4" />
+          </button>
+
+          {fin.conLai > 0 && (
+            <button
+              onClick={() => setPtOpen(true)}
+              className="px-3 md:px-5 py-2 bg-[#4CAF50] text-white rounded-md text-[13px] font-bold hover:bg-green-600 transition-colors shadow-sm"
+            >
+              <span className="hidden sm:inline">Lập phiếu thu</span>
+              <span className="sm:hidden">Phiếu thu</span>
+            </button>
+          )}
+          <button
+            onClick={handleUpdate}
+            disabled={!isDirty}
+            className={`flex items-center gap-1.5 px-4 md:px-6 py-2 rounded-md text-[13px] font-bold transition-all shadow-sm ${isDirty
+              ? "bg-[#00a8df] text-white hover:bg-sky-600 hover:shadow-md"
+              : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              }`}
+          >
+            <Save className="w-4 h-4" />
+            <span>Lưu</span>
+          </button>
+        </div>
+      </footer>
+
+      <PhieuThuModal
+        open={ptOpen}
+        onClose={() => setPtOpen(false)}
+        onSuccess={reloadData}
+        initialNhaKhoaId={hoaDon?.nhaKhoa?._id}
+        initialHoaDonId={hoaDon?._id}
+      />
+
     </div>
   );
 };

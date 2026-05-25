@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { api } from "../../config/api";
+import { exportBangGiaRiengToExcel, exportDanhSachNhaKhoaToExcel } from "../../utils/exportToExcel";
 import {
   Table,
   TableBody,
@@ -19,6 +21,11 @@ import {
   CardContent,
   Typography,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@mui/material";
 
 import {
@@ -30,6 +37,7 @@ import {
 
 import RefreshIcon from "@mui/icons-material/Refresh";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DownloadIcon from "@mui/icons-material/Download"; // Thêm icon Download
 
 import { useDispatch, useSelector } from "react-redux";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
@@ -45,6 +53,10 @@ export default function NhaKhoaTable() {
   const [search, setSearch] = useState("");
   const [selectedProvince, setSelectedProvince] = useState("");
   const [favorites, setFavorites] = useState([]);
+
+  // State quản lý Modal Xuất Excel
+  const [openExport, setOpenExport] = useState(false);
+  const [selectedExportNhaKhoa, setSelectedExportNhaKhoa] = useState("");
 
   useEffect(() => {
     dispatch(fetchNhaKhoa());
@@ -85,6 +97,29 @@ export default function NhaKhoaTable() {
   const [openEdit, setOpenEdit] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
 
+  // Hàm xử lý khi bấm nút Xuất trong Modal
+  const handleExportSubmit = async () => {
+    try {
+      if (!selectedExportNhaKhoa) return;
+
+      const selectedNhaKhoaInfo = data.find(
+        (nk) => nk._id === selectedExportNhaKhoa
+      );
+
+      const response = await api.get(
+        `/bang-gia/nha-khoa/${selectedExportNhaKhoa}`
+      );
+      const bangGiaData = response.data; // Mảng chứa [{ tenSanPham, donGia, laGiaRieng... }]
+
+      await exportBangGiaRiengToExcel(selectedNhaKhoaInfo, bangGiaData); // Hoặc truyền chiXuatGiaRieng
+
+      setOpenExport(false);
+      setSelectedExportNhaKhoa("");
+    } catch (error) {
+      console.error("Lỗi khi xuất bảng giá:", error);
+      alert("Đã xảy ra lỗi khi lấy dữ liệu bảng giá. Vui lòng thử lại!");
+    }
+  };
   return (
     <Box>
       {/* ===== FILTER BAR ===== */}
@@ -193,6 +228,26 @@ export default function NhaKhoaTable() {
             }}
           />
 
+          {/* NÚT XUẤT DANH SÁCH */}
+          <button
+            onClick={() => exportDanhSachNhaKhoaToExcel(filteredData)}
+            title="Xuất excel danh sách nha khoa"
+            className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1 transition"
+          >
+            <DownloadIcon sx={{ fontSize: 17 }} />
+            <span className="hidden sm:inline">Xuất danh sách</span>
+          </button>
+
+          {/* NÚT XUẤT BẢNG GIÁ RIÊNG */}
+          <button
+            onClick={() => setOpenExport(true)}
+            title="Xuất excel bảng giá riêng"
+            className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1 transition"
+          >
+            <DownloadIcon sx={{ fontSize: 17 }} />
+            <span className="hidden sm:inline">Xuất bảng giá</span>
+          </button>
+
           <NhaKhoaModal />
 
           {/* REFRESH */}
@@ -221,31 +276,24 @@ export default function NhaKhoaTable() {
             <TableHead>
               <TableRow className="bg-gray-100">
                 <TableCell></TableCell>
-
                 <TableCell>
                   <b>Tên</b>
                 </TableCell>
-
                 <TableCell>
                   <b>Liên hệ</b>
                 </TableCell>
-
                 <TableCell>
                   <b>Địa chỉ</b>
                 </TableCell>
-
                 <TableCell>
                   <b>Website</b>
                 </TableCell>
-
                 <TableCell>
                   <b>Mô tả</b>
                 </TableCell>
-
                 <TableCell>
                   <b>Ngày tạo</b>
                 </TableCell>
-
                 <TableCell align="center">
                   <b>Hành động</b>
                 </TableCell>
@@ -253,7 +301,6 @@ export default function NhaKhoaTable() {
             </TableHead>
 
             <TableBody>
-              {/* LOADING */}
               {loading && (
                 <TableRow>
                   <TableCell colSpan={8} align="center">
@@ -272,7 +319,6 @@ export default function NhaKhoaTable() {
 
               {filteredData.map((item) => (
                 <TableRow key={item._id} hover>
-                  {/* FAVORITE */}
                   <TableCell>
                     <IconButton
                       size="small"
@@ -286,34 +332,27 @@ export default function NhaKhoaTable() {
                     </IconButton>
                   </TableCell>
 
-                  {/* TÊN */}
                   <TableCell>
                     <div className="font-semibold text-gray-800">
                       {item.hoVaTen}
                     </div>
-
                     <div className="text-xs text-gray-500">
                       ID: {item._id.slice(-6)}
                     </div>
                   </TableCell>
 
-                  {/* LIÊN HỆ */}
                   <TableCell>
                     <div>{item.soDienThoai}</div>
-
                     <div className="text-xs text-blue-500">{item.email}</div>
                   </TableCell>
 
-                  {/* ĐỊA CHỈ */}
                   <TableCell>
                     <div className="text-sm">{item.diaChiCuThe}</div>
-
                     <div className="text-xs text-gray-500">
                       {item.tinh}, {item.quocGia}
                     </div>
                   </TableCell>
 
-                  {/* WEBSITE */}
                   <TableCell>
                     <a
                       href={`https://${item.website}`}
@@ -325,12 +364,10 @@ export default function NhaKhoaTable() {
                     </a>
                   </TableCell>
 
-                  {/* MÔ TẢ */}
                   <TableCell>
                     <div className="max-w-[200px] truncate">{item.moTa}</div>
                   </TableCell>
 
-                  {/* NGÀY */}
                   <TableCell>
                     <Chip
                       label={new Date(item.createdAt).toLocaleDateString(
@@ -341,7 +378,6 @@ export default function NhaKhoaTable() {
                     />
                   </TableCell>
 
-                  {/* ACTION */}
                   <TableCell align="center">
                     <div className="flex items-center justify-center">
                       <Tooltip title="Chỉnh sửa">
@@ -397,11 +433,9 @@ export default function NhaKhoaTable() {
               }}
             >
               <CardContent>
-                {/* HEADER */}
                 <Box className="flex justify-between items-start">
                   <Box>
                     <Typography fontWeight={700}>{item.hoVaTen}</Typography>
-
                     <Typography variant="caption" color="text.secondary">
                       ID: {item._id.slice(-6)}
                     </Typography>
@@ -421,44 +455,33 @@ export default function NhaKhoaTable() {
 
                 <Divider sx={{ my: 1.5 }} />
 
-                {/* CONTACT */}
                 <Box mb={1}>
                   <Typography variant="body2" fontWeight={600}>
                     Liên hệ
                   </Typography>
-
                   <Typography variant="body2">{item.soDienThoai}</Typography>
-
                   <Typography
                     variant="body2"
-                    sx={{
-                      color: "#1976d2",
-                      wordBreak: "break-word",
-                    }}
+                    sx={{ color: "#1976d2", wordBreak: "break-word" }}
                   >
                     {item.email}
                   </Typography>
                 </Box>
 
-                {/* ADDRESS */}
                 <Box mb={1}>
                   <Typography variant="body2" fontWeight={600}>
                     Địa chỉ
                   </Typography>
-
                   <Typography variant="body2">{item.diaChiCuThe}</Typography>
-
                   <Typography variant="caption" color="text.secondary">
                     {item.tinh}, {item.quocGia}
                   </Typography>
                 </Box>
 
-                {/* WEBSITE */}
                 <Box mb={1}>
                   <Typography variant="body2" fontWeight={600}>
                     Website
                   </Typography>
-
                   <a
                     href={`https://${item.website}`}
                     target="_blank"
@@ -469,18 +492,15 @@ export default function NhaKhoaTable() {
                   </a>
                 </Box>
 
-                {/* DESCRIPTION */}
                 <Box mb={2}>
                   <Typography variant="body2" fontWeight={600}>
                     Mô tả
                   </Typography>
-
                   <Typography variant="body2">
                     {item.moTa || "Không có mô tả"}
                   </Typography>
                 </Box>
 
-                {/* FOOTER */}
                 <Box className="flex justify-between items-center flex-wrap gap-2">
                   <Chip
                     label={new Date(item.createdAt).toLocaleDateString("vi-VN")}
@@ -509,12 +529,62 @@ export default function NhaKhoaTable() {
           ))}
       </Box>
 
-      {/* UPDATE MODAL */}
+      {/* ===== UPDATE MODAL ===== */}
       <NhaKhoaUpdateModal
         open={openEdit}
         setOpen={setOpenEdit}
         data={selectedRow}
       />
+
+      {/* ===== MODAL CHỌN NHA KHOA ĐỂ XUẤT EXCEL ===== */}
+      <Dialog
+        open={openExport}
+        onClose={() => setOpenExport(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ fontWeight: "bold" }}>
+          Xuất Bảng Giá Riêng Ra Excel
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              Vui lòng chọn Nha khoa để xuất file Bảng giá tương ứng.
+            </Typography>
+            <TextField
+              select
+              fullWidth
+              label="Chọn Nha Khoa"
+              value={selectedExportNhaKhoa}
+              onChange={(e) => setSelectedExportNhaKhoa(e.target.value)}
+            >
+              <MenuItem value="" disabled>
+                -- Chọn Nha Khoa --
+              </MenuItem>
+              {data &&
+                data.map((nk) => (
+                  <MenuItem key={nk._id} value={nk._id}>
+                    {nk.hoVaTen || nk.tenGiaoDich}
+                  </MenuItem>
+                ))}
+            </TextField>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setOpenExport(false)} color="inherit">
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            color="info"
+            disabled={!selectedExportNhaKhoa}
+            onClick={handleExportSubmit}
+            startIcon={<DownloadIcon />}
+          >
+            Tiến hành xuất
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

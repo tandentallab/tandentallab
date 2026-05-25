@@ -3,6 +3,21 @@ import { api } from "../../config/api";
 
 /* ================= ASYNC THUNKS ================= */
 
+// 🔥 Lấy ngày xuất hóa đơn gần nhất của tất cả nha khoa
+export const fetchNgayXuatHoaDonGanNhatAll = createAsyncThunk(
+  "hoaDon/fetchNgayXuatHoaDonGanNhatAll",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/hoa-don/ngay-gan-nhat-all");
+      return res.data; // Trả về toàn bộ object gồm { success, total, data }
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data || err.message
+      );
+    }
+  }
+);
+
 // 🔥 Lấy đơn hàng chưa xuất hóa đơn
 export const fetchDonHangChuaHoaDon = createAsyncThunk(
   "hoaDon/fetchDonHangChuaHoaDon",
@@ -71,12 +86,16 @@ export const fetchHoaDonByNhaKhoa = createAsyncThunk(
   }
 );
 
-// 🔥 Lấy chi tiết hóa đơn theo ID
 export const fetchHoaDonById = createAsyncThunk(
   "hoaDon/fetchById",
 
   async (id) => {
-    const res = await api.get(`/hoa-don/${id}`);
+    console.log("FETCH ID:", id);
+
+    const url = `/hoa-don/${id}`;
+    console.log("URL:", url);
+
+    const res = await api.get(url);
 
     return res.data;
   }
@@ -241,6 +260,8 @@ const slice = createSlice({
 
     countDonHangChuaXuat: [],
 
+    ngayXuatHoaDonGanNhatAll: [],
+
     pagination: {},
 
     loading: false,
@@ -361,13 +382,7 @@ const slice = createSlice({
         (state, action) => {
           state.loading = false;
 
-          const createdOrders =
-            action.meta.arg
-              .danhSachDonHang;
-
-          const ids = createdOrders.map(
-            (item) => item.donHangId
-          );
+          const ids = action.meta.arg.danhSachDonHangIds;
 
           // 🔥 Xóa các đơn hàng đã chọn khỏi danh sách chờ
           state.donHangs =
@@ -424,7 +439,7 @@ const slice = createSlice({
               updatedHoaDon;
           }
 
-          // 🔥 Update luôn chi tiết hóa đơn nếu đang mở
+
           if (
             state.chiTietHoaDon?._id ===
             updatedHoaDon._id
@@ -433,7 +448,6 @@ const slice = createSlice({
               updatedHoaDon;
           }
 
-          alert("Cập nhật thành công");
         }
       )
 
@@ -643,7 +657,20 @@ const slice = createSlice({
             action.payload?.message ||
             action.error.message;
         }
-      );
+      )
+
+      .addCase(fetchNgayXuatHoaDonGanNhatAll.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchNgayXuatHoaDonGanNhatAll.fulfilled, (state, action) => {
+        state.loading = false;
+        state.ngayXuatHoaDonGanNhatAll = action.payload.data; // Lưu mảng kết quả từ API vào state
+      })
+      .addCase(fetchNgayXuatHoaDonGanNhatAll.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || action.error.message;
+      })
   },
 });
 

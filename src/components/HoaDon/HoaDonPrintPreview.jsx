@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../config/api";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchAllHoaDonAdmin } from "../../redux/slices/hoaDonSlice";
+import { useDispatch } from "react-redux";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
-
-const LOGO_URL = "http://localhost:8080/assets/logo.png";
 
 const HoaDonPrintPreview = () => {
   const navigate = useNavigate();
@@ -15,8 +12,6 @@ const HoaDonPrintPreview = () => {
   const [nhaKhoaInfo, setNhaKhoaInfo] = useState(null);
 
   const dispatch = useDispatch();
-  const { danhSachHoaDon } = useSelector((state) => state.hoaDon);
-  const nhaKhoa = useSelector((state) => state.nhaKhoa);
 
   useEffect(() => {
     dispatch(fetchNhaKhoa());
@@ -26,303 +21,304 @@ const HoaDonPrintPreview = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-
-        let found = danhSachHoaDon?.find((hd) => hd._id === id);
-
-        if (!found) {
-          const res = await dispatch(fetchAllHoaDonAdmin()).unwrap();
-          found = res.data.find((hd) => hd._id === id);
-        }
-
-        if (!found) {
-          const res = await api.get(`/hoa-don/${id}`);
-          found = res.data.data;
-        }
+        const res = await api.get(`/hoa-don/${id}`);
+        const found = res.data?.data || res.data;
 
         if (found) {
           setHoaDon(found);
 
-          const nhaKhoaId =
-            typeof found.nhaKhoa === "string"
-              ? found.nhaKhoa
-              : found.nhaKhoa?._id;
-
-          const foundNhaKhoa = nhaKhoa?.data?.find(
-            (nk) => nk._id === nhaKhoaId
-          );
-
-          setNhaKhoaInfo(foundNhaKhoa || null);
+          const nhaKhoaId = typeof found.nhaKhoa === "string" ? found.nhaKhoa : found.nhaKhoa?._id;
+          if (nhaKhoaId) {
+            try {
+              const nkRes = await api.get(`/nha-khoa/${nhaKhoaId}`);
+              setNhaKhoaInfo(nkRes.data?.data || nkRes.data);
+            } catch (e) {
+              setNhaKhoaInfo(found.nhaKhoa);
+            }
+          }
         }
       } catch (err) {
-        console.error(err);
+        console.error("Lỗi:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [id, dispatch, danhSachHoaDon, nhaKhoa?.data]);
+    if (id) fetchData();
+  }, [id]);
 
-  if (loading) return <div className="p-4">Đang tải...</div>;
-  if (!hoaDon) return <div className="p-4">Không tìm thấy hóa đơn</div>;
+  if (loading) return <div className="p-4 text-center">Đang tải dữ liệu in...</div>;
+  if (!hoaDon) return <div className="p-4 text-center">Không tìm thấy dữ liệu</div>;
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount || 0);
+    if (amount === 0) return "0";
+    if (!amount) return "";
+    return new Intl.NumberFormat("vi-VN").format(amount);
   };
 
   const formatDate = (date) => {
     if (!date) return "";
-    return new Date(date).toLocaleDateString("vi-VN");
+    return new Date(date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
-  const formatDiscount = (value, type) => {
-    if (value === null || value === undefined || value === "") return "";
-
-    if (type === "phanTram") {
-      const raw = String(value).replace("%", "").trim();
-      return raw ? `${raw}%` : "";
-    }
-
-    return formatCurrency(Number(value) || 0);
+  const formatShortDate = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
   };
 
-  const items = hoaDon.danhSachDonHang || [];
-  const buildTeethText = (viTri = []) => {
-    if (!Array.isArray(viTri)) return "";
-    const parts = viTri
-      .map((v) => (Array.isArray(v.soRang) ? v.soRang.join(", ") : ""))
-      .filter(Boolean);
-    return parts.join(" | ");
+  const formatViTriRang = (viTriArr) => {
+    if (!viTriArr || viTriArr.length === 0) return "";
+    return viTriArr
+      .map((v) =>
+        v.kieu === "Cầu" && v.soRang?.length > 1
+          ? `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+          : v.soRang?.join(", ")
+      )
+      .filter(Boolean)
+      .join("; ");
+  };
+
+  // Hàm tiện ích chỉ lấy phần Tên cuối cùng của Bác sĩ
+  const getFirstName = (fullName) => {
+    if (!fullName || fullName === "---") return "---";
+    const parts = fullName.trim().split(" ");
+    return parts[parts.length - 1];
   };
 
   const rows = [];
-  items.forEach((wrap) => {
-    const donHang = wrap.donHang || {};
-    const bacSi = donHang.bacSi?.hoVaTen || "";
-    const benhNhan = donHang.benhNhan?.hoVaTen || "";
-    const ngay = donHang.ngayNhan || hoaDon.ngayXuatHoaDon;
-    const sanPhamList = donHang.danhSachSanPham || [];
+  (hoaDon.danhSachSanPham || []).forEach((sp, idx) => {
+    const loaiGiamGia = sp.loaiGiamGia || "phanTram";
+    const baseAmount = sp.thanhTien || (sp.soLuong || 1) * (sp.donGia || 0);
 
-    if (sanPhamList.length === 0) {
-      rows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        sanPham: "",
-        rang: "",
-        soLuong: "",
-        donGia: wrap.tongTien || 0,
-        giamGia: formatDiscount(wrap.chietKhau, wrap.loaiChietKhau),
-        thanhTien: wrap.thanhTienSauCK || 0,
-      });
-      return;
+    let displayDiscount = "0";
+    if (loaiGiamGia === "phanTram") {
+      const percent = sp.giamGiaPhanTram || (baseAmount ? Math.round((sp.giamGia || 0) / baseAmount * 100) : 0);
+      displayDiscount = percent ? `${percent}%` : "0";
+    } else {
+      displayDiscount = sp.giamGia ? formatCurrency(sp.giamGia) : "0";
     }
 
-    sanPhamList.forEach((sp, spIndex) => {
-      rows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        sanPham: sp.sanPham?.tenSanPham || "",
-        rang: buildTeethText(sp.viTri),
-        soLuong: sp.soLuong || "",
-        donGia: sp.sanPham?.donGiaChung || "",
-        giamGia:
-          spIndex === 0 && wrap.chietKhau
-            ? formatDiscount(wrap.chietKhau, wrap.loaiChietKhau)
-            : "",
-        thanhTien: spIndex === 0 ? wrap.thanhTienSauCK || 0 : "",
-      });
-    });
-  });
-
-  const tableRows = [];
-  items.forEach((wrap) => {
-    const donHang = wrap.donHang || {};
-    const bacSi = donHang.bacSi?.hoVaTen || "";
-    const benhNhan = donHang.benhNhan?.hoVaTen || "";
-    const ngay = donHang.ngayNhan || hoaDon.ngayXuatHoaDon;
-    const sanPhamList = donHang.danhSachSanPham || [];
-
-    if (sanPhamList.length === 0) {
-      tableRows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        sanPham: "",
-        rang: "",
-        soLuong: "",
-        donGia: wrap.tongTien || 0,
-        giamGia: formatDiscount(wrap.chietKhau, wrap.loaiChietKhau),
-        thanhTien: wrap.thanhTienSauCK || 0,
-      });
-      return;
-    }
-
-    sanPhamList.forEach((sp, spIndex) => {
-      tableRows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        sanPham: sp.sanPham?.tenSanPham || "",
-        rang: buildTeethText(sp.viTri),
-        soLuong: sp.soLuong || "",
-        donGia: sp.sanPham?.donGiaChung || 0,
-        giamGia:
-          spIndex === 0 && wrap.chietKhau
-            ? formatDiscount(wrap.chietKhau, wrap.loaiChietKhau)
-            : "",
-        thanhTien: spIndex === 0 ? wrap.thanhTienSauCK || 0 : "",
-      });
+    rows.push({
+      stt: idx + 1,
+      ngay: sp.donHang?.ngayNhan || hoaDon.ngayXuatHoaDon,
+      bacSi: getFirstName(sp.donHang?.bacSi?.hoVaTen), // Chỉ lấy tên bác sĩ ở đây
+      benhNhan: sp.donHang?.benhNhan?.hoVaTen || "---",
+      sanPham: sp.tenSanPham || "---",
+      rang: formatViTriRang(sp.viTri),
+      soLuong: sp.soLuong || 1,
+      donGia: sp.donGia || 0,
+      giamGia: displayDiscount,
+      thanhTien: sp.tongCongSanPham || 0,
+      ghiChu: sp.ghiChu || "",
     });
   });
 
   return (
-    <div className="min-h-screen bg-gray-200">
-      <div className="h-10 bg-[#00a8ff] flex justify-between items-center px-4">
-        <span className="text-white font-medium text-sm">Hóa đơn</span>
-        <button
-          onClick={() => navigate(-1)}
-          className="text-white text-2xl font-bold leading-none hover:text-gray-200 transition"
-        >
-          &times;
-        </button>
+    <div className="h-screen flex flex-col bg-gray-200 overflow-hidden">
+      <div className="h-10 bg-[#00a8ff] flex justify-between items-center px-4 shrink-0 print:hidden z-[1000]">
+        <span className="text-white font-medium text-sm tracking-wide uppercase">Xem trước hóa đơn</span>
+        <button onClick={() => navigate(-1)} className="text-white text-2xl hover:opacity-80 leading-none">&times;</button>
       </div>
 
-      <div className="flex flex-col items-center py-6 px-4">
-        <div className="print-area bg-white w-full max-w-4xl shadow-lg border border-gray-400">
-          {/* Header */}
-          <div className="grid grid-cols-12 border-b border-gray-800">
-            <div className="col-span-2 border-r border-gray-800 flex items-center justify-center p-2">
-              <img src={LOGO_URL} alt="logo" className="max-h-16" />
-            </div>
-            <div className="col-span-6 border-r border-gray-800 text-center p-2">
-              <div className="font-bold text-lg">CÔNG TY TNHH TẤN DENTAL</div>
-              <div className="text-sm">
-                Địa chỉ: Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ
-              </div>
-              <div className="text-sm">Điện thoại: 0842312828</div>
-            </div>
-            <div className="col-span-4 text-center p-2">
-              <div className="font-bold text-lg">GIẤY BÁO THANH TOÁN</div>
-            </div>
-          </div>
-
-          {/* Customer */}
-          <div className="border-b border-gray-800 text-center font-bold py-2">
-            Khách hàng: {nhaKhoaInfo?.hoVaTen || "---"}
-          </div>
-
-          {/* Date range */}
-          <div className="border-b border-gray-800 text-center font-semibold py-2">
-            Từ ngày: {formatDate(hoaDon.ngayXuatHoaDon)} đến ngày: {formatDate(hoaDon.ngayXuatHoaDon)}
-          </div>
-
-          {/* Table */}
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="border-r border-gray-800 p-2">STT</th>
-                <th className="border-r border-gray-800 p-2">NGÀY</th>
-                <th className="border-r border-gray-800 p-2">BÁC SĨ</th>
-                <th className="border-r border-gray-800 p-2">BỆNH NHÂN</th>
-                <th className="border-r border-gray-800 p-2">SẢN PHẨM</th>
-                <th className="border-r border-gray-800 p-2">RĂNG</th>
-                <th className="border-r border-gray-800 p-2">S.L</th>
-                <th className="border-r border-gray-800 p-2">ĐƠN GIÁ</th>
-                <th className="border-r border-gray-800 p-2">GIẢM GIÁ</th>
-                <th className="border-r border-gray-800 p-2">THÀNH TIỀN</th>
-                <th className="p-2">GHI CHÚ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr key={`${index}-${row.sanPham}`} className="border-b border-gray-800">
-                  <td className="border-r border-gray-800 p-2 text-center">{index + 1}</td>
-                  <td className="border-r border-gray-800 p-2 text-center">
-                    {formatDate(row.ngay)}
+      <div className="flex-1 overflow-y-auto pt-6 px-4 pb-4 scrollbar-thin">
+        <div className="w-full flex justify-center">
+          <div
+            className="print-area bg-white w-full max-w-[210mm] shadow-lg p-4 mb-2"
+            style={{ fontFamily: "'Cambria', serif", fontSize: "10.5pt" }}
+          >
+            <table className="w-full border-collapse border border-black mb-2" style={{ fontSize: "10.5pt" }}>
+              <tbody>
+                <tr>
+                  <td className="border border-black p-2 w-1/2 align-top leading-tight font-bold text-center">
+                    <div className="font-bold mb-1 uppercase">Công ty TNHH Tấn Dental</div>
+                    <div>Số 43, đường số 14, KDC Hồng Phát, phường An Bình,</div>
+                    <div>TP Cần Thơ</div>
+                    <div>Điện thoại: 0842312828</div>
                   </td>
-                  <td className="border-r border-gray-800 p-2 text-center">
-                    {row.bacSi}
+                  <td className="border border-black p-2 w-1/2 text-center align-middle font-bold uppercase text-lg">
+                    Giấy báo thanh toán
                   </td>
-                  <td className="border-r border-gray-800 p-2">
-                    {row.benhNhan}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-center">
-                    {row.sanPham}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-center">
-                    {row.rang}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-center">
-                    {row.soLuong}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-right">
-                    {formatCurrency(row.donGia)}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-right">
-                    {row.giamGia}
-                  </td>
-                  <td className="border-r border-gray-800 p-2 text-right">
-                    {row.thanhTien === "" ? "" : formatCurrency(row.thanhTien)}
-                  </td>
-                  <td className="p-2"></td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
 
-          {/* Summary */}
-          <div className="grid grid-cols-12 border-t border-gray-800">
-            <div className="col-span-8"></div>
-            <div className="col-span-4 border-l border-gray-800">
-              <div className="border-b border-gray-800 px-2 py-1 flex justify-between font-bold">
-                <span>PHÁT SINH TRONG KỲ</span>
-                <span>{formatCurrency(hoaDon.tongTien)}</span>
+            <div className="mb-2 leading-tight text-center">
+              <div className="font-bold mb-2">Khách hàng: <span className="font-bold uppercase">{nhaKhoaInfo?.hoVaTen || nhaKhoaInfo?.tenGiaoDich || "---"}</span></div>
+              <div>Từ Ngày: {formatDate(hoaDon.ngayXuatHoaDon)} - Đến Ngày: {formatDate(hoaDon.ngayXuatHoaDon)}</div>
+            </div>
+
+            <table className="w-full border-collapse" style={{ fontSize: "10.5pt" }}>
+              <colgroup>
+                <col style={{ width: "3%" }} />
+                <col style={{ width: "6%" }} />
+                <col style={{ width: "5%" }} />   {/* Bác sĩ rút xuống 5% vì chỉ hiện tên ngắn */}
+                <col style={{ width: "18%" }} />  {/* Bệnh nhân được cộng thêm diện tích thành 18% */}
+                <col />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "4%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "7%" }} />   {/* Giữ nguyên 7% */}
+                <col style={{ width: "11%" }} />
+                <col style={{ width: "8%" }} />
+              </colgroup>
+              <thead>
+                <tr className="font-bold text-center">
+                  {/* BƯỚC 1: GIẢM PADDING TỪ P-1 (4PX) XUỐNG P-0.5 (2PX) TOÀN TABLE THHEAD */}
+                  <th className="border border-black p-0.5 whitespace-nowrap">STT</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">NGÀY</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">BÁC SĨ</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">BỆNH NHÂN</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">SẢN PHẨM</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">RĂNG</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">S.L</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">ĐƠN GIÁ</th>
+                  {/* BƯỚC 2: VIẾT ĐẦY ĐỦ CHỮ GIẢM GIÁ */}
+                  <th className="border border-black p-0.5 whitespace-nowrap">GIẢM GIÁ</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">THÀNH TIỀN</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap">GHI CHÚ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => (
+                  <tr key={index}>
+                    {/* BƯỚC 1: GIẢM PADDING TỪ P-1 (4PX) XUỐNG P-0.5 (2PX) TOÀN TABLE TBODY */}
+                    <td className="border border-black text-center p-0.5">{index + 1}</td>
+                    <td className="border border-black text-center p-0.5">{formatShortDate(row.ngay)}</td>
+                    <td className="border border-black text-center p-0.5">{row.bacSi}</td>
+                    <td className="border border-black text-center p-0.5">{row.benhNhan}</td>
+                    <td className="border border-black text-center p-0.5">{row.sanPham}</td>
+                    <td className="border border-black text-center p-0.5">{row.rang}</td>
+                    <td className="border border-black text-center p-0.5">{row.soLuong}</td>
+                    <td className="border border-black text-center p-0.5">{formatCurrency(row.donGia)}</td>
+                    <td className="border border-black text-center p-0.5">{row.giamGia}</td>
+                    <td className="border border-black text-center p-0.5">{row.thanhTien ? formatCurrency(row.thanhTien) : "0"}</td>
+                    <td className="border border-black text-center p-0.5">{row.ghiChu}</td>
+                  </tr>
+                ))}
+
+                {/* KHỐI TỔNG HỢP CHI PHÍ - Ép căn lề phải hoàn toàn */}
+                <tr>
+                  <td colSpan={6} style={{ border: "none" }}></td>
+                  <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
+                    TỔNG CỘNG
+                  </td>
+                  <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
+                    {formatCurrency(hoaDon.tongCong || 0)}
+                  </td>
+                </tr>
+                <tr>
+                  <td colSpan={6} style={{ border: "none" }}></td>
+                  <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
+                    CHIẾT KHẤU
+                  </td>
+                  <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
+                    {formatCurrency(hoaDon.chietKhau || 0)}
+                  </td>
+                </tr>
+
+                {/* TỰ ĐỘNG THÊM DÒNG THUẾ NẾU CÓ THUẾ > 0 */}
+                {hoaDon.thue > 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ border: "none" }}></td>
+                    <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
+                      {/* 👇 Sửa dòng này để làm tròn tỷ lệ hiển thị */}
+                      THUẾ
+                    </td>
+                    <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
+                      {formatCurrency(
+                        Math.round(
+                          Math.max(0, (hoaDon.tongCong || 0) - (hoaDon.chietKhau || 0)) * (hoaDon.thue / 100)
+                        )
+                      )}
+                    </td>
+                  </tr>
+                )}
+
+                {/* 👇 CHÈN THÊM KHỐI CHI PHÍ KHÁC VÀO ĐÂY 👇 */}
+                {hoaDon.chiPhiKhac > 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ border: "none" }}></td>
+                    <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
+                      CHI PHÍ KHÁC
+                    </td>
+                    <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
+                      {formatCurrency(hoaDon.chiPhiKhac || 0)}
+                    </td>
+                  </tr>
+                )}
+
+                <tr>
+                  <td colSpan={6} style={{ border: "none" }}></td>
+                  <td colSpan={3} className="border border-black p-0.5 text-right font-bold uppercase whitespace-nowrap">
+                    GIÁ TRỊ THANH TOÁN
+                  </td>
+                  <td colSpan={2} className="border border-black p-0.5 font-bold text-right whitespace-nowrap">
+                    {formatCurrency(hoaDon.giaTriThanhToan || 0)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div className="mt-4 text-left leading-normal" style={{ fontSize: "10.5pt" }}>
+              <div className="mt-1 whitespace-pre-wrap text-gray-800">
+                *Ghi chú:
               </div>
-              <div className="border-b border-gray-800 px-2 py-1 flex justify-between font-bold">
-                <span>CHIẾT KHẤU</span>
-                <span>{formatCurrency(hoaDon.tongChietKhau)}</span>
-              </div>
-              <div className="border-b border-gray-800 px-2 py-1 flex justify-between font-bold">
-                <span>NỢ ĐẦU KỲ</span>
-                <span>0</span>
-              </div>
-              <div className="px-2 py-1 flex justify-between font-bold">
-                <span>GIÁ TRỊ THANH TOÁN</span>
-                <span>{formatCurrency(hoaDon.thanhTien)}</span>
+              <div className="mt-1 whitespace-pre-wrap text-gray-800 font-bold">
+                {hoaDon.ghiChuChoKhachHang || ""}
               </div>
             </div>
+
           </div>
-
-          {/* Notes */}
-          <div className="p-2 text-sm">*Ghi chú:</div>
         </div>
+      </div>
 
-        <div className="mt-4 flex gap-2 print:hidden">
-          <button
-            onClick={() => window.print()}
-            className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700"
-          >
-            In hóa đơn
-          </button>
-          <button
-            onClick={() => navigate(-1)}
-            className="bg-gray-500 text-white px-4 py-2 rounded shadow hover:bg-gray-600"
-          >
-            Đóng
-          </button>
-        </div>
+      <div className="h-16 bg-white border-t flex justify-center items-center gap-4 shrink-0 print:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+        <button
+          onClick={() => window.print()}
+          className="bg-green-600 text-white px-10 py-2 rounded shadow font-bold hover:bg-green-700 transition transform active:scale-95"
+        >
+          IN HÓA ĐƠN
+        </button>
+        <button
+          onClick={() => navigate(-1)}
+          className="bg-gray-500 text-white px-10 py-2 rounded shadow font-bold hover:bg-gray-600 transition transform active:scale-95"
+        >
+          QUAY LẠI
+        </button>
       </div>
 
       <style>{`
         @media print {
+          @page { 
+            size: A4; 
+            margin: 15mm; 
+          }
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
           body * { visibility: hidden; }
           .print-area, .print-area * { visibility: visible; }
-          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .print-area { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100% !important; 
+            border: none !important; 
+            margin: 0 !important; 
+            padding: 0 !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+          }
+          table { 
+            width: 100% !important; 
+            border-collapse: collapse !important; 
+            page-break-inside: auto;
+          }
+          tr { page-break-inside: avoid; page-break-after: auto; }
         }
       `}</style>
     </div>

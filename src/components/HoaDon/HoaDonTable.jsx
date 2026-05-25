@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDispatch } from "react-redux";
 import {
   Table,
   TableBody,
@@ -9,266 +9,176 @@ import {
   TableRow,
   Paper,
   Button,
-  TablePagination,
   Chip,
   Modal,
-  Box,
-  Typography,
-  Divider,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   CircularProgress,
-  Stack,
-  Grid,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Tooltip,
 } from "@mui/material";
-import {
-  deleteHoaDon,
-  fetchAllHoaDonAdmin,
-  updateHoaDon,
-} from "../../redux/slices/hoaDonSlice";
-import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
-import ClearIcon from "@mui/icons-material/Clear";
-import { SearchIcon, TrashIcon } from "lucide-react";
-import AddIcon from "@mui/icons-material/Add";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { updateHoaDon } from "../../redux/slices/hoaDonSlice";
 import { useNavigate } from "react-router-dom";
-import AssignmentIcon from "@mui/icons-material/Assignment";
-import ThongKeCongNo from "./ThongKeCongNo";
-import DownloadIcon from "@mui/icons-material/Download";
-import { exportHoaDonListToExcel } from "../../utils/exportToExcel";
-import { api } from "../../config/api";
-import SvgIcon from "@mui/material/SvgIcon";
-import ExportDateSelector from "../common/ExportDateSelector";
-import {
-  EMPTY_EXPORT_DATE_FILTER,
-  toISODateRange,
-  isValidExportDateFilter,
-} from "../../utils/exportDatePresets";
 
-const modalStyle = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: { xs: "96%", md: "90%" },
-  maxWidth: 1000,
-  maxHeight: "90vh",
-  overflow: "auto",
-  bgcolor: "background.paper",
-  boxShadow: 24,
-  p: 4,
-  borderRadius: 2,
+// ================= FORMATTERS (module-level, khởi tạo 1 lần) =================
+const vndFormatter = new Intl.NumberFormat("vi-VN");
+const dateFormatter = new Intl.DateTimeFormat("vi-VN");
+
+const fmtVND = (v) => vndFormatter.format(v || 0);
+const fmtDate = (d) => d ? dateFormatter.format(new Date(d)) : "—";
+
+// ================= CONSTANTS =================
+const NUMERIC_KEYS = new Set([
+  "tongCong", "giamGia", "giaTriThanhToan",
+  "daThanhToan", "conLai", "chiPhiKhac",
+]);
+
+const STATUS_CLASS = {
+  "Chưa thanh toán": "bg-[#f44336] text-white",
+  "Thanh toán một phần": "bg-[#ff9800] text-white",
+  "Đã thanh toán": "bg-[#4CAF50] text-white",
 };
 
-function ExcelIcon(props) {
-  return (
-    <SvgIcon {...props} viewBox="0 0 24 24">
-      <rect x="2" y="3" width="20" height="18" rx="2" ry="2" fill="#1b7a34" />
-      <path d="M6 7h12v2H6z" fill="#fff" />
-      <path
-        d="M7.2 15.5l1.6-2.3 1.6 2.3 1.6-2.3 1.6 2.3"
-        stroke="#fff"
-        strokeWidth="0.9"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </SvgIcon>
-  );
-}
+// ================= RESIZABLE HEADER CELL =================
+const ResizableHeaderCell = React.memo(({ label, style, columnKey, onResize }) => (
+  <TableCell sx={style}>
+    {label}
+    <div
+      onMouseDown={(e) => onResize(columnKey, e)}
+      className="absolute top-0 right-0 w-3 h-full cursor-col-resize z-10 flex items-center justify-center transition-all hover:bg-gray-100 after:content-[''] after:absolute after:w-[2px] after:h-3/5 after:bg-gray-300 after:rounded"
+    />
+  </TableCell>
+));
 
-const HoaDonTable = () => {
+// ================= ROW COMPONENT =================
+const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => (
+  <TableRow
+    hover
+    className="cursor-pointer transition-colors duration-200 hover:bg-slate-50"
+    onClick={() => onNavigate(`/hoa-don/${hd._id}/edit`)}
+  >
+    <TableCell sx={cellStyles.ngayXuat}>
+      {fmtDate(hd.ngayXuatHoaDon || hd.createdAt)}
+    </TableCell>
+    <TableCell sx={cellStyles.soHoaDon}>
+      {hd.soHoaDon}
+    </TableCell>
+    <TableCell sx={cellStyles.nhaKhoa}>
+      {hd.nhaKhoa?.hoVaTen || hd.nhaKhoa?.tenNhaKhoa || "—"}
+    </TableCell>
+    <TableCell sx={cellStyles.tongCong}>
+      {fmtVND(hd.tongCong)}
+    </TableCell>
+    <TableCell sx={cellStyles.giamGia}>
+      {fmtVND(hd.chietKhau)}
+    </TableCell>
+    <TableCell sx={cellStyles.giaTriThanhToan}>
+      {fmtVND(hd.giaTriThanhToan)}
+    </TableCell>
+    <TableCell sx={cellStyles.daThanhToan}>
+      {fmtVND(hd.daThanhToan)}
+    </TableCell>
+    <TableCell sx={cellStyles.conLai}>
+      {fmtVND(hd.conLai)}
+    </TableCell>
+    <TableCell sx={cellStyles.chiPhiKhac}>
+      {fmtVND(hd.chiPhiKhac)}
+    </TableCell>
+    <TableCell sx={cellStyles.trangThai}>
+      <span className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide ${STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"}`}>
+        {hd.trangThai || "—"}
+      </span>
+    </TableCell>
+    <TableCell sx={cellStyles.ghiChu}>
+      {hd.ghiChuChoKhachHang || "—"}
+    </TableCell>
+    <TableCell sx={cellStyles.ngayDenHan}>
+      {fmtDate(hd.ngayDenHan)}
+    </TableCell>
+  </TableRow>
+));
+
+// ================= COMPONENT CHÍNH =================
+const HoaDonTable = ({ danhSachHoaDon, loading }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Lấy dữ liệu từ Redux
-  const { danhSachHoaDon, pagination, loading } = useSelector(
-    (state) => state.hoaDon
-  );
-  const nhaKhoa = useSelector((state) => state.nhaKhoa);
-
-  // State quản lý Modal
   const [selectedHD, setSelectedHD] = useState(null);
   const [openDetail, setOpenDetail] = useState(false);
   const [openUpdate, setOpenUpdate] = useState(false);
-
-  const [columnWidths, setColumnWidths] = useState({
-    soHoaDon: 85,
-    nhaKhoa: 100,
-    tongTien: 80,
-    tongChietKhau: 80,
-    thanhTien: 80,
-    daThanhToan: 80,
-    conLai: 80,
-    ngayTao: 80,
-    trangThai: 80,
-    thaoTac: 80,
-  });
-
-  // State cho phân trang và bộ lọc
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [filterNhaKhoa, setFilterNhaKhoa] = useState("");
-  const [filterTrangThai, setFilterTrangThai] = useState("");
   const [statusUpdate, setStatusUpdate] = useState("");
 
-  // State xử lý Tìm kiếm (Search)
-  const [searchTerm, setSearchTerm] = useState(""); // Giá trị gõ tức thời
-  const [debouncedSearch, setDebouncedSearch] = useState(""); // Giá trị dùng để gọi API
+  // ── Resizable columns ──
+  const [columnWidths, setColumnWidths] = useState({
+    ngayXuat: 120,
+    soHoaDon: 140,
+    nhaKhoa: 220,
+    tongCong: 130,
+    giamGia: 110,
+    giaTriThanhToan: 160,
+    daThanhToan: 140,
+    conLai: 120,
+    chiPhiKhac: 120,
+    trangThai: 140,
+    ghiChu: 200,
+    ngayDenHan: 130,
+  });
 
-  // Lấy danh sách nha khoa khi component mount
-  useEffect(() => {
-    dispatch(fetchNhaKhoa());
-  }, [dispatch]);
+  // Ref để handleResize stable, không cần re-create khi columnWidths đổi
+  const columnWidthsRef = useRef(columnWidths);
+  useEffect(() => { columnWidthsRef.current = columnWidths; }, [columnWidths]);
 
-  // Xử lý Debounce cho ô tìm kiếm: Đợi người dùng ngừng gõ 500ms mới set search chính
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setPage(0); // Reset về trang 1 khi bắt đầu tìm kiếm mới
-    }, 500);
-
-    return () => clearTimeout(handler);
-  }, [searchTerm]);
-
-  // Gọi API lấy hóa đơn khi các tham số thay đổi
-  useEffect(() => {
-    console.log("Lọc theo: ", {
-      page: page + 1,
-      limit: rowsPerPage,
-      nhaKhoaId: filterNhaKhoa,
-      trangThai: filterTrangThai,
-      search: debouncedSearch, // Gửi từ khóa tìm kiếm lên server
-    });
-    dispatch(
-      fetchAllHoaDonAdmin({
-        page: page + 1,
-        limit: rowsPerPage,
-        nhaKhoaId: filterNhaKhoa,
-        trangThai: filterTrangThai,
-        search: debouncedSearch, // Gửi từ khóa tìm kiếm lên server
-      })
-    );
-  }, [
-    dispatch,
-    page,
-    rowsPerPage,
-    filterNhaKhoa,
-    filterTrangThai,
-    debouncedSearch,
-  ]);
-
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const handleConfirmUpdate = async () => {
-    await dispatch(
-      updateHoaDon({ id: selectedHD._id, data: { trangThai: statusUpdate } })
-    );
-    setOpenUpdate(false);
-  };
-
-  const handleDeleteHoaDon = (id) => {
-    if (window.confirm("Bạn có chắc muốn xóa hóa đơn?")) {
-      dispatch(deleteHoaDon(String(id)));
-    }
-  };
-
-  // Export modal state
-  const [openExport, setOpenExport] = useState(false);
-  const [exportDateFilter, setExportDateFilter] = useState(
-    EMPTY_EXPORT_DATE_FILTER
+  const totalTableWidth = useMemo(
+    () => Object.values(columnWidths).reduce((a, b) => a + b, 0),
+    [columnWidths]
   );
-  const [exportNhaKhoa, setExportNhaKhoa] = useState("");
-  const [exportTrangThai, setExportTrangThai] = useState([]);
-  const [exporting, setExporting] = useState(false);
-  const [exportFrom, setExportFrom] = useState("");
-  const [exportTo, setExportTo] = useState("");
 
-  const handleExport = async () => {
-    // Kiểm tra ngày
-    if (!exportFrom || !exportTo) {
-      alert("Vui lòng chọn khoảng thời gian để xuất.");
-      return;
-    }
+  // ── Virtual scroll ──
+  const [visibleCount, setVisibleCount] = useState(30);
+  const containerRef = useRef(null);
+  const sentinelRef = useRef(null);
 
-    // Kiểm tra preset/filter ngày
-    if (!isValidExportDateFilter(exportDateFilter)) {
-      alert("Vui lòng chọn thời gian bằng preset hoặc Chọn trên lịch.");
-      return;
-    }
+  useEffect(() => { setVisibleCount(30); }, [danhSachHoaDon]);
 
-    try {
-      setExporting(true);
+  useEffect(() => {
+    const container = containerRef.current;
+    const sentinel = sentinelRef.current;
+    if (!container || !sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting)
+          setVisibleCount((prev) => Math.min(prev + 30, danhSachHoaDon?.length ?? 0));
+      },
+      { root: container, threshold: 0.1 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [danhSachHoaDon?.length]);
 
-      const fromDate = new Date(exportFrom).toISOString();
-      const toDate = new Date(`${exportTo}T23:59:59`).toISOString();
+  const visibleRows = useMemo(
+    () => (danhSachHoaDon ?? []).slice(0, visibleCount),
+    [danhSachHoaDon, visibleCount]
+  );
 
-      const { fromISO, toISO } = toISODateRange(exportDateFilter);
-
-      const res = await api.get("/hoa-don/all", {
-        params: {
-          page: 1,
-          limit: 5000,
-          fromDate: fromISO || fromDate,
-          toDate: toISO || toDate,
-          nhaKhoaId: exportNhaKhoa || "",
-        },
-      });
-
-      let data = res.data?.data || [];
-
-      // Filter trạng thái
-      if (exportTrangThai.length > 0) {
-        data = data.filter((hd) => exportTrangThai.includes(hd.trangThai));
-      }
-
-      const selectedNk = (nhaKhoa?.data || []).find(
-        (nk) => nk._id === exportNhaKhoa
-      );
-
-      await exportHoaDonListToExcel(data, {
-        fromDate: fromISO || fromDate,
-        toDate: toISO || toDate,
-        nhaKhoaName: selectedNk?.hoVaTen || selectedNk?.tenGiaoDich || "Tất cả",
-      });
-
-      setOpenExport(false);
-    } catch (err) {
-      alert(
-        `Xuất Excel thất bại: ${err?.response?.data?.message || err.message}`
-      );
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleResize = (columnKey, e) => {
+  // ── RAF throttle resize ──
+  const handleResize = useCallback((columnKey, e) => {
     e.preventDefault();
-
     const startX = e.clientX;
-    const startWidth = columnWidths[columnKey];
+    const startWidth = columnWidthsRef.current[columnKey];
+    let rafPending = false;
+    let lastX = startX;
 
-    const onMouseMove = (moveEvent) => {
-      const newWidth = startWidth + (moveEvent.clientX - startX);
-
-      setColumnWidths((prev) => ({
-        ...prev,
-        [columnKey]: Math.max(newWidth, 80), // width tối thiểu
-      }));
+    const onMouseMove = (mv) => {
+      lastX = mv.clientX;
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(() => {
+        setColumnWidths((prev) => ({
+          ...prev,
+          [columnKey]: Math.max(startWidth + (lastX - startX), 60),
+        }));
+        rafPending = false;
+      });
     };
 
     const onMouseUp = () => {
@@ -278,743 +188,200 @@ const HoaDonTable = () => {
 
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
+  }, []); // stable
+
+  // ── Precompute tất cả cell styles 1 lần khi columnWidths đổi ──
+  const cellStyles = useMemo(() => {
+    const base = (key) => ({
+      width: columnWidths[key],
+      minWidth: columnWidths[key],
+      maxWidth: columnWidths[key],
+      boxSizing: "border-box",
+      fontSize: "0.85rem",
+      color: "#333",
+      overflow: "hidden",
+      whiteSpace: "nowrap",
+      textOverflow: "clip",
+      borderBottom: "1px solid #d1d5db",
+      py: 0.75,
+      pl: 2,
+      pr: NUMERIC_KEYS.has(key) ? 3 : 2,
+      textAlign: NUMERIC_KEYS.has(key) ? "right" : "left",
+    });
+
+    const baseHeader = (key) => ({
+      ...base(key),
+      position: "relative",
+      fontWeight: 600,
+      fontSize: "0.85rem",
+      userSelect: "none",
+      color: "#26a69a",
+      py: 1,
+      bgcolor: "#fff",
+      borderBottom: "2px solid #cbd5e1",
+    });
+
+    // Row styles
+    const row = {};
+    const hdr = {};
+    ["ngayXuat", "soHoaDon", "nhaKhoa", "tongCong", "giamGia",
+      "giaTriThanhToan", "daThanhToan", "conLai", "chiPhiKhac",
+      "trangThai", "ghiChu", "ngayDenHan"].forEach((k) => {
+        row[k] = base(k);
+        hdr[k] = baseHeader(k);
+      });
+
+    return { row, hdr };
+  }, [columnWidths]);
+
+  const onNavigate = useCallback((path) => navigate(path), [navigate]);
+
+  const handleConfirmUpdate = async () => {
+    await dispatch(updateHoaDon({ id: selectedHD._id, data: { trangThai: statusUpdate } }));
+    setOpenUpdate(false);
   };
 
-  const ResizableHeaderCell = ({ label, columnKey }) => {
-    return (
-      <TableCell
-        sx={{
-          width: columnWidths[columnKey],
-          minWidth: columnWidths[columnKey],
-          maxWidth: columnWidths[columnKey],
-          position: "relative",
-          fontWeight: "bold",
-          whiteSpace: "nowrap",
-          userSelect: "none",
-        }}
-      >
-        {label}
-
-        {/* Thanh resize */}
-        <Box
-          onMouseDown={(e) => handleResize(columnKey, e)}
-          sx={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            width: "12px",
-            height: "100%",
-            cursor: "col-resize",
-            zIndex: 10,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.2s ease",
-
-            "&:hover": {
-              backgroundColor: "#e3f2fd",
-            },
-
-            // Thanh dọc
-            "&::before": {
-              content: '""',
-              position: "absolute",
-              width: "2px",
-              height: "70%",
-              backgroundColor: "#b0b0b0",
-              borderRadius: "2px",
-            },
-          }}
-        />
-      </TableCell>
-    );
-  };
-
-  const getTrangThaiColor = (trangThai) => {
-    switch (trangThai) {
-      case "Chưa thanh toán":
-        return {
-          bg: "#fee2e2",
-          color: "#dc2626",
-          border: "#fecaca",
-        };
-
-      case "Thanh toán một phần":
-        return {
-          bg: "#fef3c7",
-          color: "#d97706",
-          border: "#fde68a",
-        };
-
-      case "Đã thanh toán":
-        return {
-          bg: "#dcfce7",
-          color: "#16a34a",
-          border: "#bbf7d0",
-        };
-
-      default:
-        return {
-          bg: "#f3f4f6",
-          color: "#374151",
-          border: "#d1d5db",
-        };
-    }
-  };
-
+  // ================= RENDER =================
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Quản lý Hóa Đơn</h2>
-      <ThongKeCongNo></ThongKeCongNo>
-      {/* BỘ LỌC (FILTERS) */}
-      <Paper className="p-4 mb-6 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between">
-          <div>
-            <Grid container spacing={2} alignItems="center">
-              {/* ===== Nha khoa ===== */}
-              <Grid item xs={12} md>
-                <FormControl fullWidth size="small" sx={{ minWidth: 220 }}>
-                  <InputLabel sx={{ whiteSpace: "nowrap" }}>
-                    Lọc theo Nha Khoa
-                  </InputLabel>
-                  <Select
-                    value={filterNhaKhoa}
-                    label="Lọc theo Nha Khoa"
-                    onChange={(e) => {
-                      console.log("Lọc theo nha khoa: ", e.target.value);
-                      setFilterNhaKhoa(e.target.value);
-                      setPage(0);
-                    }}
-                  >
-                    <MenuItem value="">Tất cả nha khoa</MenuItem>
-                    {Array?.isArray(nhaKhoa?.data) &&
-                      nhaKhoa?.data?.map((nk) => (
-                        <MenuItem key={nk._id} value={nk._id}>
-                          {nk.hoVaTen}
-                        </MenuItem>
-                      ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              {/* ===== Trạng thái ===== */}
-              <Grid item xs={12} md>
-                <FormControl fullWidth size="small" sx={{ minWidth: 180 }}>
-                  <InputLabel sx={{ whiteSpace: "nowrap" }}>
-                    Trạng thái
-                  </InputLabel>
-                  <Select
-                    value={filterTrangThai}
-                    label="Trạng thái"
-                    onChange={(e) => {
-                      setFilterTrangThai(e.target.value);
-                      setPage(0);
-                    }}
-                  >
-                    <MenuItem value="">Tất cả trạng thái</MenuItem>
-                    <MenuItem sx={{ color: "#ef4444" }} value="Chưa thanh toán">
-                      Chưa thanh toán
-                    </MenuItem>
-                    <MenuItem
-                      sx={{ color: "#f59e0b" }}
-                      value="Thanh toán một phần"
-                    >
-                      Thanh toán một phần
-                    </MenuItem>
-                    <MenuItem sx={{ color: "#22c55e" }} value="Đã thanh toán">
-                      Đã thanh toán
-                    </MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              {/* ===== Button Xóa lọc ===== */}
-              <Grid item xs={12} md="auto">
-                <Button
-                  variant="outlined"
-                  startIcon={<ClearIcon />}
-                  sx={{
-                    height: "40px",
-                    whiteSpace: "nowrap",
-                    px: 2,
-                  }}
-                  onClick={() => {
-                    setFilterNhaKhoa("");
-                    setFilterTrangThai("");
-                    setPage(0);
-                  }}
-                >
-                  Xóa lọc
-                </Button>
-              </Grid>
-            </Grid>
-          </div>
-          <div>
-            <Grid container spacing={2} alignItems="center">
-              {/* Cột Tìm kiếm */}
-              <Grid item xs={12} lg={3}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Tìm theo số hóa đơn..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon size={18} className="text-gray-400" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: searchTerm && (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          onClick={() => setSearchTerm("")}
-                        >
-                          <ClearIcon fontSize="small" />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              {/* Cột Nút Thao Tác */}
-              <Grid item xs={12} lg={3.5}>
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  justifyContent={{ xs: "flex-start", lg: "flex-end" }}
-                >
-                  <Tooltip title="Tạo hóa đơn">
-                    <IconButton onClick={() => navigate("/cho-xuat-hoa-don")}>
-                      <AddIcon />
-                    </IconButton>
-                  </Tooltip>
-
-                  <IconButton onClick={() => dispatch(fetchAllHoaDonAdmin())}>
-                    <RefreshIcon />
-                  </IconButton>
-                  <button
-                    onClick={() => setOpenExport(true)}
-                    title="Xuất excel"
-                    className="px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1"
-                  >
-                    Xuất excel
-                  </button>
-                  <IconButton>
-                    <MoreVertIcon />
-                  </IconButton>
-                </Stack>
-              </Grid>
-            </Grid>
-          </div>
-        </div>
-      </Paper>
-
+    <>
       <TableContainer
+        ref={containerRef}
         component={Paper}
-        className="shadow-lg"
+        elevation={0}
         sx={{
-          width: "100%",
+          borderRadius: 0,
+          flex: 1,
+          minHeight: 0,
           overflowX: "auto",
-          overflowY: "hidden",
-          maxWidth: "100%",
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+          "&::-webkit-scrollbar": { height: 14, width: 14 },
+          "&::-webkit-scrollbar-track": { background: "transparent" },
+          "&::-webkit-scrollbar-thumb": { backgroundColor: "#cbd5e1", borderRadius: 10, border: "3px solid #ffffff" },
+          "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "#94a3b8" },
         }}
       >
-        <Table
-          sx={{
-            tableLayout: "fixed",
-            minWidth: "max-content",
-          }}
-        >
+        <Table sx={{ tableLayout: "fixed", width: totalTableWidth, minWidth: totalTableWidth }}>
+
           <TableHead>
-            <TableRow className="bg-gray-100">
-              <ResizableHeaderCell label="Số hóa đơn" columnKey="soHoaDon" />
-              <ResizableHeaderCell label="Nha Khoa" columnKey="nhaKhoa" />
-              <ResizableHeaderCell label="Tổng Tiền" columnKey="tongTien" />
-              <ResizableHeaderCell
-                label="Tổng Chiếc Khấu"
-                columnKey="tongChietKhau"
-              />
-              <ResizableHeaderCell
-                label="Phải thanh toán"
-                columnKey="thanhTien"
-              />
-              <ResizableHeaderCell
-                label="Đã Thanh Toán"
-                columnKey="daThanhToan"
-              />
-              <ResizableHeaderCell label="Còn lại" columnKey="conLai" />
-              <ResizableHeaderCell label="Ngày Tạo" columnKey="ngayTao" />
-              <ResizableHeaderCell label="Trạng thái" columnKey="trangThai" />
-              <ResizableHeaderCell
-                label="Thao Tác"
-                columnKey="thaoTac"
-                sticky
-              />
+            <TableRow>
+              <ResizableHeaderCell label="Ngày xuất" columnKey="ngayXuat" style={cellStyles.hdr.ngayXuat} onResize={handleResize} />
+              <ResizableHeaderCell label="Số" columnKey="soHoaDon" style={cellStyles.hdr.soHoaDon} onResize={handleResize} />
+              <ResizableHeaderCell label="Nha khoa" columnKey="nhaKhoa" style={cellStyles.hdr.nhaKhoa} onResize={handleResize} />
+              <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" style={cellStyles.hdr.tongCong} onResize={handleResize} />
+              <ResizableHeaderCell label="Giảm giá" columnKey="giamGia" style={cellStyles.hdr.giamGia} onResize={handleResize} />
+              <ResizableHeaderCell label="Giá trị thanh toán" columnKey="giaTriThanhToan" style={cellStyles.hdr.giaTriThanhToan} onResize={handleResize} />
+              <ResizableHeaderCell label="Đã thanh toán" columnKey="daThanhToan" style={cellStyles.hdr.daThanhToan} onResize={handleResize} />
+              <ResizableHeaderCell label="Còn lại" columnKey="conLai" style={cellStyles.hdr.conLai} onResize={handleResize} />
+              <ResizableHeaderCell label="Chi phí khác" columnKey="chiPhiKhac" style={cellStyles.hdr.chiPhiKhac} onResize={handleResize} />
+              <ResizableHeaderCell label="Trạng thái" columnKey="trangThai" style={cellStyles.hdr.trangThai} onResize={handleResize} />
+              <ResizableHeaderCell label="Ghi chú cho khách hàng" columnKey="ghiChu" style={cellStyles.hdr.ghiChu} onResize={handleResize} />
+              <ResizableHeaderCell label="Ngày đến hạn" columnKey="ngayDenHan" style={cellStyles.hdr.ngayDenHan} onResize={handleResize} />
             </TableRow>
           </TableHead>
+
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={12} align="center">
                   <CircularProgress size={30} className="my-10" />
                 </TableCell>
               </TableRow>
-            ) : danhSachHoaDon?.length > 0 ? (
-              danhSachHoaDon.map((hd) => (
-                <TableRow
-                  key={hd._id}
-                  hover
-                  sx={{ cursor: "pointer" }}
-                  onClick={() => {
-                    navigate(`/hoa-don/${hd._id}/edit`);
-                  }}
-                >
-                  <TableCell
-                    sx={{
-                      width: columnWidths.soHoaDon,
-                      minWidth: columnWidths.soHoaDon,
-                      maxWidth: columnWidths.soHoaDon,
-                    }}
-                  >
-                    <Button
-                      variant="text"
-                      sx={{
-                        fontWeight: 700,
-                        textTransform: "none",
-                        color: "#fff",
-
-                        bgcolor:
-                          hd.trangThai === "Chưa thanh toán"
-                            ? "#ef4444" // đỏ
-                            : hd.trangThai === "Thanh toán một phần"
-                            ? "#f59e0b" // vàng
-                            : hd.trangThai === "Đã thanh toán"
-                            ? "#22c55e" // xanh lá
-                            : "#374151",
-                      }}
-                    >
-                      {hd?.soHoaDon}
-                    </Button>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: columnWidths.nhaKhoa,
-                      minWidth: columnWidths.nhaKhoa,
-                      maxWidth: columnWidths.nhaKhoa,
-                    }}
-                  >
-                    <b>{hd.nhaKhoa?.hoVaTen}</b>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: columnWidths.tongTien,
-                      minWidth: columnWidths.tongTien,
-                      maxWidth: columnWidths.tongTien,
-                    }}
-                    className="text-blue-600 font-medium"
-                  >
-                    {hd.tongTien?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: columnWidths.tongChietKhau,
-                      minWidth: columnWidths.tongChietKhau,
-                      maxWidth: columnWidths.tongChietKhau,
-                    }}
-                    className="text-blue-600 font-medium"
-                  >
-                    {hd.tongChietKhau?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: columnWidths.thanhTien,
-                      minWidth: columnWidths.thanhTien,
-                      maxWidth: columnWidths.thanhTien,
-                    }}
-                    className="text-blue-600 font-medium"
-                  >
-                    {hd.thanhTien?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: columnWidths.daThanhToan,
-                      minWidth: columnWidths.daThanhToan,
-                      maxWidth: columnWidths.daThanhToan,
-                    }}
-                    className="text-blue-600 font-medium"
-                  >
-                    {hd.daThanhToan?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: columnWidths.conLai,
-                      minWidth: columnWidths.conLai,
-                      maxWidth: columnWidths.conLai,
-                    }}
-                    className="text-blue-600 font-medium"
-                  >
-                    {hd.conLai?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: columnWidths.ngayTao,
-                      minWidth: columnWidths.ngayTao,
-                      maxWidth: columnWidths.ngayTao,
-                    }}
-                  >
-                    {new Date(hd.createdAt).toLocaleDateString("vi-VN")}
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: columnWidths.trangThai,
-                      minWidth: columnWidths.trangThai,
-                      maxWidth: columnWidths.trangThai,
-                    }}
-                    className="text-blue-600 font-medium"
-                  >
-                    {hd.trangThai}
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: columnWidths.thaoTac,
-                      minWidth: columnWidths.thaoTac,
-                      maxWidth: columnWidths.thaoTac,
-                    }}
-                    align="center"
-                  >
-                    <Stack direction="row" spacing={1} justifyContent="center">
-                      <Tooltip title="In hóa đơn">
-                        <IconButton
-                          onClick={() => {
-                            navigate(`/hoa-don/${hd._id}/print`);
-                          }}
-                          sx={{
-                            color: "#1b7a34",
-                          }}
-                        >
-                          <ExcelIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Xóa hóa đơn">
-                        <IconButton
-                          onClick={() => {
-                            handleDeleteHoaDon(hd._id);
-                          }}
-                        >
-                          <TrashIcon></TrashIcon>
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))
+            ) : visibleRows.length > 0 ? (
+              <>
+                {visibleRows.map((hd) => (
+                  <RowComponent
+                    key={hd._id}
+                    hd={hd}
+                    cellStyles={cellStyles.row}
+                    onNavigate={onNavigate}
+                  />
+                ))}
+                {visibleCount < (danhSachHoaDon?.length ?? 0) && (
+                  <TableRow ref={sentinelRef}>
+                    <TableCell colSpan={12} align="center" sx={{ py: 2, borderBottom: "none" }}>
+                      <CircularProgress size={18} sx={{ color: "#26a69a" }} />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={6}
-                  align="center"
-                  className="py-20 text-gray-500"
-                >
+                <TableCell colSpan={12} align="center" className="py-20 text-gray-500">
                   Không tìm thấy dữ liệu hóa đơn nào.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={pagination.total || 0}
-          page={page}
-          onPageChange={handleChangePage}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Số hàng mỗi trang"
-        />
       </TableContainer>
 
       {/* MODAL CHI TIẾT */}
       <Modal open={openDetail} onClose={() => setOpenDetail(false)}>
-        <Box sx={modalStyle}>
-          <Typography variant="h6" className="font-bold mb-4 text-blue-700">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[96%] md:w-[90%] max-w-[1000px] max-h-[90vh] overflow-auto bg-white shadow-2xl p-8 rounded-lg outline-none">
+          <h3 className="text-lg font-bold mb-4 text-blue-700">
             Chi Tiết Hóa Đơn: {selectedHD?.soHoaDon}
-          </Typography>
-          <Divider className="mb-4" />
-          <Grid container spacing={2} className="mb-6">
-            <Grid item xs={6}>
-              <Typography variant="caption" color="textSecondary">
-                Nha khoa
-              </Typography>
-              <Typography className="font-medium text-gray-800">
-                {selectedHD?.nhaKhoa?.hoVaTen}
-              </Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography variant="caption" color="textSecondary">
-                Trạng thái
-              </Typography>
-              <Box>
-                <Chip label={selectedHD?.trangThai} size="small" color="info" />
-              </Box>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography variant="caption" color="textSecondary">
-                Tổng tiền chưa CK
-              </Typography>
-              <Typography className="font-medium">
-                {selectedHD?.tongTien?.toLocaleString()}đ
-              </Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography
-                variant="caption"
-                color="secondary"
-                className="text-red-500"
-              >
-                Thực thu (Sau CK)
-              </Typography>
-              <Typography className="text-lg font-bold text-red-600">
-                {selectedHD?.thanhTien?.toLocaleString()}đ
-              </Typography>
-            </Grid>
-          </Grid>
-          <Typography className="font-semibold mb-2 text-sm uppercase text-gray-500">
-            Danh sách đơn hàng
-          </Typography>
-          <Box className="max-h-60 overflow-y-auto bg-gray-50 rounded border p-2">
-            {selectedHD?.danhSachDonHang.map((item, idx) => (
-              <Box key={idx} className="mb-3 pb-2 border-b last:border-0">
-                <div className="flex justify-between items-center mb-2">
-                  <Button
-                    variant="text"
-                    onClick={() => {
-                      navigate(`/donhang/${item.donHang?._id}/edit`);
-                    }}
-                  >
-                    ID: {item.donHang?._id}
-                  </Button>
-                  <Typography
-                    variant="body2"
-                    className="font-semibold text-blue-700"
-                  >
-                    {item.thanhTienSauCK?.toLocaleString()}đ
-                  </Typography>
+          </h3>
+          <hr className="mb-4 border-gray-200" />
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <span className="text-xs text-gray-400 block">Nha khoa</span>
+              <span className="font-medium text-gray-800">{selectedHD?.nhaKhoa?.hoVaTen || selectedHD?.nhaKhoa?.tenNhaKhoa}</span>
+            </div>
+            <div>
+              <span className="text-xs text-gray-400 block">Trạng thái</span>
+              <Chip label={selectedHD?.trangThai} size="small" color="info" />
+            </div>
+            <div>
+              <span className="text-xs text-gray-400 block">Tổng tiền chưa CK</span>
+              <span className="font-medium">{fmtVND(selectedHD?.tongCong)}đ</span>
+            </div>
+            <div>
+              <span className="text-xs text-red-400 block">Thực thu (Sau CK)</span>
+              <span className="text-lg font-bold text-red-600">{fmtVND(selectedHD?.giaTriThanhToan)}đ</span>
+            </div>
+          </div>
+
+          <p className="font-semibold mb-2 text-sm uppercase text-gray-500">Danh sách sản phẩm</p>
+          <div className="max-h-60 overflow-y-auto bg-gray-50 rounded border p-3 flex flex-col gap-3">
+            {selectedHD?.danhSachSanPham?.map((item, idx) => (
+              <div key={idx} className="pb-3 border-b border-gray-200 last:border-0 flex justify-between items-center">
+                <div>
+                  <div className="font-semibold text-blue-700">{item.tenSanPham || item.sanPham?.tenSanPham || "Sản phẩm"}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    SL: {item.soLuong} | Đơn giá: {fmtVND(item.donGia)}đ
+                  </div>
                 </div>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {item.donHang?.danhSachSanPham?.map((spObj, i) => (
-                    <Chip
-                      key={i}
-                      label={spObj.sanPham?.tenSanPham || "Sản phẩm"}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: "0.7rem" }}
-                    />
-                  ))}
-                </Stack>
-              </Box>
+                <div className="text-right">
+                  <span className="font-bold text-gray-800">{fmtVND(item.tongCongSanPham)}đ</span>
+                </div>
+              </div>
             ))}
-          </Box>
-          <Box className="flex justify-end mt-6">
-            <Button onClick={() => setOpenDetail(false)} variant="outlined">
-              Đóng
-            </Button>
-          </Box>
-        </Box>
+          </div>
+          <div className="flex justify-end mt-6">
+            <Button onClick={() => setOpenDetail(false)} variant="outlined">Đóng</Button>
+          </div>
+        </div>
       </Modal>
 
       {/* MODAL CẬP NHẬT TRẠNG THÁI */}
       <Modal open={openUpdate} onClose={() => setOpenUpdate(false)}>
-        <Box sx={modalStyle}>
-          <Typography variant="h6" className="font-bold mb-6 text-center">
-            Cập Nhật Trạng Thái
-          </Typography>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[96%] max-w-[450px] bg-white shadow-2xl p-6 rounded-lg outline-none">
+          <h3 className="text-lg font-bold mb-6 text-center text-gray-800">Cập Nhật Trạng Thái</h3>
           <FormControl fullWidth className="mb-6">
             <InputLabel>Trạng thái</InputLabel>
-            <Select
-              value={statusUpdate}
-              label="Trạng thái"
-              onChange={(e) => setStatusUpdate(e.target.value)}
-            >
+            <Select value={statusUpdate} label="Trạng thái" onChange={(e) => setStatusUpdate(e.target.value)}>
               <MenuItem value="Chưa thanh toán">Chưa thanh toán</MenuItem>
               <MenuItem value="Đã thanh toán">Đã thanh toán</MenuItem>
             </Select>
           </FormControl>
-          <Stack direction="row" spacing={2} justifyContent="flex-end">
+          <div className="flex justify-end gap-3">
             <Button onClick={() => setOpenUpdate(false)}>Hủy</Button>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleConfirmUpdate}
-            >
-              Lưu thay đổi
-            </Button>
-          </Stack>
-        </Box>
+            <Button variant="contained" color="primary" onClick={handleConfirmUpdate}>Lưu thay đổi</Button>
+          </div>
+        </div>
       </Modal>
-
-      {/* MODAL XUẤT EXCEL */}
-      <Modal open={openExport} onClose={() => setOpenExport(false)}>
-        <Box sx={{ ...modalStyle, maxWidth: 500 }}>
-          <Typography
-            variant="h6"
-            component="h2"
-            className="font-bold mb-2 text-blue-700 flex items-center gap-2"
-          >
-            <ExcelIcon sx={{ fontSize: 24, color: "#1b7a34" }} />
-            Xuất Excel Hóa Đơn
-          </Typography>
-          <Divider sx={{ mb: 3 }} />
-
-          <Stack spacing={3}>
-            {/* Hàng 1: Khoảng thời gian */}
-            <Box>
-              <Typography
-                variant="subtitle2"
-                className="font-semibold mb-2 text-gray-800"
-              >
-                Khoảng thời gian
-              </Typography>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <Box className="w-full">
-                  <Typography
-                    variant="caption"
-                    className="text-gray-600 mb-1 block"
-                  >
-                    Từ ngày
-                  </Typography>
-                  <TextField
-                    type="date"
-                    fullWidth
-                    size="small"
-                    value={exportFrom}
-                    onChange={(e) => setExportFrom(e.target.value)}
-                  />
-                </Box>
-                <Box className="w-full">
-                  <Typography
-                    variant="caption"
-                    className="text-gray-600 mb-1 block"
-                  >
-                    Đến ngày
-                  </Typography>
-                  <TextField
-                    type="date"
-                    fullWidth
-                    size="small"
-                    value={exportTo}
-                    onChange={(e) => setExportTo(e.target.value)}
-                  />
-                </Box>
-              </Stack>
-              <ExportDateSelector
-                title="Ngày xuất hóa đơn"
-                value={exportDateFilter}
-                onChange={setExportDateFilter}
-              />
-            </Box>
-
-            {/* Hàng 2: Nha khoa */}
-            <Box>
-              <Typography
-                variant="subtitle2"
-                className="font-semibold mb-2 text-gray-800"
-              >
-                Nha khoa
-              </Typography>
-              <FormControl fullWidth size="small">
-                <Select
-                  displayEmpty
-                  value={exportNhaKhoa}
-                  onChange={(e) => setExportNhaKhoa(e.target.value)}
-                >
-                  <MenuItem value="">-- Tất cả nha khoa --</MenuItem>
-                  {Array?.isArray(nhaKhoa?.data) &&
-                    nhaKhoa?.data?.map((nk) => (
-                      <MenuItem key={nk._id} value={nk._id}>
-                        {nk.hoVaTen || nk.tenGiaoDich}
-                      </MenuItem>
-                    ))}
-                </Select>
-              </FormControl>
-            </Box>
-
-            {/* Hàng 3: Trạng thái */}
-            <Box>
-              <Typography
-                variant="subtitle2"
-                className="font-semibold mb-2 text-gray-800"
-              >
-                Trạng thái (chọn nhiều)
-              </Typography>
-              <FormControl fullWidth size="small">
-                <Select
-                  multiple
-                  displayEmpty
-                  value={exportTrangThai}
-                  onChange={(e) => setExportTrangThai(e.target.value)}
-                  renderValue={(selected) => {
-                    if (selected.length === 0) {
-                      return (
-                        <span className="text-gray-500">
-                          -- Tất cả trạng thái --
-                        </span>
-                      );
-                    }
-                    return (
-                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                        {selected.map((value) => (
-                          <Chip
-                            key={value}
-                            label={value}
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                          />
-                        ))}
-                      </Box>
-                    );
-                  }}
-                >
-                  <MenuItem value="Chưa thanh toán">Chưa thanh toán</MenuItem>
-                  <MenuItem value="Thanh toán một phần">
-                    Thanh toán một phần
-                  </MenuItem>
-                  <MenuItem value="Đã thanh toán">Đã thanh toán</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-          </Stack>
-
-          {/* Hàng 4: Buttons */}
-          <Box className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
-            <Button
-              variant="outlined"
-              color="inherit"
-              onClick={() => {
-                setOpenExport(false);
-                setExportDateFilter(EMPTY_EXPORT_DATE_FILTER);
-                setExportNhaKhoa("");
-                setExportTrangThai([]);
-              }}
-            >
-              Hủy
-            </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleExport}
-              disabled={exporting}
-              startIcon={<DownloadIcon />}
-            >
-              {exporting ? "Đang xuất..." : "Tải xuống"}
-            </Button>
-          </Box>
-        </Box>
-      </Modal>
-    </div>
+    </>
   );
 };
 

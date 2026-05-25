@@ -31,6 +31,11 @@ export default function SanPhamTable() {
   const dispatch = useDispatch();
   const { data = [], loading } = useSelector((state) => state.sanPham || {});
 
+  const formatWarranty = (years) => {
+    if (years === null || years === undefined || years === 0) return "Không";
+    return `${years} năm`;
+  };
+
   // State quản lý Modal
   const [openModal, setOpenModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -180,6 +185,9 @@ export default function SanPhamTable() {
                 <b>Nhóm</b>
               </TableCell>
               <TableCell>
+                <b>Bảo hành</b>
+              </TableCell>
+              <TableCell>
                 <b>Đơn giá</b>
               </TableCell>
               <TableCell align="center">
@@ -199,6 +207,7 @@ export default function SanPhamTable() {
                   </span>
                 </TableCell>
                 <TableCell>{item.nhomSanPham}</TableCell>
+                <TableCell>{formatWarranty(item.baoHanhMacDinh)}</TableCell>
                 <TableCell className="text-[#f57c00] font-bold">
                   {item.donGiaChung?.toLocaleString("vi-VN")} đ
                 </TableCell>
@@ -224,7 +233,7 @@ export default function SanPhamTable() {
             {filteredData.length === 0 && !loading && (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   align="center"
                   className="text-gray-400 py-10"
                 >

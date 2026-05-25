@@ -61,6 +61,60 @@ export const deleteNhanVien = createAsyncThunk(
   }
 );
 
+/* ================= UPLOAD CCCD ================= */
+export const uploadCCCDNhanVien = createAsyncThunk(
+  "nhanVien/uploadCCCDNhanVien",
+  async ({ id, files }, thunkAPI) => {
+    try {
+      const formData = new FormData();
+
+      files.forEach((file) => {
+        formData.append("images", file);
+      });
+
+      const res = await api.post(
+        `/nhan-vien/${id}/upload-cccd`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      return res.data.data;
+    } catch (err) {
+      return thunkAPI.rejectWithValue(
+        err.response?.data?.message || err.message
+      );
+    }
+  }
+);
+
+/* ================= DELETE CCCD IMAGE ================= */
+export const deleteCCCDImage = createAsyncThunk(
+  "nhanVien/deleteCCCDImage",
+  async ({ id, imageUrl }, thunkAPI) => {
+    try {
+      const res = await api.delete(
+        `/nhan-vien/${id}/delete-cccd`,
+        {
+          data: {
+            imageUrl,
+          },
+        }
+      );
+
+      return res.data.data;
+    } catch (err) {
+      return thunkAPI.rejectWithValue(
+        err.response?.data?.message || err.message
+      );
+    }
+  }
+);
+
+
 const nhanVienSlice = createSlice({
   name: "nhanVien",
   initialState: {
@@ -110,6 +164,28 @@ const nhanVienSlice = createSlice({
         state.data = state.data.filter(
           (item) => item._id !== action.payload
         );
+      })
+
+       /* ================= UPLOAD CCCD ================= */
+      .addCase(uploadCCCDNhanVien.fulfilled, (state, action) => {
+        const index = state.data.findIndex(
+          (item) => item._id === action.payload._id
+        );
+
+        if (index !== -1) {
+          state.data[index] = action.payload;
+        }
+      })
+
+      /* ================= DELETE CCCD IMAGE ================= */
+      .addCase(deleteCCCDImage.fulfilled, (state, action) => {
+        const index = state.data.findIndex(
+          (item) => item._id === action.payload._id
+        );
+
+        if (index !== -1) {
+          state.data[index] = action.payload;
+        }
       });
   },
 });

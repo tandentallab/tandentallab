@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchTopProductsBaoCao } from '../../redux/slices/baoCaoSlice';
 import {
@@ -10,10 +10,34 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
     const dispatch = useDispatch();
     const { data, loading, error } = useSelector((state) => state.baoCao);
 
+    // State lưu width của YAxis (Tự động tính % theo màn hình)
+    const [yAxisWidth, setYAxisWidth] = useState(220);
+    const [isMobile, setIsMobile] = useState(false);
+
     useEffect(() => {
         if (!startDate || !endDate) return;
         dispatch(fetchTopProductsBaoCao({ startDate, endDate, dateType }));
     }, [dispatch, startDate, endDate, dateType]);
+
+    // Hook xử lý responsive linh hoạt
+    useEffect(() => {
+        const handleResize = () => {
+            const screenWidth = window.innerWidth;
+            if (screenWidth < 768) {
+                setIsMobile(true);
+                // Cấp 35% chiều ngang màn hình cho phần chữ trên Mobile
+                setYAxisWidth(screenWidth * 0.35);
+            } else {
+                setIsMobile(false);
+                // Cấp cứng 220px trên PC
+                setYAxisWidth(220);
+            }
+        };
+
+        handleResize(); // Chạy ngay lần đầu
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     if (error) {
         return (
@@ -34,14 +58,13 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
                     Top 10 sản phẩm có số lượng cao nhất
                 </p>
 
-                {/* ── Chart ── */}
-                <div className="h-[220px] w-full">
+                <div className="h-[250px] w-full">
                     {loading ? (
                         <div className="flex items-center justify-center h-full animate-pulse text-blue-400 font-bold italic text-sm">
                             Đang cập nhật biểu đồ...
                         </div>
                     ) : !data || data.length === 0 ? (
-                        <div className="flex items-center justify-center h-full text-gray-300 text-sm">
+                        <div className="flex items-center justify-start h-full text-gray-300 text-sm">
                             Không có dữ liệu
                         </div>
                     ) : (
@@ -49,25 +72,33 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
                             <BarChart
                                 layout="vertical"
                                 data={data}
-                                // barCategoryGap: khoảng cách giữa các nhóm bar (% hoặc px)
-                                // barGap: khoảng cách giữa các bar trong cùng nhóm
-                                barCategoryGap="20%"
-                                margin={{ top: 0, right: 52, left: 0, bottom: 0 }}
+                                barCategoryGap="15%"
+                                margin={{ top: 0, right: 30, left: 0, bottom: 0 }}
                             >
                                 <CartesianGrid
                                     strokeDasharray="3 3"
                                     horizontal={false}
                                     stroke="#f1f5f9"
                                 />
-                                <XAxis type="number" hide />
+                                <XAxis type="number" hide domain={[0, (dataMax) => Math.round(dataMax * 1.25)]} />
+
                                 <YAxis
                                     type="category"
                                     dataKey="name"
+                                    orientation="left"
+                                    width={yAxisWidth} // Áp dụng width % đã được convert sang số
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 600 }}
-                                    width={136}
+                                    interval={0}
+                                    tick={{
+                                        fill: '#1e293b',
+                                        fontSize: isMobile ? 10 : 12, // Giảm font nếu là mobile
+                                        fontWeight: 600,
+                                        textAnchor: 'end'
+                                    }}
+                                    dx={-10}
                                 />
+
                                 <Tooltip
                                     cursor={{ fill: '#f8fafc' }}
                                     contentStyle={{
@@ -76,12 +107,12 @@ const BaoCaoSanLuongChart = ({ startDate, endDate, dateType }) => {
                                         fontSize: 12,
                                     }}
                                 />
-                                {/* barSize nhỏ hơn → gap giữa các bar lớn hơn tương đối */}
+
                                 <Bar
                                     dataKey="quantity"
                                     fill="#00a3e0"
                                     radius={[0, 4, 4, 0]}
-                                    barSize={11}
+                                    barSize={14}
                                 >
                                     <LabelList
                                         dataKey="quantity"

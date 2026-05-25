@@ -86,125 +86,78 @@ const PhieuThuPrintPreview = () => {
       </div>
 
       <div className="flex flex-col items-center py-6 px-4">
-        <div className="print-area bg-white w-full max-w-4xl shadow-lg border border-gray-300 p-8">
+        <div className="print-area bg-white shadow-lg border border-gray-300" style={{ width: "148mm", fontFamily: "Cambria", padding: "10mm" }}>
           {/* Header */}
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold">PHIẾU THU</h1>
-          </div>
-
-          {/* Main Info Grid */}
-          <div className="grid grid-cols-2 gap-8 mb-6">
-            {/* Left column */}
-            <div className="space-y-2 text-sm">
-              <div className="flex gap-2">
-                <span className="font-bold min-w-24">Mã số:</span>
-                <span className="font-bold text-blue-600">{maPhieuThu}</span>
+          <div style={{ marginBottom: "6mm" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "3mm" }}>
+              <div style={{ flex: 2 }}>
+                <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>CÔNG TY TNHH TẤN DENTAL</p>
+                <p style={{ fontSize: "9pt" }}>Số 43, đường số 14, KDC Hồng Phát, An Bình, Cần Thơ</p>
               </div>
-              <div className="flex gap-2">
-                <span className="font-bold min-w-24">Ngày:</span>
-                <span>{formatDate(printDate)}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="font-bold min-w-24">Thứ:</span>
-                <span>
-                  {getDayName(printDate)}, {formatDate(printDate)}
-                </span>
+              <div style={{ marginTop: "1mm", flex: 1, textAlign: "right", fontSize: "9pt" }}>
+                <div>QĐ số 15/2006/QĐ-BTC</div>
+                <div>ngày 20/03/2006 của BTC</div>
               </div>
             </div>
-
-            {/* Right column */}
-            <div className="space-y-2 text-sm text-right pr-4">
-              <div>QĐ số 15/2006/QĐ-BTC</div>
-              <div>ngày 20/03/2006 của BTC</div>
+            <div style={{ borderTop: "1px solid #ccc", paddingTop: "3mm", textAlign: "center" }}>
+              <h1 style={{ margin: "0 0", fontSize: "15pt", fontWeight: "bold", textTransform: "uppercase" }}>PHIẾU THU</h1>
+              <div style={{ fontSize: "9pt" }}>{maPhieuThu}</div>
+              <div style={{ fontSize: "9pt" }}>{getDayName(printDate)}, {formatDate(printDate)}</div>
             </div>
           </div>
 
-          {/* Content section */}
-          <div className="mb-6 space-y-3 text-sm">
-            <div className="flex gap-2">
-              <span className="font-bold min-w-32">Người nộp tiền:</span>
-              <span className="font-bold">
-                {bacSi.hoVaTen || nhaKhoa.hoVaTen || "---"}
-              </span>
+          {/* Thông tin người nộp */}
+          <div style={{ marginBottom: "3mm", fontSize: "11pt", lineHeight: "2" }}>
+            <div style={{ display: "flex", gap: "4px" }}>
+              <span style={{ minWidth: "105px" }}>Người nộp tiền:</span>
+              <strong>{bacSi.hoVaTen || nhaKhoa.hoVaTen || "---"}</strong>
             </div>
-            <div className="flex gap-2">
-              <span className="font-bold min-w-32">Địa chỉ:</span>
-              <span>{diaChiNhaKhoa || "---"}</span>
+            <div style={{ display: "flex", gap: "4px" }}>
+              <span style={{ minWidth: "105px" }}>Địa chỉ:</span>
+              <strong>{diaChiNhaKhoa || "---"}</strong>
             </div>
-            {phieuThu.noiDung && (
-              <div className="flex gap-2">
-                <span className="font-bold min-w-32">Nội dung thu:</span>
-                <span>{phieuThu.noiDung}</span>
+            <div style={{ display: "flex", gap: "4px" }}>
+              <span style={{ minWidth: "105px" }}>Nội dung thu:</span>
+              <strong>{phieuThu.noiDung || "---"}</strong>
+            </div>
+            <div style={{ display: "flex", gap: "4px", alignItems: "baseline", justifyContent: "space-between" }}>
+              <div>
+                <span style={{ display: "inline-block", minWidth: "105px" }}>Số tiền thu:</span>
+                <strong style={{ fontSize: "11pt" }}>{formatCurrency(phieuThu.soTienThu)} đ</strong>
               </div>
-            )}
-          </div>
-
-          {/* Amount Section */}
-          <div className="border border-gray-300 rounded p-4 mb-6">
-            <div className="flex justify-between mb-3">
-              <span className="font-bold">Số tiền thu:</span>
-              <span className="font-bold text-lg">
-                {formatCurrency(phieuThu.soTienThu)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-bold">Bằng chữ:</span>
-              <span className="font-bold">
-                {soTienText}
-              </span>
+              <div>
+                <span>Bằng chữ:</span>
+                <strong style={{ marginLeft: "4px", fontSize: "11pt" }}>{soTienText}</strong>
+              </div>
             </div>
           </div>
 
-          {/* Invoice Details Table */}
-          <div className="mb-6">
-            <table className="w-full border-collapse border border-gray-400 text-sm">
+          {/* Bảng hóa đơn */}
+          <div style={{ marginBottom: "4mm" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11pt" }}>
               <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-gray-400 p-2 text-left font-bold">
-                    Hóa đơn
-                  </th>
-                  <th className="border border-gray-400 p-2 text-right font-bold">
-                    Giá trị hóa đơn
-                  </th>
-                  <th className="border border-gray-400 p-2 text-right font-bold">
-                    Đã thanh toán
-                  </th>
-                  <th className="border border-gray-400 p-2 text-right font-bold">
-                    Thanh toán lần này
-                  </th>
-                  <th className="border border-gray-400 p-2 text-right font-bold">
-                    Tổng cộng
-                  </th>
-                  <th className="border border-gray-400 p-2 text-right font-bold">
-                    Còn lại
-                  </th>
+                <tr>
+                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center" }}>Hóa đơn</th>
+                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center" }}>Số tiền ban đầu</th>
+                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center" }}>Đã thanh toán</th>
+                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center" }}>Số tiền còn lại</th>
+                  <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center" }}>Thanh toán</th>
                 </tr>
               </thead>
               <tbody>
                 {danhSachHoaDon.map((item, idx) => {
                   const hd = item.hoaDon || {};
                   const soTienThanhToan = item.soTienThanhToan || 0;
-                  const daTTruocLanNay = (hd.daThanhToan || 0) - soTienThanhToan;
+                  const daTTruocLanNay = item.daTTruocLanNay || 0;
                   return (
                     <tr key={hd._id || idx}>
-                      <td className="border border-gray-400 p-2">
+                      <td style={{ border: "1px solid #999", padding: "1.5mm 2mm" }}>
                         {hd.soHoaDon || (hd._id ? `TAN${hd._id.substring(hd._id.length - 8).toUpperCase()}` : "---")}
                       </td>
-                      <td className="border border-gray-400 p-2 text-right">
-                        {formatCurrency(hd.thanhTien || hd.tongTien || 0)}
-                      </td>
-                      <td className="border border-gray-400 p-2 text-right">
-                        {formatCurrency(daTTruocLanNay)}
-                      </td>
-                      <td className="border border-gray-400 p-2 text-right font-bold">
-                        {formatCurrency(soTienThanhToan)}
-                      </td>
-                      <td className="border border-gray-400 p-2 text-right">
-                        {formatCurrency(hd.daThanhToan || 0)}
-                      </td>
-                      <td className="border border-gray-400 p-2 text-right">
-                        {formatCurrency(hd.conLai || 0)}
-                      </td>
+                      <td style={{ border: "1px solid #999", padding: "1.5mm 2mm", textAlign: "right" }}>{formatCurrency(hd.giaTriThanhToan || 0)}</td>
+                      <td style={{ border: "1px solid #999", padding: "1.5mm 2mm", textAlign: "right" }}>{formatCurrency(daTTruocLanNay)}</td>
+                      <td style={{ border: "1px solid #999", padding: "1.5mm 2mm", textAlign: "right" }}>{formatCurrency((hd.giaTriThanhToan || 0) - daTTruocLanNay)}</td>
+                      <td style={{ border: "1px solid #999", padding: "1.5mm 2mm", textAlign: "right" }}>{formatCurrency(soTienThanhToan)}</td>
                     </tr>
                   );
                 })}
@@ -212,33 +165,15 @@ const PhieuThuPrintPreview = () => {
             </table>
           </div>
 
-          {/* Signature Section */}
-          <div className="grid grid-cols-5 gap-4 mt-12 text-xs text-center">
-            <div>
-              <div className="h-16 border-t border-gray-400 mb-1"></div>
-              <div className="font-bold">Người lập phiếu</div>
-              <div className="text-gray-600">(Ký, họ tên)</div>
-            </div>
-            <div>
-              <div className="h-16 border-t border-gray-400 mb-1"></div>
-              <div className="font-bold">Người nộp tiền</div>
-              <div className="text-gray-600">(Ký, họ tên)</div>
-            </div>
-            <div>
-              <div className="h-16 border-t border-gray-400 mb-1"></div>
-              <div className="font-bold">Thủ quỹ</div>
-              <div className="text-gray-600">(Ký, họ tên)</div>
-            </div>
-            <div>
-              <div className="h-16 border-t border-gray-400 mb-1"></div>
-              <div className="font-bold">Kế toán</div>
-              <div className="text-gray-600">(Ký, họ tên)</div>
-            </div>
-            <div>
-              <div className="h-16 border-t border-gray-400 mb-1"></div>
-              <div className="font-bold">Thủ trưởng đơn vị</div>
-              <div className="text-gray-600">(Ký, họ tên)</div>
-            </div>
+          {/* Chữ ký */}
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11pt" }}>
+            {[["Người lập phiếu"], ["Người nộp tiền"], ["Thủ quỹ"], ["Kế toán"], ["Thủ trưởng đơn vị"]].map(([label]) => (
+              <div key={label} style={{ textAlign: "center" }}>
+                <div style={{ marginBottom: "1mm" }}></div>
+                <div style={{ fontWeight: "bold" }}>{label}</div>
+                <div>(Ký, họ tên)</div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -253,26 +188,16 @@ const PhieuThuPrintPreview = () => {
 
       <style>{`
         @media print {
-          body {
-            margin: 0;
-            padding: 0;
-            background: white;
-          }
-          .bg-gray-200 {
-            background: white;
-          }
+          @page { size: A5 portrait; margin: 0; }
+          body { margin: 0; padding: 0; background: white; }
+          .bg-gray-200 { background: white; }
           .print-area {
-            box-shadow: none;
-            border: none;
-            max-width: none;
-            width: 100%;
+            box-shadow: none !important;
+            border: none !important;
+            width: 148mm !important;
+            padding: 10mm !important;
           }
-          button {
-            display: none;
-          }
-          .h-10 {
-            display: none;
-          }
+          button, .h-10 { display: none !important; }
         }
       `}</style>
     </div>

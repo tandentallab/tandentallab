@@ -7,6 +7,10 @@ const PhieuBaoHanhPreview = ({ phieuBaoHanh }) => {
   const nhaKhoaTen = phieuBaoHanh.nhaKhoa?.tenGiaoDich || phieuBaoHanh.nhaKhoa?.hoVaTen || "";
   const benhNhanTen = phieuBaoHanh.benhNhan?.hoVaTen || "";
 
+  // Tự động nhận diện tên miền hiện tại để tạo mã QR động
+  const origin = window.location.origin;
+  const qrLink = `${origin}/warranty/?qrcode=${phieuBaoHanh.maQR}`;
+
   return (
     <div className="w-72 border border-gray-400 rounded shadow-md p-4 bg-white flex flex-col gap-3 text-sm">
       <div className="text-center">
@@ -27,10 +31,11 @@ const PhieuBaoHanhPreview = ({ phieuBaoHanh }) => {
           <div className="font-bold text-lg text-orange-600">{phieuBaoHanh.maQR}</div>
         </div>
         <div>
+          {/* Quét bắt buộc ra link Vercel */}
           <QRCodeSVG 
-            value={phieuBaoHanh.maQR} 
-            size={80} 
-            level="H" 
+            value={qrLink} 
+            size={100} 
+            level="L" 
             includeMargin={true}
           />
         </div>

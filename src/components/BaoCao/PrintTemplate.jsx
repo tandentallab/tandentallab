@@ -15,7 +15,7 @@ const PrintTemplate = ({ data, startDate, endDate }) => {
     const fullDateRange = ` ${dayjs(startDate).format('DD/MM/YYYY')} - ${dayjs(endDate).format('DD/MM/YYYY')}`;
 
     return (
-        <div className="w-full text-black font-sans leading-tight">
+        <div className="w-full text-black leading-tight">
 
             {/* THÔNG TIN DOANH NGHIỆP */}
             <div className="flex items-center justify-between border-b-2 border-black pb-4 mb-6">

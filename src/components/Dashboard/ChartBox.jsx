@@ -158,7 +158,7 @@ const ChartBoxBase = ({ chartId, title, data, loading, keys, colors, yAxisLabel,
                 initialConfig={config} onSave={(newConfig) => { onConfigSave(chartId, newConfig); setOpenFilter(false); }}
             />
 
-            <style jsx>{`
+            <style type="text/css">{`
                 .custom-scrollbar::-webkit-scrollbar { height: 6px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-radius: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }

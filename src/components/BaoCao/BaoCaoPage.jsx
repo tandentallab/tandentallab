@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
 import { Box, Typography } from '@mui/material';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -13,7 +12,7 @@ import FilterBar from './FilterBar';
 import PrintPreviewDialog from './PrintPreviewDialog';
 import BaoCaoDoanhThuPage from '../BaoCao/BaoCaoDoanhThuPage';
 
-// ─── Date range helper (giữ nguyên logic cũ) ────────────────────────────────
+// ─── Date range helper ──────────────────────────────────────────────────────
 const computeDateRange = (filter, customDates) => {
     if (filter === 'custom') return { startDate: customDates.start, endDate: customDates.end };
     const now = dayjs();
@@ -47,14 +46,17 @@ const BaoCaoPage = () => {
         <div className="bg-gray-50 min-h-screen w-full">
 
             {/* ══ Tab selector ══════════════════════════════════════════════ */}
-            <Box sx={{
-                borderBottom: '1px solid #e0e0e0',
-                bgcolor: '#fff',
-                px: { xs: 2, md: 4 },
-                pt: 2,
-                display: 'flex',
-                gap: 1,
-            }}>
+            <Box
+                className="no-print"
+                sx={{
+                    borderBottom: '1px solid #e0e0e0',
+                    bgcolor: '#fff',
+                    px: { xs: 2, md: 4 },
+                    pt: 2,
+                    display: 'flex',
+                    gap: 1,
+                }}
+            >
                 {TABS.map(({ id, label, Icon }) => {
                     const active = activeTab === id;
                     return (
@@ -96,7 +98,7 @@ const BaoCaoPage = () => {
     );
 };
 
-// ─── Panel: Sản lượng (giữ nguyên logic cũ, chỉ tách ra component) ───────────
+// ─── Panel: Sản lượng ────────────────────────────────────────────────────────
 const SanLuongPanel = () => {
     const [selectedFilter, setSelectedFilter] = useState('this_month');
     const [dateType, setDateType] = useState('ngayNhan');
@@ -113,40 +115,6 @@ const SanLuongPanel = () => {
         [selectedFilter, customDates]
     );
 
-    const handleExportExcel = () => {
-        if (!detailedData || detailedData.length === 0) { alert('Không có dữ liệu để xuất!'); return; }
-        const totals = detailedData.reduce(
-            (acc, curr) => ({ m: acc.m + (curr.t_moi || 0), s: acc.s + (curr.t_sua || 0), b: acc.b + (curr.t_bh || 0), l: acc.l + (curr.t_ll || 0), t: acc.t + (curr.t_tong || 0) }),
-            { m: 0, s: 0, b: 0, l: 0, t: 0 }
-        );
-        const fullDateRange = `${dayjs(startDate).format('DD/MM/YYYY')} - ${dayjs(endDate).format('DD/MM/YYYY')}`;
-        const rows = [
-            ['Công ty TNHH Tấn Dental'],
-            ['Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ'],
-            ['Điện thoại: 0842312828'],
-            [],
-            ['BÁO CÁO SẢN LƯỢNG THEO THỜI GIAN'],
-            [`Thời gian: ${fullDateRange}`, '', '', '', '', `Ngày lập: ${dayjs().format('DD/MM/YYYY')}`],
-            [],
-            ['SẢN PHẨM / NHÓM', 'Mới', 'Sửa', 'Bảo hành', 'Làm lại', 'Tổng cộng'],
-        ];
-        detailedData.forEach((type) => {
-            rows.push([(type._id || 'KHÁC').toUpperCase(), type.t_moi || 0, type.t_sua || 0, type.t_bh || 0, type.t_ll || 0, type.t_tong || 0]);
-            (type.groups || []).forEach((group) => {
-                rows.push([`  ${group.tenNhom}`, group.moi || 0, group.sua || 0, group.baoHanh || 0, group.lamLai || 0, group.tong || 0]);
-                (group.products || []).forEach((p) => {
-                    rows.push([`      ${p.ten}`, p.moi || 0, p.sua || 0, p.baoHanh || 0, p.lamLai || 0, p.tong || 0]);
-                });
-            });
-        });
-        rows.push(['TỔNG CỘNG HỆ THỐNG', totals.m, totals.s, totals.b, totals.l, totals.t]);
-        const worksheet = XLSX.utils.aoa_to_sheet(rows);
-        worksheet['!cols'] = [{ wch: 45 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 14 }];
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sản lượng');
-        XLSX.writeFile(workbook, `Bao_cao_san_luong_${dayjs().format('DD-MM-YYYY')}.xlsx`);
-    };
-
     const handlePrintAction = () => { setOpenPreview(false); setTimeout(() => window.print(), 300); };
 
     return (
@@ -160,7 +128,7 @@ const SanLuongPanel = () => {
                     dateType={dateType} setDateType={setDateType}
                     selectedFilter={selectedFilter} setSelectedFilter={setSelectedFilter}
                     customDates={customDates} setCustomDates={setCustomDates}
-                    onPrint={() => setOpenPreview(true)} onExport={handleExportExcel}
+                    onPrint={() => setOpenPreview(true)}
                 />
                 <BaoCaoChiTietTable startDate={startDate} endDate={endDate} dateType={dateType} />
             </div>
@@ -177,14 +145,54 @@ const SanLuongPanel = () => {
                 <PrintTemplate data={detailedData} startDate={startDate} endDate={endDate} />
             </div>
 
+            {/* ══ ĐOẠN CSS IN ĐÃ ĐƯỢC FIX LỖI SIDEBAR ══ */}
             <style>{`
                 .print-only { display: none; }
+                
                 @media print {
-                    .no-print   { display: none !important; }
-                    .print-only { display: block !important; font-family: Arial, sans-serif !important; }
-                    header, nav, aside, .sidebar { display: none !important; }
-                    @page { size: A4 portrait; margin: 15mm; }
-                    body  { background: white !important; margin: 0 !important; padding: 0 !important; }
+                    /* 1. Ẩn tất cả những thành phần được đánh dấu no-print */
+                    .no-print { display: none !important; }
+                    
+                    /* 2. QUÉT SẠCH VÀ ÉP ẨN TUYỆT ĐỐI SIDEBAR/HEADER/NAV (KỂ CẢ MUI DRAWER HOẶC TAILWIND SIDEBAR) */
+                    header, nav, aside, footer, [role="navigation"], [role="menubar"],
+                    .sidebar, #sidebar, .sidebar-wrapper, .main-sidebar,
+                    .MuiDrawer-root, .MuiAppBar-root,
+                    [class*="sidebar"], [class*="Sidebar"], [class*="drawer"], [class*="Drawer"] { 
+                        display: none !important; 
+                        width: 0 !important;
+                        height: 0 !important;
+                        overflow: hidden !important;
+                        opacity: 0 !important;
+                        visibility: hidden !important;
+                    }
+                    
+                    /* 3. Hiện nội dung bản in mẫu A4 */
+                    .print-only { 
+                        display: block !important; 
+                        font-family: Arial, sans-serif !important; 
+                    }
+                    
+                    /* 4. Xóa bỏ hoàn toàn chữ thừa lề của trình duyệt */
+                    @page { 
+                        size: A4 portrait; 
+                        margin: 0 !important; 
+                    }
+                    
+                    /* 5. Thiết lập lề trang giấy nội dung */
+                    body { 
+                        background: white !important; 
+                        margin: 0 !important; 
+                        padding: 15mm 20mm !important; 
+                        height: auto !important;
+                    }
+
+                    /* 6. CHỈ CẤU HÌNH KHUNG TRỤC CHÍNH (Tránh dùng thẻ div đại trà làm hỏng thuộc tính ẩn của Sidebar) */
+                    html, body, #root, main, .main-content, .content-wrapper {
+                        position: static !important;
+                        overflow: visible !important;
+                        height: auto !important;
+                        max-height: none !important;
+                    }
                 }
             `}</style>
         </div>

@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-const LOGO_URL = 'http://localhost:8080/assets/logo.png';
+const LOGO_URL = window.location.origin + '/logo_tan_dental.jpg';
 
 const applyBorder = (cell, style = 'thin') => {
   cell.border = {
@@ -24,27 +24,29 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Hóa Đơn');
 
-  // Column widths A-K
+  // Khai báo lại 13 cột khớp với bảng hiển thị trên Web
   worksheet.columns = [
-    { width: 5 },
-    { width: 12 },
-    { width: 14 },
-    { width: 16 },
-    { width: 18 },
-    { width: 10 },
-    { width: 6 },
-    { width: 12 },
-    { width: 12 },
-    { width: 14 },
-    { width: 16 }
+    { width: 5 },  // A: STT
+    { width: 12 }, // B: Ngày nhận
+    { width: 18 }, // C: Bác sĩ
+    { width: 18 }, // D: Bệnh nhân
+    { width: 22 }, // E: Sản phẩm
+    { width: 14 }, // F: Loại
+    { width: 16 }, // G: Vị trí răng
+    { width: 6 },  // H: S.L
+    { width: 12 }, // I: Đơn giá
+    { width: 12 }, // J: Thành tiền
+    { width: 10 }, // K: Giảm giá
+    { width: 14 }, // L: Tổng cộng
+    { width: 20 }, // M: Ghi chú
   ];
 
   // ===== HEADER AREA =====
   worksheet.mergeCells('A1:B4');
-  worksheet.mergeCells('C1:G2');
-  worksheet.mergeCells('C3:G3');
-  worksheet.mergeCells('C4:G4');
-  worksheet.mergeCells('H1:K4');
+  worksheet.mergeCells('C1:I2');
+  worksheet.mergeCells('C3:I3');
+  worksheet.mergeCells('C4:I4');
+  worksheet.mergeCells('J1:M4');
 
   worksheet.getCell('C1').value = 'CÔNG TY TNHH TẤN DENTAL';
   worksheet.getCell('C1').font = { bold: true, size: 20 };
@@ -58,17 +60,17 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
   worksheet.getCell('C4').font = { size: 11 };
   worksheet.getCell('C4').alignment = { horizontal: 'center', vertical: 'middle' };
 
-  worksheet.getCell('H1').value = 'GIẤY BÁO THANH TOÁN';
-  worksheet.getCell('H1').font = { bold: true, size: 18 };
-  worksheet.getCell('H1').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  worksheet.getCell('J1').value = 'GIẤY BÁO THANH TOÁN';
+  worksheet.getCell('J1').font = { bold: true, size: 18 };
+  worksheet.getCell('J1').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
-  // Add logo image
+  // Thêm Logo
   try {
     const response = await fetch(LOGO_URL);
     const arrayBuffer = await response.arrayBuffer();
     const imageId = workbook.addImage({
       buffer: arrayBuffer,
-      extension: 'png'
+      extension: 'jpeg'
     });
     worksheet.addImage(imageId, {
       tl: { col: 0, row: 0 },
@@ -79,21 +81,22 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
     worksheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
   }
 
-  // Borders for header block
-  ['A1', 'B1', 'C1', 'H1'].forEach((ref) => {
+  ['A1', 'C1', 'J1'].forEach((ref) => {
     applyBorder(worksheet.getCell(ref), 'medium');
   });
 
-  // ===== CUSTOMER & DATE =====
-  worksheet.mergeCells('A5:K5');
-  worksheet.mergeCells('A6:K6');
-  worksheet.getCell('A5').value = `Khách hàng: ${nhaKhoaInfo?.hoVaTen || 'N/A'}`;
+  // ===== THÔNG TIN KHÁCH HÀNG & HÓA ĐƠN =====
+  worksheet.mergeCells('A5:M5');
+  worksheet.mergeCells('A6:M6');
+
+  // Lấy tên nha khoa (Ưu tiên lấy thẳng từ hoaDon đã populate)
+  const tenKhachHang = hoaDon.nhaKhoa?.hoVaTen || hoaDon.nhaKhoa?.tenGiaoDich || nhaKhoaInfo?.hoVaTen || '---';
+  worksheet.getCell('A5').value = `Khách hàng: ${tenKhachHang}`;
   worksheet.getCell('A5').font = { bold: true, size: 12 };
   worksheet.getCell('A5').alignment = { horizontal: 'center', vertical: 'middle' };
 
-  const fromDate = new Date(hoaDon.ngayXuatHoaDon).toLocaleDateString('vi-VN');
-  const toDate = new Date(hoaDon.ngayXuatHoaDon).toLocaleDateString('vi-VN');
-  worksheet.getCell('A6').value = `Từ ngày: ${fromDate} đến ngày: ${toDate}`;
+  const hdDate = new Date(hoaDon.ngayXuatHoaDon || new Date()).toLocaleDateString('vi-VN');
+  worksheet.getCell('A6').value = `Hóa đơn số: ${hoaDon.soHoaDon || '---'}   -   Ngày xuất: ${hdDate}`;
   worksheet.getCell('A6').font = { bold: true, size: 12 };
   worksheet.getCell('A6').alignment = { horizontal: 'center', vertical: 'middle' };
 
@@ -102,132 +105,147 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
 
   // ===== TABLE HEADER =====
   const tableHeaderRow = 8;
-  const headers = ['TT', 'NGÀY', 'BÁC SĨ', 'BỆNH NHÂN', 'LOẠI PHỤC HÌNH', 'RĂNG', 'S.L', 'ĐƠN GIÁ', 'GIẢM GIÁ', 'THANH TIỀN', 'GHI CHÚ'];
+  const headers = ['STT', 'NGÀY NHẬN', 'BÁC SĨ', 'BỆNH NHÂN', 'SẢN PHẨM', 'LOẠI', 'VỊ TRÍ RĂNG', 'S.L', 'ĐƠN GIÁ', 'THÀNH TIỀN', 'GIẢM GIÁ', 'TỔNG CỘNG', 'GHI CHÚ'];
   worksheet.getRow(tableHeaderRow).values = headers;
-  worksheet.getRow(tableHeaderRow).font = { bold: true, size: 11 };
+  worksheet.getRow(tableHeaderRow).font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
   worksheet.getRow(tableHeaderRow).alignment = { horizontal: 'center', vertical: 'middle' };
 
   headers.forEach((_, index) => {
     const cell = worksheet.getCell(tableHeaderRow, index + 1);
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1565C0' } };
     applyBorder(cell, 'medium');
   });
 
-  // ===== TABLE DATA =====
-  const buildTeethText = (viTri = []) => {
-    if (!Array.isArray(viTri)) return '';
-    const parts = viTri
-      .map((v) => (Array.isArray(v.soRang) ? v.soRang.join(', ') : ''))
-      .filter(Boolean);
-    return parts.join(' | ');
+  // ===== TABLE DATA (RENDER TỪ danhSachSanPham) =====
+  const buildTeethText = (viTriArr) => {
+    if (!viTriArr || viTriArr.length === 0) return "-";
+    return viTriArr
+      .map((v) =>
+        v.kieu === "Cầu" && v.soRang?.length > 1
+          ? `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+          : v.soRang?.join(", ")
+      )
+      .join("; ");
   };
 
-  const rows = [];
-  hoaDon.danhSachDonHang.forEach((wrap) => {
-    const donHang = wrap.donHang || {};
-    const bacSi = donHang.bacSi?.hoVaTen || '';
-    const benhNhan = donHang.benhNhan?.hoVaTen || '';
-    const ngay = donHang.ngayNhan || hoaDon.ngayXuatHoaDon;
-    const sanPhamList = donHang.danhSachSanPham || [];
-
-    if (sanPhamList.length === 0) {
-      rows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        loaiPhucHinh: '',
-        rang: '',
-        soLuong: '',
-        donGia: '',
-        giamGia: wrap.chietKhau
-          ? `${wrap.chietKhau}${wrap.loaiChietKhau === 'phanTram' ? '%' : 'đ'}`
-          : '',
-        thanhTien: wrap.thanhTienSauCK || 0,
-      });
-      return;
-    }
-
-    sanPhamList.forEach((sp, spIndex) => {
-      rows.push({
-        ngay,
-        bacSi,
-        benhNhan,
-        loaiPhucHinh: sp.sanPham?.tenSanPham || '',
-        rang: buildTeethText(sp.viTri),
-        soLuong: sp.soLuong || '',
-        donGia: sp.sanPham?.donGiaChung || '',
-        giamGia:
-          spIndex === 0 && wrap.chietKhau
-            ? `${wrap.chietKhau}${wrap.loaiChietKhau === 'phanTram' ? '%' : 'đ'}`
-            : '',
-        thanhTien: spIndex === 0 ? wrap.thanhTienSauCK || 0 : '',
-      });
-    });
-  });
-
+  const rows = hoaDon.danhSachSanPham || [];
   let dataRowStart = tableHeaderRow + 1;
-  rows.forEach((rowData, index) => {
+
+  rows.forEach((sp, index) => {
     const rowIndex = dataRowStart + index;
     const row = worksheet.getRow(rowIndex);
+
+    const ngayNhan = sp.donHang?.ngayNhan ? new Date(sp.donHang.ngayNhan).toLocaleDateString('vi-VN') : '---';
+    const bacSi = sp.donHang?.bacSi?.hoVaTen || '---';
+    const benhNhan = sp.donHang?.benhNhan?.hoVaTen || '---';
+
     row.values = [
       index + 1,
-      rowData.ngay ? new Date(rowData.ngay).toLocaleDateString('vi-VN') : '',
-      rowData.bacSi,
-      rowData.benhNhan,
-      rowData.loaiPhucHinh,
-      rowData.rang,
-      rowData.soLuong,
-      rowData.donGia,
-      rowData.giamGia,
-      rowData.thanhTien,
-      ''
+      ngayNhan,
+      bacSi,
+      benhNhan,
+      sp.tenSanPham || '---',
+      sp.loaiDon || '---',
+      buildTeethText(sp.viTri),
+      sp.soLuong || 0,
+      sp.donGia || 0,
+      sp.thanhTien || 0,
+      sp.giamGia || 0,
+      sp.tongCongSanPham || 0,
+      sp.ghiChu || ''
     ];
-    row.alignment = { vertical: 'middle', horizontal: 'center' };
-    [8, 10].forEach((col) => {
+
+    row.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+
+    // Format center & right cho các cột số/tiền
+    row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+    row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
+    [9, 10, 11, 12].forEach((col) => {
       row.getCell(col).numFmt = '#,##0';
       row.getCell(col).alignment = { horizontal: 'right', vertical: 'middle' };
     });
+
     row.eachCell((cell) => applyBorder(cell, 'thin'));
   });
 
-  // ===== SUMMARY =====
+  // ===== SUMMARY (KHỚP THEO BẢN CẬP NHẬT MỚI NHẤT) =====
   const summaryStart = dataRowStart + rows.length + 1;
-  worksheet.mergeCells(`A${summaryStart}:G${summaryStart}`);
-  worksheet.mergeCells(`H${summaryStart}:K${summaryStart}`);
-  worksheet.mergeCells(`A${summaryStart + 1}:G${summaryStart + 1}`);
-  worksheet.mergeCells(`H${summaryStart + 1}:K${summaryStart + 1}`);
-  worksheet.mergeCells(`A${summaryStart + 2}:G${summaryStart + 2}`);
-  worksheet.mergeCells(`H${summaryStart + 2}:K${summaryStart + 2}`);
 
-  worksheet.getCell(`A${summaryStart}`).value = 'TỔNG CỘNG';
-  worksheet.getCell(`H${summaryStart}`).value = hoaDon.tongTien || 0;
-  worksheet.getCell(`A${summaryStart + 1}`).value = 'CHIẾT KHẤU';
-  worksheet.getCell(`H${summaryStart + 1}`).value = hoaDon.tongChietKhau || 0;
-  worksheet.getCell(`A${summaryStart + 2}`).value = 'GIÁ TRỊ THANH TOÁN';
-  worksheet.getCell(`H${summaryStart + 2}`).value = hoaDon.thanhTien || 0;
+  const tongCong = hoaDon.tongCong || 0;
+  const ckAmount = hoaDon.chietKhau || 0;
 
-  ['A', 'H'].forEach((col) => {
-    worksheet.getCell(`${col}${summaryStart}`).font = { bold: true, size: 12 };
-    worksheet.getCell(`${col}${summaryStart + 1}`).font = { bold: true, size: 12 };
-    worksheet.getCell(`${col}${summaryStart + 2}`).font = { bold: true, size: 12 };
-  });
+  // Tính % chiết khấu để in ra chữ (làm tròn 2 chữ số)
+  const ckPercent = tongCong > 0 ? Number(Number((ckAmount / tongCong) * 100).toFixed(2)) : 0;
+  const sauCk = Math.max(0, tongCong - ckAmount);
 
-  worksheet.getCell(`H${summaryStart}`).numFmt = '#,##0';
-  worksheet.getCell(`H${summaryStart + 1}`).numFmt = '#,##0';
-  worksheet.getCell(`H${summaryStart + 2}`).numFmt = '#,##0';
+  // 👇 Tách biệt: Dùng % làm tròn để hiển thị chữ, dùng % gốc (hoaDon.thue) để tính tiền
+  const thuePercent = Number(Number(hoaDon.thue || 0).toFixed(2));
+  const thueAmount = Math.round(sauCk * ((hoaDon.thue || 0) / 100)); // ✅ Lấy tỷ lệ gốc cực lẻ để nhân, ra tiền chẵn bóc!
 
-  [summaryStart, summaryStart + 1, summaryStart + 2].forEach((r) => {
-    worksheet.getCell(`A${r}`).alignment = { horizontal: 'center', vertical: 'middle' };
-    worksheet.getCell(`H${r}`).alignment = { horizontal: 'right', vertical: 'middle' };
-    applyBorder(worksheet.getCell(`A${r}`), 'medium');
-    applyBorder(worksheet.getCell(`H${r}`), 'medium');
+  const chiPhiKhac = hoaDon.chiPhiKhac || 0;
+
+  // Tạo danh sách các dòng summary động (ẩn Thuế và Chi phí khác nếu bằng 0 giống hệt trên web)
+  const summaryItems = [
+    { label: 'Tổng cộng', value: tongCong },
+    { label: `Chiết khấu                ${ckPercent} % =`, value: ckAmount },
+  ];
+
+  if (thuePercent > 0) {
+    summaryItems.push({ label: `Thuế                     ${thuePercent} % =`, value: thueAmount });
+  }
+
+  if (chiPhiKhac > 0) {
+    summaryItems.push({ label: 'Chi phí khác', value: chiPhiKhac });
+  }
+
+  summaryItems.push(
+    { label: 'Giá trị thanh toán', value: hoaDon.giaTriThanhToan || 0 },
+    { label: 'Đã thanh toán', value: hoaDon.daThanhToan || 0 },
+    { label: 'Còn nợ', value: hoaDon.conLai || 0 }
+  );
+
+  summaryItems.forEach((item, i) => {
+    const r = summaryStart + i;
+    worksheet.mergeCells(`A${r}:J${r}`); // Cột Label (từ A đến J)
+    worksheet.mergeCells(`K${r}:M${r}`); // Cột Value (từ K đến M)
+
+    const labelCell = worksheet.getCell(`A${r}`);
+    const valueCell = worksheet.getCell(`K${r}`);
+
+    labelCell.value = item.label;
+    valueCell.value = item.value;
+
+    // In đậm các dòng quan trọng như trên Web
+    if (['Tổng cộng', 'Giá trị thanh toán', 'Đã thanh toán', 'Còn nợ'].includes(item.label)) {
+      labelCell.font = { bold: true, size: 12 };
+      valueCell.font = { bold: true, size: 12 };
+    } else {
+      labelCell.font = { size: 11, color: { argb: 'FF333333' } };
+      valueCell.font = { size: 11 };
+    }
+
+    valueCell.numFmt = '#,##0';
+    labelCell.alignment = { horizontal: 'right', vertical: 'middle' };
+    valueCell.alignment = { horizontal: 'right', vertical: 'middle' };
+
+    // Format viền dưới nhạt giống Web
+    if (item.label.includes('Chiết khấu') || item.label.includes('Thuế') || item.label.includes('Chi phí khác')) {
+      labelCell.border = { bottom: { style: 'hair', color: { argb: 'FFCCCCCC' } } };
+      valueCell.border = { bottom: { style: 'hair', color: { argb: 'FFCCCCCC' } } };
+    } else {
+      applyBorder(labelCell, 'thin');
+      applyBorder(valueCell, 'thin');
+    }
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const clinicNameRaw = nhaKhoaInfo?.hoVaTen || 'Nha khoa';
-  const clinicNameSafe = clinicNameRaw.replace(/[\\/:*?"<>|]/g, '').trim();
-  const fileName = `Hoá đơn ${clinicNameSafe}.xlsx`;
+  const safeClinicName = tenKhachHang.replace(/[\\/:*?"<>|]/g, '').trim();
+  const fileName = `Hoa_don_${hoaDon.soHoaDon || 'TAN'}_${safeClinicName}.xlsx`;
   saveAs(new Blob([buffer]), fileName);
 };
+// ==========================================
+// CÁC HÀM XUẤT EXCEL KHÁC GIỮ NGUYÊN BÊN DƯỚI
+// ==========================================
 
 export const exportPhieuThuToExcel = async (
   phieuThuList = [],
@@ -373,10 +391,7 @@ export const exportHoaDonListToExcel = async (
   const fromDateLabel = formatDateSafe(fromDate);
   const toDateLabel = formatDateSafe(toDate);
 
-  worksheet.getCell('A6').value = `Từ ngày: ${fromDateLabel || ''}   Đến ngày: ${toDateLabel || ''}`;
-  worksheet.getCell('A7').value = `Nha khoa: ${nhaKhoaName || 'Tất cả'}`;
-
-  const headerRow = 9;
+  const headerRow = 6;
   const headers = [
     'Ngày xuất',
     'Số',
@@ -421,9 +436,9 @@ export const exportHoaDonListToExcel = async (
       hd.ngayXuatHoaDon ? new Date(hd.ngayXuatHoaDon).toLocaleDateString('vi-VN') : '',
       so,
       nk.hoVaTen || nk.tenGiaoDich || '',
-      hd.tongTien || 0,
-      hd.tongChietKhau || 0,
-      hd.thanhTien || 0,
+      hd.tongCong || 0,
+      hd.chietKhau || 0,
+      hd.giaTriThanhToan || 0,
       hd.daThanhToan || 0,
       hd.conLai || 0,
       hd.chiPhiKhac || 0,
@@ -585,6 +600,7 @@ export const exportDonHangListToExcel = async (
           year: "numeric",
           hour: "2-digit",
           minute: "2-digit",
+          hour12: false,
         })
         : "",
       dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
@@ -598,6 +614,7 @@ export const exportDonHangListToExcel = async (
           year: "numeric",
           hour: "2-digit",
           minute: "2-digit",
+          hour12: false,
         })
         : "",
       getProgress(dh?.trangThai),
@@ -801,4 +818,387 @@ export const exportBangLuongToExcel = async (salaryData, thang, nam) => {
   const buffer = await workbook.xlsx.writeBuffer();
   const fileName = `Bang_luong_thang_${thang}_${nam}.xlsx`;
   saveAs(new Blob([buffer]), fileName);
+};
+
+export const exportBangGiaRiengToExcel = async (nhaKhoaInfo, bangGiaData = []) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Bảng Giá Riêng');
+
+  worksheet.columns = [
+    { width: 10 },
+    { width: 45 },
+    { width: 25 },
+  ];
+
+  // ===== PHẦN ĐẦU =====
+  worksheet.mergeCells('A1:C1');
+  worksheet.getCell('A1').value = 'CÔNG TY TNHH TẤN DENTAL';
+  worksheet.getCell('A1').font = { bold: true, size: 16 };
+
+  worksheet.mergeCells('A2:C2');
+  worksheet.getCell('A2').value = 'Địa chỉ: Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ';
+  worksheet.getCell('A2').font = { size: 11 };
+
+  worksheet.mergeCells('A3:C3');
+  worksheet.getCell('A3').value = 'Điện thoại: 0842 312 828';
+  worksheet.getCell('A3').font = { size: 11 };
+
+  worksheet.mergeCells('A4:C4');
+  worksheet.getCell('A4').value = 'Email: tandentallab@gmail.com';
+  worksheet.getCell('A4').font = { size: 11 };
+
+  ['A1', 'A2', 'A3', 'A4'].forEach((ref) => {
+    worksheet.getCell(ref).alignment = { horizontal: 'left', vertical: 'middle' };
+  });
+
+  // ===== TIÊU ĐỀ & TÊN NHA KHOA =====
+  worksheet.mergeCells('A6:C6');
+  worksheet.getCell('A6').value = 'BẢNG GIÁ RIÊNG';
+  worksheet.getCell('A6').font = { bold: true, size: 16 };
+  worksheet.getCell('A6').alignment = { horizontal: 'center', vertical: 'middle' };
+
+  worksheet.mergeCells('A7:C7');
+  const tenNhaKhoa = nhaKhoaInfo?.hoVaTen || nhaKhoaInfo?.tenGiaoDich || 'Chưa xác định';
+  worksheet.getCell('A7').value = `Nha khoa: ${tenNhaKhoa}`;
+  worksheet.getCell('A7').font = { bold: true, size: 12, italic: true };
+  worksheet.getCell('A7').alignment = { horizontal: 'left', vertical: 'middle' };
+
+  // ===== TABLE HEADER =====
+  const headerRow = 8;
+  const headers = ['STT', 'TÊN SẢN PHẨM', 'GIÁ RIÊNG'];
+  worksheet.getRow(headerRow).values = headers;
+  worksheet.getRow(headerRow).font = { bold: true, size: 12 };
+  worksheet.getRow(headerRow).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  headers.forEach((_, idx) => {
+    applyBorder(worksheet.getCell(headerRow, idx + 1), 'medium');
+  });
+
+  // ===== TABLE DATA =====
+  bangGiaData.forEach((item, idx) => {
+    const rowIndex = headerRow + 1 + idx;
+
+    // MAPPING ĐÚNG VỚI BACKEND (tenSanPham, donGia)
+    const tenSp = item.tenSanPham || '---';
+    const giaRieng = item.donGia || 0;
+
+    worksheet.getRow(rowIndex).values = [
+      idx + 1,
+      tenSp,
+      giaRieng
+    ];
+
+    const sttCell = worksheet.getCell(rowIndex, 1);
+    sttCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    applyBorder(sttCell, 'thin');
+
+    const tenSpCell = worksheet.getCell(rowIndex, 2);
+    tenSpCell.alignment = { horizontal: 'left', vertical: 'middle' };
+    applyBorder(tenSpCell, 'thin');
+
+    const giaCell = worksheet.getCell(rowIndex, 3);
+    giaCell.numFmt = '#,##0'; // Format tiền tệ có dấu phẩy
+    giaCell.alignment = { horizontal: 'right', vertical: 'middle' };
+    applyBorder(giaCell, 'thin');
+  });
+
+  // ===== XUẤT FILE =====
+  const buffer = await workbook.xlsx.writeBuffer();
+  const safeClinicName = tenNhaKhoa.replace(/[\\/:*?"<>|]/g, '').trim();
+  const fileName = `Bang_Gia_Rieng_${safeClinicName}.xlsx`;
+
+  saveAs(new Blob([buffer]), fileName);
+};
+
+export const exportKeHoachGiaoHangToExcel = async (filteredOrders, formatDanhSachSanPham) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Kế Hoạch Giao Hàng');
+
+  // ===== PHẦN ĐẦU =====
+  worksheet.mergeCells('A1:C1');
+  worksheet.getCell('A1').value = 'CÔNG TY TNHH TẤN DENTAL';
+  worksheet.getCell('A1').font = { bold: true, size: 16, name: 'Arial' };
+
+  worksheet.mergeCells('A2:C2');
+  worksheet.getCell('A2').value = 'Địa chỉ: Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ';
+  worksheet.getCell('A2').font = { size: 11, name: 'Arial' };
+
+  worksheet.mergeCells('A3:C3');
+  worksheet.getCell('A3').value = 'Điện thoại: 0842 312 828';
+  worksheet.getCell('A3').font = { size: 11, name: 'Arial' };
+
+  worksheet.mergeCells('A4:C4');
+  worksheet.getCell('A4').value = 'Email: tandentallab@gmail.com';
+  worksheet.getCell('A4').font = { size: 11, name: 'Arial' };
+
+  ['A1', 'A2', 'A3', 'A4'].forEach((ref) => {
+    worksheet.getCell(ref).alignment = { horizontal: 'left', vertical: 'middle' };
+  });
+
+  // Thêm tiêu đề
+  worksheet.mergeCells('A6:G6');
+  const titleCell = worksheet.getCell('A6');
+  titleCell.value = 'KẾ HOẠCH GIAO HÀNG';
+  titleCell.font = { name: 'Arial', size: 16, bold: true };
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // Dòng trống 7
+  worksheet.addRow([]);
+
+  // Thêm header
+  const headerRow = worksheet.addRow(['Nhận lúc', 'Số', 'Khách hàng', 'Bệnh nhân', 'Răng', 'Hẹn giao', 'Ghi chú']);
+  headerRow.eachCell((cell) => {
+    cell.font = { name: 'Arial', size: 12, bold: true };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    applyBorder(cell, 'thin');
+  });
+
+  // Cấu hình chiều rộng cột
+  worksheet.columns = [
+    { width: 18 }, // Nhận lúc
+    { width: 15 }, // Số
+    { width: 25 }, // Khách hàng
+    { width: 20 }, // Bệnh nhân
+    { width: 40 }, // Răng
+    { width: 18 }, // Hẹn giao
+    { width: 30 }  // Ghi chú
+  ];
+
+  // Thêm dữ liệu
+  filteredOrders.forEach((order) => {
+    const maDon = order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`;
+    const nhanLuc = order.ngayNhan ? new Date(order.ngayNhan).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : "—";
+    const henGiao = order.henGiao ? new Date(order.henGiao).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : "—";
+
+    const row = worksheet.addRow([
+      nhanLuc,
+      maDon,
+      order.nhaKhoa?.hoVaTen || "",
+      order.benhNhan?.hoVaTen || "",
+      formatDanhSachSanPham(order.danhSachSanPham),
+      henGiao,
+      order.ghiChuChung || ""
+    ]);
+
+    row.eachCell((cell, colNumber) => {
+      cell.font = { name: 'Arial', size: 11 };
+      cell.alignment = {
+        horizontal: colNumber === 1 || colNumber === 2 || colNumber === 6 ? 'center' : 'left',
+        vertical: 'middle',
+        wrapText: true
+      };
+      applyBorder(cell, 'thin');
+    });
+  });
+
+  // Xuất file
+  const buffer = await workbook.xlsx.writeBuffer();
+  const dateStr = toFileDateSafe(new Date());
+  saveAs(new Blob([buffer]), `KeHoach_GiaoHang_${dateStr}.xlsx`);
+};
+
+export const exportDanhSachNhaKhoaToExcel = async (data) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Danh Sách Nha Khoa');
+
+  worksheet.mergeCells('A1:G1');
+  worksheet.getCell('A1').value = 'CÔNG TY TNHH TẤN DENTAL';
+  worksheet.getCell('A1').font = { bold: true, size: 16, name: 'Arial' };
+
+  worksheet.mergeCells('A2:G2');
+  worksheet.getCell('A2').value = 'Địa chỉ: Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ';
+  worksheet.getCell('A2').font = { size: 11, name: 'Arial' };
+
+  worksheet.mergeCells('A3:G3');
+  worksheet.getCell('A3').value = 'Điện thoại: 0842 312 828';
+  worksheet.getCell('A3').font = { size: 11, name: 'Arial' };
+
+  worksheet.mergeCells('A4:G4');
+  worksheet.getCell('A4').value = 'Email: tandentallab@gmail.com';
+  worksheet.getCell('A4').font = { size: 11, name: 'Arial' };
+
+  ['A1', 'A2', 'A3', 'A4'].forEach((ref) => {
+    worksheet.getCell(ref).alignment = { horizontal: 'left', vertical: 'middle' };
+  });
+
+  worksheet.mergeCells('A6:G6');
+  const titleCell = worksheet.getCell('A6');
+  titleCell.value = 'DANH SÁCH NHA KHOA';
+  titleCell.font = { name: 'Arial', size: 16, bold: true };
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+  worksheet.addRow([]);
+
+  const headerRow = worksheet.addRow(['Tên', 'Liên hệ', 'Địa chỉ', 'Website', 'Mô tả', 'Ngày tạo']);
+  headerRow.eachCell((cell) => {
+    cell.font = { name: 'Arial', size: 12, bold: true };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    applyBorder(cell, 'thin');
+  });
+
+  worksheet.columns = [
+    { width: 35 }, // Tên
+    { width: 25 }, // Liên hệ
+    { width: 45 }, // Địa chỉ
+    { width: 25 }, // Website
+    { width: 35 }, // Mô tả
+    { width: 15 }  // Ngày tạo
+  ];
+
+  data.forEach((item) => {
+    const lienHeFull = [item.soDienThoai, item.email].filter(Boolean).join("\n");
+    const diaChiFull = [item.diaChiCuThe, item.tinh, item.quocGia].filter(Boolean).join(", ");
+    const row = worksheet.addRow([
+      item.hoVaTen || item.tenGiaoDich || "",
+      lienHeFull || "",
+      diaChiFull || "",
+      item.website || "",
+      item.moTa || "",
+      item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : ""
+    ]);
+
+    row.eachCell((cell) => {
+      cell.font = { name: 'Arial', size: 11 };
+      cell.alignment = { vertical: 'middle', wrapText: true };
+      applyBorder(cell, 'thin');
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const dateStr = toFileDateSafe(new Date());
+  saveAs(new Blob([buffer]), `DanhSach_NhaKhoa_${dateStr}.xlsx`);
+};
+
+export const exportDanhSachNguoiLienHeToExcel = async (data) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Danh Sách Người Liên Hệ');
+
+  worksheet.mergeCells('A1:E1');
+  worksheet.getCell('A1').value = 'CÔNG TY TNHH TẤN DENTAL';
+  worksheet.getCell('A1').font = { bold: true, size: 16, name: 'Arial' };
+
+  worksheet.mergeCells('A2:E2');
+  worksheet.getCell('A2').value = 'Địa chỉ: Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ';
+  worksheet.getCell('A2').font = { size: 11, name: 'Arial' };
+
+  worksheet.mergeCells('A3:E3');
+  worksheet.getCell('A3').value = 'Điện thoại: 0842 312 828';
+  worksheet.getCell('A3').font = { size: 11, name: 'Arial' };
+
+  worksheet.mergeCells('A4:E4');
+  worksheet.getCell('A4').value = 'Email: tandentallab@gmail.com';
+  worksheet.getCell('A4').font = { size: 11, name: 'Arial' };
+
+  ['A1', 'A2', 'A3', 'A4'].forEach((ref) => {
+    worksheet.getCell(ref).alignment = { horizontal: 'left', vertical: 'middle' };
+  });
+
+  worksheet.mergeCells('A6:E6');
+  const titleCell = worksheet.getCell('A6');
+  titleCell.value = 'DANH SÁCH NGƯỜI LIÊN HỆ';
+  titleCell.font = { name: 'Arial', size: 16, bold: true };
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+  worksheet.addRow([]);
+
+  const headerRow = worksheet.addRow(['Họ tên', 'Email', 'SĐT', 'Nha khoa', 'Mô tả']);
+  headerRow.eachCell((cell) => {
+    cell.font = { name: 'Arial', size: 12, bold: true };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    applyBorder(cell, 'thin');
+  });
+
+  worksheet.columns = [
+    { width: 25 }, // Họ tên
+    { width: 25 }, // Email
+    { width: 15 }, // SĐT
+    { width: 30 }, // Nha khoa
+    { width: 35 }  // Mô tả
+  ];
+
+  data.forEach((item) => {
+    const row = worksheet.addRow([
+      item.hoVaTen || "",
+      item.email || "",
+      item.soDienThoai || "",
+      item.nhaKhoa?.hoVaTen || "",
+      item.moTa || ""
+    ]);
+
+    row.eachCell((cell) => {
+      cell.font = { name: 'Arial', size: 11 };
+      cell.alignment = { vertical: 'middle', wrapText: true };
+      applyBorder(cell, 'thin');
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const dateStr = toFileDateSafe(new Date());
+  saveAs(new Blob([buffer]), `DanhSach_NguoiLienHe_${dateStr}.xlsx`);
+};
+
+export const exportDanhSachBenhNhanToExcel = async (data) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Danh Sách Bệnh Nhân');
+
+  worksheet.mergeCells('A1:D1');
+  worksheet.getCell('A1').value = 'CÔNG TY TNHH TẤN DENTAL';
+  worksheet.getCell('A1').font = { bold: true, size: 16, name: 'Arial' };
+
+  worksheet.mergeCells('A2:D2');
+  worksheet.getCell('A2').value = 'Địa chỉ: Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ';
+  worksheet.getCell('A2').font = { size: 11, name: 'Arial' };
+
+  worksheet.mergeCells('A3:D3');
+  worksheet.getCell('A3').value = 'Điện thoại: 0842 312 828';
+  worksheet.getCell('A3').font = { size: 11, name: 'Arial' };
+
+  worksheet.mergeCells('A4:D4');
+  worksheet.getCell('A4').value = 'Email: tandentallab@gmail.com';
+  worksheet.getCell('A4').font = { size: 11, name: 'Arial' };
+
+  ['A1', 'A2', 'A3', 'A4'].forEach((ref) => {
+    worksheet.getCell(ref).alignment = { horizontal: 'left', vertical: 'middle' };
+  });
+
+  worksheet.mergeCells('A6:D6');
+  const titleCell = worksheet.getCell('A6');
+  titleCell.value = 'DANH SÁCH BỆNH NHÂN';
+  titleCell.font = { name: 'Arial', size: 16, bold: true };
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+  worksheet.addRow([]);
+
+  const headerRow = worksheet.addRow(['Tên', 'Số hồ sơ', 'Giới tính', 'Nha khoa']);
+  headerRow.eachCell((cell) => {
+    cell.font = { name: 'Arial', size: 12, bold: true };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    applyBorder(cell, 'thin');
+  });
+
+  worksheet.columns = [
+    { width: 25 }, // Tên
+    { width: 15 }, // Số hồ sơ
+    { width: 12 }, // Giới tính
+    { width: 35 }  // Nha khoa
+  ];
+
+  data.forEach((item) => {
+    const row = worksheet.addRow([
+      item.hoVaTen || "",
+      item.soHoSo || "",
+      item.gioiTinh || "",
+      item.nhaKhoa?.hoVaTen || ""
+    ]);
+
+    row.eachCell((cell) => {
+      cell.font = { name: 'Arial', size: 11 };
+      cell.alignment = { vertical: 'middle', wrapText: true };
+      applyBorder(cell, 'thin');
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const dateStr = toFileDateSafe(new Date());
+  saveAs(new Blob([buffer]), `DanhSach_BenhNhan_${dateStr}.xlsx`);
 };

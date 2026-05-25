@@ -533,7 +533,7 @@ const KeHoachGiaoHangTable = () => {
             }
           `}</style>
           <h2 className="text-xl font-bold text-center mb-4 uppercase">Kế Hoạch Giao Hàng</h2>
-          <table className="w-full border-collapse border border-black text-sm">
+          <table className="w-full border-collapse border border-black">
             <thead>
               <tr>
                 <th className="border border-black px-2 py-1 text-center font-semibold">Nhận lúc</th>
@@ -550,23 +550,23 @@ const KeHoachGiaoHangTable = () => {
                 const maDon = order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`;
                 return (
                   <tr key={order._id}>
-                    <td className="border border-black px-2 py-1 text-center text-xs">
+                    <td className="border border-black px-2 py-1 text-center">
                       {order.ngayNhan ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm") : "—"}
                     </td>
-                    <td className="border border-black px-2 py-1 text-center font-semibold text-xs">{maDon}</td>
-                    <td className="border border-black px-2 py-1 text-xs">{order.nhaKhoa?.hoVaTen}</td>
-                    <td className="border border-black px-2 py-1 text-xs">{order.benhNhan?.hoVaTen}</td>
-                    <td className="border border-black px-2 py-1 text-xs">{formatDanhSachSanPham(order.danhSachSanPham)}</td>
-                    <td className="border border-black px-2 py-1 text-center text-xs">
+                    <td className="border border-black px-2 py-1 text-center font-semibold">{maDon}</td>
+                    <td className="border border-black px-2 py-1">{order.nhaKhoa?.hoVaTen}</td>
+                    <td className="border border-black px-2 py-1">{order.benhNhan?.hoVaTen}</td>
+                    <td className="border border-black px-2 py-1">{formatDanhSachSanPham(order.danhSachSanPham)}</td>
+                    <td className="border border-black px-2 py-1 text-center">
                       {order.henGiao ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm") : "—"}
                     </td>
-                    <td className="border border-black px-2 py-1 text-xs">{order.ghiChuChung}</td>
+                    <td className="border border-black px-2 py-1">{order.ghiChuChung}</td>
                   </tr>
                 );
               })}
               {filteredOrders.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="border border-black text-center py-4 text-xs">
+                  <td colSpan="7" className="border border-black text-center py-4">
                     Không có dữ liệu
                   </td>
                 </tr>

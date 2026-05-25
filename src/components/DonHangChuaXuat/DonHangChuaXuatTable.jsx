@@ -40,7 +40,10 @@ import {
   fetchDonHangChuaHoaDonAll,
   createHoaDon,
 } from "../../redux/slices/hoaDonSlice";
-import { fetchBangGiaByNhaKhoa, fetchAllBangGia } from "../../redux/slices/bangGiaSlice";
+import {
+  fetchBangGiaByNhaKhoa,
+  fetchAllBangGia,
+} from "../../redux/slices/bangGiaSlice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -214,9 +217,7 @@ export default function DonHangChuaXuatTable({
       );
 
       if (uniqueClinicIds.size > 1) {
-        toast.error(
-          "Các đơn hàng phải từ cùng 1 nha khoa. Vui lòng chọn lại!"
-        );
+        toast.error("Các đơn hàng phải từ cùng 1 nha khoa. Vui lòng chọn lại!");
         return;
       }
 
@@ -448,7 +449,8 @@ export default function DonHangChuaXuatTable({
                       size="small"
                       onClick={() => navigate(`/donhang/${order._id}/edit`)}
                     >
-                      {order.maDonHang || `TAN${order._id.slice(-8).toUpperCase()}`}
+                      {order.maDonHang ||
+                        `TAN${order._id.slice(-8).toUpperCase()}`}
                     </Button>
                   </TableCell>
 
@@ -470,8 +472,9 @@ export default function DonHangChuaXuatTable({
                       {order.danhSachSanPham.map((sp, i) => (
                         <Chip
                           key={i}
-                          label={`${mapTen[sp.sanPham?.toString()] || "SP"
-                            } | SL: ${sp.soLuong}`}
+                          label={`${
+                            mapTen[sp.sanPham?.toString()] || "SP"
+                          } | SL: ${sp.soLuong}`}
                           size="small"
                           variant="outlined"
                         />

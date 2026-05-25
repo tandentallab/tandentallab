@@ -18,8 +18,9 @@ import ExportDateSelector from "../common/ExportDateSelector";
 import {
     EMPTY_EXPORT_DATE_FILTER,
     toISODateRange,
-    isValidExportDateFilter,
+    isValidExportDateFilter
 } from "../../utils/exportDatePresets";
+import { toast } from "sonner";
 
 const formatCurrency = (value) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value || 0);
@@ -179,7 +180,7 @@ export default function PhieuThuPage() {
 
     const handleExportExcel = async () => {
         if (!isValidExportDateFilter(exportDateFilter)) {
-            alert("Vui lòng chọn thời gian bằng preset hoặc Chọn trên lịch.");
+            toast.error("Vui lòng chọn thời gian bằng preset hoặc Chọn trên lịch.");
             return;
         }
 
@@ -209,7 +210,7 @@ export default function PhieuThuPage() {
 
             setOpenExport(false);
         } catch (err) {
-            alert(`Xuất Excel thất bại: ${err?.response?.data?.message || err.message}`);
+            toast.error(`Xuất Excel thất bại: ${err?.response?.data?.message || err.message}`);
         } finally {
             setExporting(false);
         }

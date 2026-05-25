@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../../config/api";
-import { exportBangGiaRiengToExcel, exportDanhSachNhaKhoaToExcel } from "../../utils/exportToExcel";
-import { toast } from "sonner";
+import {
+  exportBangGiaRiengToExcel,
+  exportDanhSachNhaKhoaToExcel,
+} from "../../utils/exportToExcel";
 import {
   Table,
   TableBody,
@@ -45,6 +47,7 @@ import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import NhaKhoaModal from "./NhaKhoaModal";
 import NhaKhoaUpdateModal from "./NhaKhoaUpdateModal";
 import NhaKhoaDetailModal from "./NhaKhoaDetailModal";
+import { toast } from "sonner";
 
 export default function NhaKhoaTable() {
   const dispatch = useDispatch();

@@ -416,12 +416,26 @@ const DonHangDetailPanel = (props) => {
                 ) : (
                   <div className="text-gray-400 text-sm italic">Chưa có sản phẩm</div>
                 )}
-                <button
-                  onClick={hasWarranty ? handleOpenWarrantyView : handleOpenPhieuBaoHanh}
-                  className={`mt-2 font-medium text-sm px-2 py-1 rounded-full text-white flex items-center gap-2 ${hasWarranty ? "bg-teal-500" : "bg-slate-500"}`}
-                >
-                  <ReceiptIcon sx={{ fontSize: 18 }} /> Thẻ bảo hành
-                </button>
+
+                {/* --- KHU VỰC ĐÃ CẬP NHẬT GIAO DIỆN NÚT IN BẢO HÀNH --- */}
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  <button
+                    onClick={hasWarranty ? handleOpenWarrantyView : handleOpenPhieuBaoHanh}
+                    className={`font-medium text-sm px-3 py-1.5 rounded-full text-white flex items-center gap-2 transition-colors ${hasWarranty ? "bg-teal-500 hover:bg-teal-600" : "bg-slate-500 hover:bg-slate-600"}`}
+                  >
+                    <ReceiptIcon sx={{ fontSize: 18 }} /> Thẻ bảo hành
+                  </button>
+
+                  {hasWarranty && (
+                    <button
+                      onClick={handleOpenPrintWarranty}
+                      className="font-medium text-sm px-3 py-1.5 rounded-full text-white bg-purple-500 hover:bg-purple-600 flex items-center gap-2 transition-colors"
+                    >
+                      <PrintIcon sx={{ fontSize: 18 }} /> In thẻ BH
+                    </button>
+                  )}
+                </div>
+                {/* --------------------------------------------------- */}
               </div>
 
               {/* Phụ kiện */}

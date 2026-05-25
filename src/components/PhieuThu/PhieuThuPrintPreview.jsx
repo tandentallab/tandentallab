@@ -92,9 +92,9 @@ const PhieuThuPrintPreview = () => {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "3mm" }}>
               <div style={{ flex: 2 }}>
                 <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>CÔNG TY TNHH TẤN DENTAL</p>
-                <p style={{ margin: "1mm 0 0", fontSize: "9pt" }}>Số 43, đường số 14, KDC Hồng Phát, An Bình, Cần Thơ</p>
+                <p style={{ fontSize: "9pt" }}>Số 43, đường số 14, KDC Hồng Phát, An Bình, Cần Thơ</p>
               </div>
-              <div style={{ flex: 1, textAlign: "right", fontSize: "11pt" }}>
+              <div style={{ marginTop: "1mm", flex: 1, textAlign: "right", fontSize: "9pt" }}>
                 <div>QĐ số 15/2006/QĐ-BTC</div>
                 <div>ngày 20/03/2006 của BTC</div>
               </div>

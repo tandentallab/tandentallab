@@ -7,8 +7,8 @@ const PhieuBaoHanhPreview = ({ phieuBaoHanh }) => {
   const nhaKhoaTen = phieuBaoHanh.nhaKhoa?.tenGiaoDich || phieuBaoHanh.nhaKhoa?.hoVaTen || "";
   const benhNhanTen = phieuBaoHanh.benhNhan?.hoVaTen || "";
 
-  // BẮT BUỘC sử dụng link deploy Vercel thực tế để không bị dính localhost
-  const origin = "https://tan-dental-frontend-snmb.vercel.app";
+  // Tự động nhận diện tên miền hiện tại để tạo mã QR động
+  const origin = window.location.origin;
   const qrLink = `${origin}/warranty/?qrcode=${phieuBaoHanh.maQR}`;
 
   return (
@@ -35,7 +35,7 @@ const PhieuBaoHanhPreview = ({ phieuBaoHanh }) => {
           <QRCodeSVG 
             value={qrLink} 
             size={100} 
-            level="M" 
+            level="L" 
             includeMargin={true}
           />
         </div>

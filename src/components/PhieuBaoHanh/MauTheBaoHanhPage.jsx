@@ -636,7 +636,7 @@ const MauTheBaoHanhPage = () => {
                   backgroundSize: "16px 16px",
                 }}
               >
-                <div className="absolute top-3 left-3 text-[10px] text-slate-500 uppercase font-mono tracking-widest pointer-events-none select-none">
+                <div className="absolute top-3 left-3 text-[10px] text-slate-500 uppercase tracking-widest pointer-events-none select-none">
                   Studio Preview Workbench
                 </div>
 
@@ -668,9 +668,9 @@ const MauTheBaoHanhPage = () => {
                           }}
                         >
                           <QRCodeSVG
-                            value="https://tandental.com/qr/DEMO"
+                            value={`${window.location.origin}/warranty/?qrcode=12345`}
                             size={conf.coChu * 4 || 60}
-                            level="M"
+                            level="L"
                           />
                         </div>
                       );
@@ -739,9 +739,8 @@ const MauTheBaoHanhPage = () => {
                       return (
                         <tr
                           key={field.key}
-                          className={`transition-colors duration-150 ${
-                            isEnabled ? "bg-white" : "bg-slate-50/50 opacity-60"
-                          }`}
+                          className={`transition-colors duration-150 ${isEnabled ? "bg-white" : "bg-slate-50/50 opacity-60"
+                            }`}
                         >
                           <td className="p-3 text-center">
                             <Checkbox

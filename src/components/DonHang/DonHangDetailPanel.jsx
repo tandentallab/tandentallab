@@ -42,7 +42,8 @@ const formatDateVN = (dateValue) => {
   return new Date(dateValue).toLocaleDateString("vi-VN");
 };
 
-const DonHangDetailPanel = ({ donHang, onClose }) => {
+const DonHangDetailPanel = (props) => {
+  const { donHang, onClose } = props;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isVerySmall = useMediaQuery("(max-width:550px)");
@@ -58,13 +59,22 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
   const [savingWarranty, setSavingWarranty] = useState(false);
   const [selectedProductIndex, setSelectedProductIndex] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null); // { spIndex, thuTu, top, right }
-  const isOpen = !!donHang;
+  const [isOpen, setIsOpen] = useState(false);
   const [fullDonHang, setFullDonHang] = useState(donHang);
+
+  useEffect(() => {
+    if (donHang) {
+      const id = requestAnimationFrame(() => setIsOpen(true));
+      return () => cancelAnimationFrame(id);
+    } else {
+      setIsOpen(false);
+    }
+  }, [!!donHang]);
 
   // Thêm useEffect để fetch dữ liệu chi tiết khi donHang._id thay đổi
   useEffect(() => {
     if (donHang?._id) {
-      api.get(`/don-hang/${donHang._id}`) // Gọi đúng API chi tiết (có populate)
+      api.get(`/donhang/${donHang._id}`) // Gọi đúng API chi tiết (có populate)
         .then((res) => {
           setFullDonHang(res.data.data);
         })
@@ -84,9 +94,9 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
     };
   }, [openDropdown]);
 
-  const maDonHang = donHang
-    ? donHang.maDonHang ||
-    `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`
+  const maDonHang = fullDonHang
+    ? fullDonHang.maDonHang ||
+    `TAN${fullDonHang._id.substring(fullDonHang._id.length - 8).toUpperCase()}`
     : "";
 
   // Fetch warranty when donHang changes
@@ -230,7 +240,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
     "Chờ sản xuất": "text-cyan-600 font-medium",
   };
 
-  const panelTop = 70;
+  const panelTop = props.fullscreen ? 0 : 70;
   const panelWidth = isVerySmall ? "100%" : "530px";
   const panelHeight = `calc(100vh - ${panelTop}px)`;
 
@@ -280,14 +290,14 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
       {/* Backdrop */}
       <div
         className={`fixed left-0 right-0 bottom-0 bg-black/20 transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        style={{ zIndex: isVerySmall ? 1499 : 1298, top: `${panelTop}px` }}
+        style={{ zIndex: props.fullscreen ? 2998 : (isVerySmall ? 1499 : 1298), top: `${panelTop}px` }}
         onClick={onClose}
       />
 
       {/* Slide-out panel */}
       <div
         className={`fixed right-0 flex flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
-        style={{ zIndex: isVerySmall ? 1500 : 1300, top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight }}
+        style={{ zIndex: props.fullscreen ? 2999 : (isVerySmall ? 1500 : 1300), top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight }}
       >
         {/* Header */}
         <div className="bg-[#4fc3f7] border-b px-4 py-3 flex items-center justify-between shrink-0">
@@ -297,15 +307,16 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
             </div>
             <span className="text-xl">{maDonHang}</span>
           </div>
-          <div className="flex items-center gap-2 shrink-0 text-white">
-            <div onClick={handleEdit} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-500 hover:cursor-pointer transition-all duration-100">
-              <EditIcon sx={{ fontSize: 22 }} />
+          {!props.fullscreen && (
+            <div className="flex items-center gap-2 shrink-0 text-white">
+              <div onClick={handleEdit} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-500 hover:cursor-pointer transition-all duration-100">
+                <EditIcon sx={{ fontSize: 22 }} />
+              </div>
+              <div onClick={handleDelete} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-500 hover:cursor-pointer transition-all duration-100">
+                <DeleteIcon sx={{ fontSize: 22 }} />
+              </div>
             </div>
-            <div onClick={handleDelete} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-500 hover:cursor-pointer transition-all duration-100">
-              <DeleteIcon sx={{ fontSize: 22 }} />
-            </div>
-
-          </div>
+          )}
         </div>
 
         {/* NhaKhoa row */}
@@ -363,7 +374,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
                   <div className="flex items-start gap-2">
                     <span className="text-gray-500 w-28 shrink-0">Y/c hoàn thành:</span>
                     <span className="font-medium text-gray-800">
-                      {new Date(donHang.yeuCauHoanThanh).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(donHang.yeuCauHoanThanh).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
                     </span>
                   </div>
                 )}
@@ -371,7 +382,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
                   <div className="flex items-start gap-2">
                     <span className="text-gray-500 w-28 shrink-0">Hẹn giao:</span>
                     <span className="font-medium text-gray-800">
-                      {new Date(donHang.henGiao).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(donHang.henGiao).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
                     </span>
                   </div>
                 )}
@@ -451,7 +462,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
                       <div className="text-sm font-medium mb-1">{dateKey}</div>
                       {entries.map((entry, i) => {
                         const t = new Date(entry.thoiGian);
-                        const timeStr = t.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+                        const timeStr = t.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", hour12: false });
                         return (
                           <div key={i} className="flex gap-2 text-sm mb-1 ml-3">
                             <span className="text-gray-600 text-xs pt-0.5">{timeStr}</span>
@@ -499,6 +510,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
                               <div className="relative shrink-0">
                                 <button
                                   onClick={(e) => {
+                                    if (props.fullscreen) return;
                                     e.stopPropagation();
                                     if (isDropOpen) {
                                       setOpenDropdown(null);
@@ -507,7 +519,7 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
                                       setOpenDropdown({ spIndex: spIdx, thuTu: cd.thuTu, top: rect.bottom + 4, right: window.innerWidth - rect.right });
                                     }
                                   }}
-                                  className={`text-sm px-2 py-1 rounded hover:bg-gray-100 transition ${CONG_DOAN_TRANG_THAI_STYLE[currentStatus]}`}
+                                  className={`text-sm px-2 py-1 rounded transition ${CONG_DOAN_TRANG_THAI_STYLE[currentStatus]} ${props.fullscreen ? "cursor-default" : "hover:bg-gray-100"}`}
                                 >
                                   {currentStatus}
                                 </button>
@@ -557,30 +569,32 @@ const DonHangDetailPanel = ({ donHang, onClose }) => {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t bg-white px-3 py-2.5 flex gap-2 shrink-0">
-          <button
-            onClick={handleMarkComplete}
-            disabled={donHang?.trangThai === "Hoàn thành"}
-            className={`flex-1 py-2 rounded-lg font-medium text-sm transition flex items-center justify-center gap-1.5 ${donHang?.trangThai === "Hoàn thành" ? "bg-green-100 text-green-700 border border-green-200 cursor-default" : "bg-green-500 hover:bg-green-600 text-white"}`}
-          >
-            <CheckIcon />
-            {donHang?.trangThai === "Hoàn thành" ? "Đã hoàn thành" : "Hoàn thành"}
-          </button>
-          <button
-            onClick={() => navigate(`/donhang/${donHang._id}/print`)}
-            className="flex-1 py-2 rounded-lg font-medium text-sm bg-blue-500 hover:bg-blue-600 text-white transition flex items-center justify-center gap-1.5"
-          >
-            <PrintIcon />
-            Phiếu chỉ định
-          </button>
-          <button
-            onClick={() => navigate(`/donhang/${donHang._id}/delivery-note`)}
-            className="flex-1 py-2 rounded-lg font-medium text-sm bg-orange-500 hover:bg-orange-600 text-white transition flex items-center justify-center gap-1.5"
-          >
-            <LocalShippingIcon />
-            Phiếu giao hàng
-          </button>
-        </div>
+        {!props.fullscreen && (
+          <div className="border-t bg-white px-3 py-2.5 flex gap-2 shrink-0">
+            <button
+              onClick={handleMarkComplete}
+              disabled={donHang?.trangThai === "Hoàn thành"}
+              className={`flex-1 py-2 rounded-lg font-medium text-sm transition flex items-center justify-center gap-1.5 ${donHang?.trangThai === "Hoàn thành" ? "bg-green-100 text-green-700 border border-green-200 cursor-default" : "bg-green-500 hover:bg-green-600 text-white"}`}
+            >
+              <CheckIcon />
+              {donHang?.trangThai === "Hoàn thành" ? "Đã hoàn thành" : "Hoàn thành"}
+            </button>
+            <button
+              onClick={() => navigate(`/donhang/${donHang._id}/print`)}
+              className="flex-1 py-2 rounded-lg font-medium text-sm bg-blue-500 hover:bg-blue-600 text-white transition flex items-center justify-center gap-1.5"
+            >
+              <PrintIcon />
+              Phiếu chỉ định
+            </button>
+            <button
+              onClick={() => navigate(`/donhang/${donHang._id}/delivery-note`)}
+              className="flex-1 py-2 rounded-lg font-medium text-sm bg-orange-500 hover:bg-orange-600 text-white transition flex items-center justify-center gap-1.5"
+            >
+              <LocalShippingIcon />
+              Phiếu giao hàng
+            </button>
+          </div>
+        )}
       </div >
 
       {donHang && isPhieuBaoHanhOpen && (

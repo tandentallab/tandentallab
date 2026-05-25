@@ -179,7 +179,7 @@ const KeHoachGiaoHangTable = () => {
   };
 
   return (
-    <div className="p-4 bg-gray-100 min-h-screen font-sans">
+    <div className="p-4 bg-gray-100 min-h-screen">
       <div className="max-w-full mx-auto">
         {/* ================= HEADER STATS ================= */}
         <div className="print:hidden">
@@ -371,10 +371,10 @@ const KeHoachGiaoHangTable = () => {
                         <button
                           onClick={() => navigate(`/donhang/${order._id}/edit`)}
                           className={`font-medium text-sm hover:underline ${overdue
-                              ? "text-red-500"
-                              : today
-                                ? "text-blue-600"
-                                : "text-gray-700"
+                            ? "text-red-500"
+                            : today
+                              ? "text-blue-600"
+                              : "text-gray-700"
                             }`}
                         >
                           {maDon}
@@ -385,10 +385,10 @@ const KeHoachGiaoHangTable = () => {
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <span
                           className={`text-sm font-medium ${overdue
-                              ? "text-red-500"
-                              : today
-                                ? "text-gray-800"
-                                : "text-gray-700"
+                            ? "text-red-500"
+                            : today
+                              ? "text-gray-800"
+                              : "text-gray-700"
                             }`}
                         >
                           {format(date, "dd/MM/yyyy HH:mm")}
@@ -419,10 +419,10 @@ const KeHoachGiaoHangTable = () => {
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <span
                           className={`text-xs font-medium ${order.trangThai === "Hoàn thành"
-                              ? "text-green-700"
-                              : order.trangThai === "Đang sản xuất"
-                                ? "text-blue-700"
-                                : "text-gray-600"
+                            ? "text-green-700"
+                            : order.trangThai === "Đang sản xuất"
+                              ? "text-blue-700"
+                              : "text-gray-600"
                             }`}
                         >
                           {order.trangThai

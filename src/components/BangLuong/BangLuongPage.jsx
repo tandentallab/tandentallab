@@ -237,7 +237,6 @@ const BangLuongPage = () => {
               <div
                 className="text-white font-bold text-sm sm:text-base tracking-wide"
                 style={{
-                  fontFamily: "'Barlow Condensed', sans-serif",
                   letterSpacing: 2,
                 }}
               >

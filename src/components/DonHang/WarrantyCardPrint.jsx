@@ -109,12 +109,12 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
                 const rawCode = (warranty?.maQR || "N/A").replace(/^TAN/, "");
 
                 // 2. Tạo đường dẫn đầy đủ
-                const fullUrl = `https://tan-dental-frontend-snmb.vercel.app/warranty/?qrcode=${rawCode}`;
+                const fullUrl = `${window.location.origin}/warranty/?qrcode=${rawCode}`;
 
                 return (
                   <div key={idx} style={{ position: "absolute", left: `${left}mm`, top: `${top}mm` }}>
                     {/* 3. Truyền đường dẫn đầy đủ vào QR */}
-                    <QRCodeSVG value={fullUrl} size={field.coChu ? field.coChu * 4 : 65} />
+                    <QRCodeSVG value={fullUrl} size={field.coChu ? field.coChu * 4 : 65} level="L" />
                   </div>
                 );
               }

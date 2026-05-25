@@ -108,6 +108,20 @@ const NhanVienDetail = () => {
   const initial = nhanVien.hoVaTen ? nhanVien.hoVaTen.split(" ").pop()[0] : "N";
   const isActive = nhanVien.trangThai?.trim() === "Đang làm";
 
+  const formatDateVN = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+
+    // Kiểm tra nếu ngày tháng không hợp lệ
+    if (isNaN(date.getTime())) return "Ngày không hợp lệ";
+
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
   return (
     <div className="min-h-screen p-6" style={{ background: "#f1f5f9" }}>
       <div className="max-w-5xl mx-auto space-y-5">
@@ -230,6 +244,12 @@ const NhanVienDetail = () => {
               icon={<CalendarMonthIcon />}
               label="Ngày công mặc định / tháng"
               value={`${nhanVien.ngayCongThang ?? 28} ngày`}
+            />
+
+            <InfoRow
+              icon={<CalendarMonthIcon />}
+              label="Ngày tạo"
+              value={formatDateVN(nhanVien.ngayTao)}
             />
           </div>
 

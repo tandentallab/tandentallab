@@ -52,8 +52,23 @@ const NhanVienTable = () => {
     "Địa chỉ",
     "Lương cơ bản",
     "Ngày công tháng",
+    "Ngày tạo",
     "",
   ];
+
+  const formatDateVN = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+
+    // Kiểm tra nếu ngày tháng không hợp lệ
+    if (isNaN(date.getTime())) return "Ngày không hợp lệ";
+
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
 
   return (
     <div className="p-6 bg-slate-50 min-h-screen">
@@ -129,8 +144,8 @@ const NhanVienTable = () => {
                         (e.currentTarget.style.background = "#eff6ff")
                       }
                       onMouseLeave={(e) =>
-                      (e.currentTarget.style.background =
-                        idx % 2 === 0 ? "#fff" : "#f8fafc")
+                        (e.currentTarget.style.background =
+                          idx % 2 === 0 ? "#fff" : "#f8fafc")
                       }
                     >
                       <td
@@ -189,6 +204,12 @@ const NhanVienTable = () => {
                         style={{ borderBottom: "1px solid #f1f5f9" }}
                       >
                         {nv.ngayCongThang || 28} ngày
+                      </td>
+                      <td
+                        className="px-4 py-3 whitespace-nowrap font-medium text-slate-600 text-sm text-center"
+                        style={{ borderBottom: "1px solid #f1f5f9" }}
+                      >
+                        {formatDateVN(nv.ngayTao)}
                       </td>
 
                       <td

@@ -86,7 +86,7 @@ const PhieuThuPrintPreview = () => {
       </div>
 
       <div className="flex flex-col items-center py-6 px-4">
-        <div className="print-area bg-white shadow-lg border border-gray-300" style={{ width: "148mm", fontFamily: "Cambria", padding: "10mm" }}>
+        <div className="print-area bg-white shadow-lg border border-gray-300" style={{ width: "148mm", fontFamily: "Segoe UI", padding: "10mm" }}>
           {/* Header */}
           <div style={{ marginBottom: "6mm" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "3mm" }}>

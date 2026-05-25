@@ -125,7 +125,7 @@ const HoaDonPrintPreview = () => {
         <div className="w-full flex justify-center">
           <div
             className="print-area bg-white w-full max-w-[210mm] shadow-lg p-4 mb-2"
-            style={{ fontFamily: "'Cambria', serif", fontSize: "10.5pt" }}
+            style={{ fontFamily: "'Segoe UI', serif", fontSize: "10.5pt" }}
           >
             <table className="w-full border-collapse border border-black mb-2" style={{ fontSize: "10.5pt" }}>
               <tbody>

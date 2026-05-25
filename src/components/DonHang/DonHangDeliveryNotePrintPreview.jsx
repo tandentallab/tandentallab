@@ -79,7 +79,7 @@ const DonHangDeliveryNotePrintPreview = () => {
       <div className="flex flex-col items-center print:items-start py-6 px-4 print:p-0">
         <div
           className="print-area bg-white w-full max-w-[300px] shadow-lg border border-gray-400 p-6 print:p-0 text-sm"
-          style={{ fontFamily: "'Cambria', Georgia, serif" }}
+          style={{ fontFamily: "'Segoe UI', Georgia, serif" }}
         >
           <div className="text-center">
             <div className="font-bold text-lg">CÔNG TY TNHH TẤN DENTAL</div>

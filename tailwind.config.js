@@ -11,7 +11,7 @@ module.exports = {
       // Thêm đoạn cấu hình font chữ dưới đây 👇
       fontFamily: {
         sans: [
-          'Cambria',
+          'Segoe UI',
           'serif',
         ],
       },

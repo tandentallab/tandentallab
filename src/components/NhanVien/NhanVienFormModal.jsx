@@ -22,6 +22,7 @@ import {
   createNhanVien,
   updateNhanVien,
 } from "../../redux/slices/nhanVienSlice";
+import { toast } from "sonner";
 
 const initialState = {
   hoVaTen: "",
@@ -74,16 +75,16 @@ const NhanVienFormModal = ({ open, onClose, initialData = null }) => {
 
   const validate = () => {
     if (!formData.hoVaTen) {
-      alert("Vui lòng nhập họ tên");
+      toast.error("Vui lòng nhập họ tên");
       return false;
     }
     if (!formData.cccd) {
-      alert("Vui lòng nhập CCCD");
+      toast.error("Vui lòng nhập CCCD");
       return false;
     }
     // Thêm kiểm tra hợp lệ ngày công nếu cần
     if (formData.ngayCongThang < 0 || formData.ngayCongThang > 31) {
-      alert("Ngày công tháng không hợp lệ (Từ 0 đến 31 ngày)");
+      toast.error("Ngày công tháng không hợp lệ (Từ 0 đến 31 ngày)");
       return false;
     }
     return true;
@@ -105,14 +106,14 @@ const NhanVienFormModal = ({ open, onClose, initialData = null }) => {
         await dispatch(
           updateNhanVien({ id: initialData._id, data: submitData })
         ).unwrap();
-        alert("Cập nhật nhân viên thành công");
+        toast.success("Cập nhật nhân viên thành công");
       } else {
         await dispatch(createNhanVien(submitData)).unwrap();
-        alert("Tạo nhân viên thành công");
+        toast.success("Tạo nhân viên thành công");
       }
       onClose();
     } catch (err) {
-      alert(err);
+      toast.error(err);
     } finally {
       setLoading(false);
     }

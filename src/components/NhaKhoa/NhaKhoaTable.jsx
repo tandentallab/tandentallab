@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../../config/api";
-import { exportBangGiaRiengToExcel, exportDanhSachNhaKhoaToExcel } from "../../utils/exportToExcel";
+import {
+  exportBangGiaRiengToExcel,
+  exportDanhSachNhaKhoaToExcel,
+} from "../../utils/exportToExcel";
 import {
   Table,
   TableBody,
@@ -44,6 +47,7 @@ import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import NhaKhoaModal from "./NhaKhoaModal";
 import NhaKhoaUpdateModal from "./NhaKhoaUpdateModal";
 import NhaKhoaDetailModal from "./NhaKhoaDetailModal";
+import { toast } from "sonner";
 
 export default function NhaKhoaTable() {
   const dispatch = useDispatch();
@@ -117,7 +121,7 @@ export default function NhaKhoaTable() {
       setSelectedExportNhaKhoa("");
     } catch (error) {
       console.error("Lỗi khi xuất bảng giá:", error);
-      alert("Đã xảy ra lỗi khi lấy dữ liệu bảng giá. Vui lòng thử lại!");
+      toast.error("Đã xảy ra lỗi khi lấy dữ liệu bảng giá. Vui lòng thử lại!");
     }
   };
   return (

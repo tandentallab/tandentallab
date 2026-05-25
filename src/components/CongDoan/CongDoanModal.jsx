@@ -3,6 +3,7 @@ import { Modal, Box, TextField, Typography, Button, IconButton } from "@mui/mate
 import { Close as CloseIcon, Add as AddIcon, Save as SaveIcon } from "@mui/icons-material";
 import { useDispatch } from "react-redux";
 import { createCongDoan } from "../../redux/slices/congDoanSlice";
+import { toast } from "sonner";
 
 export default function CongDoanModal() {
   const dispatch = useDispatch();
@@ -10,7 +11,7 @@ export default function CongDoanModal() {
   const [tenCongDoan, setTenCongDoan] = useState("");
 
   const handleSubmit = async () => {
-    if (!tenCongDoan.trim()) return alert("Vui lòng nhập tên công đoạn");
+    if (!tenCongDoan.trim()) return toast.error("Vui lòng nhập tên công đoạn");
 
     try {
       await dispatch(createCongDoan({ tenCongDoan })).unwrap();

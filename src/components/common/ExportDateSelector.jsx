@@ -14,6 +14,7 @@ import {
   isCustomRangeTooLong,
 } from "../../utils/exportDatePresets";
 import "./exportDateSelector.css";
+import { toast } from "sonner";
 
 registerLocale("vi", vi);
 
@@ -91,7 +92,7 @@ const ExportDateSelector = ({
   const handleCustomRangeChange = (dates) => {
     const [startDate, endDate] = dates;
     if (isCustomRangeTooLong(startDate, endDate, maxRangeDays)) {
-      alert(`Khoảng ngày không được vượt quá ${maxRangeDays} ngày.`);
+      toast.error(`Khoảng ngày không được vượt quá ${maxRangeDays} ngày.`);
       onChange({
         ...value,
         startDate,

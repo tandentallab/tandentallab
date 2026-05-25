@@ -128,7 +128,7 @@ export default function InBangLuongModal({ open, onClose, salaryData, thang, nam
 
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                     <span>Lương cơ bản (LCB):</span>
-                    <strong>{Number(selectedData.luongCanBan || 0).toLocaleString("vi-VN")} đ</strong>
+                    <strong>{Math.round(Number(selectedData.luongCanBan || 0)).toLocaleString("vi-VN")} đ</strong>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                     <span>Ngày công quy định (NCT):</span>
@@ -158,31 +158,31 @@ export default function InBangLuongModal({ open, onClose, salaryData, thang, nam
                   <strong style={{ color: "#15803d" }}>1. Các khoản phụ cấp (+)</strong>
                   <div style={{ paddingLeft: "10px", marginTop: "2px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
-                      <span>- Cơm:</span> <span>{Number(selectedData.com || 0).toLocaleString("vi-VN")} đ</span>
+                      <span>- Cơm:</span> <span>{Math.round(Number(selectedData.com || 0)).toLocaleString("vi-VN")} đ</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
-                      <span>- Điện thoại:</span> <span>{Number(selectedData.dienThoai || 0).toLocaleString("vi-VN")} đ</span>
+                      <span>- Điện thoại:</span> <span>{Math.round(Number(selectedData.dienThoai || 0)).toLocaleString("vi-VN")} đ</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
-                      <span>- Thưởng:</span> <span>{Number(selectedData.thuong || 0).toLocaleString("vi-VN")} đ</span>
+                      <span>- Thưởng:</span> <span>{Math.round(Number(selectedData.thuong || 0)).toLocaleString("vi-VN")} đ</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", borderTop: "1px dashed #ccc", paddingTop: "4px" }}>
                       <strong style={{ color: "#15803d" }}>Tổng phụ cấp:</strong>
-                      <strong style={{ color: "#15803d" }}>{Number(result.tongPhuCap || 0).toLocaleString("vi-VN")} đ</strong>
+                      <strong style={{ color: "#15803d" }}>{Math.round(Number(result.tongPhuCap || 0)).toLocaleString("vi-VN")} đ</strong>
                     </div>
                   </div>
 
                   <strong style={{ color: "#b91c1c" }}>2. Các khoản khấu trừ (-)</strong>
                   <div style={{ paddingLeft: "10px", marginTop: "2px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
-                      <span>- Phạt:</span> <span>{Number(selectedData.phat || 0).toLocaleString("vi-VN")} đ</span>
+                      <span>- Phạt:</span> <span>{Math.round(Number(selectedData.phat || 0)).toLocaleString("vi-VN")} đ</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
-                      <span>- Ứng trước:</span> <span>{Number(selectedData.ungTruoc || 0).toLocaleString("vi-VN")} đ</span>
+                      <span>- Ứng trước:</span> <span>{Math.round(Number(selectedData.ungTruoc || 0)).toLocaleString("vi-VN")} đ</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px dashed #ccc", paddingTop: "4px" }}>
                       <strong style={{ color: "#b91c1c" }}>Tổng khấu trừ:</strong>
-                      <strong style={{ color: "#b91c1c" }}>{Number((selectedData.phat || 0) + (selectedData.ungTruoc || 0)).toLocaleString("vi-VN")} đ</strong>
+                      <strong style={{ color: "#b91c1c" }}>{Math.round(Number((selectedData.phat || 0) + (selectedData.ungTruoc || 0))).toLocaleString("vi-VN")} đ</strong>
                     </div>
                   </div>
                 </div>

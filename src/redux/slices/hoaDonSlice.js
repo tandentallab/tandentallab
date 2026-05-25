@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "../../config/api";
+import { toast } from "sonner";
 
 /* ================= ASYNC THUNKS ================= */
 
@@ -460,7 +461,7 @@ const slice = createSlice({
             action.payload?.message ||
             action.error.message;
 
-          alert(
+          toast.error(
             action.payload?.message ||
             "Cập nhật thất bại"
           );
@@ -546,7 +547,7 @@ const slice = createSlice({
               updatedHoaDon;
           }
 
-          alert("Thanh toán thành công");
+          toast.success("Thanh toán thành công");
         }
       )
 
@@ -559,7 +560,7 @@ const slice = createSlice({
             action.payload?.message ||
             action.error.message;
 
-          alert(
+          toast.error(
             action.payload?.message ||
             "Thanh toán thất bại"
           );
@@ -586,14 +587,14 @@ const slice = createSlice({
               null;
           }
 
-          alert("Xóa hóa đơn thành công");
+          toast.success("Xóa hóa đơn thành công");
         }
       )
 
       .addCase(
         deleteHoaDon.rejected,
         (state, action) => {
-          alert(
+          toast.error(
             action.payload?.message ||
             "Xóa thất bại"
           );

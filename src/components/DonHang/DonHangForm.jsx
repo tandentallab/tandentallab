@@ -436,7 +436,7 @@ const DonHangForm = () => {
     // Nếu đổi loại đơn sang Sửa/Bảo hành/Làm lại
     if (field === "loaiDon" && ["Hàng sửa", "Hàng làm lại", "Hàng bảo hành"].includes(value)) {
       if (!formData.benhNhan) {
-        alert("Vui lòng chọn Bệnh nhân ở cột trái trước để hệ thống tìm đơn hàng cũ!");
+        toast.error("Vui lòng chọn Bệnh nhân ở cột trái trước để hệ thống tìm đơn hàng cũ!");
         // Tự động trả UI về "Mới" một cách an toàn
         newDsSp[index].loaiDon = "Mới";
         setFormData({ ...formData, danhSachSanPham: newDsSp });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../../config/api";
 import { CircularProgress, Button } from "@mui/material";
+import { toast } from "sonner";
 
 export default function CongTyPage() {
   const [company, setCompany] = useState({
@@ -59,10 +60,10 @@ export default function CongTyPage() {
       // Đóng tất cả edit mode
       Object.keys(editMode).forEach(key => setEditMode(prev => ({ ...prev, [key]: false })));
       
-      alert("Cập nhật thông tin công ty thành công!");
+      toast.success("Cập nhật thông tin công ty thành công!");
     } catch (error) {
       console.error("❌ Lỗi lưu:", error);
-      alert("Lỗi cập nhật thông tin công ty!");
+      toast.error("Lỗi cập nhật thông tin công ty!");
     } finally {
       setSaving(false);
     }

@@ -72,9 +72,10 @@ const NhanVienDetail = () => {
     try {
       setUploading(true);
       await dispatch(uploadCCCDNhanVien({ id: nhanVien._id, files })).unwrap();
-      toast.success("Upload CCCD thành công!");
+
+      toast.success("Upload CCCD thành công");
     } catch (err) {
-      toast.error("Upload thất bại!");
+      toast.error(err || "Upload thất bại");
     } finally {
       setUploading(false);
     }

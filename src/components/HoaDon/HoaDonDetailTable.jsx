@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Table,
     TableBody,
@@ -9,10 +9,15 @@ import {
     Paper,
 } from "@mui/material";
 
-// ================= CÁC HÀM TIỆN ÍCH =================
-const fmtVND = (v) => new Intl.NumberFormat("vi-VN").format(Math.round(v || 0));
+// ================= FORMATTERS (module-level, khởi tạo 1 lần) =================
+const vndFormatter = new Intl.NumberFormat("vi-VN");
+const dateFormatter = new Intl.DateTimeFormat("vi-VN");
 
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("vi-VN") : "-");
+const fmtVND = (v) => vndFormatter.format(Math.round(v || 0));
+const fmtDate = (d) => d ? dateFormatter.format(new Date(d)) : "-";
+
+// ================= UTILS (module-level) =================
+const NUMERIC_KEYS = new Set(["soLuong", "donGia", "thanhTien", "giamGia", "tongCongSanPham"]);
 
 const formatViTriRang = (viTriArr) => {
     if (!viTriArr || viTriArr.length === 0) return "-";
@@ -31,8 +36,34 @@ const getFirstName = (fullName) => {
     return parts[parts.length - 1];
 };
 
+// ================= RESIZABLE HEADER CELL (ngoài component) =================
+const ResizableHeaderCell = React.memo(({ label, columnKey, style }) => (
+    <TableCell sx={style}>
+        {label}
+        <div
+            onMouseDown={(e) => e.currentTarget.__onResize?.(e)}
+            data-col={columnKey}
+            className="absolute top-0 right-0 w-2 h-full cursor-col-resize z-10 flex items-center justify-center group"
+        >
+            <div className="w-[1.5px] h-[75%] bg-sky-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        </div>
+    </TableCell>
+));
+
+// Version nhận onResize qua prop để tránh closure stale
+const RHCell = React.memo(({ label, style, columnKey, onResize }) => (
+    <TableCell sx={style}>
+        {label}
+        <div
+            onMouseDown={(e) => onResize(columnKey, e)}
+            className="absolute top-0 right-0 w-2 h-full cursor-col-resize z-10 flex items-center justify-center group"
+        >
+            <div className="w-[1.5px] h-[75%] bg-sky-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        </div>
+    </TableCell>
+));
+
 // ================= COMPONENT CHÍNH =================
-// Đã nhận thêm prop handleGiamGiaChange
 const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaChange }) => {
     const [columnWidths, setColumnWidths] = useState({
         donHang: 110,
@@ -50,21 +81,34 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
         ghiChu: 120,
     });
 
-    const totalTableWidth = Object.values(columnWidths).reduce((a, b) => a + b, 0);
+    // Ref để handleResize stable (không cần recreate khi columnWidths đổi)
+    const columnWidthsRef = useRef(columnWidths);
+    useEffect(() => { columnWidthsRef.current = columnWidths; }, [columnWidths]);
 
-    const numericKeys = ["soLuong", "donGia", "thanhTien", "giamGia", "tongCongSanPham"];
+    const totalTableWidth = useMemo(
+        () => Object.values(columnWidths).reduce((a, b) => a + b, 0),
+        [columnWidths]
+    );
 
-    const handleResize = (columnKey, e) => {
+    // ── RAF throttle resize ──
+    const handleResize = useCallback((columnKey, e) => {
         e.preventDefault();
         const startX = e.clientX;
-        const startWidth = columnWidths[columnKey];
+        const startWidth = columnWidthsRef.current[columnKey];
+        let rafPending = false;
+        let lastX = startX;
 
-        const onMouseMove = (moveEvent) => {
-            const newWidth = startWidth + (moveEvent.clientX - startX);
-            setColumnWidths((prev) => ({
-                ...prev,
-                [columnKey]: Math.max(newWidth, 40),
-            }));
+        const onMouseMove = (mv) => {
+            lastX = mv.clientX;
+            if (rafPending) return;
+            rafPending = true;
+            requestAnimationFrame(() => {
+                setColumnWidths((prev) => ({
+                    ...prev,
+                    [columnKey]: Math.max(startWidth + (lastX - startX), 40),
+                }));
+                rafPending = false;
+            });
         };
 
         const onMouseUp = () => {
@@ -74,11 +118,11 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
 
         document.addEventListener("mousemove", onMouseMove);
         document.addEventListener("mouseup", onMouseUp);
-    };
+    }, []); // stable
 
-    const getCellStyle = (key, isHeader = false) => {
-        const isNumeric = numericKeys.includes(key);
-        return {
+    // ── Precompute tất cả cell styles 1 lần khi columnWidths đổi ──
+    const cellStyles = useMemo(() => {
+        const base = (key, isHeader = false) => ({
             width: columnWidths[key],
             minWidth: columnWidths[key],
             maxWidth: columnWidths[key],
@@ -94,34 +138,42 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
             pt: isHeader ? 1 : 1.25,
             pb: isHeader ? 0.5 : 1.25,
             pl: 2,
-            pr: isNumeric ? 3 : 2,
-            textAlign: isNumeric ? "right" : "left",
+            pr: NUMERIC_KEYS.has(key) ? 3 : 2,
+            textAlign: NUMERIC_KEYS.has(key) ? "right" : "left",
             position: "relative",
             userSelect: isHeader ? "none" : "auto",
             bgcolor: isHeader ? "#e6f7ff" : "transparent",
-        };
-    };
+        });
 
-    const ResizableHeaderCell = ({ label, columnKey, isFirst, isLast }) => (
-        <TableCell
-            sx={{
-                ...getCellStyle(columnKey, true),
-                borderTopLeftRadius: isFirst ? "12px" : 0,
-                borderTopRightRadius: isLast ? "12px" : 0,
-            }}
-        >
-            {label}
-            <div
-                onMouseDown={(e) => handleResize(columnKey, e)}
-                className="absolute top-0 right-0 w-2 h-full cursor-col-resize z-10 flex items-center justify-center group"
-            >
-                <div className="w-[1.5px] h-[75%] bg-sky-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            </div>
-        </TableCell>
-    );
+        const COLS = [
+            "donHang", "ngayNhan", "bacSi", "benhNhan", "sanPham",
+            "loaiDon", "viTri", "soLuong", "donGia", "thanhTien",
+            "giamGia", "tongCongSanPham", "ghiChu",
+        ];
+
+        const row = {};
+        const hdr = {};
+        COLS.forEach((k) => {
+            row[k] = base(k, false);
+            hdr[k] = base(k, true);
+        });
+
+        // Biến thể row đặc biệt
+        row.donHang_link = { ...row.donHang, color: "#00a8df", fontWeight: 500, cursor: "pointer", textDecoration: "underline" };
+        row.sanPham_bold = { ...row.sanPham, fontWeight: 500 };
+        row.viTri_mono = { ...row.viTri, fontFamily: "monospace" };
+        row.soLuong_bold = { ...row.soLuong, fontWeight: "bold" };
+        row.tongCong_bold = { ...row.tongCongSanPham, fontWeight: "bold" };
+
+        // Header biến thể isFirst / isLast
+        hdr.donHang_first = { ...hdr.donHang, borderTopLeftRadius: "12px" };
+        hdr.ghiChu_last = { ...hdr.ghiChu };   // isLast handled by cột ảo
+
+        return { row, hdr };
+    }, [columnWidths]);
 
     return (
-        <div className="px-4  flex-1 flex flex-col min-h-0 bg-white">
+        <div className="px-4 flex-1 flex flex-col min-h-0 bg-white">
             <TableContainer
                 component={Paper}
                 elevation={0}
@@ -136,11 +188,7 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                     boxShadow: "none !important",
                     "&::-webkit-scrollbar": { height: 10, width: 10 },
                     "&::-webkit-scrollbar-track": { background: "transparent" },
-                    "&::-webkit-scrollbar-thumb": {
-                        backgroundColor: "#cbd5e1",
-                        borderRadius: 8,
-                        border: "2px solid #ffffff",
-                    },
+                    "&::-webkit-scrollbar-thumb": { backgroundColor: "#cbd5e1", borderRadius: 8, border: "2px solid #ffffff" },
                     "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "#94a3b8" },
                 }}
             >
@@ -150,35 +198,26 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                         width: "100%",
                         minWidth: `${totalTableWidth}px`,
                         borderCollapse: "collapse",
-                        bgcolor: "white"
+                        bgcolor: "white",
                     }}
                 >
                     <TableHead sx={{ position: "sticky", top: 0, zIndex: 20, bgcolor: "#e6f7ff" }}>
                         <TableRow className="group" sx={{ border: "none !important" }}>
-                            <ResizableHeaderCell label="Đơn hàng ↓" columnKey="donHang" isFirst />
-                            <ResizableHeaderCell label="Ngày nhận" columnKey="ngayNhan" />
-                            <ResizableHeaderCell label="Bác sĩ" columnKey="bacSi" />
-                            <ResizableHeaderCell label="Bệnh nhân" columnKey="benhNhan" />
-                            <ResizableHeaderCell label="Sản phẩm" columnKey="sanPham" />
-                            <ResizableHeaderCell label="Loại" columnKey="loaiDon" />
-                            <ResizableHeaderCell label="Vị trí răng" columnKey="viTri" />
-                            <ResizableHeaderCell label="S.L" columnKey="soLuong" />
-                            <ResizableHeaderCell label="Đơn giá" columnKey="donGia" />
-                            <ResizableHeaderCell label="Thành tiền" columnKey="thanhTien" />
-                            <ResizableHeaderCell label="Giảm giá" columnKey="giamGia" />
-                            <ResizableHeaderCell label="Tổng cộng" columnKey="tongCongSanPham" />
-                            <ResizableHeaderCell label="Ghi chú" columnKey="ghiChu" />
+                            <RHCell label="Đơn hàng ↓" columnKey="donHang" style={cellStyles.hdr.donHang_first} onResize={handleResize} />
+                            <RHCell label="Ngày nhận" columnKey="ngayNhan" style={cellStyles.hdr.ngayNhan} onResize={handleResize} />
+                            <RHCell label="Bác sĩ" columnKey="bacSi" style={cellStyles.hdr.bacSi} onResize={handleResize} />
+                            <RHCell label="Bệnh nhân" columnKey="benhNhan" style={cellStyles.hdr.benhNhan} onResize={handleResize} />
+                            <RHCell label="Sản phẩm" columnKey="sanPham" style={cellStyles.hdr.sanPham} onResize={handleResize} />
+                            <RHCell label="Loại" columnKey="loaiDon" style={cellStyles.hdr.loaiDon} onResize={handleResize} />
+                            <RHCell label="Vị trí răng" columnKey="viTri" style={cellStyles.hdr.viTri} onResize={handleResize} />
+                            <RHCell label="S.L" columnKey="soLuong" style={cellStyles.hdr.soLuong} onResize={handleResize} />
+                            <RHCell label="Đơn giá" columnKey="donGia" style={cellStyles.hdr.donGia} onResize={handleResize} />
+                            <RHCell label="Thành tiền" columnKey="thanhTien" style={cellStyles.hdr.thanhTien} onResize={handleResize} />
+                            <RHCell label="Giảm giá" columnKey="giamGia" style={cellStyles.hdr.giamGia} onResize={handleResize} />
+                            <RHCell label="Tổng cộng" columnKey="tongCongSanPham" style={cellStyles.hdr.tongCongSanPham} onResize={handleResize} />
+                            <RHCell label="Ghi chú" columnKey="ghiChu" style={cellStyles.hdr.ghiChu} onResize={handleResize} />
 
-                            <TableCell
-                                sx={{
-                                    width: "auto",
-                                    minWidth: 0,
-                                    padding: 0,
-                                    borderBottom: "1px solid #e6f7ff",
-                                    borderTopRightRadius: "12px",
-                                    bgcolor: "#e6f7ff",
-                                }}
-                            />
+                            <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff" }} />
                         </TableRow>
                     </TableHead>
 
@@ -193,45 +232,39 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                             rows.map((sp, idx) => (
                                 <TableRow key={idx} hover className="transition-colors">
                                     <TableCell
-                                        sx={{ ...getCellStyle("donHang"), color: "#00a8df", fontWeight: 500, cursor: "pointer", textDecoration: "underline" }}
+                                        sx={cellStyles.row.donHang_link}
                                         onClick={() => navigate(`/donhang/${sp.donHang?._id}/edit`)}
                                     >
                                         {sp.donHang?.maDonHang || "---"}
                                     </TableCell>
-                                    <TableCell sx={getCellStyle("ngayNhan")}>{fmtDate(sp.donHang?.ngayNhan)}</TableCell>
-                                    <TableCell sx={getCellStyle("bacSi")}>{getFirstName(sp.donHang?.bacSi?.hoVaTen)}</TableCell>
-                                    <TableCell sx={getCellStyle("benhNhan")}>{sp.donHang?.benhNhan?.hoVaTen || "---"}</TableCell>
-                                    <TableCell sx={{ ...getCellStyle("sanPham"), fontWeight: 500 }}>{sp.tenSanPham || "---"}</TableCell>
-                                    <TableCell sx={getCellStyle("loaiDon")}>{sp.loaiDon || "---"}</TableCell>
-                                    <TableCell sx={{ ...getCellStyle("viTri"), fontFamily: "monospace" }}>{formatViTriRang(sp.viTri)}</TableCell>
-                                    <TableCell sx={{ ...getCellStyle("soLuong"), fontWeight: "bold" }}>{sp.soLuong}</TableCell>
-                                    <TableCell sx={getCellStyle("donGia")}>{fmtVND(sp.donGia)}</TableCell>
-                                    <TableCell sx={getCellStyle("thanhTien")}>{fmtVND(sp.thanhTien)}</TableCell>
 
-                                    {/* CỘT GIẢM GIÁ % ĐÃ CHUYỂN THÀNH Ô INPUT */}
-                                    <TableCell sx={getCellStyle("giamGia")}>
+                                    <TableCell sx={cellStyles.row.ngayNhan}>{fmtDate(sp.donHang?.ngayNhan)}</TableCell>
+                                    <TableCell sx={cellStyles.row.bacSi}>{getFirstName(sp.donHang?.bacSi?.hoVaTen)}</TableCell>
+                                    <TableCell sx={cellStyles.row.benhNhan}>{sp.donHang?.benhNhan?.hoVaTen || "---"}</TableCell>
+                                    <TableCell sx={cellStyles.row.sanPham_bold}>{sp.tenSanPham || "---"}</TableCell>
+                                    <TableCell sx={cellStyles.row.loaiDon}>{sp.loaiDon || "---"}</TableCell>
+                                    <TableCell sx={cellStyles.row.viTri_mono}>{formatViTriRang(sp.viTri)}</TableCell>
+                                    <TableCell sx={cellStyles.row.soLuong_bold}>{sp.soLuong}</TableCell>
+                                    <TableCell sx={cellStyles.row.donGia}>{fmtVND(sp.donGia)}</TableCell>
+                                    <TableCell sx={cellStyles.row.thanhTien}>{fmtVND(sp.thanhTien)}</TableCell>
+
+                                    {/* CỘT GIẢM GIÁ */}
+                                    <TableCell sx={cellStyles.row.giamGia}>
                                         <div className="flex items-center gap-2 w-full">
-
                                             <input
                                                 type="text"
                                                 inputMode="numeric"
                                                 value={
                                                     sp.loaiGiamGia === "phanTram"
                                                         ? (sp.giamGiaPhanTram || "")
-                                                        : ((sp.giamGia || 0).toLocaleString("vi-VN"))
+                                                        : vndFormatter.format(sp.giamGia || 0)
                                                 }
                                                 onChange={(e) => {
                                                     const rawValue = e.target.value.replace(/\D/g, "");
-
-                                                    handleGiamGiaChange(
-                                                        idx,
-                                                        Number(rawValue),
-                                                        sp.loaiGiamGia || "phanTram"
-                                                    );
+                                                    handleGiamGiaChange(idx, Number(rawValue), sp.loaiGiamGia || "phanTram");
                                                 }}
                                                 className="w-[calc(100%-34px)] border border-gray-300 rounded-md px-2 py-1 outline-none text-right bg-white focus:border-blue-500"
                                             />
-
                                             <select
                                                 value={sp.loaiGiamGia || "phanTram"}
                                                 onChange={(e) =>
@@ -246,12 +279,13 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                                                 <option value="phanTram">%</option>
                                                 <option value="tienMat">đ</option>
                                             </select>
-
                                         </div>
                                     </TableCell>
 
-                                    <TableCell sx={{ ...getCellStyle("tongCongSanPham"), fontWeight: "bold" }}>{fmtVND(sp.tongCongSanPham)}</TableCell>
-                                    <TableCell sx={getCellStyle("ghiChu")}>
+                                    <TableCell sx={cellStyles.row.tongCong_bold}>{fmtVND(sp.tongCongSanPham)}</TableCell>
+
+                                    {/* CỘT GHI CHÚ */}
+                                    <TableCell sx={cellStyles.row.ghiChu}>
                                         <input
                                             type="text"
                                             value={sp.ghiChu || ""}

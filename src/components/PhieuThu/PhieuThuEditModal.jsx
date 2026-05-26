@@ -203,7 +203,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                 <input
                                     type="text"
                                     inputMode="numeric"
-                                    value={soTienThu}
+                                    value={fmt(soTienThu)}
                                     onChange={(e) => setSoTienThu(e.target.value.replace(/[^\d]/g, ""))}
                                     onFocus={() => setShowAmountSuggestions(true)}
                                     onBlur={() => setTimeout(() => setShowAmountSuggestions(false), 150)}
@@ -277,15 +277,37 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                 <tbody>
                                     {danhSachHoaDon.map((item, idx) => {
                                         const hd = item.hoaDon || {};
+                                        const giaTriHoaDon = hd.giaTriThanhToan || 0;
+                                        const daTTruocLanNay = item.daTTruocLanNay || 0;
+                                        const thanhToanLanNay = item.soTienThanhToan || 0;
+
+                                        const conLai =
+                                            giaTriHoaDon - daTTruocLanNay;
                                         return (
                                             <tr key={hd._id || idx} className="border-b border-gray-50 last:border-0">
                                                 <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
-                                                <td className="px-4 py-3 font-medium text-[#29b6f6]">{hd.soHoaDon || formatSoHoaDon(hd._id)}</td>
+                                                <td
+                                                    className="px-4 py-3 font-medium text-[#29b6f6] cursor-pointer hover:underline"
+                                                    onClick={() => navigate(`/hoa-don/${hd._id}/edit`)}
+                                                >
+                                                    {hd.soHoaDon || formatSoHoaDon(hd._id)}
+                                                </td>
                                                 <td className="px-4 py-3 text-gray-600">{hd.ngayXuatHoaDon ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN") : "—"}</td>
-                                                <td className="px-4 py-3 text-right text-gray-700">{fmt(hd.giaTriThanhToan)}</td>
-                                                <td className="px-4 py-3 text-right text-gray-500">{fmt(hd.daThanhToan)}</td>
-                                                <td className="px-4 py-3 text-right text-gray-700">{fmt(hd.conLai)}</td>
-                                                <td className="px-4 py-3 text-right font-semibold text-gray-900">{fmt(item.soTienThanhToan)}</td>
+                                                <td className="px-4 py-3 text-right text-gray-700">
+                                                    {fmt(giaTriHoaDon)}
+                                                </td>
+
+                                                <td className="px-4 py-3 text-right text-gray-500">
+                                                    {fmt(daTTruocLanNay)}
+                                                </td>
+
+                                                <td className="px-4 py-3 text-right text-gray-700">
+                                                    {fmt(conLai)}
+                                                </td>
+
+                                                <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                                                    {fmt(thanhToanLanNay)}
+                                                </td>
                                             </tr>
                                         );
                                     })}

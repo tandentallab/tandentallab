@@ -485,11 +485,12 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <input type="hidden" name="MSNV" value={form.Email} />
+
             {/* Password */}
             <div
-              className={`field-wrap ${
-                focused === "password" ? "focused" : ""
-              }`}
+              className={`field-wrap ${focused === "password" ? "focused" : ""
+                }`}
             >
               <label className="field-label">Mật khẩu</label>
               <div className="field-input-wrap">

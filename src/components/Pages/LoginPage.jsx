@@ -50,8 +50,6 @@ export default function LoginPage() {
     if (e.key === "Enter") handleLogin();
   };
 
-  console.log("form: ", form);
-
   return (
     <>
       <style>{`

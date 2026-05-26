@@ -91,6 +91,8 @@ const PhieuBaoHanhPage = () => {
     );
   });
 
+  console.log("Danh sách phiếu bảo hành đã tải:", phieuList);
+
   // Mở modal edit (Giữ nguyên)
   const handleOpenEdit = (phieu) => {
     setEditingPhieu(phieu);
@@ -341,7 +343,7 @@ const PhieuBaoHanhPage = () => {
                               className="text-teal-600 hover:bg-teal-50"
                               onClick={() => {
                                 const qrCode = phieu.maQR || phieu.maBaoHanh || "";
-                                window.open(`${window.location.origin}/warranty/?qrcode=${qrCode}`, "_blank");
+                                window.open(`${window.location.origin}/tra-cuu-bao-hanh/?qrcode=${qrCode}`, "_blank");
                               }}
                             >
                               <QrCodeScannerIcon fontSize="small" />
@@ -412,7 +414,7 @@ const PhieuBaoHanhPage = () => {
                       className="text-teal-600"
                       onClick={() => {
                         const qrCode = phieu.maQR || phieu.maBaoHanh || "";
-                        window.open(`${window.location.origin}/warranty/?qrcode=${qrCode}`, "_blank");
+                        window.open(`${window.location.origin}/tra-cuu-bao-hanh/?qrcode=${qrCode}`, "_blank");
                       }}
                     >
                       <QrCodeScannerIcon fontSize="small" />

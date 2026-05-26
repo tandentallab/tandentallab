@@ -668,7 +668,7 @@ const MauTheBaoHanhPage = () => {
                           }}
                         >
                           <QRCodeSVG
-                            value={`${window.location.origin}/warranty/?qrcode=12345`}
+                            value={`${window.location.origin}/tra-cuu-bao-hanh/?qrcode=12345`}
                             size={conf.coChu * 4 || 60}
                             level="L"
                           />

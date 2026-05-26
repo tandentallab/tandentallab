@@ -6,6 +6,9 @@ import { CircularProgress } from '@mui/material';
 const EXTERNAL_API =
   'https://sapi.dentalso.com/api/p1/warranty/66022d6a6293fefc6c2e92c3/code';
 
+const QR_API =
+  'https://sapi.dentalso.com/api/p1/warranty/66022d6a6293fefc6c2e92c3/qrcode';
+
 const fmtDate = (iso) => {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('vi-VN', {
@@ -64,7 +67,9 @@ const CheckPhieuBaoHanhPage = () => {
     setError(null);
     setSearched(true);
     try {
-      const res = await axios.get(EXTERNAL_API, { params: { q } });
+      const isNumeric = /^\d+$/.test(q);
+      const endpoint = isNumeric ? EXTERNAL_API : QR_API;
+      const res = await axios.get(endpoint, { params: { q } });
       console.log('[warranty] response:', res.data);
       setItems(res.data?.data || []);
     } catch (err) {
@@ -131,14 +136,14 @@ const CheckPhieuBaoHanhPage = () => {
 
         {!loading && error && (
           <div className="werror">
-            <p>❌ {error}</p>
+            <p>{error}</p>
             <span>Vui lòng kiểm tra lại mã và thử lại.</span>
           </div>
         )}
 
         {!loading && searched && !error && items.length === 0 && (
           <div className="werror">
-            <p>❌ Không tìm thấy phiếu bảo hành</p>
+            <p>Không tìm thấy phiếu bảo hành</p>
             <span>Vui lòng kiểm tra lại mã của bạn.</span>
           </div>
         )}

@@ -1,39 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { CircularProgress } from '@mui/material';
 
 const EXTERNAL_API =
   'https://sapi.dentalso.com/api/p1/warranty/66022d6a6293fefc6c2e92c3/code';
-
 const QR_API =
   'https://sapi.dentalso.com/api/p1/warranty/66022d6a6293fefc6c2e92c3/qrcode';
 
+const FULL_ORDER = [
+  18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28,
+  48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38,
+];
+
 const fmtDate = (iso) => {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  if (!iso) return 'Không rõ';
+  return new Date(iso).toLocaleDateString('vi-VN');
 };
 
-const Row = ({ label, value }) => (
-  <div className="wc-section">
-    <div className="wc-row">
-      <span className="wc-label">{label}</span>
-      <span className="wc-value">{value || '—'}</span>
+const TeethGrid = ({ positionString }) => {
+  const selected = positionString?.match(/\d{2}/g)?.map(Number) || [];
+  return (
+    <div className="tooth-grid">
+      {FULL_ORDER.map((t) => (
+        <span key={t} className={`tooth-chip${selected.includes(t) ? '' : ' inactive'}`}>
+          {t}
+        </span>
+      ))}
     </div>
-  </div>
-);
+  );
+};
 
 const CheckPhieuBaoHanhPage = () => {
   const [searchParams] = useSearchParams();
   const [inputCode, setInputCode] = useState('');
-  const [items, setItems] = useState([]);
+  const [result, setResult] = useState(null);   // single item
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searched, setSearched] = useState(false);
 
   useEffect(() => {
     const isZalo = /Zalo/i.test(navigator.userAgent);
@@ -42,41 +44,46 @@ const CheckPhieuBaoHanhPage = () => {
   }, []);
 
   useEffect(() => {
-    const qrcode = searchParams.get('qrcode');
-    console.log('[warranty] qrcode param:', qrcode);
-    if (qrcode?.trim()) {
-      setInputCode(qrcode.trim());
-      fetchWarranty(qrcode.trim());
+    const code = searchParams.get('qrcode');
+    if (code?.trim()) {
+      const val = code.trim().toUpperCase();
+      setInputCode(val);
+      fetchWarranty(val);
     }
   }, [searchParams]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (inputCode.trim()) fetchWarranty(inputCode.trim());
-  };
+    const val = inputCode.trim().toUpperCase();
+    if (!val) return;
 
-  const handleClear = () => {
-    setInputCode('');
-    setItems([]);
-    setSearched(false);
-    setError(null);
+    // Validate: QR = 4 ký tự chữ/số, code = 8 chữ số
+    if (!/^[A-Z0-9]{4}$/.test(val) && !/^\d{8}$/.test(val)) {
+      setError('Mã không hợp lệ.\nQR: 4 ký tự chữ/số\nCode: 8 chữ số');
+      setResult(null);
+      return;
+    }
+    fetchWarranty(val);
   };
 
   const fetchWarranty = async (q) => {
     setLoading(true);
     setError(null);
-    setSearched(true);
+    setResult(null);
     try {
-      const isNumeric = /^\d+$/.test(q);
-      const endpoint = isNumeric ? EXTERNAL_API : QR_API;
+      const isQR = /^[A-Z0-9]{4}$/.test(q) && !/^\d+$/.test(q);
+      const endpoint = isQR ? QR_API : EXTERNAL_API;
       const res = await axios.get(endpoint, { params: { q } });
-      console.log('[warranty] response:', res.data);
-      setItems(res.data?.data || []);
+      const data = res.data?.data || [];
+      if (!data.length) {
+        setError('Không có dữ liệu.');
+      } else {
+        setResult(data[0]);
+      }
     } catch (err) {
-      console.error('[warranty] error:', err.response?.data || err.message);
       setError(
         err.response?.status === 404
-          ? 'Không tìm thấy phiếu bảo hành.'
+          ? 'Không tìm thấy mã bảo hành'
           : err.response?.data?.message || 'Lỗi kết nối. Vui lòng thử lại.'
       );
     } finally {
@@ -85,290 +92,251 @@ const CheckPhieuBaoHanhPage = () => {
   };
 
   return (
-    <div className="wbody">
-      <div className="wcontainer">
-        <img
-          src="/logo_tan_dental.jpg"
-          className="wlogo"
-          alt="Logo"
-          onError={(e) => (e.target.src = '/logo192.png')}
-        />
-        <h4 className="wtitle">
-          THÔNG TIN BẢO HÀNH RĂNG SỨ
-          <br />
-          CÔNG TY TNHH TẤN DENTAL
-        </h4>
-
-        {/* Search form */}
-        <form className="wsearch" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            className="wsearch-input"
-            placeholder="Nhập mã tra cứu..."
-            value={inputCode}
-            onChange={(e) => setInputCode(e.target.value)}
-            disabled={loading}
-            maxLength={30}
-            autoComplete="off"
-          />
-          <div className="wsearch-btns">
-            <button
-              type="submit"
-              className="wbtn wbtn-primary"
-              disabled={loading || !inputCode.trim()}
-            >
-              {loading ? <CircularProgress size={18} style={{ color: '#fff' }} /> : 'Tra cứu'}
-            </button>
-            {(items.length > 0 || error) && (
-              <button type="button" className="wbtn wbtn-secondary" onClick={handleClear}>
-                Xóa
-              </button>
-            )}
-          </div>
-        </form>
-
-        {loading && (
-          <div className="wloading">
-            <CircularProgress size={32} />
-            <p>Đang tra cứu...</p>
-          </div>
-        )}
-
-        {!loading && error && (
-          <div className="werror">
-            <p>{error}</p>
-            <span>Vui lòng kiểm tra lại mã và thử lại.</span>
-          </div>
-        )}
-
-        {!loading && searched && !error && items.length === 0 && (
-          <div className="werror">
-            <p>Không tìm thấy phiếu bảo hành</p>
-            <span>Vui lòng kiểm tra lại mã của bạn.</span>
-          </div>
-        )}
-
-        {!loading && items.length > 0 && (
-          <div className="wcards">
-            {items.map((w) => (
-              <div className="warranty-card" key={w._id}>
-                {/* Header */}
-                <div className="wc-header">
-                  <div className="wc-title">PHIẾU BẢO HÀNH RĂNG SỨ</div>
-                  <div className="wc-sub">Dental Warranty Certificate</div>
-                  <div className="wc-code">Mã: {w.code}</div>
-                </div>
-
-                {/* Thông tin bệnh nhân */}
-                <Row label="Bệnh nhân" value={w.patientname} />
-                <Row label="Nha khoa" value={w.companyname} />
-                <Row label="Bác sĩ" value={w.doctorname} />
-
-                {/* Thông tin sản phẩm */}
-                <Row label="Loại răng" value={w.itemname} />
-                <Row label="Số lượng" value={w.itemquantity ? `${w.itemquantity} răng` : null} />
-
-                {/* Ghi chú từ đơn hàng */}
-                {w.estimate?.message && (
-                  <Row label="Ghi chú" value={w.estimate.message} />
-                )}
-
-                {/* Thời hạn bảo hành */}
-                <div className="wc-section wc-highlight">
-                  <div className="wc-row">
-                    <span className="wc-label">Ngày bảo hành</span>
-                    <span className="wc-value">{fmtDate(w.warrantydate)}</span>
-                  </div>
-                </div>
-
-                <div className="wc-section wc-expire">
-                  <div className="wc-row">
-                    <span className="wc-label">Hết hạn</span>
-                    <span className="wc-value wc-expire-val">{fmtDate(w.deliverydate)}</span>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="wc-footer">
-                  <span>Được bảo hành bởi <b>CÔNG TY TNHH TẤN DENTAL</b></span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
+    <>
       <style>{`
         .wbody {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          background: linear-gradient(135deg, #6d9eeb 0%, #8e7cc3 100%);
+          background: linear-gradient(135deg, #6d9eeb, #8e7cc3);
           min-height: 100vh;
           display: flex;
           justify-content: center;
           align-items: flex-start;
-          padding: 24px 12px 40px;
-          box-sizing: border-box;
+          margin: 0;
+          padding: 30px 0 50px;
         }
         .wcontainer {
-          background: rgba(255,255,255,0.97);
-          border-radius: 16px;
-          box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+          background: rgba(255,255,255,.95);
+          padding: 30px 24px;
+          border-radius: 12px;
+          box-shadow: 0 10px 30px rgba(0,0,0,.15);
           width: 100%;
-          max-width: 520px;
-          padding: 32px 20px 28px;
-          box-sizing: border-box;
+          max-width: 540px;
           text-align: center;
+          margin: 0 12px;
         }
         .wlogo {
           max-width: 90px;
-          margin: 0 auto 16px;
-          display: block;
-          border-radius: 0 !important;
-          box-shadow: none !important;
+          margin-bottom: 12px;
         }
         .wtitle {
-          color: #1a1a2e;
+          color: #1a237e;
           font-size: 15px;
           font-weight: 700;
-          line-height: 1.6;
-          margin: 0 0 24px;
-          letter-spacing: 0.3px;
+          margin: 0 0 20px;
+          line-height: 1.5;
         }
-        .wloading {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-          color: #555;
-          margin: 20px 0;
-        }
-        .werror {
-          background: #fff3cd;
-          color: #856404;
-          padding: 16px;
-          border-radius: 10px;
-          border: 1px solid #ffeeba;
-          text-align: center;
-          margin-top: 8px;
-        }
-        .werror p { margin: 0 0 4px; font-weight: 700; font-size: 15px; }
-        .werror span { font-size: 13px; }
-        .wcards { display: flex; flex-direction: column; gap: 20px; margin-top: 4px; text-align: left; }
-
-        /* Card */
-        .warranty-card {
-          background: #fff;
-          border-radius: 14px;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.10);
-          overflow: hidden;
-          border: 1px solid #e8eaf0;
-        }
-        .wc-header {
-          background: linear-gradient(135deg, #0d6efd 0%, #4f8df7 100%);
-          color: #fff;
-          padding: 18px 20px 14px;
-          text-align: center;
-        }
-        .wc-title { font-size: 17px; font-weight: 700; letter-spacing: 0.4px; }
-        .wc-sub { font-size: 12px; opacity: 0.85; margin-top: 3px; font-style: italic; }
-        .wc-code {
-          display: inline-block;
-          margin-top: 10px;
-          background: rgba(255,255,255,0.22);
-          border: 1px solid rgba(255,255,255,0.45);
-          border-radius: 20px;
-          padding: 4px 16px;
-          font-size: 13px;
-          font-weight: 600;
-          letter-spacing: 1px;
-        }
-
-        .wc-section {
-          padding: 12px 18px;
-          border-bottom: 1px solid #f0f2f7;
-        }
-        .wc-section:last-of-type { border-bottom: none; }
-        .wc-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 10px;
-        }
-        .wc-label {
-          display: inline-flex;
-          align-items: center;
-          background: #eef2ff;
-          color: #3563e9;
-          font-size: 12px;
-          font-weight: 600;
-          padding: 5px 11px;
-          border-radius: 20px;
-          white-space: nowrap;
-          flex-shrink: 0;
-        }
-        .wc-value {
-          font-size: 14px;
-          color: #111;
-          font-weight: 600;
-          text-align: right;
-          text-transform: uppercase;
-          word-break: break-word;
-        }
-        .wc-highlight { background: #f5f8ff; }
-        .wc-expire { background: #fff8f0; }
-        .wc-expire-val { color: #c0392b !important; }
-
-        .wc-footer {
-          background: #f8fff8;
-          border-top: 1px dashed #c3e6cb;
-          padding: 12px 18px;
-          text-align: center;
-          font-size: 12.5px;
-          color: #2d7a3a;
-        }
-
-        /* Search form */
-        .wsearch { margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
         .wsearch-input {
-          width: 100%;
-          padding: 12px 16px;
+          width: 90%;
+          padding: 11px 14px;
           font-size: 17px;
-          border: 2px solid #0d6efd;
-          border-radius: 10px;
-          box-sizing: border-box;
+          border: 2px solid #0066cc;
+          border-radius: 8px;
           outline: none;
-          transition: border-color 0.2s;
+          text-transform: uppercase;
         }
-        .wsearch-input:focus { border-color: #0a4fc4; }
-        .wsearch-input:disabled { background: #f5f5f5; }
-        .wsearch-btns { display: flex; gap: 10px; justify-content: center; }
         .wbtn {
+          margin-top: 14px;
           padding: 11px 28px;
-          font-size: 15px;
-          font-weight: 700;
+          font-size: 17px;
+          background: #0066cc;
+          color: white;
           border: none;
           border-radius: 8px;
           cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          transition: background 0.2s, opacity 0.2s;
         }
-        .wbtn:disabled { opacity: 0.55; cursor: not-allowed; }
-        .wbtn-primary { background: #0d6efd; color: #fff; }
-        .wbtn-primary:hover:not(:disabled) { background: #0a58ca; }
-        .wbtn-secondary { background: #6c757d; color: #fff; }
-        .wbtn-secondary:hover { background: #5a6268; }
+        .wbtn:hover { background: #004a99; }
+        .wbtn:disabled { background: #b0bec5; cursor: default; }
+        .wloading {
+          color: #ff4500;
+          font-weight: bold;
+          margin-top: 20px;
+        }
+        .werror {
+          color: red;
+          margin-top: 18px;
+          white-space: pre-line;
+        }
 
-        @media (max-width: 480px) {
-          .wcontainer { padding: 24px 12px 20px; }
-          .wc-label { font-size: 11px; padding: 4px 9px; }
-          .wc-value { font-size: 13px; }
-          .wc-title { font-size: 15px; }
+        /* ===== WARRANTY CARD ===== */
+        .warranty-card {
+          background: #fff;
+          border-radius: 14px;
+          box-shadow: 0 12px 30px rgba(0,0,0,.15);
+          overflow: hidden;
+          font-size: 15px;
+          margin-top: 22px;
+          text-align: left;
+        }
+        .wc-header {
+          background: linear-gradient(135deg, #0d6efd, #4f8df7);
+          color: white;
+          padding: 18px;
+          text-align: center;
+        }
+        .wc-title { font-size: 17px; font-weight: 700; }
+        .wc-sub { font-size: 13px; opacity: .85; }
+
+        .wc-section { padding: 18px 20px; }
+        .wc-section + .wc-section { border-top: 1px solid #e6e6e6; }
+        .wc-highlight { background: #f8faff; }
+
+        .wc-row {
+          display: grid;
+          grid-template-columns: 130px 1fr;
+          gap: 12px;
+          align-items: stretch;
+        }
+        .wc-label {
+          display: flex;
+          align-items: center;
+          padding: 7px 10px;
+          border-radius: 14px;
+          font-size: 13px;
+          font-weight: 600;
+          white-space: nowrap;
+          color: #333;
+        }
+        .wc-value {
+          font-size: 13px;
+          color: #000;
+          font-weight: 700;
+          text-transform: uppercase;
+          text-align: right;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+        }
+        .wc-full { align-items: flex-start; }
+
+        /* ===== TOOTH GRID ===== */
+        .tooth-grid {
+          display: grid;
+          grid-template-columns: repeat(16, 1fr);
+          gap: 5px;
+          width: 100%;
+          margin-top: 6px;
+        }
+        .tooth-chip {
+          display: block;
+          text-align: center;
+          font-size: 12px;
+          font-weight: 600;
+          color: #0b4dbb;
+          background: #dbeafe;
+          border-radius: 6px;
+          padding: 5px 0;
+          line-height: 1;
+        }
+        .tooth-chip.inactive {
+          background: #e5e7eb;
+          color: #9ca3af;
+        }
+
+        @media (max-width: 600px) {
+          .wc-row { grid-template-columns: 108px 1fr; }
+          .wc-label { font-size: 12px; padding: 6px 8px; }
+          .tooth-chip { font-size: 9px; padding: 4px 0; }
+          .zalo-browser .tooth-chip {
+            display: inline-block !important;
+            margin: 2px 1px;
+          }
+          .zalo-browser .tooth-grid {
+            grid-template-columns: repeat(16, 1fr);
+            gap: 2px;
+          }
         }
       `}</style>
-    </div>
+
+      <div className="wbody">
+        <div className="wcontainer">
+          <h4 className="wtitle">
+            THÔNG TIN BẢO HÀNH RĂNG SỨ<br />
+            CÔNG TY TNHH TẤN DENTAL
+          </h4>
+
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              className="wsearch-input"
+              placeholder="Nhập mã bảo hành..."
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+              disabled={loading}
+              maxLength={8}
+              autoComplete="off"
+            />
+            <br />
+            <button type="submit" className="wbtn" disabled={loading || !inputCode.trim()}>
+              Tra cứu
+            </button>
+          </form>
+
+          {loading && <p className="wloading">Đang tra cứu...</p>}
+
+          {!loading && error && <div className="werror">{error}</div>}
+
+          {!loading && result && (
+            <div className="warranty-card">
+              <div className="wc-header">
+                <div className="wc-title">PHIẾU BẢO HÀNH RĂNG SỨ</div>
+                <div className="wc-sub">Dental Warranty Certificate</div>
+              </div>
+
+              <div className="wc-section">
+                <div className="wc-row">
+                  <span className="wc-label">👤 Khách hàng</span>
+                  <span className="wc-value">{result.patientname ?? 'Không rõ'}</span>
+                </div>
+              </div>
+
+              <div className="wc-section">
+                <div className="wc-row">
+                  <span className="wc-label">🏥 Nha khoa</span>
+                  <span className="wc-value">{result.companyname ?? 'Không rõ'}</span>
+                </div>
+              </div>
+
+              <div className="wc-section">
+                <div className="wc-row">
+                  <span className="wc-label">🦷 Loại răng</span>
+                  <span className="wc-value">Sứ {result.itemname ?? 'Không rõ'}</span>
+                </div>
+              </div>
+
+              <div className="wc-section">
+                <div className="wc-row wc-full">
+                  <span className="wc-label">📍 Vị trí răng</span>
+                  <TeethGrid positionString={result.itemdescription} />
+                </div>
+              </div>
+
+              <div className="wc-section">
+                <div className="wc-row">
+                  <span className="wc-label">🔢 Số lượng</span>
+                  <span className="wc-value">{result.itemquantity ?? 'Không rõ'} Răng</span>
+                </div>
+              </div>
+
+              <div className="wc-section wc-highlight">
+                <div className="wc-row">
+                  <span className="wc-label">🗓 Ngày làm</span>
+                  <span className="wc-value">{fmtDate(result.warrantydate)}</span>
+                </div>
+              </div>
+
+              <div className="wc-section">
+                <div className="wc-row">
+                  <span className="wc-label">⏳ Ngày hết hạn</span>
+                  <span className="wc-value">{fmtDate(result.deliverydate)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 };
 
 export default CheckPhieuBaoHanhPage;
+

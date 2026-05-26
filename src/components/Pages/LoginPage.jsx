@@ -50,6 +50,8 @@ export default function LoginPage() {
     if (e.key === "Enter") handleLogin();
   };
 
+  console.log("form: ", form);
+
   return (
     <>
       <style>{`
@@ -475,7 +477,17 @@ export default function LoginPage() {
                   className="field-input"
                   placeholder="Nhập email hoặc mã nhân viên"
                   value={form.Email}
-                  onChange={(e) => handleChange("Email", e.target.value)}
+                  onChange={e => {
+                    const value = e.target.value;
+
+                    setForm(prev => ({
+                      ...prev,
+                      Email: value,
+                      MSNV: value
+                    }));
+
+                    setErrorMsg("");
+                  }}
                   onKeyDown={handleKeyPress}
                   onFocus={() => setFocused("email")}
                   onBlur={() => setFocused(null)}
@@ -485,12 +497,9 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <input type="hidden" name="MSNV" value={form.Email} />
-
             {/* Password */}
             <div
-              className={`field-wrap ${focused === "password" ? "focused" : ""
-                }`}
+              className={`field-wrap ${focused === "password" ? "focused" : ""}`}
             >
               <label className="field-label">Mật khẩu</label>
               <div className="field-input-wrap">

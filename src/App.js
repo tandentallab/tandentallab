@@ -29,7 +29,7 @@ function App() {
     <Routes>
       {/* Public routes - không cần xác thực */}
       <Route path="/warranty" element={<CheckPhieuBaoHanhPage />} />
-      
+
       {/* Protected routes - cần xác thực */}
       <Route path="*" element={isAuthenticated ? <Dashboard /> : <LoginPage />} />
     </Routes>

@@ -164,12 +164,23 @@ export default function StaffModal({
       )}
 
       <Modal open={open} onClose={handleCloseModal}>
-        <Box className="bg-white w-[700px] p-6 mx-auto mt-20 rounded-2xl shadow-xl">
-          <Typography variant="h6" className="mb-4">
+        <Box
+          sx={{
+            backgroundColor: "white",
+            width: { xs: "90%", sm: "85%", md: "700px" },
+            maxHeight: "90vh",
+            overflowY: "auto",
+            padding: { xs: "1.25rem", md: "1.5rem" },
+            margin: { xs: "2rem auto", md: "5rem auto 0" },
+            borderRadius: "1rem",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
+          }}
+        >
+          <Typography variant="h6" sx={{ marginBottom: "1rem" }}>
             {staffId ? "Chỉnh sửa nhân viên" : "Thêm nhân viên mới"}
           </Typography>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <TextField
               label="Mã nhân viên"
               value={form.MSNV}
@@ -244,6 +255,7 @@ export default function StaffModal({
               multiline
               rows={3}
               fullWidth
+              className="sm:col-span-2"
             />
 
             <TextField
@@ -253,19 +265,24 @@ export default function StaffModal({
               onChange={(e) => handleChange("Status", Number(e.target.value))}
               fullWidth
               size="small"
+              className="sm:col-span-2"
             >
               <MenuItem value={1}>Hoạt động</MenuItem>
               <MenuItem value={0}>Bị khoá</MenuItem>
             </TextField>
           </div>
 
-          <div className="flex justify-end gap-3 mt-6">
-            <Button onClick={handleCloseModal}>Hủy</Button>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-6">
+            <Button onClick={handleCloseModal} fullWidth className="sm:w-auto">
+              Hủy
+            </Button>
 
             <Button
               variant="contained"
               onClick={handleSubmit}
               disabled={loading}
+              fullWidth
+              className="sm:w-auto"
             >
               {loading ? <CircularProgress size={20} /> : "Lưu"}
             </Button>

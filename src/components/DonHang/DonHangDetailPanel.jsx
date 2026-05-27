@@ -122,7 +122,13 @@ const DonHangDetailPanel = (props) => {
     "Đã giao": "bg-gray-200 text-gray-800",
   };
 
+  const isLocked = fullDonHang?.trangThai === "Đã giao" || !!fullDonHang?.daXuatHoaDon;
+
   const handleEdit = () => {
+    if (isLocked) {
+      toast.error("Đơn hàng đã xuất hóa đơn / đã giao, không thể chỉnh sửa");
+      return;
+    }
     navigate(`/donhang/${donHang._id}/edit`);
   };
 
@@ -131,6 +137,10 @@ const DonHangDetailPanel = (props) => {
   };
 
   const handleDelete = () => {
+    if (isLocked) {
+      toast.error("Đơn hàng đã xuất hóa đơn / đã giao, không thể xóa");
+      return;
+    }
     if (window.confirm(`Bạn có chắc chắn muốn xóa đơn hàng ${maDonHang}?`)) {
       const promise = dispatch(deleteDonHang(donHang._id)).unwrap();
       toast.promise(promise, {
@@ -416,12 +426,17 @@ const DonHangDetailPanel = (props) => {
                 ) : (
                   <div className="text-gray-400 text-sm italic">Chưa có sản phẩm</div>
                 )}
-                <button
-                  onClick={hasWarranty ? handleOpenWarrantyView : handleOpenPhieuBaoHanh}
-                  className={`mt-2 font-medium text-sm px-2 py-1 rounded-full text-white flex items-center gap-2 ${hasWarranty ? "bg-teal-500" : "bg-slate-500"}`}
-                >
-                  <ReceiptIcon sx={{ fontSize: 18 }} /> Thẻ bảo hành
-                </button>
+
+                {/* --- KHU VỰC ĐÃ CẬP NHẬT GIAO DIỆN NÚT IN BẢO HÀNH --- */}
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  <button
+                    onClick={hasWarranty ? handleOpenWarrantyView : handleOpenPhieuBaoHanh}
+                    className={`font-medium text-sm px-3 py-1.5 rounded-full text-white flex items-center gap-2 transition-colors ${hasWarranty ? "bg-teal-500 hover:bg-teal-600" : "bg-slate-500 hover:bg-slate-600"}`}
+                  >
+                    <ReceiptIcon sx={{ fontSize: 18 }} /> Thẻ bảo hành
+                  </button>
+                </div>
+                {/* --------------------------------------------------- */}
               </div>
 
               {/* Phụ kiện */}
@@ -613,7 +628,7 @@ const DonHangDetailPanel = (props) => {
         <DialogTitle sx={{ bgcolor: "#1976d2", color: "white", fontWeight: "bold" }}>
           Phiếu Bảo Hành
         </DialogTitle>
-        <DialogContent className="pt-4" sx={{ pt: 3 }}>
+        <DialogContent className="mt-6">
           {warranty && (
             <>
               <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
@@ -697,9 +712,31 @@ const DonHangDetailPanel = (props) => {
             </>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpenWarrantyDialog(false)}>Hủy</Button>
-          <Button onClick={handleSaveWarrantyEdit} variant="contained" disabled={savingWarranty}>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            onClick={() => setOpenWarrantyDialog(false)}
+            variant="contained"
+            color="warning"
+            size="medium"
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={() => { setOpenWarrantyDialog(false); handleOpenPrintWarranty(); }}
+            variant="contained"
+            color="success"
+            size="medium"
+            startIcon={<PrintIcon />}
+          >
+            In thẻ BH
+          </Button>
+          <Button
+            onClick={handleSaveWarrantyEdit}
+            variant="contained"
+            color="primary"
+            size="medium"
+            disabled={savingWarranty}
+          >
             {savingWarranty ? "Đang lưu..." : "Lưu"}
           </Button>
         </DialogActions>

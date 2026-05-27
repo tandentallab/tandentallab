@@ -8,6 +8,7 @@ import { X, Printer, FileDown, Save, Upload, Trash2 } from "lucide-react";
 import { exportHoaDonToExcel } from "../../utils/exportToExcel";
 import HoaDonDetailTable from "./HoaDonDetailTable";
 import PhieuThuModal from "../PhieuThu/PhieuThuModal";
+import { toast } from "sonner"; // Đảm bảo đã import thư viện thông báo
 
 const fmtVND = (v) =>
   new Intl.NumberFormat("vi-VN").format(Math.round(v || 0));
@@ -39,7 +40,7 @@ const HoaDonDetail = () => {
   const [phieuThuList, setPhieuThuList] = useState([]);
   const [isDirty, setIsDirty] = useState(false);
   const [ptOpen, setPtOpen] = useState(false);
-  const [showExitConfirm, setShowExitConfirm] = useState(false); // 🔥 NEW
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formState, setFormState] = useState({
     chinhSachThanhToan: "Thanh toán cuối tháng",
@@ -47,10 +48,10 @@ const HoaDonDetail = () => {
     ghiChuNoiBo: "",
     chietKhauPhanTram: 0,
     chietKhauTien: 0,
-    chietKhauMode: "phanTram", // "phanTram" | "tienMat"
+    chietKhauMode: "phanTram",
     thuePhanTram: 0,
     thueTien: 0,
-    thueMode: "phanTram",     // "phanTram" | "tienMat"
+    thueMode: "phanTram",
     chiPhiKhac: 0,
     ngayXuatHoaDon: "",
   });
@@ -82,7 +83,6 @@ const HoaDonDetail = () => {
             ? Math.round(((mappedData.chietKhau || 0) / tongCongLoaded) * 100)
             : 0;
 
-        // 👇 1. TÍNH TOÁN TRƯỚC SỐ TIỀN THUẾ THỰC TẾ ĐỂ LOAD LÊN UI
         const sauCKLoaded = tongCongLoaded - (mappedData.chietKhau || 0);
         const thueTienLoaded = Math.round(sauCKLoaded * ((mappedData.thue || 0) / 100));
 
@@ -94,16 +94,11 @@ const HoaDonDetail = () => {
           chietKhauTien: mappedData.chietKhau || 0,
           chietKhauMode: mappedData.chietKhau > 0 ? "tienMat" : "phanTram",
           thuePhanTram: mappedData.thue || 0,
-
-          // 👇 2. CẬP NHẬT GIÁ TRỊ THUẾ THEO TIỀN MẶT ĐÃ TÍNH TOÁN
           thueTien: thueTienLoaded,
-
-          // 👇 3. TỰ ĐỘNG BẬT Ô TIỀN MẶT NẾU GIÁ TRỊ THUẾ LÀ SỐ THẬP PHÂN LẺ (DO NHẬP TIỀN QUY ĐỔI)
           thueMode: (mappedData.thue > 0 && mappedData.thue % 1 !== 0) ? "tienMat" : "phanTram",
-
           chiPhiKhac: mappedData.chiPhiKhac || 0,
           ngayXuatHoaDon: mappedData.ngayXuatHoaDon
-            ? new Date(mappedData.ngayXuatHoaDon).toISOString().split("T")[0]
+            ? new Date(new Date(mappedData.ngayXuatHoaDon).getTime() + 7 * 60 * 60 * 1000).toISOString().split("T")[0]
             : "",
         });
 
@@ -180,59 +175,106 @@ const HoaDonDetail = () => {
     setIsDirty(true);
   };
 
+  // ================= 1. RÀNG BUỘC TÌM NGÀY NHẬN MỚI NHẤT =================
+  const minNgayXuatStr = useMemo(() => {
+    if (!hoaDon?.danhSachSanPham) return "";
+    let maxTime = 0;
+    hoaDon.danhSachSanPham.forEach(sp => {
+      const dt = sp.donHang?.ngayNhan;
+      if (dt) {
+        const t = new Date(dt).getTime();
+        if (t > maxTime) maxTime = t;
+      }
+    });
+
+    if (maxTime === 0) return "";
+    const d = new Date(maxTime);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }, [hoaDon]);
+
+  // ================= 2. HÀM KIỂM TRA KHI THAY ĐỔI NGÀY XUẤT HÓA ĐƠN =================
+  const handleNgayXuatChange = (e) => {
+    const val = e.target.value;
+    // Kiểm tra nếu giá trị ngày người dùng chọn nhỏ hơn ngày muộn nhất của đơn hàng
+    if (val && minNgayXuatStr && val < minNgayXuatStr) {
+      const [y, m, d] = minNgayXuatStr.split("-");
+      toast.error(`Ngày xuất hóa đơn không được nhỏ hơn ngày nhận mới nhất (${d}/${m}/${y})`);
+      return; // Không cho phép cập nhật state nếu vi phạm
+    }
+    setField("ngayXuatHoaDon", val);
+  };
+
   // ================= FINANCIAL SUMMARY =================
   const fin = useMemo(() => {
     if (!hoaDon) return {
       tongCong: 0, chietKhauTien: 0, chietKhauPhanTram: 0,
-      thueTien: 0, thuePhanTram: 0, giaTriThanhToan: 0, conLai: 0,
+      thueTien: 0, thuePhanTram: 0, giaTriThanhToan: 0, tongDaThanhToan: 0, conLai: 0
     };
-    const tongCong = (hoaDon.danhSachSanPham || []).reduce(
-      (s, sp) => s + (sp.tongCongSanPham || 0),
-      0
-    );
 
-    // Chiết khấu — tính theo mode đang active
+    const tongCong = (hoaDon.danhSachSanPham || []).reduce((s, sp) => s + (sp.tongCongSanPham || 0), 0);
+
     const chietKhauTien = formState.chietKhauMode === "phanTram"
       ? Math.round(tongCong * (formState.chietKhauPhanTram / 100))
       : Math.min(Number(formState.chietKhauTien || 0), tongCong);
+
     const chietKhauPhanTram = formState.chietKhauMode === "tienMat"
       ? (tongCong > 0 ? parseFloat((chietKhauTien / tongCong * 100).toFixed(2)) : 0)
       : formState.chietKhauPhanTram;
 
     const sauCK = tongCong - chietKhauTien;
 
-    // Thuế — tính theo mode đang active
     const thueTien = formState.thueMode === "phanTram"
       ? Math.round(sauCK * (formState.thuePhanTram / 100))
       : Number(formState.thueTien || 0);
+
     const thuePhanTram = formState.thueMode === "tienMat"
       ? (sauCK > 0 ? parseFloat((thueTien / sauCK * 100).toFixed(2)) : 0)
       : formState.thuePhanTram;
 
-    const giaTriThanhToan = sauCK + thueTien + Number(formState.chiPhiKhac || 0);
-    const conLai = giaTriThanhToan - (hoaDon.daThanhToan || 0);
-    return { tongCong, chietKhauTien, chietKhauPhanTram, thueTien, thuePhanTram, giaTriThanhToan, conLai };
-  }, [hoaDon, formState]);
+    const phatSinhKycay = sauCK + thueTien + Number(formState.chiPhiKhac || 0);
+    const noDauKy = Number(hoaDon.noDauKy || 0);
+    const soDuMigrate = Number(hoaDon.soDuMigrate || 0);
+    const tongNoHoaDonCu = noDauKy - soDuMigrate;
+
+    const giaTriThanhToan = phatSinhKycay + soDuMigrate;
+
+    const tongDaThanhToan = phieuThuList.reduce((sum, pt) => {
+      let tien = 0;
+      if (pt.danhSachHoaDon && Array.isArray(pt.danhSachHoaDon)) {
+        const hdItem = pt.danhSachHoaDon.find((x) => x.hoaDon === id || x.hoaDon?._id === id);
+        if (hdItem) tien += hdItem.soTienThanhToan;
+      }
+      return sum + tien;
+    }, 0);
+
+    const conLai = hoaDon.conLai || 0;
+
+    return {
+      tongCong, chietKhauTien, chietKhauPhanTram,
+      thueTien, thuePhanTram, noDauKy, soDuMigrate,
+      tongNoHoaDonCu, giaTriThanhToan, tongDaThanhToan, conLai
+    };
+  }, [hoaDon, formState, phieuThuList, id]);
 
   // ================= SAVE =================
   const handleUpdate = async () => {
     try {
-      // 👇 CHÈN THÊM 2 DÒNG NÀY ĐỂ TÍNH % THUẾ CHÍNH XÁC TUYỆT ĐỐI
       const sauCK = fin.tongCong - fin.chietKhauTien;
       const thueChinhXac = formState.thueMode === "tienMat" && sauCK > 0
         ? (fin.thueTien / sauCK) * 100
         : fin.thuePhanTram;
 
-      await dispatch(
+      // Lấy kết quả (res) trả về từ Backend
+      const res = await dispatch(
         updateHoaDon({
           id,
           data: {
             ngayXuatHoaDon: formState.ngayXuatHoaDon,
             chietKhau: Math.round(fin.chietKhauTien),
-
-            // 👇 SỬA DÒNG NÀY (Thay fin.thuePhanTram thành thueChinhXac)
             thue: thueChinhXac,
-
             chiPhiKhac: Number(formState.chiPhiKhac),
             chinhSachThanhToan: formState.chinhSachThanhToan,
             ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
@@ -241,14 +283,24 @@ const HoaDonDetail = () => {
           },
         })
       ).unwrap();
+
+      // 🔥 ĐẮP DATA MỚI VÀO MÀN HÌNH (Hiển thị Real-time không cần F5)
+      setHoaDon({
+        ...res.data, // Dữ liệu này giờ đã có sẵn công nợ mới nhất
+        danhSachSanPham: (res.data.danhSachSanPham || []).map((sp) => ({
+          ...sp,
+          giamGiaPhanTram: sp.thanhTien
+            ? parseFloat(((sp.giamGia || 0) / sp.thanhTien * 100).toFixed(2))
+            : 0,
+        })),
+      });
+
       setIsDirty(false);
-      alert("Đã lưu hóa đơn thành công!");
+      toast.success("Đã lưu hóa đơn thành công!");
     } catch (err) {
-      alert("Lỗi: " + (err.message || err));
+      toast.error("Lỗi: " + (err.message || err));
     }
   };
-
-  // 🔥 Xử lý đóng — hiện confirm nếu có thay đổi chưa lưu
   const handleClose = () => {
     if (isDirty) {
       setShowExitConfirm(true);
@@ -257,10 +309,8 @@ const HoaDonDetail = () => {
     }
   };
 
-  // 🔥 Lưu rồi thoát
   const handleSaveAndExit = async () => {
     try {
-      // 👇 CHÈN THÊM 2 DÒNG NÀY NỮA
       const sauCK = fin.tongCong - fin.chietKhauTien;
       const thueChinhXac = formState.thueMode === "tienMat" && sauCK > 0
         ? (fin.thueTien / sauCK) * 100
@@ -272,10 +322,7 @@ const HoaDonDetail = () => {
           data: {
             ngayXuatHoaDon: formState.ngayXuatHoaDon,
             chietKhau: Math.round(fin.chietKhauTien),
-
-            // 👇 SỬA DÒNG NÀY (Thay fin.thuePhanTram thành thueChinhXac)
             thue: thueChinhXac,
-
             chiPhiKhac: Number(formState.chiPhiKhac),
             chinhSachThanhToan: formState.chinhSachThanhToan,
             ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
@@ -284,44 +331,52 @@ const HoaDonDetail = () => {
           },
         })
       ).unwrap();
+
+      // REFRESH LẠI DATA TỪ SERVER
+      await dispatch(fetchHoaDonById(id));
+
+      setIsDirty(false);
+
+      toast.success("Đã lưu hóa đơn thành công!");
+
+      // 2. Chuyển về trang trước
       navigate(-1);
+
+
     } catch (err) {
-      alert("Lỗi khi lưu: " + (err.message || err));
+      toast.error("Lỗi khi lưu: " + (err.message || err));
     }
   };
 
-  // 🔥 In hóa đơn
   const handlePrint = () => {
     navigate(`/hoa-don/${id}/print`);
   };
 
-  // 🔥 1. Hàm được gọi khi bấm nút Xóa ở Footer
   const handleDeleteClick = () => {
     if (hoaDon.trangThai !== "Chưa thanh toán") {
-      alert("Không thể xóa hóa đơn đã có giao dịch thanh toán!");
+      toast.error("Không thể xóa hóa đơn đã có giao dịch thanh toán!");
       return;
     }
-    // Mở custom modal thay vì dùng window.confirm
     setShowDeleteConfirm(true);
   };
 
-  // 🔥 2. Hàm thực thi gọi API khi người dùng xác nhận trên Modal
   const executeDelete = async () => {
     try {
       await dispatch(deleteHoaDon(id)).unwrap();
       setShowDeleteConfirm(false);
-      navigate(-1); // Quay về trang trước
+      navigate(-1);
+      toast.success("Đã xóa hóa đơn");
     } catch (err) {
       console.error("Lỗi xóa hóa đơn:", err);
-      alert("Không thể xóa hóa đơn lúc này!");
+      toast.error("Không thể xóa hóa đơn lúc này!");
     }
   };
+
   if (loading) return <div className="p-10 text-center text-gray-400">Đang tải...</div>;
   if (!hoaDon) return <div className="p-10 text-center text-red-500">Không tìm thấy hóa đơn!</div>;
 
   const initials = hoaDon.nhaKhoa?.hoVaTen?.slice(0, 2).toUpperCase() || "NK";
-
-  // ===== JSX phần tài chính (dùng lại ở cả 2 layout) =====
+  const isLocked = (hoaDon.daThanhToan || 0) > 0;
   const renderFinancialBlock = () => (
     <div className="space-y-4">
       <div className="flex items-start justify-between">
@@ -335,6 +390,7 @@ const HoaDonDetail = () => {
         <div className="flex items-center flex-1 justify-end ml-4">
           <input
             type="number" min={0} max={100}
+            disabled={isLocked}
             value={formState.chietKhauMode === "phanTram" ? formState.chietKhauPhanTram : fin.chietKhauPhanTram}
             onChange={(e) => {
               const val = Math.min(100, Math.max(0, Number(e.target.value) || 0));
@@ -346,6 +402,7 @@ const HoaDonDetail = () => {
           <span className="mx-2 text-gray-800 text-sm">% =</span>
           <input
             type="text" inputMode="numeric"
+            disabled={isLocked}
             value={fmtMoneyInput(formState.chietKhauMode === "tienMat" ? formState.chietKhauTien : fin.chietKhauTien)}
             onChange={(e) => {
               const val = parseMoneyInput(e.target.value);
@@ -363,6 +420,7 @@ const HoaDonDetail = () => {
         <div className="flex items-center flex-1 justify-end ml-4">
           <input
             type="number" min={0} max={100}
+            disabled={isLocked}
             value={formState.thueMode === "phanTram" ? formState.thuePhanTram : fin.thuePhanTram}
             onChange={(e) => {
               const val = Math.min(100, Math.max(0, Number(e.target.value) || 0));
@@ -374,6 +432,7 @@ const HoaDonDetail = () => {
           <span className="mx-2 text-gray-800 text-sm">% =</span>
           <input
             type="text" inputMode="numeric"
+            disabled={isLocked}
             value={fmtMoneyInput(formState.thueMode === "tienMat" ? formState.thueTien : fin.thueTien)}
             onChange={(e) => {
               const val = parseMoneyInput(e.target.value);
@@ -390,6 +449,7 @@ const HoaDonDetail = () => {
         <span className="text-gray-800 text-sm shrink-0">Chi phí khác</span>
         <div className="flex items-center flex-1 justify-end ml-4">
           <input
+            disabled={isLocked}
             type="text" inputMode="numeric"
             value={fmtMoneyInput(formState.chiPhiKhac)}
             onChange={(e) => setField("chiPhiKhac", parseMoneyInput(e.target.value))}
@@ -398,28 +458,36 @@ const HoaDonDetail = () => {
         </div>
       </div>
 
+      {/* ── Số dư đầu kỳ ── */}
+      {fin.soDuMigrate > 0 && (
+        <div className="flex items-start justify-between">
+          <span className="text-gray-800 text-sm">Số dư đầu kỳ (hệ thống cũ) </span>
+          <span className="font-bold text-gray-900 text-[15px]">{fmtVND(fin.soDuMigrate)}</span>
+        </div>
+      )}
+
       <div className="pt-4 border-t border-gray-200/60 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-gray-900 font-bold text-[15px]">Giá trị thanh toán</span>
-          <span className="font-bold text-gray-900 text-[16px]">{fmtVND(fin.giaTriThanhToan)}</span>
+          <span className="font-black text-gray-900 text-[16px]">{fmtVND(fin.giaTriThanhToan)}</span>
         </div>
-
-        {hoaDon.trangThai !== "Chưa thanh toán" && (
+        {(hoaDon.trangThai === "Thanh toán một phần" || hoaDon.trangThai === "Đã thanh toán") && (
           <>
             <div className="flex items-center justify-between">
               <span className="text-gray-900 font-bold text-[15px]">Đã thanh toán</span>
-              <span className="font-bold text-gray-900 text-[16px]">{fmtVND(hoaDon.daThanhToan || 0)}</span>
+              <span className="font-bold text-gray-900 text-[16px]">{fmtVND(fin.tongDaThanhToan)}</span>
             </div>
 
             {phieuThuList.length > 0 && (
               <div className="flex flex-col gap-1.5 pl-12">
-                {phieuThuList.map((pt, idx) => {
+                {phieuThuList.slice().reverse().map((pt, idx) => {
                   let tien = 0;
                   if (pt.danhSachHoaDon && Array.isArray(pt.danhSachHoaDon)) {
                     const hdItem = pt.danhSachHoaDon.find((x) => x.hoaDon === id || x.hoaDon?._id === id);
-                    if (hdItem) tien = hdItem.soTienThanhToan;
+                    if (hdItem) tien += hdItem.soTienThanhToan;
                   }
-                  if (!tien) tien = pt.soTienThanhToan || pt.tongTien || pt.soTien || 0;
+
+                  if (tien === 0) return null;
 
                   const dateStr = pt.ngayThu
                     ? new Date(pt.ngayThu).toLocaleDateString("vi-VN")
@@ -438,8 +506,8 @@ const HoaDonDetail = () => {
             )}
 
             <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-              <span className="text-gray-900 font-bold text-[16px]">Còn nợ</span>
-              <span className="font-bold text-gray-900 text-lg">{fmtVND(fin.conLai)}</span>
+              <span className="text-gray-900 font-bold text-[16px]">Còn lại</span>
+              <span className="font-black text-gray-900 text-lg">{fmtVND(fin.conLai)}</span>
             </div>
           </>
         )}
@@ -455,7 +523,7 @@ const HoaDonDetail = () => {
         .no-spinner { -moz-appearance: textfield; }
       `}</style>
 
-      {/* ===== 🔥 EXIT CONFIRM MODAL ===== */}
+      {/* ===== EXIT CONFIRM MODAL ===== */}
       {showExitConfirm && (
         <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm mx-4">
@@ -480,25 +548,20 @@ const HoaDonDetail = () => {
           </div>
         </div>
       )}
-      {/* ===== 🔥 DELETE CONFIRM MODAL (MỚI) ===== */}
+
+      {/* ===== DELETE CONFIRM MODAL ===== */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm mx-4">
-
-            {/* Tiêu đề & Icon */}
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
                 <Trash2 className="w-5 h-5 text-red-600" />
               </div>
               <p className="text-gray-900 font-bold text-lg">Xóa hóa đơn?</p>
             </div>
-
-            {/* Nội dung cảnh báo */}
             <p className="text-gray-500 text-sm mb-6 leading-relaxed">
               Hành động này không thể hoàn tác. Các đơn hàng trong hóa đơn này sẽ được trả về trạng thái <span className="font-semibold text-gray-700">Chờ xuất hóa đơn</span>.
             </p>
-
-            {/* Nút hành động */}
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
@@ -513,7 +576,6 @@ const HoaDonDetail = () => {
                 Xóa ngay
               </button>
             </div>
-
           </div>
         </div>
       )}
@@ -528,25 +590,15 @@ const HoaDonDetail = () => {
             {hoaDon.trangThai}
           </span>
         </div>
-        {/* 🔥 onClick → handleClose thay vì navigate(-1) trực tiếp */}
         <button onClick={handleClose} className="text-white/80 hover:text-white p-1">
           <X className="w-5 h-5" />
         </button>
       </header>
 
       {/* ===== INFO ROW ===== */}
-      {/* ------------------------------------------------------------------ */}
-      {/* MOBILE: flex-col, thứ tự dùng order-X                              */}
-      {/*   order-1 → Giá trị TT                                             */}
-      {/*   order-2 → Ngày xuất  (nằm trong cùng block với giá trị TT)      */}
-      {/*   order-3 → Nha khoa info                                          */}
-      {/*   order-4 → Địa chỉ box                                            */}
-      {/*   order-5 → Chính sách TT                                          */}
-      {/* DESKTOP (lg+): flex-row 3 cột, order reset về tự nhiên            */}
-      {/* ------------------------------------------------------------------ */}
       <div className="bg-white px-4 lg:px-6 py-4 flex flex-col lg:flex-row items-stretch gap-3 lg:gap-4 shrink-0">
 
-        {/* ── MOBILE-ONLY: Giá trị TT + Ngày xuất (order-1) ── */}
+        {/* Khối giá trị thanh toán Mobile */}
         <div className="order-1 lg:hidden px-1">
           <p className="text-[11px] text-gray-400 font-medium">Giá trị thanh toán</p>
           <p className="text-3xl font-black text-gray-900 leading-tight mt-1 mb-3">
@@ -556,14 +608,14 @@ const HoaDonDetail = () => {
           <div className="flex items-center mt-0.5">
             <input
               type="date"
+              min={minNgayXuatStr} // Chặn lịch chọn lùi
               value={formState.ngayXuatHoaDon}
-              onChange={(e) => setField("ngayXuatHoaDon", e.target.value)}
+              onChange={handleNgayXuatChange}
               className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent w-36"
             />
           </div>
         </div>
 
-        {/* ── MOBILE-ONLY: Nha khoa info (order-3) ── */}
         <div className="order-3 lg:hidden px-1 flex items-start gap-4">
           <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-white font-bold text-sm shrink-0">
             {initials}
@@ -576,23 +628,21 @@ const HoaDonDetail = () => {
           </div>
         </div>
 
-        {/* ── Địa chỉ box (mobile: order-4 | desktop: order-2 / 30%) ── */}
-        <div className="order-4 lg:order-2 lg:w-[40%] text-[13px] text-gray-700 space-y-1.5 p-4 bg-[#e6f7ff] rounded-xl flex flex-col justify-center">
+        <div className="order-4 lg:order-2 lg:w-[40%] text-[13px] text-gray-700 space-y-1.5 p-4 bg-[#e6f7ff] rounded-xl flex flex-col justify-center shadow-sm border border-[#00a8df]/20">
           <p><span className="text-gray-500 inline-block w-20">Địa chỉ:</span><span className="font-medium">{hoaDon.nhaKhoa?.diaChiCuThe || ""}</span></p>
           <p><span className="text-gray-500 inline-block w-20">Điện thoại:</span><span className="font-medium">{hoaDon.nhaKhoa?.soDienThoai || ""}</span></p>
           <p><span className="text-gray-500 inline-block w-20">Mô tả:</span><span className="font-medium">{hoaDon.nhaKhoa?.moTa || ""}</span></p>
-          <p className="pt-1.5 mt-1">
-            <span className="text-gray-500 inline-block w-20">
+
+          <div className="pt-3 mt-1.5 border-t border-[#00a8df]/30 flex items-center justify-between">
+            <span className="text-gray-700 font-bold uppercase text-[11px] tracking-wide">
               Công nợ:
             </span>
-
-            <span className="font-bold text-gray-900">
-              {fmtVND(hoaDon.congNoNhaKhoa || 0)}
+            <span className="font-black text-gray-700 text-xl">
+              {fmtVND(hoaDon.congNoNhaKhoa)}
             </span>
-          </p>
+          </div>
         </div>
 
-        {/* ── MOBILE-ONLY: Chính sách TT (order-5) ── */}
         <div className="order-5 lg:hidden px-1">
           <p className="text-[11px] text-gray-400 font-medium">Chính sách thanh toán</p>
           <select
@@ -606,7 +656,7 @@ const HoaDonDetail = () => {
           </select>
         </div>
 
-        {/* ── DESKTOP-ONLY: Left panel 40% — Nha khoa + Chính sách ── */}
+        {/* Desktop View Nha Khoa & Payment Policy */}
         <div className="hidden lg:flex lg:order-1 lg:w-[30%] pr-4 flex-col gap-6 ">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-white font-bold text-base shrink-0">
@@ -633,7 +683,7 @@ const HoaDonDetail = () => {
           </div>
         </div>
 
-        {/* ── DESKTOP-ONLY: Right panel 30% — Giá trị TT + Ngày xuất ── */}
+        {/* Khối giá trị thanh toán Desktop */}
         <div className="hidden lg:flex lg:order-3 lg:w-[30%] pl-8 flex-col justify-center ">
           <p className="text-[11px] text-gray-400 font-medium">Giá trị thanh toán</p>
           <p className="text-3xl font-black text-gray-900 leading-tight mt-1 mb-3">
@@ -644,8 +694,9 @@ const HoaDonDetail = () => {
             <div className="flex items-center">
               <input
                 type="date"
+                min={minNgayXuatStr} // Chặn lịch chọn lùi
                 value={formState.ngayXuatHoaDon}
-                onChange={(e) => setField("ngayXuatHoaDon", e.target.value)}
+                onChange={handleNgayXuatChange}
                 className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent w-36"
               />
             </div>
@@ -661,17 +712,10 @@ const HoaDonDetail = () => {
           navigate={navigate}
           handleGhiChuChange={handleGhiChuChange}
           handleGiamGiaChange={handleGiamGiaChange}
+          isLocked={isLocked}
         />
 
-        {/* ===== BOTTOM SECTION ===== */}
-        {/* ------------------------------------------------------------------ */}
-        {/* Mobile:  stack dọc (ghi chú → tài liệu → tổng cộng)               */}
-        {/* md:      2 cột — trái: ghi chú + tài liệu | phải: tổng cộng       */}
-        {/* lg+:     3 cột — 55% ghi chú | 15% tài liệu | 30% tổng cộng       */}
-        {/* ------------------------------------------------------------------ */}
         <div className="flex flex-col md:flex-row mt-6 bg-gray-50/30 shrink-0 items-stretch">
-
-          {/* ── Ghi chú (mobile: full | md: trái 60% | lg: 55%) ── */}
           <div className="w-full md:w-[60%] lg:w-[55%] p-4 md:p-6 space-y-6">
             <div>
               <p className="text-xs text-gray-500 font-medium mb-1.5">Ghi chú cho khách hàng</p>
@@ -691,8 +735,6 @@ const HoaDonDetail = () => {
                 className="w-full border-b border-gray-300 text-sm outline-none resize-none bg-transparent focus:border-[#00a8df] transition-colors pb-1"
               />
             </div>
-
-            {/* Tài liệu: trên md gộp vào cùng cột ghi chú, trên lg tách ra */}
             <div className="block lg:hidden">
               <div className="w-full min-h-[100px] bg-[#e6f7ff] rounded-xl border-2 border-dashed border-[#00a8df]/30 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00a8df] hover:bg-sky-50 transition-all p-4">
                 <p className="text-xs font-bold text-[#00a8df]">Tài liệu</p>
@@ -701,7 +743,6 @@ const HoaDonDetail = () => {
             </div>
           </div>
 
-          {/* ── Tài liệu desktop (lg+): 15%, ẩn trên md vì đã gộp vào cột trái ── */}
           <div className="hidden lg:flex lg:w-[15%] p-6 flex-col justify-start">
             <div className="w-full h-3/5 min-h-[120px] bg-[#e6f7ff] rounded-xl border-2 border-dashed border-[#00a8df]/30 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00a8df] hover:bg-sky-50 transition-all p-4">
               <p className="text-xs font-bold text-[#00a8df]">Tài liệu</p>
@@ -709,13 +750,11 @@ const HoaDonDetail = () => {
             </div>
           </div>
 
-          {/* ── Tổng cộng (mobile: full | md: phải 40% | lg: 30%) ── */}
           <div className="w-full md:w-[40%] lg:w-[30%] p-4 md:p-6 lg:p-8 flex flex-col justify-center border-t md:border-t-0 md:border-l border-gray-100">
             <div className="w-full md:max-w-none lg:max-w-[320px] lg:ml-auto space-y-4">
               {renderFinancialBlock()}
             </div>
           </div>
-
         </div>
       </div>
 
@@ -731,7 +770,7 @@ const HoaDonDetail = () => {
         <div className="flex items-center gap-2 md:gap-3">
           {hoaDon.trangThai === "Chưa thanh toán" && (
             <button
-              onClick={handleDeleteClick} // <--- GỌI HÀM NÀY NÈ
+              onClick={handleDeleteClick}
               className="flex items-center gap-1.5 px-3 md:px-4 py-2 border border-red-200 bg-red-50 text-red-600 rounded-md text-[13px] font-bold hover:bg-red-100 hover:border-red-300 transition-colors shadow-sm"
             >
               <Trash2 className="w-4 h-4" />
@@ -747,7 +786,7 @@ const HoaDonDetail = () => {
           >
             <FileDown className="w-4 h-4" /> Xuất excel
           </button>
-          {/* Mobile: icon-only cho In + Xuất */}
+
           <button onClick={handlePrint} className="flex md:hidden items-center justify-center w-9 h-9 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 transition-colors">
             <Printer className="w-4 h-4" />
           </button>
@@ -784,7 +823,10 @@ const HoaDonDetail = () => {
       <PhieuThuModal
         open={ptOpen}
         onClose={() => setPtOpen(false)}
-        onSuccess={reloadData}
+        onSuccess={() => {
+          toast.success("Tạo phiếu thu thành công!");
+          navigate('/phieu-thu');
+        }}
         initialNhaKhoaId={hoaDon?.nhaKhoa?._id}
         initialHoaDonId={hoaDon?._id}
       />

@@ -142,17 +142,7 @@ const Header = ({ onToggleSidebar }) => {
             <IconButton color="inherit" onClick={onToggleSidebar}>
               <MenuIcon />
             </IconButton>
-            <Typography
-              variant="h6"
-              onClick={() => navigate("/")}
-              sx={{
-                cursor: "pointer",
-                fontWeight: 600,
-                fontSize: { xs: "14px", sm: "16px", md: "20px" },
-              }}
-            >
-              TẤN DENTAL
-            </Typography>
+            <img className="h-[60px]" src="/logo4.png" alt="Tấn Dental" />
           </Box>
 
           {/* 👉 THANH TÌM KIẾM ĐÃ ĐƯỢC TỐI ƯU CHO CẢ PC & MOBILE */}

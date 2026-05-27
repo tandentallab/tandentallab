@@ -21,6 +21,8 @@ import {
   FiDownload,
   FiPrinter,
 } from "react-icons/fi";
+// Đảm bảo đường dẫn import DonHangDetailPanel đúng với cấu trúc thư mục của bạn
+import DonHangDetailPanel from "../DonHang/DonHangDetailPanel";
 
 const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
@@ -36,6 +38,9 @@ const KeHoachGiaoHangTable = () => {
 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // State quản lý việc mở panel chi tiết đơn hàng
+  const [selectedDonHang, setSelectedDonHang] = useState(null);
 
   useEffect(() => {
     dispatch(fetchDonHangAll());
@@ -179,7 +184,7 @@ const KeHoachGiaoHangTable = () => {
   };
 
   return (
-    <div className="p-4 bg-gray-100 min-h-screen">
+    <div className="p-4 bg-gray-100 min-h-screen relative">
       <div className="max-w-full mx-auto">
         {/* ================= HEADER STATS ================= */}
         <div className="print:hidden">
@@ -285,17 +290,6 @@ const KeHoachGiaoHangTable = () => {
               <option value="Chờ xử lý">Chờ xử lý</option>
               <option value="Hoàn thành">Hoàn thành</option>
             </select>
-
-            {/* Đơn gấp */}
-            {/* <label className="flex items-center gap-1.5 ml-auto cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={showUrgentOnly}
-                onChange={() => setShowUrgentOnly(!showUrgentOnly)}
-                className="accent-red-500"
-              />
-              <span className="text-red-600 font-medium">Đơn gấp</span>
-            </label> */}
           </div>
         )}
 
@@ -332,12 +326,6 @@ const KeHoachGiaoHangTable = () => {
                   <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
                     Ghi chú
                   </th>
-                  {/* <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Tiến độ
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Tiến độ sản xuất
-                  </th> */}
                 </tr>
               </thead>
 
@@ -358,7 +346,8 @@ const KeHoachGiaoHangTable = () => {
                   return (
                     <tr
                       key={order._id}
-                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      onClick={() => setSelectedDonHang(order)}
+                      className="border-b border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer"
                     >
                       {/* NHẬN LÚC */}
                       <td className="px-4 py-2.5 text-gray-600 font-bold whitespace-nowrap text-xs">
@@ -366,10 +355,14 @@ const KeHoachGiaoHangTable = () => {
                           ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
                           : "—"}
                       </td>
-                      {/* SỐ ĐƠN */}
+
+                      {/* SỐ ĐƠN: Bấm vào đây thì navigate sang trang edit */}
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <button
-                          onClick={() => navigate(`/donhang/${order._id}/edit`)}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Ngăn sự kiện onClick truyền lên thẻ <tr>
+                            navigate(`/donhang/${order._id}/edit`);
+                          }}
                           className={`font-medium text-sm hover:underline ${overdue
                             ? "text-red-500"
                             : today
@@ -436,26 +429,6 @@ const KeHoachGiaoHangTable = () => {
                       <td className="px-4 py-2.5 min-w-[140px] text-gray-700 text-sm">
                         {order.ghiChuChung}
                       </td>
-
-                      {/* TIẾN ĐỘ */}
-                      {/* <td className="px-4 py-2.5 whitespace-nowrap min-w-[100px]">
-                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-blue-400 rounded-full"
-                            style={{ width: `${order.tienDo || 0}%` }}
-                          />
-                        </div>
-                      </td> */}
-
-                      {/* TIẾN ĐỘ SẢN XUẤT */}
-                      {/* <td className="px-4 py-2.5 whitespace-nowrap min-w-[120px]">
-                        <div className="w-28 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-blue-300 rounded-full"
-                            style={{ width: `${order.tienDoSanXuat || 0}%` }}
-                          />
-                        </div>
-                      </td> */}
                     </tr>
                   );
                 })}
@@ -520,15 +493,66 @@ const KeHoachGiaoHangTable = () => {
         <div id="print-section" className="hidden print:block w-full">
           <style>{`
             @media print {
-              @page { size: A4 landscape; margin: 10mm; }
+              @page { 
+                size: A4 landscape; 
+                margin: 8mm; 
+              }
+              
+              /* Triệt tiêu các thuộc tính căn chỉnh flex, margin, padding của các thẻ cha (Dashboard/Header/Sidebar) khi in */
+              html, body, #root, #root > div, main, .bg-gray-100, .max-w-full {
+                position: static !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                display: block !important;
+                box-shadow: none !important;
+                background: white !important;
+              }
+              
               body * { visibility: hidden; }
               #print-section, #print-section * { visibility: visible; }
               #print-section {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
                 background-color: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+                display: block !important;
+              }
+              #print-section h2 {
+                margin: 0 0 16px 0 !important;
+                padding: 0 !important;
+                text-align: center !important;
+                font-size: 20px !important;
+                font-weight: bold !important;
+                text-transform: uppercase !important;
+              }
+              #print-section table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin: 0 !important;
+                padding: 0 !important;
+              }
+              #print-section table td,
+              #print-section table th {
+                border: 1px solid black !important;
+                padding: 8px 10px !important;
+                font-size: 13px !important;
+                line-height: 1.4 !important;
+                vertical-align: middle !important;
+              }
+              #print-section table th {
+                background-color: #f3f4f6 !important;
+                font-weight: bold !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
             }
           `}</style>
@@ -575,6 +599,14 @@ const KeHoachGiaoHangTable = () => {
           </table>
         </div>
       </div>
+
+      {/* Hiển thị Panel Chi Tiết Đơn Hàng nếu đang chọn 1 đơn hàng */}
+      {selectedDonHang && (
+        <DonHangDetailPanel
+          donHang={selectedDonHang}
+          onClose={() => setSelectedDonHang(null)}
+        />
+      )}
     </div>
   );
 };

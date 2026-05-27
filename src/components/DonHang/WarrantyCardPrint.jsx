@@ -99,7 +99,7 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
       <DialogContent id="print-content" style={{ minHeight: "300px", padding: 0 }}>
         {loading ? <CircularProgress /> : !mauThe ? <p>Không tìm thấy mẫu.</p> : (
           /* Xóa border: "1px dashed #ccc" ở đây */
-          <div style={{ position: "relative", width: "100%", height: "297mm", border: "none" }}>
+          <div style={{ position: "relative", width: "100%", height: "150mm", border: "none" }}>
             {mauThe.cacTruong?.map((field, idx) => {
               const left = Number(field.leTrai) || 0;
               const top = Number(field.leTren) || 0;

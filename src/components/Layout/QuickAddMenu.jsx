@@ -13,60 +13,25 @@ import NhaKhoaModal from "../NhaKhoa/NhaKhoaModal";
 import BenhNhanModal from "../BenhNhan/BenhNhanModal";
 import { useNavigate } from "react-router-dom";
 import PhieuThuModal from "../PhieuThu/PhieuThuModal";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { fetchAllPhieuThu } from "../../redux/slices/phieuThuSlice";
 import StaffModal from "../Staff/StaffModal";
+import { hasRouteAccess } from "../../config/permissions";
 
 const QuickAddMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
-
-  const menuItems = [
-    {
-      id: 1,
-      label: "Người liên hệ",
-      icon: <Group fontSize="small" />,
-      description: "Quản lý Bác sĩ",
-    },
-    {
-      id: 2,
-      label: "Đơn hàng",
-      icon: <Assignment fontSize="small" />,
-      description: "Quản lý Sản phẩm",
-    },
-    {
-      id: 3,
-      label: "Hóa đơn",
-      icon: <Description fontSize="small" />,
-    },
-    {
-      id: 4,
-      label: "Phiếu thu",
-      icon: <Download fontSize="small" />,
-    },
-    {
-      id: 5,
-      label: "Phiếu chi",
-      icon: <Upload fontSize="small" />,
-    },
-    {
-      id: 6,
-      label: "Khách hàng",
-      icon: <Business fontSize="small" />,
-      description: "Quản lý Bệnh nhân",
-    },
-  ];
 
   const navigate = useNavigate();
 
   const ROWS_PER_PAGE = 20;
 
   const [page, setPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
-  const [selectedPhieuThu, setSelectedPhieuThu] = useState(null);
 
   const dispatch = useDispatch();
+  const auth = useSelector((state) => state.auth);
+  const currentUser = auth?.user;
 
   const loadData = useCallback(() => {
     dispatch(
@@ -94,41 +59,49 @@ const QuickAddMenu = () => {
 
           {/* menu */}
           <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-xl border z-20 overflow-hidden">
-            <NhaKhoaModal isQuickMenu={true}></NhaKhoaModal>
-            <button
-              className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 border-b last:border-0"
-              onClick={() => {
-                navigate("/donhang/create");
-              }}
-            >
-              <span className="mr-3 text-gray-500">
-                <Assignment fontSize="small" />
-              </span>
-              <span className="font-medium">Thêm Đơn Hàng</span>
-            </button>
-            <button
-              className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 border-b last:border-0"
-              onClick={() => {
-                navigate("/cho-xuat-hoa-don");
-              }}
-            >
-              <span className="mr-3 text-gray-500">
-                <Description fontSize="small" />{" "}
-              </span>
-              <span className="font-medium">Thêm Hóa Đơn</span>
-            </button>
-            <button
-              className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 border-b last:border-0"
-              onClick={() => setOpenModal(true)}
-            >
-              <span className="mr-3 text-gray-500">
-                <Download fontSize="small" />,
-              </span>
-              <span className="font-medium">Thêm Phiếu Thu</span>
-            </button>
-            <NguoiLienHeModal isQuickMenu={true}></NguoiLienHeModal>
-            <BenhNhanModal isQuickMenu={true}></BenhNhanModal>
-            <StaffModal isQuickMenu={true}></StaffModal>
+            {hasRouteAccess(currentUser, "/nha-khoa") && <NhaKhoaModal isQuickMenu={true}></NhaKhoaModal>}
+            {hasRouteAccess(currentUser, "/don-hang") && (
+              <button
+                className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 border-b last:border-0"
+                onClick={() => {
+                  navigate("/donhang/create");
+                  setIsOpen(false);
+                }}
+              >
+                <span className="mr-3 text-gray-500">
+                  <Assignment fontSize="small" />
+                </span>
+                <span className="font-medium">Thêm Đơn Hàng</span>
+              </button>
+            )}
+            {hasRouteAccess(currentUser, "/cho-xuat-hoa-don") && (
+              <button
+                className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 border-b last:border-0"
+                onClick={() => {
+                  navigate("/cho-xuat-hoa-don");
+                  setIsOpen(false);
+                }}
+              >
+                <span className="mr-3 text-gray-500">
+                  <Description fontSize="small" />{" "}
+                </span>
+                <span className="font-medium">Thêm Hóa Đơn</span>
+              </button>
+            )}
+            {hasRouteAccess(currentUser, "/phieu-thu") && (
+              <button
+                className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 border-b last:border-0"
+                onClick={() => setOpenModal(true)}
+              >
+                <span className="mr-3 text-gray-500">
+                  <Download fontSize="small" />,
+                </span>
+                <span className="font-medium">Thêm Phiếu Thu</span>
+              </button>
+            )}
+            {hasRouteAccess(currentUser, "/nguoi-lien-he") && <NguoiLienHeModal isQuickMenu={true}></NguoiLienHeModal>}
+            {hasRouteAccess(currentUser, "/benh-nhan") && <BenhNhanModal isQuickMenu={true}></BenhNhanModal>}
+            {hasRouteAccess(currentUser, "/nhan-vien") && <StaffModal isQuickMenu={true}></StaffModal>}
             {/* {menuItems.map((item) => (
               <button
                 key={item.id}

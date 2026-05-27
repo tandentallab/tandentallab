@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../../config/api";
 import { CircularProgress, Button } from "@mui/material";
+import { toast } from "sonner";
 
 export default function CongTyPage() {
   const [company, setCompany] = useState({
@@ -59,10 +60,10 @@ export default function CongTyPage() {
       // Đóng tất cả edit mode
       Object.keys(editMode).forEach(key => setEditMode(prev => ({ ...prev, [key]: false })));
       
-      alert("Cập nhật thông tin công ty thành công!");
+      toast.success("Cập nhật thông tin công ty thành công!");
     } catch (error) {
       console.error("❌ Lỗi lưu:", error);
-      alert("Lỗi cập nhật thông tin công ty!");
+      toast.error("Lỗi cập nhật thông tin công ty!");
     } finally {
       setSaving(false);
     }
@@ -95,7 +96,7 @@ export default function CongTyPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8 bg-white rounded-2xl shadow-lg">
+    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 bg-white rounded-2xl shadow-lg my-4 md:my-8">
       {/* LOGO/AVATAR */}
       <div className="flex flex-col items-center mb-8 pb-8 border-b">
         <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mb-4">
@@ -126,7 +127,7 @@ export default function CongTyPage() {
             type="text"
             value={company.Ten}
             onChange={(e) => handleChange("Ten", e.target.value)}
-            className="w-full text-2xl font-bold border-b-2 border-blue-500 px-0 py-2 focus:outline-none"
+            className="w-full max-w-full text-2xl font-bold border-b-2 border-blue-500 px-0 py-2 focus:outline-none"
             autoFocus
           />
         ) : (
@@ -146,7 +147,7 @@ export default function CongTyPage() {
           <textarea
             value={company.GioiThieu}
             onChange={(e) => handleChange("GioiThieu", e.target.value)}
-            className="w-full border-b-2 border-blue-500 px-0 py-2 focus:outline-none"
+            className="w-full max-w-full border-b-2 border-blue-500 px-0 py-2 focus:outline-none"
             rows="3"
             autoFocus
           />
@@ -161,20 +162,20 @@ export default function CongTyPage() {
       </div>
 
       {/* WEBSITE, EMAIL, PHONE */}
-      <div className="mb-6 pb-6 border-b grid grid-cols-3 gap-6">
-        <div>
+      <div className="mb-6 pb-6 border-b grid grid-cols-1 sm:grid-cols-3 gap-6 w-full overflow-hidden">
+        <div className="min-w-0 w-full">
           <label className="text-xs font-bold text-gray-500 uppercase">Website</label>
           {editMode.Website ? (
             <input
               type="url"
               value={company.Website}
               onChange={(e) => handleChange("Website", e.target.value)}
-              className="w-full border-b-2 border-blue-500 px-0 py-2 focus:outline-none text-sm"
+              className="w-full max-w-full border-b-2 border-blue-500 px-0 py-2 focus:outline-none text-sm"
               autoFocus
             />
           ) : (
             <p
-              className="text-blue-600 hover:underline py-2 cursor-pointer text-sm min-h-6"
+              className="text-blue-600 hover:underline py-2 cursor-pointer text-sm min-h-6 truncate"
               onClick={() => toggleEditMode("Website")}
             >
               {company.Website}
@@ -182,19 +183,19 @@ export default function CongTyPage() {
           )}
         </div>
 
-        <div>
+        <div className="min-w-0 w-full">
           <label className="text-xs font-bold text-gray-500 uppercase">Email</label>
           {editMode.Email ? (
             <input
               type="email"
               value={company.Email}
               onChange={(e) => handleChange("Email", e.target.value)}
-              className="w-full border-b-2 border-blue-500 px-0 py-2 focus:outline-none text-sm"
+              className="w-full max-w-full border-b-2 border-blue-500 px-0 py-2 focus:outline-none text-sm"
               autoFocus
             />
           ) : (
             <p
-              className="text-gray-700 py-2 cursor-pointer hover:text-blue-500 text-sm min-h-6"
+              className="text-gray-700 py-2 cursor-pointer hover:text-blue-500 text-sm min-h-6 truncate"
               onClick={() => toggleEditMode("Email")}
             >
               {company.Email}
@@ -202,19 +203,19 @@ export default function CongTyPage() {
           )}
         </div>
 
-        <div>
+        <div className="min-w-0 w-full">
           <label className="text-xs font-bold text-gray-500 uppercase">Điện thoại</label>
           {editMode.DienThoai ? (
             <input
               type="tel"
               value={company.DienThoai}
               onChange={(e) => handleChange("DienThoai", e.target.value)}
-              className="w-full border-b-2 border-blue-500 px-0 py-2 focus:outline-none text-sm"
+              className="w-full max-w-full border-b-2 border-blue-500 px-0 py-2 focus:outline-none text-sm"
               autoFocus
             />
           ) : (
             <p
-              className="text-gray-700 py-2 cursor-pointer hover:text-blue-500 text-sm min-h-6"
+              className="text-gray-700 py-2 cursor-pointer hover:text-blue-500 text-sm min-h-6 truncate"
               onClick={() => toggleEditMode("DienThoai")}
             >
               {company.DienThoai}
@@ -230,7 +231,7 @@ export default function CongTyPage() {
           <textarea
             value={company.DiaChi}
             onChange={(e) => handleChange("DiaChi", e.target.value)}
-            className="w-full border-b-2 border-blue-500 px-0 py-2 focus:outline-none"
+            className="w-full max-w-full border-b-2 border-blue-500 px-0 py-2 focus:outline-none"
             rows="3"
             autoFocus
           />

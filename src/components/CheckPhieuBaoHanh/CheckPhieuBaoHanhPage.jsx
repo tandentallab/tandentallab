@@ -16,16 +16,35 @@ const parseToothPositions = (viTriRang) => {
   const entries = viTriRang.split(';').map(e => e.trim());
   
   entries.forEach(entry => {
+    // 1. Tìm các số răng riêng lẻ
     const numberMatches = entry.match(/\d+/g);
     if (numberMatches) {
       numberMatches.forEach(num => positions.add(parseInt(num)));
     }
-    const rangeMatch = entry.match(/(\d+)\s*-\s*(\d+)/g);
+    
+    // 2. Tìm khoảng răng (chấp nhận cả kí tự -> hoặc - hoặc –)
+    const rangeMatch = entry.match(/(\d+)\s*(?:->|-|–)\s*(\d+)/g);
     if (rangeMatch) {
       rangeMatch.forEach(range => {
-        const [start, end] = range.split('-').map(n => parseInt(n.trim()));
-        for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
-          positions.add(i);
+        const parts = range.split(/(?:->|-|–)/).map(n => parseInt(n.trim()));
+        if (parts.length === 2) {
+          const [start, end] = parts;
+          const indexStart = FULL_TEETH_ORDER.indexOf(start);
+          const indexEnd = FULL_TEETH_ORDER.indexOf(end);
+          
+          if (indexStart !== -1 && indexEnd !== -1) {
+            // Duyệt theo vị trí thực tế trên cung hàm (FDI World Dental Federation Grid)
+            const minIdx = Math.min(indexStart, indexEnd);
+            const maxIdx = Math.max(indexStart, indexEnd);
+            for (let i = minIdx; i <= maxIdx; i++) {
+              positions.add(FULL_TEETH_ORDER[i]);
+            }
+          } else {
+            // Nhỡ không khớp bảng răng thì fallback theo số học bình thường
+            for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+              positions.add(i);
+            }
+          }
         }
       });
     }

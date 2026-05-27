@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Box,
   Typography,
@@ -91,7 +92,7 @@ export default function QuyenSuDung() {
   // 📌 Lưu (thêm hoặc sửa)
   const handleSave = async () => {
     if (!formData.ten.trim()) {
-      alert("Tên quyền sử dụng không được để trống");
+      toast.error("Tên quyền sử dụng không được để trống");
       return;
     }
 
@@ -99,16 +100,20 @@ export default function QuyenSuDung() {
       if (editingId) {
         // Sửa
         await api.put(`/quyen-su-dung/${editingId}`, formData);
-        alert("Cập nhật thành công");
+        toast.success("Cập nhật thành công");
       } else {
         // Thêm mới
         await api.post("/quyen-su-dung", formData);
-        alert("Thêm thành công");
+        toast.success("Thêm thành công");
       }
       handleCloseModal();
       fetchQuyens();
+      // Reload lại trang để cập nhật permissions mới cho user hiện tại (nếu có thay đổi chính họ)
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
-      alert("Lỗi: " + error.response?.data?.message || error.message);
+      toast.error("Lỗi: " + error.response?.data?.message || error.message);
     }
   };
 
@@ -117,10 +122,13 @@ export default function QuyenSuDung() {
     if (window.confirm("Bạn có chắc chắn muốn xoá?")) {
       try {
         await api.delete(`/quyen-su-dung/${id}`);
-        alert("Xoá thành công");
+        toast.success("Xoá thành công");
         fetchQuyens();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } catch (error) {
-        alert("Lỗi: " + error.response?.data?.message || error.message);
+        toast.error("Lỗi: " + error.response?.data?.message || error.message);
       }
     }
   };

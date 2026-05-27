@@ -22,6 +22,7 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CloseIcon from "@mui/icons-material/Close";
 import StoreIcon from "@mui/icons-material/Store";
+import { toast } from "sonner";
 import DownloadIcon from "@mui/icons-material/Download";
 import SvgIcon from "@mui/material/SvgIcon";
 
@@ -255,9 +256,10 @@ const HoaDonPage = () => {
         const hasPresetDateRange = isValidExportDateFilter(exportDateFilter);
 
         if (!hasManualDateRange && !hasPresetDateRange) {
-            return alert(
+            toast.error(
                 "Vui lòng chọn khoảng thời gian (thủ công hoặc từ danh sách)."
             );
+            return;
         }
 
         try {
@@ -298,7 +300,7 @@ const HoaDonPage = () => {
             });
             setOpenExport(false);
         } catch (err) {
-            alert(
+            toast.error(
                 `Xuất Excel thất bại: ${err?.response?.data?.message || err.message}`
             );
         } finally {

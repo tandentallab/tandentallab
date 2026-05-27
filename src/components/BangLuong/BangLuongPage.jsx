@@ -139,9 +139,8 @@ const BangLuongPage = () => {
     try {
       await dispatch(deleteBangLuong(id)).unwrap();
       setSalaryData((prev) => prev.filter((item) => item.bangLuongId !== id));
-      alert("Xóa bảng lương thành công");
     } catch (err) {
-      alert(err);
+      console.error(err);
     }
   };
 
@@ -152,9 +151,8 @@ const BangLuongPage = () => {
       await dispatch(deleteBangLuongByMonthYear({ thang, nam })).unwrap();
       setSalaryData([]);
       dispatch(fetchBangLuong({ thang, nam }));
-      alert("Đã xóa toàn bộ bảng lương");
     } catch (err) {
-      alert(err);
+      console.error(err);
     }
   };
 
@@ -185,10 +183,9 @@ const BangLuongPage = () => {
           })
         ).unwrap();
       }
-      alert("Lưu bảng lương thành công");
       dispatch(fetchBangLuong({ thang, nam }));
     } catch (err) {
-      alert(err);
+      console.error(err);
     }
   };
 
@@ -196,7 +193,7 @@ const BangLuongPage = () => {
     try {
       await exportBangLuongToExcel(salaryData, thang, nam);
     } catch (err) {
-      alert("Xuất Excel thất bại");
+      console.error("Xuất Excel thất bại", err);
     }
   };
 
@@ -463,15 +460,13 @@ const BangLuongPage = () => {
             },
             {
               label: "Tổng quỹ lương",
-              value: `${Number(tongLuong).toLocaleString("vi-VN")} đ`,
+              value: `${(Math.round(tongLuong / 1000) * 1000).toLocaleString("vi-VN")}`,
               accent: "#10b981",
             },
             {
               label: "Lương TB/người",
               value: salaryData.length
-                ? `${Math.round(tongLuong / salaryData.length).toLocaleString(
-                  "vi-VN"
-                )} đ`
+                ? `${(Math.round(Math.round(tongLuong / salaryData.length) / 1000) * 1000).toLocaleString("vi-VN")}`
                 : "—",
               accent: "#f59e0b",
             },
@@ -547,7 +542,7 @@ const BangLuongPage = () => {
                     className="px-4 py-3 text-right text-base font-extrabold"
                     style={{ color: "#059669" }}
                   >
-                    {Number(tongLuong).toLocaleString("vi-VN")} đ
+                    {(Math.round(tongLuong / 1000) * 1000).toLocaleString("vi-VN")}
                   </td>
                 </tr>
               </tbody>
@@ -573,7 +568,7 @@ const BangLuongPage = () => {
                 color: "#93c5fd",
               }}
             >
-              Tổng: {Number(tongLuong).toLocaleString("vi-VN")} đ
+              Tổng: {(Math.round(tongLuong / 1000) * 1000).toLocaleString("vi-VN")}
             </span>
           </div>
 
@@ -607,7 +602,7 @@ const BangLuongPage = () => {
                   fontSize: 13,
                 }}
                 formatter={(v) => [
-                  `${Number(v).toLocaleString("vi-VN")} đ`,
+                  `${(Math.round(v / 1000) * 1000).toLocaleString("vi-VN")}`,
                   "Thực nhận",
                 ]}
               />

@@ -18,6 +18,7 @@ import {
   MenuItem,
   InputAdornment,
   Tooltip,
+  TablePagination,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -30,6 +31,10 @@ import { api } from "../../config/api";
 import { toast } from "sonner";
 import FullScreenLoader from "../Loader/FullScreenLoader";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
+import ExportDateSelector from "../common/ExportDateSelector";
+import { toISODateRange } from "../../utils/exportDatePresets";
 
 // Helper functions (Giữ nguyên logic gốc)
 const addYearsToDate = (dateValue, years) => {
@@ -51,6 +56,19 @@ const PhieuBaoHanhPage = () => {
   const [phieuList, setPhieuList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [nhaKhoaFilter, setNhaKhoaFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState({ startDate: null, endDate: null });
+
+  const dispatch = useDispatch();
+  const nhaKhoaState = useSelector((state) => state.nhaKhoa);
+  const nhaKhoaOptions = nhaKhoaState?.data || [];
+
   const [editingPhieu, setEditingPhieu] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -60,17 +78,42 @@ const PhieuBaoHanhPage = () => {
 
   const navigate = useNavigate();
 
-  // Load danh sách phiếu bảo hành (Giữ nguyên)
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(0); // Reset trang khi search
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  // Load danh sách phiếu bảo hành
+  useEffect(() => {
+    dispatch(fetchNhaKhoa());
+  }, [dispatch]);
+
   useEffect(() => {
     loadPhieuList();
-  }, []);
+  }, [page, rowsPerPage, debouncedSearch, nhaKhoaFilter, dateFilter]);
 
   const loadPhieuList = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/phieu-bao-hanh");
+      const dateRange = toISODateRange(dateFilter);
+      
+      const res = await api.get("/phieu-bao-hanh", {
+        params: {
+          page: page + 1,
+          limit: rowsPerPage,
+          search: debouncedSearch,
+          nhaKhoaId: nhaKhoaFilter,
+          fromDate: dateRange.fromISO,
+          toDate: dateRange.toISO,
+        }
+      });
       if (res.data?.success) {
         setPhieuList(res.data.data || []);
+        setTotalCount(res.data.total || 0);
       } else {
         toast.error("Lỗi khi tải danh sách phiếu bảo hành");
       }
@@ -81,15 +124,15 @@ const PhieuBaoHanhPage = () => {
     }
   };
 
-  // Filter danh sách (Giữ nguyên)
-  const filteredPhieu = phieuList.filter((phieu) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      phieu.maBaoHanh?.toLowerCase().includes(searchLower) ||
-      phieu.donHang?.maDonHang?.toLowerCase().includes(searchLower) ||
-      phieu.benhNhan?.hoVaTen?.toLowerCase().includes(searchLower)
-    );
-  });
+  // Pagination handlers
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   console.log("Danh sách phiếu bảo hành đã tải:", phieuList);
 
@@ -120,6 +163,126 @@ const PhieuBaoHanhPage = () => {
     setIsEditModalOpen(true);
   };
 
+  // Đồng bộ thông tin từ Đơn hàng hiện tại
+  const handleSyncFromOrder = async () => {
+    const orderId = editingPhieu.donHang?._id || editingPhieu.donHang;
+    if (!orderId) {
+      toast.error("Không tìm thấy thông tin đơn hàng tương ứng");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await api.get(`/donhang/${orderId}`);
+      if (res.data?.success) {
+        const latestOrder = res.data.data;
+        
+        // Hàm format vị trí răng
+        const formatViTri = (viTriArr) => {
+          if (!viTriArr || viTriArr.length === 0) return "";
+          return viTriArr
+            .map((v) =>
+              v.kieu === "Rời"
+                ? v.soRang.join(", ")
+                : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+            )
+            .join("; ");
+        };
+
+        // Chuẩn hóa danh sách sản phẩm từ đơn hàng mới nhất
+        const orderProducts = (latestOrder.danhSachSanPham || []).map((sp) => ({
+          sanPhamId: sp.sanPham?._id || sp.sanPham,
+          tenSanPham: sp.sanPham?.tenSanPham || sp.sanPham?.ten || "Sản phẩm",
+          viTriRang: formatViTri(sp.viTri),
+          soLuong: Number(sp.soLuong) || 1,
+          mau: sp.mau || "",
+          baoHanhMacDinh: sp.sanPham?.baoHanhMacDinh || 0,
+        }));
+
+        // Chuẩn hóa danh sách sản phẩm hiện tại của phiếu bảo hành
+        const currentWarrantyProducts = (editForm.danhSachBaoHanh || []).map((w) => ({
+          sanPhamId: w.sanPham?._id || w.sanPham,
+          tenSanPham: w.sanPham?.tenSanPham || w.sanPham?.ten || "Sản phẩm",
+          viTriRang: w.viTriRang || "",
+          soLuong: Number(w.soLuong) || 1,
+          mau: w.mau || "",
+        }));
+
+        // Sắp xếp để so sánh không phụ thuộc thứ tự phần tử
+        const sortFn = (a, b) => {
+          const idA = (a.sanPhamId || "").toString();
+          const idB = (b.sanPhamId || "").toString();
+          if (idA !== idB) return idA.localeCompare(idB);
+          return (a.viTriRang || "").localeCompare(b.viTriRang || "");
+        };
+
+        const sortedOrder = [...orderProducts].sort(sortFn);
+        const sortedCurrent = [...currentWarrantyProducts].sort(sortFn);
+
+        const isSame = sortedOrder.length === sortedCurrent.length &&
+          sortedOrder.every((op, idx) => {
+            const cwp = sortedCurrent[idx];
+            return op.sanPhamId === cwp.sanPhamId &&
+                   op.viTriRang === cwp.viTriRang &&
+                   op.soLuong === cwp.soLuong &&
+                   op.mau === cwp.mau;
+          });
+
+        if (isSame) {
+          toast.success("Dữ liệu đồng bộ");
+        } else {
+          // Xây dựng danh sách bảo hành mới dựa trên đơn hàng, bảo lưu ngày tháng của các sản phẩm khớp cũ
+          const newList = orderProducts.map((op) => {
+            const existingMatch = (editForm.danhSachBaoHanh || []).find((w) => {
+              const wId = w.sanPham?._id || w.sanPham;
+              return wId === op.sanPhamId && w.viTriRang === op.viTriRang;
+            });
+
+            if (existingMatch) {
+              return {
+                ...existingMatch,
+                soLuong: op.soLuong,
+                mau: op.mau,
+              };
+            }
+
+            const newBaoHanhTu = editingPhieu.createdAt
+              ? new Date(editingPhieu.createdAt).toISOString().slice(0, 10)
+              : new Date().toISOString().slice(0, 10);
+            const defaultYears = op.baoHanhMacDinh || 0;
+            const newBaoHanhDen = addYearsToDate(newBaoHanhTu, defaultYears);
+
+            return {
+              sanPham: {
+                _id: op.sanPhamId,
+                tenSanPham: op.tenSanPham,
+              },
+              viTriRang: op.viTriRang,
+              soLuong: op.soLuong,
+              mau: op.mau,
+              baoHanhTu: newBaoHanhTu,
+              baoHanhDen: newBaoHanhDen,
+              selectedYears: defaultYears > 0 ? defaultYears : "",
+              customEndDate: "",
+            };
+          });
+
+          setEditForm({
+            ...editForm,
+            danhSachBaoHanh: newList,
+          });
+          toast.success("Đã đồng bộ thông tin mới từ đơn hàng!");
+        }
+      } else {
+        toast.error(res.data?.message || "Lỗi khi lấy dữ liệu đơn hàng");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Lỗi khi lấy dữ liệu đơn hàng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Lưu chỉnh sửa (Giữ nguyên)
   const handleSaveEdit = async () => {
     try {
@@ -133,7 +296,7 @@ const PhieuBaoHanhPage = () => {
         danhSachBaoHanh: cleanedDanhSach,
       });
       if (res.data?.success) {
-        toast.success("Cập nhật phiếu bảo hành thành công");
+        toast.success("Đã cập nhật Phiếu bảo hành");
         setIsEditModalOpen(false);
         loadPhieuList();
       } else {
@@ -166,10 +329,8 @@ const PhieuBaoHanhPage = () => {
     }
   };
 
-  if (loading && phieuList.length === 0) return <FullScreenLoader />;
-
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto bg-slate-50 min-h-screen">
+    <div className="w-full p-4 md:p-8 max-w-7xl mx-auto bg-slate-50 min-h-screen">
       {/* Header Section */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div>
@@ -193,8 +354,8 @@ const PhieuBaoHanhPage = () => {
         </Button>
       </div>
 
-      {/* Search Bar */}
-      <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+      {/* Filters & Search Bar */}
+      <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-start">
         <TextField
           placeholder="Tìm kiếm nhanh theo mã phiếu, mã đơn hàng, tên bệnh nhân..."
           value={searchTerm}
@@ -210,7 +371,40 @@ const PhieuBaoHanhPage = () => {
             ),
             className: "bg-slate-50/50 rounded-lg text-sm",
           }}
+          className="flex-1"
         />
+        <div className="flex gap-4 w-full md:w-auto shrink-0 items-start">
+          <ExportDateSelector
+            placeholder="Chọn ngày tạo"
+            value={dateFilter}
+            onChange={(dates) => {
+              setDateFilter(dates);
+              setPage(0);
+            }}
+          />
+          <TextField
+            select
+            size="small"
+            value={nhaKhoaFilter}
+            onChange={(e) => {
+              setNhaKhoaFilter(e.target.value);
+              setPage(0);
+            }}
+            className="w-full md:w-48 bg-slate-50/50 rounded-lg"
+            SelectProps={{
+              displayEmpty: true,
+            }}
+          >
+            <MenuItem value="all">
+              <span className="text-slate-500">Tất cả nha khoa</span>
+            </MenuItem>
+            {nhaKhoaOptions.map((nk) => (
+              <MenuItem key={nk._id} value={nk._id}>
+                {nk.tenNhaKhoa || nk.hoVaTen || "Không tên"}
+              </MenuItem>
+            ))}
+          </TextField>
+        </div>
       </div>
 
       {/* Desktop: Table Layout */}
@@ -257,8 +451,8 @@ const PhieuBaoHanhPage = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredPhieu.length > 0 ? (
-                  filteredPhieu.map((phieu) => (
+                {phieuList.length > 0 ? (
+                  phieuList.map((phieu) => (
                     <TableRow
                       key={phieu._id}
                       hover
@@ -319,9 +513,16 @@ const PhieuBaoHanhPage = () => {
                                 )}
                                 {item.mau && <span>| Màu: {item.mau}</span>}
                               </div>
-                              <div className="text-blue-700 font-medium mt-1 bg-blue-50/50 inline-block px-1.5 py-0.5 rounded">
-                                {formatDateVN(item.baoHanhTu)} →{" "}
-                                {formatDateVN(item.baoHanhDen)}
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="text-blue-700 font-medium bg-blue-50/50 inline-block px-1.5 py-0.5 rounded">
+                                  {formatDateVN(item.baoHanhTu)} →{" "}
+                                  {formatDateVN(item.baoHanhDen)}
+                                </div>
+                                {new Date(item.baoHanhDen) >= new Date() ? (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">Còn BH</span>
+                                ) : (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200">Hết BH</span>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -378,20 +579,32 @@ const PhieuBaoHanhPage = () => {
                       align="center"
                       className="py-12 text-slate-400 font-medium"
                     >
-                      Không tìm thấy dữ liệu phiếu bảo hành phù hợp
+                      {loading ? "Đang tải dữ liệu..." : "Không tìm thấy dữ liệu phiếu bảo hành phù hợp"}
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
+          <div className="border-t border-gray-100 bg-white shrink-0 z-10 relative rounded-b-xl">
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              component="div"
+              count={totalCount}
+              page={page}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Số hàng mỗi trang"
+            />
+          </div>
         </TableContainer>
       </div>
 
       {/* Mobile: Card Layout */}
       <div className="md:hidden space-y-4">
-        {filteredPhieu.length > 0 ? (
-          filteredPhieu.map((phieu) => (
+        {phieuList.length > 0 ? (
+          phieuList.map((phieu) => (
             <Paper
               key={phieu._id}
               elevation={0}
@@ -503,9 +716,16 @@ const PhieuBaoHanhPage = () => {
                           {item.soLuong && <span>SL: {item.soLuong}</span>}
                           {item.mau && <span>Màu: {item.mau}</span>}
                         </div>
-                        <div className="text-blue-700 font-semibold mt-1.5 bg-white border border-blue-100 inline-block px-2 py-0.5 rounded shadow-xs">
-                          {formatDateVN(item.baoHanhTu)} →{" "}
-                          {formatDateVN(item.baoHanhDen)}
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <div className="text-blue-700 font-semibold bg-white border border-blue-100 inline-block px-2 py-0.5 rounded shadow-xs">
+                            {formatDateVN(item.baoHanhTu)} →{" "}
+                            {formatDateVN(item.baoHanhDen)}
+                          </div>
+                          {new Date(item.baoHanhDen) >= new Date() ? (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">Còn BH</span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200">Hết BH</span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -526,10 +746,22 @@ const PhieuBaoHanhPage = () => {
             </Paper>
           ))
         ) : (
-          <Paper className="p-8 text-center text-slate-400 font-medium border border-slate-200 rounded-xl">
-            Không tìm thấy phiếu bảo hành nào
-          </Paper>
+          <div className="py-12 text-center text-slate-400 font-medium bg-white rounded-xl border border-slate-200">
+            {loading ? "Đang tải dữ liệu..." : "Không tìm thấy dữ liệu phiếu bảo hành phù hợp"}
+          </div>
         )}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={totalCount}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            labelRowsPerPage="Số hàng"
+          />
+        </div>
       </div>
 
       {/* Edit Modal */}
@@ -745,6 +977,16 @@ const PhieuBaoHanhPage = () => {
         </DialogContent>
 
         <DialogActions className="p-4 bg-white border-t border-slate-100 gap-2">
+          <Button
+            onClick={handleSyncFromOrder}
+            variant="outlined"
+            color="primary"
+            disabled={loading}
+            style={{ marginRight: "auto" }}
+            className="text-blue-600 border-blue-600 font-semibold px-4 py-2 normal-case rounded-lg hover:bg-blue-50"
+          >
+            Cập nhật phiếu BH
+          </Button>
           <Button
             onClick={() => setIsEditModalOpen(false)}
             className="text-slate-500 font-semibold px-4 py-2 normal-case rounded-lg hover:bg-slate-100"

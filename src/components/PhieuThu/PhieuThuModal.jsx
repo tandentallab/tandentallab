@@ -182,11 +182,20 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     }
   };
 
-  // 🔥 SỬA: Auto-phân bổ ưu tiên gánh nợ cho hóa đơn cũ trước
+  // 🔥 SỬA: Auto-phân bổ ưu tiên gánh nợ cho hóa đơn cũ trước và CHẶN VƯỢT GIÁ
   const handleSoTienThuInput = (raw) => {
     const digits = raw.replace(/[^\d]/g, "");
-    const total = Number(digits) || 0;
-    setSoTienThuInput(digits);
+    let total = Number(digits) || 0; // Đổi const thành let để có thể gán lại
+
+    // Tính tổng công nợ hiện tại
+    const tongConNoHienTai = hoaDonChuaThanhToan.reduce((sum, hd) => sum + (hd.conLai || 0), 0);
+
+    // 🔥 RÀNG BUỘC: Nếu gõ lố tổng nợ thì tự động chặn lại ở mức tối đa bằng tổng nợ
+    if (total > tongConNoHienTai) {
+      total = tongConNoHienTai;
+    }
+
+    setSoTienThuInput(total > 0 ? String(total) : "");
 
     // Sắp xếp: Ưu tiên ngày xuất hóa đơn cũ nhất, nếu bằng nhau thì ưu tiên theo thời gian tạo.
     const sorted = [...hoaDonChuaThanhToan].sort((a, b) => {
@@ -230,6 +239,12 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     setSubmitError("");
     if (!selectedNhaKhoa) {
       setSubmitError("Vui lòng chọn khách hàng.");
+      return;
+    }
+    // 🔥 THÊM KHÓA AN TOÀN TRƯỚC KHI LƯU
+    const tongConNoHienTai = hoaDonChuaThanhToan.reduce((sum, hd) => sum + (hd.conLai || 0), 0);
+    if (tongThuTien > tongConNoHienTai) {
+      setSubmitError(`Số tiền thu không được vượt quá tổng công nợ (${fmt(tongConNoHienTai)} ₫).`);
       return;
     }
 

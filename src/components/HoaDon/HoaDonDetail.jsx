@@ -824,7 +824,10 @@ const HoaDonDetail = () => {
       <PhieuThuModal
         open={ptOpen}
         onClose={() => setPtOpen(false)}
-        onSuccess={reloadData}
+        onSuccess={() => {
+          toast.success("Tạo phiếu thu thành công!");
+          navigate('/phieu-thu');
+        }}
         initialNhaKhoaId={hoaDon?.nhaKhoa?._id}
         initialHoaDonId={hoaDon?._id}
       />

@@ -489,3 +489,11 @@ export default function BaoCaoDoanhThuPage() {
         </Box>
     );
 }
+
+
+// SAU NÀY CÓ ĐỔI SANG THÁNG 6
+// Dòng 1: đổi tháng mặc định
+// const [activeThang, setActiveThang] = useState(5);  // → useState(6)
+
+// Dòng 2: đổi danh sách tab
+// const THANG_LIST = [5, 6];  // → [6]

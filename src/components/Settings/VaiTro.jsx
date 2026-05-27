@@ -108,6 +108,10 @@ export default function QuyenSuDung() {
       }
       handleCloseModal();
       fetchQuyens();
+      // Reload lại trang để cập nhật permissions mới cho user hiện tại (nếu có thay đổi chính họ)
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       toast.error("Lỗi: " + error.response?.data?.message || error.message);
     }
@@ -120,6 +124,9 @@ export default function QuyenSuDung() {
         await api.delete(`/quyen-su-dung/${id}`);
         toast.success("Xoá thành công");
         fetchQuyens();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } catch (error) {
         toast.error("Lỗi: " + error.response?.data?.message || error.message);
       }

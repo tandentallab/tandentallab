@@ -493,15 +493,66 @@ const KeHoachGiaoHangTable = () => {
         <div id="print-section" className="hidden print:block w-full">
           <style>{`
             @media print {
-              @page { size: A4 landscape; margin: 10mm; }
+              @page { 
+                size: A4 landscape; 
+                margin: 8mm; 
+              }
+              
+              /* Triệt tiêu các thuộc tính căn chỉnh flex, margin, padding của các thẻ cha (Dashboard/Header/Sidebar) khi in */
+              html, body, #root, #root > div, main, .bg-gray-100, .max-w-full {
+                position: static !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                display: block !important;
+                box-shadow: none !important;
+                background: white !important;
+              }
+              
               body * { visibility: hidden; }
               #print-section, #print-section * { visibility: visible; }
               #print-section {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
                 background-color: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+                display: block !important;
+              }
+              #print-section h2 {
+                margin: 0 0 16px 0 !important;
+                padding: 0 !important;
+                text-align: center !important;
+                font-size: 20px !important;
+                font-weight: bold !important;
+                text-transform: uppercase !important;
+              }
+              #print-section table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin: 0 !important;
+                padding: 0 !important;
+              }
+              #print-section table td,
+              #print-section table th {
+                border: 1px solid black !important;
+                padding: 8px 10px !important;
+                font-size: 13px !important;
+                line-height: 1.4 !important;
+                vertical-align: middle !important;
+              }
+              #print-section table th {
+                background-color: #f3f4f6 !important;
+                font-weight: bold !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
             }
           `}</style>

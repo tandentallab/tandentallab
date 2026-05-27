@@ -18,6 +18,7 @@ import {
   MenuItem,
   InputAdornment,
   Tooltip,
+  TablePagination,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -30,6 +31,10 @@ import { api } from "../../config/api";
 import { toast } from "sonner";
 import FullScreenLoader from "../Loader/FullScreenLoader";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
+import ExportDateSelector from "../common/ExportDateSelector";
+import { toISODateRange } from "../../utils/exportDatePresets";
 
 // Helper functions (Giữ nguyên logic gốc)
 const addYearsToDate = (dateValue, years) => {
@@ -51,6 +56,19 @@ const PhieuBaoHanhPage = () => {
   const [phieuList, setPhieuList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [nhaKhoaFilter, setNhaKhoaFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState({ startDate: null, endDate: null });
+
+  const dispatch = useDispatch();
+  const nhaKhoaState = useSelector((state) => state.nhaKhoa);
+  const nhaKhoaOptions = nhaKhoaState?.data || [];
+
   const [editingPhieu, setEditingPhieu] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -60,17 +78,42 @@ const PhieuBaoHanhPage = () => {
 
   const navigate = useNavigate();
 
-  // Load danh sách phiếu bảo hành (Giữ nguyên)
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(0); // Reset trang khi search
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  // Load danh sách phiếu bảo hành
+  useEffect(() => {
+    dispatch(fetchNhaKhoa());
+  }, [dispatch]);
+
   useEffect(() => {
     loadPhieuList();
-  }, []);
+  }, [page, rowsPerPage, debouncedSearch, nhaKhoaFilter, dateFilter]);
 
   const loadPhieuList = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/phieu-bao-hanh");
+      const dateRange = toISODateRange(dateFilter);
+      
+      const res = await api.get("/phieu-bao-hanh", {
+        params: {
+          page: page + 1,
+          limit: rowsPerPage,
+          search: debouncedSearch,
+          nhaKhoaId: nhaKhoaFilter,
+          fromDate: dateRange.fromISO,
+          toDate: dateRange.toISO,
+        }
+      });
       if (res.data?.success) {
         setPhieuList(res.data.data || []);
+        setTotalCount(res.data.total || 0);
       } else {
         toast.error("Lỗi khi tải danh sách phiếu bảo hành");
       }
@@ -81,15 +124,15 @@ const PhieuBaoHanhPage = () => {
     }
   };
 
-  // Filter danh sách (Giữ nguyên)
-  const filteredPhieu = phieuList.filter((phieu) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      phieu.maBaoHanh?.toLowerCase().includes(searchLower) ||
-      phieu.donHang?.maDonHang?.toLowerCase().includes(searchLower) ||
-      phieu.benhNhan?.hoVaTen?.toLowerCase().includes(searchLower)
-    );
-  });
+  // Pagination handlers
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   // Mở modal edit (Giữ nguyên)
   const handleOpenEdit = (phieu) => {
@@ -164,10 +207,8 @@ const PhieuBaoHanhPage = () => {
     }
   };
 
-  if (loading && phieuList.length === 0) return <FullScreenLoader />;
-
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto bg-slate-50 min-h-screen">
+    <div className="w-full p-4 md:p-8 max-w-7xl mx-auto bg-slate-50 min-h-screen">
       {/* Header Section */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div>
@@ -191,8 +232,8 @@ const PhieuBaoHanhPage = () => {
         </Button>
       </div>
 
-      {/* Search Bar */}
-      <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+      {/* Filters & Search Bar */}
+      <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-start">
         <TextField
           placeholder="Tìm kiếm nhanh theo mã phiếu, mã đơn hàng, tên bệnh nhân..."
           value={searchTerm}
@@ -208,7 +249,40 @@ const PhieuBaoHanhPage = () => {
             ),
             className: "bg-slate-50/50 rounded-lg text-sm",
           }}
+          className="flex-1"
         />
+        <div className="flex gap-4 w-full md:w-auto shrink-0 items-start">
+          <ExportDateSelector
+            placeholder="Chọn ngày tạo"
+            value={dateFilter}
+            onChange={(dates) => {
+              setDateFilter(dates);
+              setPage(0);
+            }}
+          />
+          <TextField
+            select
+            size="small"
+            value={nhaKhoaFilter}
+            onChange={(e) => {
+              setNhaKhoaFilter(e.target.value);
+              setPage(0);
+            }}
+            className="w-full md:w-48 bg-slate-50/50 rounded-lg"
+            SelectProps={{
+              displayEmpty: true,
+            }}
+          >
+            <MenuItem value="all">
+              <span className="text-slate-500">Tất cả nha khoa</span>
+            </MenuItem>
+            {nhaKhoaOptions.map((nk) => (
+              <MenuItem key={nk._id} value={nk._id}>
+                {nk.tenNhaKhoa || nk.hoVaTen || "Không tên"}
+              </MenuItem>
+            ))}
+          </TextField>
+        </div>
       </div>
 
       {/* Desktop: Table Layout */}
@@ -255,8 +329,8 @@ const PhieuBaoHanhPage = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredPhieu.length > 0 ? (
-                  filteredPhieu.map((phieu) => (
+                {phieuList.length > 0 ? (
+                  phieuList.map((phieu) => (
                     <TableRow
                       key={phieu._id}
                       hover
@@ -317,9 +391,16 @@ const PhieuBaoHanhPage = () => {
                                 )}
                                 {item.mau && <span>| Màu: {item.mau}</span>}
                               </div>
-                              <div className="text-blue-700 font-medium mt-1 bg-blue-50/50 inline-block px-1.5 py-0.5 rounded">
-                                {formatDateVN(item.baoHanhTu)} →{" "}
-                                {formatDateVN(item.baoHanhDen)}
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="text-blue-700 font-medium bg-blue-50/50 inline-block px-1.5 py-0.5 rounded">
+                                  {formatDateVN(item.baoHanhTu)} →{" "}
+                                  {formatDateVN(item.baoHanhDen)}
+                                </div>
+                                {new Date(item.baoHanhDen) >= new Date() ? (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">Còn BH</span>
+                                ) : (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200">Hết BH</span>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -376,20 +457,32 @@ const PhieuBaoHanhPage = () => {
                       align="center"
                       className="py-12 text-slate-400 font-medium"
                     >
-                      Không tìm thấy dữ liệu phiếu bảo hành phù hợp
+                      {loading ? "Đang tải dữ liệu..." : "Không tìm thấy dữ liệu phiếu bảo hành phù hợp"}
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
+          <div className="border-t border-gray-100 bg-white shrink-0 z-10 relative rounded-b-xl">
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              component="div"
+              count={totalCount}
+              page={page}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Số hàng mỗi trang"
+            />
+          </div>
         </TableContainer>
       </div>
 
       {/* Mobile: Card Layout */}
       <div className="md:hidden space-y-4">
-        {filteredPhieu.length > 0 ? (
-          filteredPhieu.map((phieu) => (
+        {phieuList.length > 0 ? (
+          phieuList.map((phieu) => (
             <Paper
               key={phieu._id}
               elevation={0}
@@ -501,9 +594,16 @@ const PhieuBaoHanhPage = () => {
                           {item.soLuong && <span>SL: {item.soLuong}</span>}
                           {item.mau && <span>Màu: {item.mau}</span>}
                         </div>
-                        <div className="text-blue-700 font-semibold mt-1.5 bg-white border border-blue-100 inline-block px-2 py-0.5 rounded shadow-xs">
-                          {formatDateVN(item.baoHanhTu)} →{" "}
-                          {formatDateVN(item.baoHanhDen)}
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <div className="text-blue-700 font-semibold bg-white border border-blue-100 inline-block px-2 py-0.5 rounded shadow-xs">
+                            {formatDateVN(item.baoHanhTu)} →{" "}
+                            {formatDateVN(item.baoHanhDen)}
+                          </div>
+                          {new Date(item.baoHanhDen) >= new Date() ? (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">Còn BH</span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200">Hết BH</span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -524,10 +624,22 @@ const PhieuBaoHanhPage = () => {
             </Paper>
           ))
         ) : (
-          <Paper className="p-8 text-center text-slate-400 font-medium border border-slate-200 rounded-xl">
-            Không tìm thấy phiếu bảo hành nào
-          </Paper>
+          <div className="py-12 text-center text-slate-400 font-medium bg-white rounded-xl border border-slate-200">
+            {loading ? "Đang tải dữ liệu..." : "Không tìm thấy dữ liệu phiếu bảo hành phù hợp"}
+          </div>
         )}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={totalCount}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            labelRowsPerPage="Số hàng"
+          />
+        </div>
       </div>
 
       {/* Edit Modal */}

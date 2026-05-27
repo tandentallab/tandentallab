@@ -195,6 +195,10 @@ const DonHangForm = () => {
   const [quickAddBacSi, setQuickAddBacSi] = useState({ open: false, loading: false, form: { hoVaTen: "", email: "", soDienThoai: "", tieuDe: "", moTa: "" } });
   const [quickAddBenhNhan, setQuickAddBenhNhan] = useState({ open: false, loading: false, form: { hoVaTen: "", soHoSo: "", gioiTinh: "", tinh: "", quanHuyen: "" } });
 
+  const [isDirty, setIsDirty] = useState(false);
+  const [showExitWarning, setShowExitWarning] = useState(false);
+  const markDirty = () => setIsDirty(true);
+
   const [isViTriModalOpen, setIsViTriModalOpen] = useState(false);
   const [editingSpIndex, setEditingSpIndex] = useState(null);
   const [isSanPhamModalOpen, setIsSanPhamModalOpen] = useState(false);
@@ -379,8 +383,10 @@ const DonHangForm = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isEditMode, id]);
 
-  const handleInputChange = (e) =>
+  const handleInputChange = (e) => {
+    markDirty();
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   // ===== QUICK-ADD HANDLERS =====
   const handleQuickAddNhaKhoa = async () => {
@@ -429,6 +435,7 @@ const DonHangForm = () => {
 
   // <-- THÊM MỚI: Xử lý bật Modal khi chọn Hàng sửa/Làm lại
   const handleSanPhamChange = (index, field, value) => {
+    markDirty();
     const newDsSp = [...formData.danhSachSanPham];
     // FIX: Clone object con để tránh mutate state trực tiếp
     newDsSp[index] = { ...newDsSp[index], [field]: value };
@@ -455,6 +462,7 @@ const DonHangForm = () => {
 
   // <-- THÊM MỚI: Đắp dữ liệu từ đơn cũ sang dòng hiện tại
   const handleApplyOldOrder = (oldOrder) => {
+    markDirty();
     const index = modalDonHangCuInfo.index;
     const newDsSp = [...formData.danhSachSanPham];
     const spCu = oldOrder.danhSachSanPham || [];
@@ -493,9 +501,18 @@ const DonHangForm = () => {
   };
 
   const handleRemoveSanPham = (index) => {
+    markDirty();
     const newDsSp = [...formData.danhSachSanPham];
     newDsSp.splice(index, 1);
     setFormData({ ...formData, danhSachSanPham: newDsSp });
+  };
+
+  const handleClose = () => {
+    if (isDirty) {
+      setShowExitWarning(true);
+    } else {
+      navigate(-1);
+    }
   };
 
   const handleViewDonHangGoc = async (donHangCuId) => {
@@ -510,11 +527,13 @@ const DonHangForm = () => {
   };
 
   const handleDateChange = (field, date, time) => {
+    markDirty();
     if (!date) { setFormData(f => ({ ...f, [field]: "" })); return; }
     setFormData(f => ({ ...f, [field]: `${date}T${time || "00:00"}` }));
   };
 
   const handleSaveViTri = (dataViTri) => {
+    markDirty();
     let totalTeeth = 0;
     dataViTri.forEach((item) => {
       totalTeeth += item.soRang.length;
@@ -540,15 +559,22 @@ const DonHangForm = () => {
     }
     if (!formData.henGiao) {
       errors.push("Chưa nhập Hẹn giao");
-    } else if (formData.ngayNhan && new Date(formData.henGiao) <= new Date(formData.ngayNhan)) {
-      errors.push("Hẹn giao phải sau Ngày nhận");
+    } else if (formData.ngayNhan && new Date(formData.henGiao) < new Date(formData.ngayNhan)) {
+      errors.push("Hẹn giao không được trước Ngày nhận");
     }
     if (
       formData.yeuCauHoanThanh &&
       formData.ngayNhan &&
-      new Date(formData.yeuCauHoanThanh) <= new Date(formData.ngayNhan)
+      new Date(formData.yeuCauHoanThanh) < new Date(formData.ngayNhan)
     ) {
-      errors.push("Y/c hoàn thành phải sau Ngày nhận");
+      errors.push("Y/c hoàn thành không được trước Ngày nhận");
+    }
+    if (
+      formData.yeuCauHoanThanh &&
+      formData.henGiao &&
+      new Date(formData.henGiao) < new Date(formData.yeuCauHoanThanh)
+    ) {
+      errors.push("Hẹn giao không được trước Y/c hoàn thành");
     }
 
     if (formData.danhSachSanPham.length === 0) {
@@ -556,6 +582,7 @@ const DonHangForm = () => {
     } else {
       formData.danhSachSanPham.forEach((sp, i) => {
         if (!sp.sanPham) errors.push(`Dòng ${i + 1}: Chưa chọn sản phẩm`);
+        if (!sp.viTri || sp.viTri.length === 0) errors.push(`Dòng ${i + 1}: Chưa chọn vị trí răng`);
       });
     }
 
@@ -602,6 +629,8 @@ const DonHangForm = () => {
   const handleSaveRef = useRef(null);
   handleSaveRef.current = handleSave;
 
+
+
   const renderViTriText = (viTriArr) => {
     if (!viTriArr || viTriArr.length === 0) return "";
     return viTriArr
@@ -624,7 +653,7 @@ const DonHangForm = () => {
           {isEditMode ? "Chỉnh sửa đơn hàng" : "Tạo đơn hàng mới"}
         </span>
         <button
-          onClick={() => navigate(-1)}
+          onClick={handleClose}
           className="text-white text-2xl font-bold leading-none hover:text-gray-200 transition"
         >
           &times;
@@ -864,7 +893,8 @@ const DonHangForm = () => {
                   <tr>
                     <td colSpan="8" className="p-0 bg-[#f0f9ff]">
                       <button
-                        onClick={() =>
+                        onClick={() => {
+                          markDirty();
                           setFormData({
                             ...formData,
                             danhSachSanPham: [
@@ -879,8 +909,8 @@ const DonHangForm = () => {
                                 yeuCauThu: [],
                               },
                             ],
-                          })
-                        }
+                          });
+                        }}
                         className="w-full py-4 px-6 text-green-600 font-bold hover:bg-blue-100 cursor-pointer flex items-center justify-start gap-2 transition"
                       >
                         <span className="text-3xl leading-none font-black">
@@ -1079,6 +1109,42 @@ const DonHangForm = () => {
           warranty={selectedWarranty}
           donHang={formData}
         />
+      )}
+
+      {/* Modal cảnh báo thoát chưa lưu */}
+      {showExitWarning && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4">
+            <div className="flex items-center gap-3 mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7 text-yellow-500 shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <h3 className="font-bold text-base text-gray-800">Thoát mà chưa lưu?</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-5">Bạn có thay đổi chưa được lưu. Nếu thoát, các thay đổi sẽ bị mất.</p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowExitWarning(false)}
+                className="px-4 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
+              >
+                Ở lại
+              </button>
+              <button
+                onClick={() => navigate(-1)}
+                className="px-4 py-1.5 text-sm rounded bg-red-500 text-white hover:bg-red-600"
+              >
+                Thoát không lưu
+              </button>
+              <button
+                onClick={() => { setShowExitWarning(false); handleSaveRef.current(); }}
+                className="px-4 py-1.5 text-sm rounded bg-blue-500 text-white hover:bg-blue-600"
+              >
+                Lưu và thoát
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Overlay xem đơn hàng gốc */}

@@ -203,8 +203,31 @@ export default function ChonViTriRangModal({
                     ? next.filter((o) => !o.soRang.includes(t))
                     : [...next, { kieu: 'Rời', soRang: [t] }];
             } else {
-                const dup = next.some((o) => JSON.stringify(o.soRang) === JSON.stringify(range));
-                if (!dup) next = [...next, { kieu: 'Cầu', soRang: range }];
+                // Split upper jaw and lower jaw into separate bridges
+                const upperPart = range.filter(t => upperRow.includes(t));
+                const lowerPart = range.filter(t => lowerRow.includes(t));
+
+                if (upperPart.length > 0 && lowerPart.length > 0) {
+                    // Cross-jaw: add two separate entries
+                    if (upperPart.length === 1) {
+                        if (!next.some(o => o.soRang.includes(upperPart[0])))
+                            next = [...next, { kieu: 'Rời', soRang: upperPart }];
+                    } else {
+                        const dup = next.some(o => JSON.stringify(o.soRang) === JSON.stringify(upperPart));
+                        if (!dup) next = [...next, { kieu: 'Cầu', soRang: upperPart }];
+                    }
+                    if (lowerPart.length === 1) {
+                        if (!next.some(o => o.soRang.includes(lowerPart[0])))
+                            next = [...next, { kieu: 'Rời', soRang: lowerPart }];
+                    } else {
+                        const dup = next.some(o => JSON.stringify(o.soRang) === JSON.stringify(lowerPart));
+                        if (!dup) next = [...next, { kieu: 'Cầu', soRang: lowerPart }];
+                    }
+                } else {
+                    // Same jaw: single bridge
+                    const dup = next.some((o) => JSON.stringify(o.soRang) === JSON.stringify(range));
+                    if (!dup) next = [...next, { kieu: 'Cầu', soRang: range }];
+                }
             }
             const used = new Set();
             return next

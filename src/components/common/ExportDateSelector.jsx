@@ -37,6 +37,7 @@ const ExportDateSelector = ({
   title,
   value,
   onChange,
+  placeholder = "Chọn khoảng ngày",
   maxRangeDays = 30,
 }) => {
   const [openCalendar, setOpenCalendar] = useState(false);
@@ -136,9 +137,11 @@ const ExportDateSelector = ({
 
   return (
     <Box className="export-date-selector" ref={wrapperRef}>
-      <Typography variant="subtitle2" className="font-semibold text-gray-700 mb-1">
-        {title}
-      </Typography>
+      {title && (
+        <Typography variant="subtitle2" className="font-semibold text-gray-700 mb-1">
+          {title}
+        </Typography>
+      )}
 
       <FormControl fullWidth size="small" sx={{ mb: value?.preset === "custom" ? 1.5 : 0.5 }}>
         <Select
@@ -146,7 +149,7 @@ const ExportDateSelector = ({
           value={value?.preset || ""}
           onChange={(e) => handlePresetChange(e.target.value)}
           renderValue={(selected) => {
-            if (!selected) return <span className="text-gray-500">Chọn khoảng ngày</span>;
+            if (!selected) return <span className="text-gray-500">{placeholder}</span>;
             const label = EXPORT_DATE_PRESETS.find((item) => item.key === selected)?.label || selected;
             return <span>{label}</span>;
           }}

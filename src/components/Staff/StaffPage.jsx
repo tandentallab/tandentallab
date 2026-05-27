@@ -11,9 +11,9 @@ export default function StaffPage() {
   const isAdmin = resolveAppRoleFromUser(user) === APP_ROLES.ADMIN;
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between mb-4">
-        <h2 className="text-xl font-bold">Tài khoản</h2>
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+        <h2 className="text-2xl font-bold text-gray-800">Tài khoản</h2>
         {isAdmin && <StaffModal />}
       </div>
       <StaffTable />

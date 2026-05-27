@@ -23,7 +23,8 @@ const now = new Date();
 const currentYear = now.getFullYear();
 const currentMonth = now.getMonth() + 1;
 
-const BASE_YEAR = 2024;
+const BASE_YEAR = 2026;
+const BASE_MONTH = 5;
 const NAM_LIST = Array.from(
     { length: currentYear - BASE_YEAR + 1 },
     (_, i) => BASE_YEAR + i
@@ -172,10 +173,24 @@ export default function BaoCaoDoanhThuPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
 
     // ── Báo cáo ───────────────────────────────────────────────────────────────
-    const availableMonths = nam === currentYear
-        ? Array.from({ length: Math.min(currentMonth + 1, 12) }, (_, i) => i + 1)
-        : Array.from({ length: 12 }, (_, i) => i + 1);
+    let startMonth = 1;
+    let endMonth = 12;
 
+    // 1. Chặn biên dưới: Nếu đang xem năm bắt đầu (2024), thì tháng nhỏ nhất phải là BASE_MONTH
+    if (nam === BASE_YEAR) {
+        startMonth = BASE_MONTH;
+    }
+
+    // 2. Chặn biên trên: Nếu đang xem năm hiện tại, thì tháng lớn nhất chỉ tới (Tháng hiện tại + 1)
+    if (nam === currentYear) {
+        endMonth = Math.min(currentMonth + 1, 12);
+    }
+
+    // 3. Sinh ra mảng tháng dựa trên biên đã tính
+    const availableMonths = Array.from(
+        { length: endMonth - startMonth + 1 },
+        (_, i) => startMonth + i
+    );
     const handleNamChange = (e) => {
         const selectedNam = Number(e.target.value);
         setNam(selectedNam);
@@ -474,3 +489,11 @@ export default function BaoCaoDoanhThuPage() {
         </Box>
     );
 }
+
+
+// SAU NÀY CÓ ĐỔI SANG THÁNG 6
+// Dòng 1: đổi tháng mặc định
+// const [activeThang, setActiveThang] = useState(5);  // → useState(6)
+
+// Dòng 2: đổi danh sách tab
+// const THANG_LIST = [5, 6];  // → [6]

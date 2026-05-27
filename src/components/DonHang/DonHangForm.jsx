@@ -3,6 +3,11 @@ import ReactDOM from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { api } from "../../config/api";
+import dayjs from "dayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { TimePicker } from "@mui/x-date-pickers/TimePicker";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { createDonHang, updateDonHang } from "../../redux/slices/donHangSlice";
 import DanhSachPhuKien from "./DanhSachPhuKien";
 import ChonViTriRangModal from "./ChonViTriRangModal";
@@ -738,21 +743,63 @@ const DonHangForm = () => {
               <div className="w-full sm:w-[30%] p-4 flex flex-col gap-4 border-t sm:border-t-0">
                 {/* Ngày nhận */}
                 <div className="flex items-center gap-2">
-                  <label className="text-gray-500 inline-block w-48">Ngày nhận:</label>
-                  <input type="date" value={formData.ngayNhan ? formData.ngayNhan.split("T")[0] : ""} onChange={e => handleDateChange("ngayNhan", e.target.value, formData.ngayNhan?.split("T")[1] || "00:00")} className="flex-1 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent text-sm" />
-                  <input type="time" value={formData.ngayNhan?.split("T")[1] || ""} onChange={e => handleDateChange("ngayNhan", formData.ngayNhan?.split("T")[0] || "", e.target.value)} className="w-28 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent text-sm" />
+                  <label className="text-gray-500 inline-block w-32">Ngày nhận:</label>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      format="DD/MM/YYYY"
+                      value={formData.ngayNhan?.split("T")[0] ? dayjs(formData.ngayNhan.split("T")[0]) : null}
+                      onChange={val => handleDateChange("ngayNhan", val ? val.format("YYYY-MM-DD") : "", formData.ngayNhan?.split("T")[1] || "00:00")}
+                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem" } } } }}
+                    />
+                  </LocalizationProvider>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <TimePicker
+                      ampm={false}
+                      value={formData.ngayNhan?.split("T")[1] ? dayjs(`2000-01-01T${formData.ngayNhan.split("T")[1]}`) : null}
+                      onChange={val => handleDateChange("ngayNhan", formData.ngayNhan?.split("T")[0] || "", val ? val.format("HH:mm") : "00:00")}
+                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "6rem" } } } }}
+                    />
+                  </LocalizationProvider>
                 </div>
                 {/* Y/c hoàn thành */}
                 <div className="flex items-center gap-2">
-                  <label className="text-gray-500 inline-block w-48">Y/c hoàn thành:</label>
-                  <input type="date" value={formData.yeuCauHoanThanh ? formData.yeuCauHoanThanh.split("T")[0] : ""} onChange={e => handleDateChange("yeuCauHoanThanh", e.target.value, formData.yeuCauHoanThanh?.split("T")[1] || "00:00")} className="flex-1 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent text-sm" />
-                  <input type="time" value={formData.yeuCauHoanThanh?.split("T")[1] || ""} onChange={e => handleDateChange("yeuCauHoanThanh", formData.yeuCauHoanThanh?.split("T")[0] || "", e.target.value)} className="w-28 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent text-sm" />
+                  <label className="text-gray-500 inline-block w-32">Y/c hoàn thành:</label>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      format="DD/MM/YYYY"
+                      value={formData.yeuCauHoanThanh?.split("T")[0] ? dayjs(formData.yeuCauHoanThanh.split("T")[0]) : null}
+                      onChange={val => handleDateChange("yeuCauHoanThanh", val ? val.format("YYYY-MM-DD") : "", formData.yeuCauHoanThanh?.split("T")[1] || "00:00")}
+                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem" } } } }}
+                    />
+                  </LocalizationProvider>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <TimePicker
+                      ampm={false}
+                      value={formData.yeuCauHoanThanh?.split("T")[1] ? dayjs(`2000-01-01T${formData.yeuCauHoanThanh.split("T")[1]}`) : null}
+                      onChange={val => handleDateChange("yeuCauHoanThanh", formData.yeuCauHoanThanh?.split("T")[0] || "", val ? val.format("HH:mm") : "00:00")}
+                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "6rem" } } } }}
+                    />
+                  </LocalizationProvider>
                 </div>
                 {/* Hẹn giao */}
                 <div className="flex items-center gap-2">
-                  <label className="text-gray-500 inline-block w-48">Hẹn giao:</label>
-                  <input type="date" value={formData.henGiao ? formData.henGiao.split("T")[0] : ""} onChange={e => handleDateChange("henGiao", e.target.value, formData.henGiao?.split("T")[1] || "00:00")} className="flex-1 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent text-sm" />
-                  <input type="time" value={formData.henGiao?.split("T")[1] || ""} onChange={e => handleDateChange("henGiao", formData.henGiao?.split("T")[0] || "", e.target.value)} className="w-28 text-gray-700 border-0 border-b border-gray-300 focus:outline-none focus:border-blue-400 py-0.5 bg-transparent text-sm" />
+                  <label className="text-gray-500 inline-block w-32">Hẹn giao:</label>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      format="DD/MM/YYYY"
+                      value={formData.henGiao?.split("T")[0] ? dayjs(formData.henGiao.split("T")[0]) : null}
+                      onChange={val => handleDateChange("henGiao", val ? val.format("YYYY-MM-DD") : "", formData.henGiao?.split("T")[1] || "00:00")}
+                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem" } } } }}
+                    />
+                  </LocalizationProvider>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <TimePicker
+                      ampm={false}
+                      value={formData.henGiao?.split("T")[1] ? dayjs(`2000-01-01T${formData.henGiao.split("T")[1]}`) : null}
+                      onChange={val => handleDateChange("henGiao", formData.henGiao?.split("T")[0] || "", val ? val.format("HH:mm") : "00:00")}
+                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "6rem" } } } }}
+                    />
+                  </LocalizationProvider>
                 </div>
               </div>
             </div>

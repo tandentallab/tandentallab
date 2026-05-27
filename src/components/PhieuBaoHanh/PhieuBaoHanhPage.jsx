@@ -161,6 +161,126 @@ const PhieuBaoHanhPage = () => {
     setIsEditModalOpen(true);
   };
 
+  // Đồng bộ thông tin từ Đơn hàng hiện tại
+  const handleSyncFromOrder = async () => {
+    const orderId = editingPhieu.donHang?._id || editingPhieu.donHang;
+    if (!orderId) {
+      toast.error("Không tìm thấy thông tin đơn hàng tương ứng");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await api.get(`/donhang/${orderId}`);
+      if (res.data?.success) {
+        const latestOrder = res.data.data;
+        
+        // Hàm format vị trí răng
+        const formatViTri = (viTriArr) => {
+          if (!viTriArr || viTriArr.length === 0) return "";
+          return viTriArr
+            .map((v) =>
+              v.kieu === "Rời"
+                ? v.soRang.join(", ")
+                : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+            )
+            .join("; ");
+        };
+
+        // Chuẩn hóa danh sách sản phẩm từ đơn hàng mới nhất
+        const orderProducts = (latestOrder.danhSachSanPham || []).map((sp) => ({
+          sanPhamId: sp.sanPham?._id || sp.sanPham,
+          tenSanPham: sp.sanPham?.tenSanPham || sp.sanPham?.ten || "Sản phẩm",
+          viTriRang: formatViTri(sp.viTri),
+          soLuong: Number(sp.soLuong) || 1,
+          mau: sp.mau || "",
+          baoHanhMacDinh: sp.sanPham?.baoHanhMacDinh || 0,
+        }));
+
+        // Chuẩn hóa danh sách sản phẩm hiện tại của phiếu bảo hành
+        const currentWarrantyProducts = (editForm.danhSachBaoHanh || []).map((w) => ({
+          sanPhamId: w.sanPham?._id || w.sanPham,
+          tenSanPham: w.sanPham?.tenSanPham || w.sanPham?.ten || "Sản phẩm",
+          viTriRang: w.viTriRang || "",
+          soLuong: Number(w.soLuong) || 1,
+          mau: w.mau || "",
+        }));
+
+        // Sắp xếp để so sánh không phụ thuộc thứ tự phần tử
+        const sortFn = (a, b) => {
+          const idA = (a.sanPhamId || "").toString();
+          const idB = (b.sanPhamId || "").toString();
+          if (idA !== idB) return idA.localeCompare(idB);
+          return (a.viTriRang || "").localeCompare(b.viTriRang || "");
+        };
+
+        const sortedOrder = [...orderProducts].sort(sortFn);
+        const sortedCurrent = [...currentWarrantyProducts].sort(sortFn);
+
+        const isSame = sortedOrder.length === sortedCurrent.length &&
+          sortedOrder.every((op, idx) => {
+            const cwp = sortedCurrent[idx];
+            return op.sanPhamId === cwp.sanPhamId &&
+                   op.viTriRang === cwp.viTriRang &&
+                   op.soLuong === cwp.soLuong &&
+                   op.mau === cwp.mau;
+          });
+
+        if (isSame) {
+          toast.success("Dữ liệu đồng bộ");
+        } else {
+          // Xây dựng danh sách bảo hành mới dựa trên đơn hàng, bảo lưu ngày tháng của các sản phẩm khớp cũ
+          const newList = orderProducts.map((op) => {
+            const existingMatch = (editForm.danhSachBaoHanh || []).find((w) => {
+              const wId = w.sanPham?._id || w.sanPham;
+              return wId === op.sanPhamId && w.viTriRang === op.viTriRang;
+            });
+
+            if (existingMatch) {
+              return {
+                ...existingMatch,
+                soLuong: op.soLuong,
+                mau: op.mau,
+              };
+            }
+
+            const newBaoHanhTu = editingPhieu.createdAt
+              ? new Date(editingPhieu.createdAt).toISOString().slice(0, 10)
+              : new Date().toISOString().slice(0, 10);
+            const defaultYears = op.baoHanhMacDinh || 0;
+            const newBaoHanhDen = addYearsToDate(newBaoHanhTu, defaultYears);
+
+            return {
+              sanPham: {
+                _id: op.sanPhamId,
+                tenSanPham: op.tenSanPham,
+              },
+              viTriRang: op.viTriRang,
+              soLuong: op.soLuong,
+              mau: op.mau,
+              baoHanhTu: newBaoHanhTu,
+              baoHanhDen: newBaoHanhDen,
+              selectedYears: defaultYears > 0 ? defaultYears : "",
+              customEndDate: "",
+            };
+          });
+
+          setEditForm({
+            ...editForm,
+            danhSachBaoHanh: newList,
+          });
+          toast.success("Đã đồng bộ thông tin mới từ đơn hàng!");
+        }
+      } else {
+        toast.error(res.data?.message || "Lỗi khi lấy dữ liệu đơn hàng");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Lỗi khi lấy dữ liệu đơn hàng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Lưu chỉnh sửa (Giữ nguyên)
   const handleSaveEdit = async () => {
     try {
@@ -174,7 +294,7 @@ const PhieuBaoHanhPage = () => {
         danhSachBaoHanh: cleanedDanhSach,
       });
       if (res.data?.success) {
-        toast.success("Cập nhật phiếu bảo hành thành công");
+        toast.success("Đã cập nhật Phiếu bảo hành");
         setIsEditModalOpen(false);
         loadPhieuList();
       } else {
@@ -855,6 +975,16 @@ const PhieuBaoHanhPage = () => {
         </DialogContent>
 
         <DialogActions className="p-4 bg-white border-t border-slate-100 gap-2">
+          <Button
+            onClick={handleSyncFromOrder}
+            variant="outlined"
+            color="primary"
+            disabled={loading}
+            style={{ marginRight: "auto" }}
+            className="text-blue-600 border-blue-600 font-semibold px-4 py-2 normal-case rounded-lg hover:bg-blue-50"
+          >
+            Cập nhật phiếu BH
+          </Button>
           <Button
             onClick={() => setIsEditModalOpen(false)}
             className="text-slate-500 font-semibold px-4 py-2 normal-case rounded-lg hover:bg-slate-100"

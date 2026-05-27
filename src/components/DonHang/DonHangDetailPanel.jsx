@@ -122,7 +122,13 @@ const DonHangDetailPanel = (props) => {
     "Đã giao": "bg-gray-200 text-gray-800",
   };
 
+  const isLocked = fullDonHang?.trangThai === "Đã giao" || !!fullDonHang?.daXuatHoaDon;
+
   const handleEdit = () => {
+    if (isLocked) {
+      toast.error("Đơn hàng đã xuất hóa đơn / đã giao, không thể chỉnh sửa");
+      return;
+    }
     navigate(`/donhang/${donHang._id}/edit`);
   };
 
@@ -131,6 +137,10 @@ const DonHangDetailPanel = (props) => {
   };
 
   const handleDelete = () => {
+    if (isLocked) {
+      toast.error("Đơn hàng đã xuất hóa đơn / đã giao, không thể xóa");
+      return;
+    }
     if (window.confirm(`Bạn có chắc chắn muốn xóa đơn hàng ${maDonHang}?`)) {
       const promise = dispatch(deleteDonHang(donHang._id)).unwrap();
       toast.promise(promise, {

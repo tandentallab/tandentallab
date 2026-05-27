@@ -319,6 +319,11 @@ const DonHangForm = () => {
         .get(`/donhang/${id}`)
         .then((res) => {
           const dh = res.data.data;
+          if (dh.trangThai === "Đã giao" || dh.daXuatHoaDon) {
+            toast.error("Đơn hàng đã xuất hóa đơn / đã giao, không thể chỉnh sửa");
+            navigate(-1);
+            return;
+          }
           setFormData({
             ...dh,
             nhaKhoa: dh.nhaKhoa?._id || dh.nhaKhoa,

@@ -376,8 +376,7 @@ const HoaDonDetail = () => {
   if (!hoaDon) return <div className="p-10 text-center text-red-500">Không tìm thấy hóa đơn!</div>;
 
   const initials = hoaDon.nhaKhoa?.hoVaTen?.slice(0, 2).toUpperCase() || "NK";
-  const isLocked = hoaDon.trangThai === "Thanh toán một phần" || hoaDon.trangThai === "Đã thanh toán";
-
+  const isLocked = (hoaDon.daThanhToan || 0) > 0;
   const renderFinancialBlock = () => (
     <div className="space-y-4">
       <div className="flex items-start justify-between">

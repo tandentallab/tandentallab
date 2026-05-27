@@ -30,8 +30,9 @@ const InfoRow = ({ icon, label, value, highlight }) => (
       <span className="text-sm font-medium">{label}</span>
     </div>
     <span
-      className={`text-sm font-semibold ${highlight ? "text-blue-600" : "text-slate-700"
-        }`}
+      className={`text-sm font-semibold ${
+        highlight ? "text-blue-600" : "text-slate-700"
+      }`}
     >
       {value || "—"}
     </span>
@@ -71,9 +72,10 @@ const NhanVienDetail = () => {
     try {
       setUploading(true);
       await dispatch(uploadCCCDNhanVien({ id: nhanVien._id, files })).unwrap();
-      toast.success("Upload CCCD thành công!");
+
+      toast.success("Upload CCCD thành công");
     } catch (err) {
-      toast.error("Upload thất bại!");
+      toast.error(err || "Upload thất bại");
     } finally {
       setUploading(false);
     }

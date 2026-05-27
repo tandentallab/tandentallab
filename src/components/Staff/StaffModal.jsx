@@ -153,10 +153,10 @@ export default function StaffModal({
           <span className="mr-3 text-gray-500">
             <Group fontSize="small" />
           </span>
-          <span className="font-medium">Thêm Nhân Viên Mới</span>
+          <span className="font-medium">Thêm Tài Khoản Mới</span>
         </button>
       ) : (
-        <Tooltip title="Thêm nhân viên">
+        <Tooltip title="Thêm tài khoản">
           <IconButton onClick={handleOpenModal}>
             <AddIcon />
           </IconButton>
@@ -166,7 +166,7 @@ export default function StaffModal({
       <Modal open={open} onClose={handleCloseModal}>
         <Box className="bg-white w-[700px] p-6 mx-auto mt-20 rounded-2xl shadow-xl">
           <Typography variant="h6" className="mb-4">
-            {staffId ? "Chỉnh sửa nhân viên" : "Thêm nhân viên mới"}
+            {staffId ? "Chỉnh sửa tài khoản" : "Thêm tài khoản mới"}
           </Typography>
 
           <div className="grid grid-cols-2 gap-4">

@@ -20,51 +20,13 @@ import StaffModal from "../Staff/StaffModal";
 const QuickAddMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const menuItems = [
-    {
-      id: 1,
-      label: "Người liên hệ",
-      icon: <Group fontSize="small" />,
-      description: "Quản lý Bác sĩ",
-    },
-    {
-      id: 2,
-      label: "Đơn hàng",
-      icon: <Assignment fontSize="small" />,
-      description: "Quản lý Sản phẩm",
-    },
-    {
-      id: 3,
-      label: "Hóa đơn",
-      icon: <Description fontSize="small" />,
-    },
-    {
-      id: 4,
-      label: "Phiếu thu",
-      icon: <Download fontSize="small" />,
-    },
-    {
-      id: 5,
-      label: "Phiếu chi",
-      icon: <Upload fontSize="small" />,
-    },
-    {
-      id: 6,
-      label: "Khách hàng",
-      icon: <Business fontSize="small" />,
-      description: "Quản lý Bệnh nhân",
-    },
-  ];
-
   const navigate = useNavigate();
 
   const ROWS_PER_PAGE = 20;
 
   const [page, setPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
-  const [selectedPhieuThu, setSelectedPhieuThu] = useState(null);
 
   const dispatch = useDispatch();
 

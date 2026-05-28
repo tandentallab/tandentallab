@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { MenuItem, TextField } from "@mui/material";
 import { api } from "../../config/api";
 import WarrantyCardPrint from "./WarrantyCardPrint";
 import { toast } from "sonner";
@@ -6,6 +7,30 @@ import { toast } from "sonner";
 const PhieuBaoHanhList = ({ phieuBaoHanhList, onDelete, donHangId }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [printWarranty, setPrintWarranty] = useState(null);
+  const [mauTheList, setMauTheList] = useState([]);
+  // map: phieuId -> selectedMauTheId
+  const [selectedMauTheMap, setSelectedMauTheMap] = useState({});
+
+  useEffect(() => {
+    const fetchMauThe = async () => {
+      try {
+        const res = await api.get("/mau-the-bao-hanh");
+        if (res.data?.success) {
+          setMauTheList(res.data.data || []);
+        }
+      } catch (err) {
+        // silent
+      }
+    };
+    fetchMauThe();
+  }, []);
+
+  const getSelectedMauTheId = (pbh) => {
+    if (selectedMauTheMap[pbh._id]) return selectedMauTheMap[pbh._id];
+    // mặc định: mẫu gắn với phiếu, rồi mẫu đầu tiên
+    const attachedId = typeof pbh.mauThe === 'object' ? pbh.mauThe?._id : pbh.mauThe;
+    return attachedId || (mauTheList[0]?._id ?? "");
+  };
 
   // Convert to array if it's an object
   let warrantyArray = Array.isArray(phieuBaoHanhList)
@@ -107,7 +132,23 @@ const PhieuBaoHanhList = ({ phieuBaoHanhList, onDelete, donHangId }) => {
                 )}
               </div>
 
-              <div className="mt-3 pt-3 border-t flex justify-center">
+              <div className="mt-3 pt-3 border-t flex flex-col gap-3">
+                {/* Chọn mẫu thẻ ngay tại đây */}
+                <TextField
+                  select
+                  size="small"
+                  fullWidth
+                  label="Chọn mẫu thẻ bảo hành"
+                  value={getSelectedMauTheId(pbh)}
+                  onChange={(e) =>
+                    setSelectedMauTheMap((prev) => ({ ...prev, [pbh._id]: e.target.value }))
+                  }
+                  disabled={mauTheList.length === 0}
+                >
+                  {mauTheList.map((m) => (
+                    <MenuItem key={m._id} value={m._id}>{m.tenMau}</MenuItem>
+                  ))}
+                </TextField>
                 <button
                   onClick={() => setPrintWarranty(pbh)}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg"
@@ -125,6 +166,7 @@ const PhieuBaoHanhList = ({ phieuBaoHanhList, onDelete, donHangId }) => {
           open={!!printWarranty}
           onClose={() => setPrintWarranty(null)}
           warranty={printWarranty}
+          initialMauTheId={getSelectedMauTheId(printWarranty)}
         />
       )}
     </div>

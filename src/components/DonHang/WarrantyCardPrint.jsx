@@ -3,7 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogActions, Button, CircularProgress, MenuItem, TextField } from "@mui/material";
 import { api } from "../../config/api";
 
-const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
+const WarrantyCardPrint = ({ open, onClose, warranty, donHang, initialMauTheId }) => {
   const [mauThe, setMauThe] = useState(null);
   const [mauTheList, setMauTheList] = useState([]);
   const [selectedMauTheId, setSelectedMauTheId] = useState("");
@@ -11,7 +11,7 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
 
   useEffect(() => {
     if (open) loadMauTheList();
-  }, [open, warranty]);
+  }, [open, warranty, initialMauTheId]);
 
   const loadMauTheList = async () => {
     try {
@@ -21,9 +21,9 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
         const list = listRes.data.data;
         setMauTheList(list);
 
-        // Ưu tiên mẫu đã gắn với phiếu, nếu không có thì chọn mẫu đầu tiên
+        // Ưu tiên: initialMauTheId (truyền từ ngoài) → mẫu gắn với phiếu → mẫu đầu tiên
         const attachedId = typeof warranty?.mauThe === 'object' ? warranty.mauThe?._id : warranty?.mauThe;
-        const defaultId = attachedId || list[0]._id;
+        const defaultId = initialMauTheId || attachedId || list[0]._id;
         setSelectedMauTheId(defaultId);
 
         const selected = list.find(m => m._id === defaultId) || list[0];
@@ -105,22 +105,24 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
       fullWidth
       PaperProps={{ style: { boxShadow: 'none', border: 'none' } }}
     >
-      {/* Selector mẫu thẻ — ẩn khi in */}
-      <div className="print-hidden" style={{ padding: "12px 16px 0 16px" }}>
-        <TextField
-          select
-          size="small"
-          fullWidth
-          label="Chọn mẫu thẻ bảo hành"
-          value={selectedMauTheId}
-          onChange={(e) => handleSelectMauThe(e.target.value)}
-          disabled={loading || mauTheList.length === 0}
-        >
-          {mauTheList.map((m) => (
-            <MenuItem key={m._id} value={m._id}>{m.tenMau}</MenuItem>
-          ))}
-        </TextField>
-      </div>
+      {/* Selector mẫu thẻ — chỉ hiện khi KHÔNG có initialMauTheId (tức là chưa chọn từ ngoài) */}
+      {!initialMauTheId && (
+        <div className="print-hidden" style={{ padding: "12px 16px 0 16px" }}>
+          <TextField
+            select
+            size="small"
+            fullWidth
+            label="Chọn mẫu thẻ bảo hành"
+            value={selectedMauTheId}
+            onChange={(e) => handleSelectMauThe(e.target.value)}
+            disabled={loading || mauTheList.length === 0}
+          >
+            {mauTheList.map((m) => (
+              <MenuItem key={m._id} value={m._id}>{m.tenMau}</MenuItem>
+            ))}
+          </TextField>
+        </div>
+      )}
 
       <DialogContent id="print-content" style={{ minHeight: "300px", padding: 0 }}>
         {loading ? <CircularProgress /> : !mauThe ? <p style={{ padding: 16 }}>Không tìm thấy mẫu thẻ bảo hành.</p> : (

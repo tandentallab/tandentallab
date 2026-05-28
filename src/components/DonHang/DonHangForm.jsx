@@ -592,7 +592,6 @@ const DonHangForm = () => {
     } else {
       formData.danhSachSanPham.forEach((sp, i) => {
         if (!sp.sanPham) errors.push(`Dòng ${i + 1}: Chưa chọn sản phẩm`);
-        if (!sp.viTri || sp.viTri.length === 0) errors.push(`Dòng ${i + 1}: Chưa chọn vị trí răng`);
       });
     }
 

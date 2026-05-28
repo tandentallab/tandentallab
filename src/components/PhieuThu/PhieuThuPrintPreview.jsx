@@ -8,13 +8,18 @@ const PhieuThuPrintPreview = () => {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [phieuThu, setPhieuThu] = useState(null);
+  const [congTy, setCongTy] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/phieu-thu/${id}`);
-        setPhieuThu(res.data?.data || res.data);
+        const [resPhieu, resCongTy] = await Promise.all([
+          api.get(`/phieu-thu/${id}`),
+          api.get("/cong-ty"),
+        ]);
+        setPhieuThu(resPhieu.data?.data || resPhieu.data);
+        setCongTy(resCongTy.data?.data || resCongTy.data);
       } catch (err) {
         console.error("Lỗi fetch:", err);
       } finally {
@@ -86,13 +91,13 @@ const PhieuThuPrintPreview = () => {
       </div>
 
       <div className="flex flex-col items-center py-6 px-4">
-        <div className="print-area bg-white shadow-lg border border-gray-300" style={{ width: "210mm", fontFamily: "Cambria", padding: "10mm" }}>
+        <div className="print-area bg-white shadow-lg border border-gray-300" style={{ width: "210mm", fontFamily: "Cambria", padding: "10mm", display: "flex", flexDirection: "column" }}>
           {/* Header */}
           <div style={{ marginBottom: "6mm" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "3mm" }}>
               <div style={{ flex: 2 }}>
-                <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>CÔNG TY TNHH TẤN DENTAL</p>
-                <p style={{ fontSize: "9pt" }}>Số 43, đường số 14, KDC Hồng Phát, An Bình, Cần Thơ</p>
+                <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>{congTy?.Ten || ""}</p>
+                <p style={{ fontSize: "9pt" }}>{congTy?.DiaChi || ""}</p>
               </div>
               <div style={{ marginTop: "1mm", flex: 1, textAlign: "right", fontSize: "9pt" }}>
                 <div>QĐ số 15/2006/QĐ-BTC</div>
@@ -166,7 +171,7 @@ const PhieuThuPrintPreview = () => {
           </div>
 
           {/* Chữ ký */}
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11pt", marginTop: "8mm" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11pt", marginTop: "auto", paddingTop: "6mm", minHeight: "32mm", alignItems: "flex-start" }}>
             {[["Người lập phiếu"], ["Người nộp tiền"], ["Thủ quỹ"], ["Kế toán"], ["Thủ trưởng đơn vị"]].map(([label]) => (
               <div key={label} style={{ textAlign: "center", width: "20%" }}>
                 <div style={{ fontWeight: "bold" }}>{label}</div>
@@ -188,19 +193,29 @@ const PhieuThuPrintPreview = () => {
       <style>{`
         @media print {
           @page { size: A5 landscape; margin: 0; }
-          body { margin: 0; padding: 0; background: white; }
-          .bg-gray-200 { background: white; }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+          }
+          body * { visibility: hidden; }
+          .print-area, .print-area * { visibility: visible; }
           .print-area {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 210mm !important;
+            height: 148mm !important;
+            padding: 6mm 10mm 8mm 10mm !important;
             box-shadow: none !important;
             border: none !important;
-            width: 210mm !important;
-            /* Đã giảm padding top xuống còn 4mm để chừa thêm chỗ trống phía dưới */
-            padding: 4mm 10mm 10mm 10mm !important; 
+            background: white !important;
+            display: flex !important;
+            flex-direction: column !important;
           }
-          button, .h-10 { display: none !important; }
         }
       `}</style>
-    </div>
+    </div >
   );
 };
 

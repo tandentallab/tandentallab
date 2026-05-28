@@ -122,7 +122,13 @@ const DonHangDetailPanel = (props) => {
     "Đã giao": "bg-gray-200 text-gray-800",
   };
 
+  const isLocked = fullDonHang?.trangThai === "Đã giao" || !!fullDonHang?.daXuatHoaDon;
+
   const handleEdit = () => {
+    if (isLocked) {
+      toast.error("Đơn hàng đã xuất hóa đơn / đã giao, không thể chỉnh sửa");
+      return;
+    }
     navigate(`/donhang/${donHang._id}/edit`);
   };
 
@@ -131,6 +137,10 @@ const DonHangDetailPanel = (props) => {
   };
 
   const handleDelete = () => {
+    if (isLocked) {
+      toast.error("Đơn hàng đã xuất hóa đơn / đã giao, không thể xóa");
+      return;
+    }
     if (window.confirm(`Bạn có chắc chắn muốn xóa đơn hàng ${maDonHang}?`)) {
       const promise = dispatch(deleteDonHang(donHang._id)).unwrap();
       toast.promise(promise, {
@@ -425,15 +435,6 @@ const DonHangDetailPanel = (props) => {
                   >
                     <ReceiptIcon sx={{ fontSize: 18 }} /> Thẻ bảo hành
                   </button>
-
-                  {hasWarranty && (
-                    <button
-                      onClick={handleOpenPrintWarranty}
-                      className="font-medium text-sm px-3 py-1.5 rounded-full text-white bg-purple-500 hover:bg-purple-600 flex items-center gap-2 transition-colors"
-                    >
-                      <PrintIcon sx={{ fontSize: 18 }} /> In thẻ BH
-                    </button>
-                  )}
                 </div>
                 {/* --------------------------------------------------- */}
               </div>
@@ -627,7 +628,7 @@ const DonHangDetailPanel = (props) => {
         <DialogTitle sx={{ bgcolor: "#1976d2", color: "white", fontWeight: "bold" }}>
           Phiếu Bảo Hành
         </DialogTitle>
-        <DialogContent className="pt-4" sx={{ pt: 3 }}>
+        <DialogContent className="mt-6">
           {warranty && (
             <>
               <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
@@ -711,9 +712,31 @@ const DonHangDetailPanel = (props) => {
             </>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpenWarrantyDialog(false)}>Hủy</Button>
-          <Button onClick={handleSaveWarrantyEdit} variant="contained" disabled={savingWarranty}>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            onClick={() => setOpenWarrantyDialog(false)}
+            variant="contained"
+            color="warning"
+            size="medium"
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={() => { setOpenWarrantyDialog(false); handleOpenPrintWarranty(); }}
+            variant="contained"
+            color="success"
+            size="medium"
+            startIcon={<PrintIcon />}
+          >
+            In thẻ BH
+          </Button>
+          <Button
+            onClick={handleSaveWarrantyEdit}
+            variant="contained"
+            color="primary"
+            size="medium"
+            disabled={savingWarranty}
+          >
             {savingWarranty ? "Đang lưu..." : "Lưu"}
           </Button>
         </DialogActions>

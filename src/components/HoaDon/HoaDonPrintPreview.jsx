@@ -169,7 +169,7 @@ const HoaDonPrintPreview = () => {
             </div>
 
             <table className="w-full border-collapse" style={{ fontSize: "10.5pt" }}>
-              <colgroup>
+              {/* <colgroup>
                 <col style={{ width: "3%" }} />
                 <col style={{ width: "6%" }} />
                 <col style={{ width: "5%" }} />
@@ -181,7 +181,7 @@ const HoaDonPrintPreview = () => {
                 <col style={{ width: "7%" }} />
                 <col style={{ width: "11%" }} />
                 <col style={{ width: "8%" }} />
-              </colgroup>
+              </colgroup> */}
               <thead>
                 <tr className="font-bold text-center">
                   <th className="border border-black p-0.5 whitespace-nowrap">STT</th>
@@ -189,7 +189,7 @@ const HoaDonPrintPreview = () => {
                   <th className="border border-black p-0.5 whitespace-nowrap">BÁC SĨ</th>
                   <th className="border border-black p-0.5 whitespace-nowrap">BỆNH NHÂN</th>
                   <th className="border border-black p-0.5 whitespace-nowrap">SẢN PHẨM</th>
-                  <th className="border border-black p-0.5 whitespace-nowrap">RĂNG</th>
+                  <th className="border border-black p-0.5 whitespace-nowrap w-36">RĂNG</th>
                   <th className="border border-black p-0.5 whitespace-nowrap">S.L</th>
                   <th className="border border-black p-0.5 whitespace-nowrap">ĐƠN GIÁ</th>
                   <th className="border border-black p-0.5 whitespace-nowrap">GIẢM GIÁ</th>
@@ -205,7 +205,7 @@ const HoaDonPrintPreview = () => {
                     <td className="border border-black text-center p-0.5">{row.bacSi}</td>
                     <td className="border border-black text-center p-0.5">{row.benhNhan}</td>
                     <td className="border border-black text-center p-0.5">{row.sanPham}</td>
-                    <td className="border border-black text-center p-0.5 whitespace-nowrap">{row.rang}</td>
+                    <td className="border border-black text-center p-0.5">{row.rang}</td>
                     <td className="border border-black text-center p-0.5">{row.soLuong}</td>
                     <td className="border border-black text-center p-0.5">{formatCurrency(row.donGia)}</td>
                     <td className="border border-black text-center p-0.5">{row.giamGia}</td>

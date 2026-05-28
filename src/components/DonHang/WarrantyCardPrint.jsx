@@ -1,39 +1,48 @@
 import React, { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Dialog, DialogContent, DialogActions, Button, CircularProgress } from "@mui/material";
+import { Dialog, DialogContent, DialogActions, Button, CircularProgress, MenuItem, TextField } from "@mui/material";
 import { api } from "../../config/api";
 
 const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
   const [mauThe, setMauThe] = useState(null);
+  const [mauTheList, setMauTheList] = useState([]);
+  const [selectedMauTheId, setSelectedMauTheId] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (open) loadMauThe();
+    if (open) loadMauTheList();
   }, [open, warranty]);
 
-  const loadMauThe = async () => {
+  const loadMauTheList = async () => {
     try {
       setLoading(true);
-      const mauTheId = typeof warranty?.mauThe === 'object' ? warranty.mauThe?._id : warranty?.mauThe;
+      const listRes = await api.get("/mau-the-bao-hanh");
+      if (listRes.data?.success && listRes.data.data.length > 0) {
+        const list = listRes.data.data;
+        setMauTheList(list);
 
-      let res;
-      if (mauTheId) {
-        res = await api.get(`/mau-the-bao-hanh/${mauTheId}`);
+        // Ưu tiên mẫu đã gắn với phiếu, nếu không có thì chọn mẫu đầu tiên
+        const attachedId = typeof warranty?.mauThe === 'object' ? warranty.mauThe?._id : warranty?.mauThe;
+        const defaultId = attachedId || list[0]._id;
+        setSelectedMauTheId(defaultId);
+
+        const selected = list.find(m => m._id === defaultId) || list[0];
+        setMauThe(selected);
       } else {
-        const listRes = await api.get("/mau-the-bao-hanh", { params: { nhaKhoaId: warranty.nhaKhoa?._id } });
-        if (listRes.data?.success && listRes.data.data.length > 0) {
-          res = { data: { success: true, data: listRes.data.data[0] } };
-        }
-      }
-
-      if (res?.data?.success && res.data.data) {
-        setMauThe(res.data.data);
+        setMauTheList([]);
+        setMauThe(null);
       }
     } catch (error) {
       console.error("Lỗi tải mẫu:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectMauThe = (id) => {
+    setSelectedMauTheId(id);
+    const selected = mauTheList.find(m => m._id === id);
+    setMauThe(selected || null);
   };
 
   const getFieldValue = (loaiTruong) => {
@@ -94,10 +103,27 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{ style: { boxShadow: 'none', border: 'none' } }} // Xóa bóng mờ của khung dialog
+      PaperProps={{ style: { boxShadow: 'none', border: 'none' } }}
     >
+      {/* Selector mẫu thẻ — ẩn khi in */}
+      <div className="print-hidden" style={{ padding: "12px 16px 0 16px" }}>
+        <TextField
+          select
+          size="small"
+          fullWidth
+          label="Chọn mẫu thẻ bảo hành"
+          value={selectedMauTheId}
+          onChange={(e) => handleSelectMauThe(e.target.value)}
+          disabled={loading || mauTheList.length === 0}
+        >
+          {mauTheList.map((m) => (
+            <MenuItem key={m._id} value={m._id}>{m.tenMau}</MenuItem>
+          ))}
+        </TextField>
+      </div>
+
       <DialogContent id="print-content" style={{ minHeight: "300px", padding: 0 }}>
-        {loading ? <CircularProgress /> : !mauThe ? <p>Không tìm thấy mẫu.</p> : (
+        {loading ? <CircularProgress /> : !mauThe ? <p style={{ padding: 16 }}>Không tìm thấy mẫu thẻ bảo hành.</p> : (
           /* Xóa border: "1px dashed #ccc" ở đây */
           <div style={{ position: "relative", width: "100%", height: "150mm", border: "none" }}>
             {mauThe.cacTruong?.map((field, idx) => {

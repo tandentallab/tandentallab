@@ -27,6 +27,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import CloseIcon from "@mui/icons-material/Close";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+import PrintIcon from "@mui/icons-material/Print";
 import { api } from "../../config/api";
 import { toast } from "sonner";
 import FullScreenLoader from "../Loader/FullScreenLoader";
@@ -35,6 +36,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import ExportDateSelector from "../common/ExportDateSelector";
 import { toISODateRange } from "../../utils/exportDatePresets";
+import WarrantyCardPrint from "../DonHang/WarrantyCardPrint";
 
 // Helper functions (Giữ nguyên logic gốc)
 const addYearsToDate = (dateValue, years) => {
@@ -75,6 +77,7 @@ const PhieuBaoHanhPage = () => {
     ghiChu: "",
     danhSachBaoHanh: [],
   });
+  const [printPhieu, setPrintPhieu] = useState(null);
 
   const navigate = useNavigate();
 
@@ -100,7 +103,7 @@ const PhieuBaoHanhPage = () => {
     try {
       setLoading(true);
       const dateRange = toISODateRange(dateFilter);
-      
+
       const res = await api.get("/phieu-bao-hanh", {
         params: {
           page: page + 1,
@@ -176,7 +179,7 @@ const PhieuBaoHanhPage = () => {
       const res = await api.get(`/donhang/${orderId}`);
       if (res.data?.success) {
         const latestOrder = res.data.data;
-        
+
         // Hàm format vị trí răng
         const formatViTri = (viTriArr) => {
           if (!viTriArr || viTriArr.length === 0) return "";
@@ -223,9 +226,9 @@ const PhieuBaoHanhPage = () => {
           sortedOrder.every((op, idx) => {
             const cwp = sortedCurrent[idx];
             return op.sanPhamId === cwp.sanPhamId &&
-                   op.viTriRang === cwp.viTriRang &&
-                   op.soLuong === cwp.soLuong &&
-                   op.mau === cwp.mau;
+              op.viTriRang === cwp.viTriRang &&
+              op.soLuong === cwp.soLuong &&
+              op.mau === cwp.mau;
           });
 
         if (isSame) {
@@ -550,6 +553,15 @@ const PhieuBaoHanhPage = () => {
                               <QrCodeScannerIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
+                          <Tooltip title="In thẻ bảo hành">
+                            <IconButton
+                              size="small"
+                              className="text-purple-600 hover:bg-purple-50"
+                              onClick={() => setPrintPhieu(phieu)}
+                            >
+                              <PrintIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                           <Tooltip title="Chỉnh sửa">
                             <IconButton
                               size="small"
@@ -631,6 +643,13 @@ const PhieuBaoHanhPage = () => {
                       }}
                     >
                       <QrCodeScannerIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      className="text-purple-600"
+                      onClick={() => setPrintPhieu(phieu)}
+                    >
+                      <PrintIcon fontSize="small" />
                     </IconButton>
                     <IconButton
                       size="small"
@@ -1004,6 +1023,15 @@ const PhieuBaoHanhPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog in thẻ bảo hành */}
+      {printPhieu && (
+        <WarrantyCardPrint
+          open={!!printPhieu}
+          onClose={() => setPrintPhieu(null)}
+          warranty={printPhieu}
+        />
+      )}
     </div>
   );
 };

@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { api } from "../../config/api";
-import PhieuBaoHanhPreview from "./PhieuBaoHanhPreview";
+import WarrantyCardPrint from "./WarrantyCardPrint";
 import { toast } from "sonner";
 
 const PhieuBaoHanhList = ({ phieuBaoHanhList, onDelete, donHangId }) => {
   const [expandedId, setExpandedId] = useState(null);
+  const [printWarranty, setPrintWarranty] = useState(null);
 
   // Convert to array if it's an object
   let warrantyArray = Array.isArray(phieuBaoHanhList)
@@ -107,12 +108,25 @@ const PhieuBaoHanhList = ({ phieuBaoHanhList, onDelete, donHangId }) => {
               </div>
 
               <div className="mt-3 pt-3 border-t flex justify-center">
-                <PhieuBaoHanhPreview phieuBaoHanh={pbh} />
+                <button
+                  onClick={() => setPrintWarranty(pbh)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg"
+                >
+                  🖨 In thẻ bảo hành
+                </button>
               </div>
             </div>
           )}
         </div>
       ))}
+
+      {printWarranty && (
+        <WarrantyCardPrint
+          open={!!printWarranty}
+          onClose={() => setPrintWarranty(null)}
+          warranty={printWarranty}
+        />
+      )}
     </div>
   );
 };

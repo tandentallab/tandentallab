@@ -263,7 +263,7 @@ const DonHangPrintPreview = () => {
           .print-area, .print-area * { visibility: visible; }
           .print-area {
             position: fixed;
-            top: 0;
+            top: 2cm;
             left: 0;
           }
         }

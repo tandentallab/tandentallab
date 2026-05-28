@@ -248,6 +248,18 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
       return;
     }
 
+    // ✅ THÊM VÀO ĐÂY
+    const selectedHoaDons = hoaDonChuaThanhToan.filter(hd => selectedHDs[hd._id] && selectedHDs[hd._id].soTienThanhToan > 0);
+    const maxNgayHD = selectedHoaDons.reduce((max, hd) => {
+      const d = new Date(hd.ngayXuatHoaDon || 0).getTime();
+      return d > max ? d : max;
+    }, 0);
+
+    if (maxNgayHD > 0 && new Date(ngayThu).setHours(0, 0, 0, 0) < new Date(maxNgayHD).setHours(0, 0, 0, 0)) {
+      setSubmitError(`Ngày thu không được trước ngày xuất hóa đơn mới nhất (${new Date(maxNgayHD).toLocaleDateString("vi-VN")}).`);
+      return;
+    }
+
     // Gửi data gốc dựa trên các số đã nhập
     const entries = Object.entries(selectedHDs);
     if (!entries.length) {

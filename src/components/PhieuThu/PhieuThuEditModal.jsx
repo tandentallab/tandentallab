@@ -244,6 +244,20 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
             return;
         }
 
+        // ✅ THÊM VÀO ĐÂY
+        const selectedItems = chiTietHoaDon.filter(
+            item => item.selected && Number(item.soTienThanhToanInput) > 0
+        );
+        const maxNgayHD = selectedItems.reduce((max, item) => {
+            const d = new Date(item.hoaDon?.ngayXuatHoaDon || 0).getTime();
+            return d > max ? d : max;
+        }, 0);
+
+        if (maxNgayHD > 0 && new Date(ngayThu).setHours(0, 0, 0, 0) < new Date(maxNgayHD).setHours(0, 0, 0, 0)) {
+            setError(`Ngày thu không được trước ngày xuất hóa đơn mới nhất (${new Date(maxNgayHD).toLocaleDateString("vi-VN")}).`);
+            return;
+        }
+
         try {
             const result = await dispatch(updatePhieuThu({
                 id: phieuThu._id,

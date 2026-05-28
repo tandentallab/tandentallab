@@ -880,9 +880,16 @@ const DonHangForm = () => {
                           </div>
                         </td>
                         <td className="p-2">
-                          <div className="w-full border-b border-blue-200 p-1 text-center font-bold text-gray-700 min-h-[30px] flex items-center justify-center">
-                            {sp.soLuong}
-                          </div>
+                          <input
+                            type="number"
+                            min="1"
+                            value={sp.soLuong}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) =>
+                              handleSanPhamChange(index, "soLuong", parseInt(e.target.value) || 1)
+                            }
+                            className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-center font-bold text-gray-700"
+                          />
                         </td>
                         <td className="p-2">
                           <input

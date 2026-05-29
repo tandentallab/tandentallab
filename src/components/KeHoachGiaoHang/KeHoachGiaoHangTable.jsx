@@ -495,7 +495,7 @@ const KeHoachGiaoHangTable = () => {
             @media print {
               @page { 
                 size: A4 landscape; 
-                margin: 8mm; 
+                margin: 4mm 6mm !important; 
               }
               
               /* Triệt tiêu các thuộc tính căn chỉnh flex, margin, padding của các thẻ cha (Dashboard/Header/Sidebar) khi in */
@@ -543,9 +543,9 @@ const KeHoachGiaoHangTable = () => {
               #print-section table td,
               #print-section table th {
                 border: 1px solid black !important;
-                padding: 8px 10px !important;
-                font-size: 13px !important;
-                line-height: 1.4 !important;
+                padding: 4px 6px !important;
+                font-size: 11px !important;
+                line-height: 1.3 !important;
                 vertical-align: middle !important;
               }
               #print-section table th {
@@ -560,13 +560,13 @@ const KeHoachGiaoHangTable = () => {
           <table className="w-full border-collapse border border-black">
             <thead>
               <tr>
-                <th className="border border-black px-2 py-1 text-center font-semibold">Nhận lúc</th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">Số</th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">Khách hàng</th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">Bệnh nhân</th>
-                <th className="border border-black px-2 py-1 text-center font-semibold w-1/4">Răng</th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">Hẹn giao</th>
-                <th className="border border-black px-2 py-1 text-center font-semibold w-1/6">Ghi chú</th>
+                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Nhận lúc</th>
+                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Số</th>
+                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Khách hàng</th>
+                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Bệnh nhân</th>
+                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "80%" }}>Răng</th>
+                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Hẹn giao</th>
+                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "20%" }}>Ghi chú</th>
               </tr>
             </thead>
             <tbody>
@@ -574,17 +574,17 @@ const KeHoachGiaoHangTable = () => {
                 const maDon = order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`;
                 return (
                   <tr key={order._id}>
-                    <td className="border border-black px-2 py-1 text-center">
+                    <td className="border border-black px-2 py-1 text-center" style={{ width: "1%", whiteSpace: "nowrap" }}>
                       {order.ngayNhan ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm") : "—"}
                     </td>
-                    <td className="border border-black px-2 py-1 text-center font-semibold">{maDon}</td>
-                    <td className="border border-black px-2 py-1">{order.nhaKhoa?.hoVaTen}</td>
-                    <td className="border border-black px-2 py-1">{order.benhNhan?.hoVaTen}</td>
-                    <td className="border border-black px-2 py-1">{formatDanhSachSanPham(order.danhSachSanPham)}</td>
-                    <td className="border border-black px-2 py-1 text-center">
+                    <td className="border border-black px-2 py-1 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>{maDon}</td>
+                    <td className="border border-black px-2 py-1" style={{ width: "1%", whiteSpace: "nowrap" }}>{order.nhaKhoa?.hoVaTen}</td>
+                    <td className="border border-black px-2 py-1" style={{ width: "1%", whiteSpace: "nowrap" }}>{order.benhNhan?.hoVaTen}</td>
+                    <td className="border border-black px-2 py-1" style={{ width: "80%" }}>{formatDanhSachSanPham(order.danhSachSanPham)}</td>
+                    <td className="border border-black px-2 py-1 text-center" style={{ width: "1%", whiteSpace: "nowrap" }}>
                       {order.henGiao ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm") : "—"}
                     </td>
-                    <td className="border border-black px-2 py-1">{order.ghiChuChung}</td>
+                    <td className="border border-black px-2 py-1" style={{ width: "20%" }}>{order.ghiChuChung}</td>
                   </tr>
                 );
               })}

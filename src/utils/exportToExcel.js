@@ -967,8 +967,16 @@ export const exportKeHoachGiaoHangToExcel = async (filteredOrders, formatDanhSac
   // Thêm dữ liệu
   filteredOrders.forEach((order) => {
     const maDon = order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`;
-    const nhanLuc = order.ngayNhan ? new Date(order.ngayNhan).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : "—";
-    const henGiao = order.henGiao ? new Date(order.henGiao).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : "—";
+    const formatDateCustom = (dateStr) => {
+      if (!dateStr) return "—";
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "—";
+      const pad = (num) => String(num).padStart(2, '0');
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${pad(d.getFullYear())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    const nhanLuc = formatDateCustom(order.ngayNhan);
+    const henGiao = formatDateCustom(order.henGiao);
 
     const row = worksheet.addRow([
       nhanLuc,

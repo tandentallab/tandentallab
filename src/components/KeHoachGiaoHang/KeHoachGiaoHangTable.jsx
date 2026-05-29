@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchDonHangAll } from "../../redux/slices/donHangSlice";
+import { fetchDonHang, fetchMoreDonHang } from "../../redux/slices/donHangSlice";
 import {
   format,
   isToday,
@@ -24,9 +24,11 @@ import {
 // Đảm bảo đường dẫn import DonHangDetailPanel đúng với cấu trúc thư mục của bạn
 import DonHangDetailPanel from "../DonHang/DonHangDetailPanel";
 
+const ROWS_PER_PAGE = 20;
+
 const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
-  const { allData: data, loading } = useSelector((state) => state.donHang);
+  const { data, loading, loadingMore, pagination } = useSelector((state) => state.donHang);
 
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [filterType, setFilterType] = useState("all");
@@ -34,44 +36,88 @@ const KeHoachGiaoHangTable = () => {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showFilterBar, setShowFilterBar] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // State quản lý việc mở panel chi tiết đơn hàng
   const [selectedDonHang, setSelectedDonHang] = useState(null);
 
-  useEffect(() => {
-    dispatch(fetchDonHangAll());
-  }, [dispatch]);
+  const sentinelRef = useRef(null);
 
   const todayStart = startOfDay(new Date());
 
   const navigate = useNavigate();
 
-  // ================= FILTER LOGIC =================
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchText);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [searchText]);
+
+  // Reset page khi filter thay đổi
+  useEffect(() => {
+    setPage(1);
+  }, [filterType, fromDate, toDate, filterStatus]);
+
+  // Build params và dispatch load
+  const loadData = useCallback(() => {
+    const params = { page, limit: ROWS_PER_PAGE };
+    if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+    if (filterStatus !== "all") params.trangThai = filterStatus;
+
+    const today = startOfDay(new Date());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (filterType === "today") {
+      params.henGiaoFrom = today.toISOString();
+      params.henGiaoTo = tomorrow.toISOString();
+    } else if (filterType === "overdue") {
+      params.henGiaoTo = today.toISOString();
+    } else if (filterType === "range") {
+      if (fromDate) params.henGiaoFrom = startOfDay(new Date(fromDate)).toISOString();
+      if (toDate) params.henGiaoTo = endOfDay(new Date(toDate)).toISOString();
+    }
+
+    if (page === 1) {
+      dispatch(fetchDonHang(params));
+    } else {
+      dispatch(fetchMoreDonHang(params));
+    }
+  }, [dispatch, page, debouncedSearch, filterStatus, filterType, fromDate, toDate]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Infinite scroll: khi sentinel vào viewport thì tải trang tiếp theo
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && page < (pagination?.totalPages || 1) && !loadingMore && !loading) {
+          setPage((p) => p + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [page, pagination?.totalPages, loadingMore, loading]);
+
+  // ================= FILTER LOGIC (client-side phần còn lại) =================
   const filteredOrders = useMemo(() => {
     let result = [...data];
 
-    result = result.filter((order) => {
-      const henGiaoDate = parseISO(order.henGiao);
-      const overdue =
-        isBefore(henGiaoDate, todayStart) && order.trangThai !== "Hoàn thành";
-      const dueToday = isToday(henGiaoDate);
-      const from = fromDate ? startOfDay(new Date(fromDate)) : null;
-      const to = toDate ? endOfDay(new Date(toDate)) : null;
-      const inRange = from && to && henGiaoDate >= from && henGiaoDate <= to;
-
-      if (filterType === "today") return dueToday;
-      if (filterType === "overdue") return overdue;
-      if (filterType === "range") return inRange;
-      return true;
-    });
-
-    // 🔥 FILTER TRẠNG THÁI
-    if (filterStatus !== "all") {
-      result = result.filter((order) => order.trangThai === filterStatus);
+    // Khi lọc "overdue" mà không chọn trạng thái cụ thể, loại bỏ đơn Hoàn thành
+    if (filterType === "overdue" && filterStatus === "all") {
+      result = result.filter((o) => o.trangThai !== "Hoàn thành");
     }
 
     // 🔥 FILTER ĐƠN GẤP
@@ -86,40 +132,8 @@ const KeHoachGiaoHangTable = () => {
       });
     }
 
-    // 🔥 SEARCH
-    if (searchText.trim()) {
-      const q = searchText.toLowerCase();
-      result = result.filter(
-        (o) =>
-          (o.maDonHang && o.maDonHang.toLowerCase().includes(q)) ||
-          (o.nhaKhoa?.hoVaTen && o.nhaKhoa.hoVaTen.toLowerCase().includes(q)) ||
-          (o.bacSi?.hoVaTen && o.bacSi.hoVaTen.toLowerCase().includes(q)) ||
-          (o.benhNhan?.hoVaTen && o.benhNhan.hoVaTen.toLowerCase().includes(q))
-      );
-    }
-
     return result;
-  }, [
-    data,
-    showUrgentOnly,
-    filterType,
-    filterStatus,
-    fromDate,
-    toDate,
-    searchText,
-  ]);
-
-  // ================= PAGINATION =================
-  const totalPages = Math.ceil(filteredOrders.length / rowsPerPage);
-
-  const paginatedOrders = useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    return filteredOrders.slice(start, start + rowsPerPage);
-  }, [filteredOrders, page, rowsPerPage]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [filterType, fromDate, toDate, showUrgentOnly, filterStatus, searchText]);
+  }, [data, filterType, filterStatus, showUrgentOnly, todayStart]);
 
   // ================= COUNT =================
   const countToday = data.filter((o) => isToday(parseISO(o.henGiao))).length;
@@ -129,7 +143,7 @@ const KeHoachGiaoHangTable = () => {
   ).length;
   const countDone = data.filter((o) => o.trangThai === "Hoàn thành").length;
 
-  if (loading)
+  if (loading && page === 1)
     return <div className="p-6 text-center text-gray-500">Đang tải...</div>;
 
   // Hàm format danh sách sản phẩm của đơn hàng
@@ -240,7 +254,7 @@ const KeHoachGiaoHangTable = () => {
             <FiPrinter size={17} />
           </button>
           <button
-            onClick={() => dispatch(fetchDonHangAll())}
+            onClick={() => { if (page === 1) loadData(); else setPage(1); }}
             className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
             title="Làm mới"
           >
@@ -294,43 +308,25 @@ const KeHoachGiaoHangTable = () => {
         )}
 
         {/* ================= TABLE ================= */}
-        <div className="bg-white rounded-lg shadow overflow-hidden print:hidden">
+        <div className="bg-white rounded shadow-sm overflow-hidden border print:hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Nhận lúc
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Số
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Hẹn giao
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Khách hàng
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Bác sĩ
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Bệnh nhân
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Răng
-                  </th>{" "}
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Trạng thái
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Ghi chú
-                  </th>
+            <table className="w-full min-w-[900px] text-sm text-left">
+              <thead className="text-sky-500 font-medium border-b sticky top-0 bg-white z-10">
+                <tr>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Nhận lúc</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Số</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Hẹn giao</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Khách hàng</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Bác sĩ</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Bệnh nhân</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Răng</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Trạng thái</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Ghi chú</th>
                 </tr>
               </thead>
 
               <tbody>
-                {paginatedOrders.map((order) => {
+                {filteredOrders.map((order) => {
                   const date = parseISO(order.henGiao);
                   const overdue =
                     isBefore(date, todayStart) &&
@@ -347,27 +343,26 @@ const KeHoachGiaoHangTable = () => {
                     <tr
                       key={order._id}
                       onClick={() => setSelectedDonHang(order)}
-                      className="border-b border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer"
+                      className={`border-b cursor-pointer transition-colors ${selectedDonHang?._id === order._id
+                          ? "bg-sky-200 border-sky-200"
+                          : "hover:bg-gray-50"
+                        }`}
                     >
                       {/* NHẬN LÚC */}
-                      <td className="px-4 py-2.5 text-gray-600 font-bold whitespace-nowrap text-xs">
+                      <td className="px-3 truncate">
                         {order.ngayNhan
                           ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
                           : "—"}
                       </td>
 
-                      {/* SỐ ĐƠN: Bấm vào đây thì navigate sang trang edit */}
-                      <td className="px-4 py-2.5 whitespace-nowrap">
+                      {/* SỐ ĐƠN */}
+                      <td className="px-3 truncate">
                         <button
                           onClick={(e) => {
-                            e.stopPropagation(); // Ngăn sự kiện onClick truyền lên thẻ <tr>
+                            e.stopPropagation();
                             navigate(`/donhang/${order._id}/edit`);
                           }}
-                          className={`font-medium text-sm hover:underline ${overdue
-                            ? "text-red-500"
-                            : today
-                              ? "text-blue-600"
-                              : "text-gray-700"
+                          className={`hover:underline ${overdue ? "text-red-500" : today ? "text-blue-600" : ""
                             }`}
                         >
                           {maDon}
@@ -375,58 +370,32 @@ const KeHoachGiaoHangTable = () => {
                       </td>
 
                       {/* HẸN GIAO */}
-                      <td className="px-4 py-2.5 whitespace-nowrap">
-                        <span
-                          className={`text-sm font-medium ${overdue
-                            ? "text-red-500"
-                            : today
-                              ? "text-gray-800"
-                              : "text-gray-700"
-                            }`}
-                        >
-                          {format(date, "dd/MM/yyyy HH:mm")}
-                        </span>
+                      <td className={`px-3 truncate ${overdue ? "text-red-500" : today ? "text-blue-600" : ""
+                        }`}>
+                        {format(date, "dd/MM/yyyy HH:mm")}
                       </td>
 
                       {/* KHÁCH HÀNG */}
-                      <td className="px-4 py-2.5 min-w-[180px]">
-                        <span className="text-gray-800 text-sm">
-                          {order.nhaKhoa?.hoVaTen}
-                        </span>
-                      </td>
+                      <td className="px-3 truncate">{order.nhaKhoa?.hoVaTen}</td>
 
                       {/* BÁC SĨ */}
-                      <td className="px-4 py-2.5 min-w-[120px] text-gray-700 text-sm">
-                        {order.bacSi?.hoVaTen}
-                      </td>
+                      <td className="px-3 truncate">{order.bacSi?.hoVaTen}</td>
 
                       {/* BỆNH NHÂN */}
-                      <td className="px-4 py-2.5 min-w-[140px] text-gray-700 text-sm">
-                        {order.benhNhan?.hoVaTen}
-                      </td>
-                      <td className="px-4 py-2.5 min-w-[140px] text-gray-700 text-sm">
+                      <td className="px-3 truncate">{order.benhNhan?.hoVaTen}</td>
+
+                      {/* RĂNG */}
+                      <td className="px-3 py-2 truncate">
                         {formatDanhSachSanPham(order.danhSachSanPham)}
                       </td>
 
                       {/* TRẠNG THÁI */}
-                      <td className="px-4 py-2.5 whitespace-nowrap">
-                        <span
-                          className={`text-xs font-medium ${order.trangThai === "Hoàn thành"
-                            ? "text-green-700"
-                            : order.trangThai === "Đang sản xuất"
-                              ? "text-blue-700"
-                              : "text-gray-600"
-                            }`}
-                        >
-                          {order.trangThai
-                            ? order.trangThai.length > 10
-                              ? order.trangThai.substring(0, 10) + "..."
-                              : order.trangThai
-                            : "—"}
-                        </span>
+                      <td className="px-3">
+                        <TrangThaiBadge value={order.trangThai} />
                       </td>
 
-                      <td className="px-4 py-2.5 min-w-[140px] text-gray-700 text-sm">
+                      {/* GHI CHÚ */}
+                      <td className="px-3 truncate" title={order.ghiChuChung || ""}>
                         {order.ghiChuChung}
                       </td>
                     </tr>
@@ -435,10 +404,7 @@ const KeHoachGiaoHangTable = () => {
 
                 {filteredOrders.length === 0 && (
                   <tr>
-                    <td
-                      colSpan="9"
-                      className="text-center py-10 text-gray-400 text-sm"
-                    >
+                    <td colSpan="9" className="text-center py-8 text-gray-500">
                       Không có dữ liệu
                     </td>
                   </tr>
@@ -446,46 +412,14 @@ const KeHoachGiaoHangTable = () => {
               </tbody>
             </table>
 
-            {/* ================= PAGINATION ================= */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-2 px-4 py-3 border-t bg-white text-sm">
-              <div className="flex items-center gap-2 text-gray-600">
-                <span>Hiển thị</span>
-                <select
-                  value={rowsPerPage}
-                  onChange={(e) => {
-                    setRowsPerPage(Number(e.target.value));
-                    setPage(1);
-                  }}
-                  className="border rounded px-2 py-1 text-sm"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-                <span>/ {filteredOrders.length} đơn</span>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <button
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                  className="px-3 py-1 rounded border text-sm disabled:opacity-40 hover:bg-gray-100 transition"
-                >
-                  Trước
-                </button>
-                <span className="px-2 text-gray-600">
-                  Trang {page} / {totalPages || 1}
-                </span>
-                <button
-                  disabled={page === totalPages || totalPages === 0}
-                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                  className="px-3 py-1 rounded border text-sm disabled:opacity-40 hover:bg-gray-100 transition"
-                >
-                  Sau
-                </button>
-              </div>
-            </div>
+            {/* ================= INFINITE SCROLL SENTINEL ================= */}
+            <div ref={sentinelRef} className="h-4" />
+            {loadingMore && (
+              <div className="text-center py-3 text-gray-400 text-sm">Đang tải thêm...</div>
+            )}
+            {!loadingMore && pagination?.totalPages && page >= pagination.totalPages && filteredOrders.length > 0 && (
+              <div className="text-center py-2 text-gray-400 text-xs">Đã tải {pagination.total} đơn</div>
+            )}
           </div>
         </div>
 
@@ -608,6 +542,20 @@ const KeHoachGiaoHangTable = () => {
         />
       )}
     </div>
+  );
+};
+
+const TrangThaiBadge = ({ value }) => {
+  const map = {
+    "Chờ xử lý": "bg-yellow-100 text-yellow-800",
+    "Đang sản xuất": "bg-blue-100 text-blue-800",
+    "Hoàn thành": "bg-green-100 text-green-800",
+    "Đã giao": "bg-gray-100 text-gray-700",
+  };
+  return (
+    <span className={`px-2 py-1 font-medium text-xs ${map[value] || "bg-gray-100 text-gray-600"}`}>
+      {value || "Chờ xử lý"}
+    </span>
   );
 };
 

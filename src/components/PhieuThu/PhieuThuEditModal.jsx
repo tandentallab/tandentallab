@@ -226,6 +226,22 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
         return chiTietHoaDon.some(item => (Number(item.soTienThanhToanInput) || 0) > item.conLaiToiDa);
     }, [chiTietHoaDon]);
 
+    // 🔥 THÊM VÀO ĐÂY: Khóa mốc thời gian UI y như lúc Tạo mới
+    const minNgayThuStr = useMemo(() => {
+        const selectedItems = chiTietHoaDon.filter(
+            item => item.selected && Number(item.soTienThanhToanInput) > 0
+        );
+        if (selectedItems.length === 0) return "";
+
+        const maxNgayHD = selectedItems.reduce((max, item) => {
+            const d = new Date(item.hoaDon?.ngayXuatHoaDon || item.hoaDon?.createdAt || 0).getTime();
+            return d > max ? d : max;
+        }, 0);
+
+        if (maxNgayHD === 0) return "";
+        return toLocalDatetimeInput(new Date(maxNgayHD));
+    }, [chiTietHoaDon]);
+
     const handleSave = async () => {
         setError("");
 
@@ -414,7 +430,10 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-400 mb-0.5">Ngày thu</p>
-                                    <input type="datetime-local" value={ngayThu} onChange={(e) => setNgayThu(e.target.value)}
+                                    <input type="datetime-local" value={ngayThu}
+                                        min={minNgayThuStr}                     // 🔥 Chặn lùi qua ngày HĐ mới nhất
+                                        max={toLocalDatetimeInput(new Date())}  // 🔥 Chặn chọn tương lai
+                                        onChange={(e) => setNgayThu(e.target.value)}
                                         className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-sm text-gray-800 py-1 outline-none" />
                                 </div>
                                 <div>

@@ -24,6 +24,12 @@ const fmtDateTime = (d) => {
   return `${dt.toLocaleDateString("vi-VN")} ${dt.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", hour12: false })}`;
 };
 
+const toLocalDateInput = (d) => {
+  const dt = d ? new Date(d) : new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+};
+
 const TRANG_THAI_COLOR = {
   "Chưa thanh toán": "bg-orange-500 text-white",
   "Thanh toán một phần": "bg-yellow-500 text-white",
@@ -98,7 +104,7 @@ const HoaDonDetail = () => {
           thueMode: (mappedData.thue > 0 && mappedData.thue % 1 !== 0) ? "tienMat" : "phanTram",
           chiPhiKhac: mappedData.chiPhiKhac || 0,
           ngayXuatHoaDon: mappedData.ngayXuatHoaDon
-            ? new Date(new Date(mappedData.ngayXuatHoaDon).getTime() + 7 * 60 * 60 * 1000).toISOString().split("T")[0]
+            ? toLocalDateInput(mappedData.ngayXuatHoaDon)
             : "",
         });
 
@@ -187,23 +193,33 @@ const HoaDonDetail = () => {
       }
     });
 
-    if (maxTime === 0) return "";
-    const d = new Date(maxTime);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    return maxTime > 0 ? toLocalDateInput(maxTime) : "";
   }, [hoaDon]);
 
   // ================= 2. HÀM KIỂM TRA KHI THAY ĐỔI NGÀY XUẤT HÓA ĐƠN =================
   const handleNgayXuatChange = (e) => {
     const val = e.target.value;
-    // Kiểm tra nếu giá trị ngày người dùng chọn nhỏ hơn ngày muộn nhất của đơn hàng
-    if (val && minNgayXuatStr && val < minNgayXuatStr) {
+
+    if (!val) {
+      setField("ngayXuatHoaDon", val);
+      return;
+    }
+
+    // 1. Chặn lịch chọn lùi
+    if (minNgayXuatStr && val < minNgayXuatStr) {
       const [y, m, d] = minNgayXuatStr.split("-");
       toast.error(`Ngày xuất hóa đơn không được nhỏ hơn ngày nhận mới nhất (${d}/${m}/${y})`);
-      return; // Không cho phép cập nhật state nếu vi phạm
+      return;
     }
+
+    // 2. Chặn tương lai (Bằng cách lấy ngày hôm nay từ hàm helper)
+    const todayStr = toLocalDateInput();
+    if (val > todayStr) {
+      const [y, m, d] = todayStr.split("-");
+      toast.error(`Ngày xuất hóa đơn không được vượt quá ngày hôm nay (${d}/${m}/${y})`);
+      return;
+    }
+
     setField("ngayXuatHoaDon", val);
   };
 
@@ -609,6 +625,7 @@ const HoaDonDetail = () => {
             <input
               type="date"
               min={minNgayXuatStr} // Chặn lịch chọn lùi
+              max={toLocalDateInput()}
               value={formState.ngayXuatHoaDon}
               onChange={handleNgayXuatChange}
               className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent w-36"
@@ -764,6 +781,11 @@ const HoaDonDetail = () => {
           <span className="text-gray-400">⋮</span>
           <span className="hidden sm:block text-xs text-gray-400 font-medium">
             Kế Toán Tạo lúc {fmtDateTime(hoaDon.createdAt)}
+            {hoaDon.updatedAt && hoaDon.updatedAt !== hoaDon.createdAt && (
+              <span className="ml-1.5 italic text-gray-500">
+                (Đã sửa lúc: {fmtDateTime(hoaDon.updatedAt)})
+              </span>
+            )}
           </span>
         </div>
 

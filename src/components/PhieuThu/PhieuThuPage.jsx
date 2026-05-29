@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner";
 
 const formatCurrency = (value) =>
-    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value || 0);
+    (value || 0).toLocaleString('vi-VN');
 
 const formatSoPhieu = (id) =>
     id ? "TAN" + id.toString().slice(-8).toUpperCase() : "-";
@@ -32,7 +32,6 @@ const formatDateTime = (d) => {
     if (!d) return "-";
     return new Date(d).toLocaleString("vi-VN", {
         day: "2-digit", month: "2-digit", year: "numeric",
-        hour: "2-digit", minute: "2-digit",
     });
 };
 
@@ -471,13 +470,13 @@ export default function PhieuThuPage() {
                     <table className="w-full min-w-[640px] text-sm text-left whitespace-nowrap">
                         <thead className="bg-blue-50 text-blue-600 font-medium border-b sticky top-0 z-10">
                             <tr>
-                                <th className="px-4 py-3">Số phiếu</th>
-                                <th className="px-4 py-3">Khách hàng</th>
-                                <th className="px-4 py-3">Ngày thu</th>
-                                <th className="px-4 py-3 text-right">Số tiền thu</th>
-                                <th className="px-4 py-3 hidden md:table-cell">Nội dung thu</th>
-                                <th className="px-4 py-3 hidden sm:table-cell">Phương thức</th>
-                                <th className="px-4 py-3 hidden lg:table-cell">Người tạo</th>
+                                <th className="px-4 py-3 text-base ">Số phiếu</th>
+                                <th className="px-4 py-3 text-base ">Khách hàng</th>
+                                <th className="px-4 py-3 text-base ">Ngày thu</th>
+                                <th className="px-4 py-3 text-base text-right">Số tiền thu</th>
+                                <th className="px-4 py-3 text-base  hidden md:table-cell">Nội dung thu</th>
+                                <th className="px-4 py-3 text-base  hidden sm:table-cell">Phương thức</th>
+                                <th className="px-4 py-3 text-base  hidden lg:table-cell">Người tạo</th>
                             </tr>
                         </thead>
                         <tbody className="text-gray-700">
@@ -492,12 +491,12 @@ export default function PhieuThuPage() {
                                         onClick={() => handleRowClick(pt)}
                                         className={`border-b cursor-pointer transition-colors ${selectedPhieuThu?._id === pt._id ? "bg-blue-50 ring-1 ring-inset ring-blue-200" : "hover:bg-gray-50"}`}
                                     >
-                                        <td className="px-4 py-3 font-semibold text-blue-700">{pt.soPhieuThu || formatSoPhieu(pt._id)}</td>
-                                        <td className="px-4 py-3">{pt.nhaKhoaInfo?.hoVaTen || pt.nhaKhoaInfo?.tenGiaoDich || "-"}</td>
-                                        <td className="px-4 py-3">{formatDateTime(pt.ngayThu)}</td>
-                                        <td className="px-4 py-3 text-right font-semibold text-green-700">{formatCurrency(pt.soTienThu)}</td>
-                                        <td className="px-4 py-3 max-w-[200px] truncate hidden md:table-cell" title={pt.noiDung}>{pt.noiDung || "-"}</td>
-                                        <td className="px-4 py-3 hidden sm:table-cell">
+                                        <td className="px-4 py-3 text-base  font-semibold text-blue-700">{pt.soPhieuThu || formatSoPhieu(pt._id)}</td>
+                                        <td className="px-4 py-3 text-base ">{pt.nhaKhoaInfo?.hoVaTen || pt.nhaKhoaInfo?.tenGiaoDich || "-"}</td>
+                                        <td className="px-4 py-3 text-base ">{formatDateTime(pt.ngayThu)}</td>
+                                        <td className="px-4 py-3 text-base  text-right font-semibold text-green-700">{formatCurrency(pt.soTienThu)}</td>
+                                        <td className="px-4 py-3 text-base  max-w-[200px] truncate hidden md:table-cell" title={pt.noiDung}>{pt.noiDung || " "}</td>
+                                        <td className="px-4 py-3 text-base  hidden sm:table-cell">
                                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pt.phuongThucThanhToan === "Chuyển khoản" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
                                                 {pt.phuongThucThanhToan || "-"}
                                             </span>

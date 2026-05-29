@@ -55,13 +55,11 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
         return viTri.map((vt) => {
             const soRang = vt.soRang || [];
             if (soRang.length === 0) return "";
-            if (vt.kieu === "Cầu" && soRang.length >= 2) {
-                const min = Math.min(...soRang);
-                const max = Math.max(...soRang);
-                return `R${min}->${max}`;
+            if (vt.kieu === "Cầu") {
+                return `${soRang[0]}->${soRang[soRang.length - 1]}`;
             }
-            return soRang.map((r) => `R${r}`).join(" ");
-        }).filter(Boolean).join(" ");
+            return soRang.join(", ");
+        }).filter(Boolean).join("; ");
     };
 
     const renderTomTatRang = (danhSachSanPham) => {

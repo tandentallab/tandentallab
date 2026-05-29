@@ -184,7 +184,7 @@ const DonHangPrintPreview = () => {
                     </td>
                     <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold" }}>
                       {
-                        sp.loaiDon === "Hàng sửa" ? "Sửa" : sp.loaiDon === "Hàng bảo hành" ? "Bảo hành" : "Mới"
+                        sp.loaiDon === "Hàng sửa" ? "Sửa" : sp.loaiDon === "Hàng bảo hành" ? "Bảo hành" : sp.loaiDon === "Hàng làm lại" ? "Làm lại" : "Mới"
                       }
                     </td>
                   </tr>

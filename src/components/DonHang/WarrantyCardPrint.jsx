@@ -174,6 +174,7 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang, initialMauTheId }
           .print-hidden { display: none !important; }
           @page { size: auto; margin: 0; }
           body * { visibility: hidden; }
+          #print-section { display: none !important; visibility: hidden !important; }
           #print-content, #print-content * { visibility: visible; border: none !important; box-shadow: none !important; }
           #print-content { position: absolute; left: 0; top: 0; width: 100%; }
         }

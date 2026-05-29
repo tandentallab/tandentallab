@@ -78,17 +78,14 @@ async function exportToExcel(data, thang, nam) {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet(`THANG ${String(thang).padStart(2, '0')} ${nam}`);
 
-    const COLS = 10;
+    const COLS = 7;
     ws.getColumn(1).width = 5;
     ws.getColumn(2).width = 35;
     ws.getColumn(3).width = 18;
     ws.getColumn(4).width = 18;
     ws.getColumn(5).width = 18;
     ws.getColumn(6).width = 18;
-    ws.getColumn(7).width = 10;
-    ws.getColumn(8).width = 22;
-    ws.getColumn(9).width = 14;
-    ws.getColumn(10).width = 35;
+    ws.getColumn(7).width = 50;
 
     const numFmt = '#,##0;(#,##0);0';
 
@@ -100,7 +97,7 @@ async function exportToExcel(data, thang, nam) {
     ws.getRow(1).height = 28;
 
     const { noDauKy, phatSinh, thanhToan, conNo } = data.tongHop;
-    const sumRow = ws.addRow(['', '', noDauKy, phatSinh, thanhToan, conNo, '', '', '', '']);
+    const sumRow = ws.addRow(['', '', noDauKy, phatSinh, thanhToan, conNo, '']);
     sumRow.eachCell((cell, col) => {
         cell.font = { bold: true };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
@@ -113,7 +110,7 @@ async function exportToExcel(data, thang, nam) {
     });
     ws.getRow(2).height = 22;
 
-    const headers = ['STT', 'TÊN NHA KHOA', 'NỢ ĐẦU KỲ', 'PHÁT SINH', 'THANH TOÁN', 'CÒN NỢ', 'A', 'B', 'C', 'NOTE'];
+    const headers = ['STT', 'TÊN NHA KHOA', 'NỢ ĐẦU KỲ', 'PHÁT SINH', 'THANH TOÁN', 'CÒN NỢ', 'GHI CHÚ'];
     const headerRow = ws.addRow(headers);
     headerRow.eachCell((cell) => {
         cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
@@ -136,7 +133,7 @@ async function exportToExcel(data, thang, nam) {
         const dataRow = ws.addRow([
             row.stt, row.tenNhaKhoa,
             row.noDauKy ?? 0, row.phatSinh ?? 0, row.thanhToan ?? 0, row.conNo ?? 0,
-            '', '', '', '',
+            '',
         ]);
 
         dataRow.eachCell({ includeEmpty: true }, (cell, col) => {

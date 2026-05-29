@@ -226,6 +226,22 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
         return chiTietHoaDon.some(item => (Number(item.soTienThanhToanInput) || 0) > item.conLaiToiDa);
     }, [chiTietHoaDon]);
 
+    // 🔥 THÊM VÀO ĐÂY: Khóa mốc thời gian UI y như lúc Tạo mới
+    const minNgayThuStr = useMemo(() => {
+        const selectedItems = chiTietHoaDon.filter(
+            item => item.selected && Number(item.soTienThanhToanInput) > 0
+        );
+        if (selectedItems.length === 0) return "";
+
+        const maxNgayHD = selectedItems.reduce((max, item) => {
+            const d = new Date(item.hoaDon?.ngayXuatHoaDon || item.hoaDon?.createdAt || 0).getTime();
+            return d > max ? d : max;
+        }, 0);
+
+        if (maxNgayHD === 0) return "";
+        return toLocalDatetimeInput(new Date(maxNgayHD));
+    }, [chiTietHoaDon]);
+
     const handleSave = async () => {
         setError("");
 
@@ -241,6 +257,20 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
 
         if (lechTien !== 0) {
             setError(`Số tiền thu (${fmt(Number(soTienThu))}) đang lệch so với tổng tiền phân bổ bên dưới (${fmt(tongPhanBo)}).`);
+            return;
+        }
+
+        // ✅ THÊM VÀO ĐÂY
+        const selectedItems = chiTietHoaDon.filter(
+            item => item.selected && Number(item.soTienThanhToanInput) > 0
+        );
+        const maxNgayHD = selectedItems.reduce((max, item) => {
+            const d = new Date(item.hoaDon?.ngayXuatHoaDon || 0).getTime();
+            return d > max ? d : max;
+        }, 0);
+
+        if (maxNgayHD > 0 && new Date(ngayThu).setHours(0, 0, 0, 0) < new Date(maxNgayHD).setHours(0, 0, 0, 0)) {
+            setError(`Ngày thu không được trước ngày xuất hóa đơn mới nhất (${new Date(maxNgayHD).toLocaleDateString("vi-VN")}).`);
             return;
         }
 
@@ -291,6 +321,23 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
         if (!n) return [];
         return [n * 10_000, n * 100_000, n * 1_000_000];
     }, [soTienThu]);
+
+    const allChecked = chiTietHoaDon.length > 0 && chiTietHoaDon.every((item) => item.selected);
+    const someChecked = chiTietHoaDon.some((item) => item.selected) && !allChecked;
+
+    const handleToggleAll = () => {
+        const newList = chiTietHoaDon.map((item) => {
+            const willBeSelected = !allChecked;
+            return {
+                ...item,
+                selected: willBeSelected,
+                soTienThanhToanInput: willBeSelected ? String(item.conLaiToiDa) : "0",
+            };
+        });
+        setChiTietHoaDon(newList);
+        const newTotal = newList.reduce((sum, row) => sum + (Number(row.soTienThanhToanInput) || 0), 0);
+        setSoTienThu(String(newTotal));
+    };
 
     if (!open || !phieuThu) return null;
 
@@ -383,7 +430,10 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-400 mb-0.5">Ngày thu</p>
-                                    <input type="datetime-local" value={ngayThu} onChange={(e) => setNgayThu(e.target.value)}
+                                    <input type="datetime-local" value={ngayThu}
+                                        min={minNgayThuStr}                     // 🔥 Chặn lùi qua ngày HĐ mới nhất
+                                        max={toLocalDatetimeInput(new Date())}  // 🔥 Chặn chọn tương lai
+                                        onChange={(e) => setNgayThu(e.target.value)}
                                         className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-sm text-gray-800 py-1 outline-none" />
                                 </div>
                                 <div>
@@ -409,69 +459,95 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                             </div>
                         ) : chiTietHoaDon.length > 0 && (
                             <div className="rounded-xl overflow-hidden border border-gray-200 bg-white">
-                                <table className="w-full text-sm">
-                                    <thead className="border-b border-gray-100">
-                                        <tr className="text-gray-500 bg-gray-50/50">
-                                            <th className="w-10 px-4 py-3 text-center"></th>
-                                            <th className="px-4 py-3 text-left font-medium">Hóa đơn</th>
-                                            <th className="px-4 py-3 text-left font-medium">Ngày xuất</th>
-                                            <th className="px-4 py-3 text-right font-medium">Nợ trước lần này</th>
-                                            <th className="px-4 py-3 text-right font-medium text-[#29b6f6]">Thanh toán lần này</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {chiTietHoaDon.map((item, idx) => {
-                                            const hd = item.hoaDon || {};
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[640px] text-sm">
+                                        <thead className="border-b border-gray-100">
+                                            <tr className="text-gray-500 bg-gray-50/50">
+                                                <th className="w-10 px-4 py-3 text-left">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={allChecked}
+                                                        ref={(el) => { if (el) el.indeterminate = someChecked; }}
+                                                        onChange={handleToggleAll}
+                                                        className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
+                                                    />
+                                                </th>
+                                                <th className="px-4 py-3 text-left font-medium">STT</th>
+                                                <th className="px-4 py-3 text-left font-medium">Hóa đơn</th>
+                                                <th className="px-4 py-3 text-left font-medium">Ngày xuất</th>
+                                                <th className="px-4 py-3 text-right font-medium">Giá trị</th>
+                                                <th className="px-4 py-3 text-right font-medium">Đã thanh toán</th>
+                                                <th className="px-4 py-3 text-right font-medium">Còn lại</th>
+                                                <th className="px-4 py-3 text-right font-medium text-[#29b6f6]">Thanh toán</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {chiTietHoaDon.map((item, idx) => {
+                                                const hd = item.hoaDon || {};
+                                                const giaTriHD = hd.giaTriThanhToan || item.giaTriHoaDon || 0;
+                                                const daThanhToan = item.daTTruocLanNay || hd.daThanhToan || 0;
+                                                const inputVal = Number(item.soTienThanhToanInput) || 0;
+                                                const hasError = inputVal > item.conLaiToiDa;
 
-                                            const inputVal = Number(item.soTienThanhToanInput) || 0;
-                                            const hasError = inputVal > item.conLaiToiDa;
+                                                return (
+                                                    <tr key={hd._id || idx} className={`border-b border-gray-50 last:border-0 transition ${item.selected ? "bg-blue-50/60" : "hover:bg-gray-50"}`}>
 
-                                            return (
-                                                <tr key={hd._id || idx} className={`border-b border-gray-50 last:border-0 transition ${item.selected ? "bg-blue-50/30" : "opacity-60 grayscale"}`}>
+                                                        {/* CHECKBOX */}
+                                                        <td className="px-4 py-3">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={item.selected}
+                                                                onChange={() => handleToggleRow(idx)}
+                                                                className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
+                                                            />
+                                                        </td>
 
-                                                    {/* CHECKBOX */}
-                                                    <td className="px-4 py-3 text-center">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={item.selected}
-                                                            onChange={() => handleToggleRow(idx)}
-                                                            className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
-                                                        />
-                                                    </td>
+                                                        <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
 
-                                                    <td
-                                                        className="px-4 py-3 font-medium text-[#29b6f6] cursor-pointer hover:underline"
-                                                        onClick={() => navigate(`/hoa-don/${hd._id}/edit`)}
-                                                    >
-                                                        {hd.soHoaDon || formatSoHoaDon(hd._id)}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-gray-600">{hd.ngayXuatHoaDon ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN") : "—"}</td>
+                                                        <td
+                                                            className="px-4 py-3 font-medium text-[#29b6f6] cursor-pointer hover:underline"
+                                                            onClick={() => navigate(`/hoa-don/${hd._id}/edit`)}
+                                                        >
+                                                            {hd.soHoaDon || formatSoHoaDon(hd._id)}
+                                                        </td>
 
-                                                    {/* Nợ trước lần này */}
-                                                    <td className="px-4 py-3 text-right text-gray-500 font-medium">
-                                                        {fmt(item.conLaiToiDa)}
-                                                    </td>
+                                                        <td className="px-4 py-3 text-gray-600">
+                                                            {hd.ngayXuatHoaDon ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN") : "—"}
+                                                        </td>
 
-                                                    {/* Ô NHẬP TIỀN TỪNG DÒNG */}
-                                                    <td className="px-4 py-3 text-right">
-                                                        <input
-                                                            type="text"
-                                                            inputMode="numeric"
-                                                            disabled={!item.selected}
-                                                            value={fmt(item.soTienThanhToanInput)}
-                                                            onChange={(e) => handleRowAmountChange(idx, e.target.value)}
-                                                            className={`w-28 text-right border-b-2 font-bold bg-transparent pb-0.5 outline-none transition-colors ${!item.selected ? "border-transparent text-gray-400"
-                                                                : hasError ? "border-red-400 text-red-600 focus:border-red-600"
-                                                                    : "border-gray-200 text-[#29b6f6] focus:border-[#29b6f6]"
-                                                                }`}
-                                                        />
-                                                        {hasError && <p className="text-[10px] text-red-500 mt-1">Lố {fmt(inputVal - item.conLaiToiDa)} ₫</p>}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                                        <td className="px-4 py-3 text-right text-gray-700">
+                                                            {fmt(giaTriHD)}
+                                                        </td>
+
+                                                        <td className="px-4 py-3 text-right text-gray-500">
+                                                            {fmt(daThanhToan)}
+                                                        </td>
+
+                                                        <td className="px-4 py-3 text-right text-gray-700">
+                                                            {fmt(item.conLaiToiDa)}
+                                                        </td>
+
+                                                        {/* Ô NHẬP TIỀN TỪNG DÒNG */}
+                                                        <td className="px-4 py-3 text-right">
+                                                            <input
+                                                                type="text"
+                                                                inputMode="numeric"
+                                                                disabled={!item.selected}
+                                                                value={fmt(item.soTienThanhToanInput)}
+                                                                onChange={(e) => handleRowAmountChange(idx, e.target.value)}
+                                                                className={`w-28 text-right border-b-2 font-bold bg-transparent pb-0.5 outline-none transition-colors ${!item.selected ? "border-transparent text-gray-400"
+                                                                    : hasError ? "border-red-400 text-red-600 focus:border-red-600"
+                                                                        : "border-gray-200 text-[#29b6f6] focus:border-[#29b6f6]"
+                                                                    }`}
+                                                            />
+                                                            {hasError && <p className="text-[10px] text-red-500 mt-1">Lố {fmt(inputVal - item.conLaiToiDa)} ₫</p>}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         )}
 

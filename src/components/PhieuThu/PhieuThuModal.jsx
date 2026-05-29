@@ -235,6 +235,22 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     );
   }, [hoaDonChuaThanhToan, tongThuTien]);
 
+  // 🔥 THÊM VÀO: Tìm ngày xuất HĐ mới nhất trong các HĐ đang được chọn để làm mốc min
+  const minNgayThuStr = useMemo(() => {
+    const selectedHoaDons = hoaDonChuaThanhToan.filter(
+      (hd) => selectedHDs[hd._id] && selectedHDs[hd._id].soTienThanhToan > 0
+    );
+    if (selectedHoaDons.length === 0) return "";
+
+    const maxNgayHD = selectedHoaDons.reduce((max, hd) => {
+      const d = new Date(hd.ngayXuatHoaDon || hd.createdAt || 0).getTime();
+      return d > max ? d : max;
+    }, 0);
+
+    if (maxNgayHD === 0) return "";
+    return toLocalDatetimeInput(new Date(maxNgayHD));
+  }, [hoaDonChuaThanhToan, selectedHDs]);
+
   const handleSubmit = async () => {
     setSubmitError("");
     if (!selectedNhaKhoa) {
@@ -245,6 +261,18 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     const tongConNoHienTai = hoaDonChuaThanhToan.reduce((sum, hd) => sum + (hd.conLai || 0), 0);
     if (tongThuTien > tongConNoHienTai) {
       setSubmitError(`Số tiền thu không được vượt quá tổng công nợ (${fmt(tongConNoHienTai)} ₫).`);
+      return;
+    }
+
+    // ✅ THÊM VÀO ĐÂY
+    const selectedHoaDons = hoaDonChuaThanhToan.filter(hd => selectedHDs[hd._id] && selectedHDs[hd._id].soTienThanhToan > 0);
+    const maxNgayHD = selectedHoaDons.reduce((max, hd) => {
+      const d = new Date(hd.ngayXuatHoaDon || 0).getTime();
+      return d > max ? d : max;
+    }, 0);
+
+    if (maxNgayHD > 0 && new Date(ngayThu).setHours(0, 0, 0, 0) < new Date(maxNgayHD).setHours(0, 0, 0, 0)) {
+      setSubmitError(`Ngày thu không được trước ngày xuất hóa đơn mới nhất (${new Date(maxNgayHD).toLocaleDateString("vi-VN")}).`);
       return;
     }
 
@@ -460,6 +488,8 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                 <input
                   type="datetime-local"
                   value={ngayThu}
+                  min={minNgayThuStr}                    // 🔥 KHÓA LÙI: Không cho lùi qua ngày xuất HĐ mới nhất
+                  max={toLocalDatetimeInput(new Date())} // 🔥 KHÓA TỚI: Không cho chọn tương lai
                   onChange={(e) => setNgayThu(e.target.value)}
                   className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-sm text-gray-800 py-1 outline-none"
                 />

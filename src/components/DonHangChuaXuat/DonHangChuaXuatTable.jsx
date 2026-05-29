@@ -175,7 +175,7 @@ export default function DonHangChuaXuatTable({
   const { data: bangGia = [] } = useSelector((state) => state.bangGia) || {};
 
   // Mặc định lọc "Tháng này" và xóa mục "Tất cả" theo ý sếp
-  const [dateFilter, setDateFilter] = useState("thisMonth");
+  const [dateFilter, setDateFilter] = useState("custom");
   const [searchMaDon, setSearchMaDon] = useState("");
   const [visibleCount, setVisibleCount] = useState(25);
   const containerRef = useRef(null);
@@ -516,7 +516,7 @@ export default function DonHangChuaXuatTable({
           nhaKhoaId,
           danhSachDonHangIds: selectedOrders.map((o) => o._id),
           tuNgay: activeDateRange.start.toISOString(),
-          denNgay: activeDateRange.end.toISOString(),
+          denNgay: new Date().toISOString(), // Bắt ngay khoảnh khắc hiện tại
         })
       ).unwrap();
 
@@ -585,25 +585,27 @@ export default function DonHangChuaXuatTable({
           </FormControl>
 
           {dateFilter === "custom" && (
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <TextField
-                label="Từ ngày"
-                type="date"
-                size="small"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ minWidth: 130, flex: { xs: 1, sm: "none" } }}
-              />
-              <TextField
-                label="Đến ngày"
-                type="date"
-                size="small"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ minWidth: 130, flex: { xs: 1, sm: "none" } }}
-              />
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col">
+                <label className="text-xs text-gray-400 mb-0.5">Từ ngày</label>
+                <input
+                  type="date"
+                  value={fromDate}
+                  max={today}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm outline-none focus:border-[#29b6f6]"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-xs text-gray-400 mb-0.5">Đến ngày</label>
+                <input
+                  type="date"
+                  value={toDate}
+                  max={today}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm outline-none focus:border-[#29b6f6]"
+                />
+              </div>
             </div>
           )}
 

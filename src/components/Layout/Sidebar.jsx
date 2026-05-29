@@ -64,7 +64,7 @@ const Sidebar = ({ collapsed }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Kích thước & Trạng thái Drawer
-  const drawerWidth = isMobileSize ? 250 : collapsed ? 74 : 250;
+  const drawerWidth = isMobileSize ? 250 : collapsed ? 68 : 250;
   const isOpen = isMobileSize || !collapsed;
 
   const menu = MAIN_MENU;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const DEFAULT_COL_WIDTHS = [140, 120, 170, 120, 120, 230, 115, 150, 170];
+const DEFAULT_COL_WIDTHS = [120, 100, 170, 80, 150, 70, 100, 40, 110, 100, 120, 170];
 
 const DonHangTable = ({ data, selectedId, onRowClick }) => {
     const isDataValid = Array.isArray(data);
@@ -48,7 +48,7 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
         return new Date(value).toLocaleDateString("vi-VN");
     };
 
-    const loaiDonPrefix = { "Hàng sửa": "sửa", "Hàng làm lại": "làm lại", "Hàng bảo hành": "bảo hành" };
+    const loaiDonPrefix = { "Hàng sửa": "Sửa", "Hàng làm lại": "Làm lại", "Hàng bảo hành": "Bảo hành" };
 
     const renderViTri = (viTri) => {
         if (!Array.isArray(viTri) || viTri.length === 0) return "";
@@ -97,7 +97,7 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                         <div
                             key={dh._id}
                             onClick={() => onRowClick(dh)}
-                            className={`px-4 py-3 cursor-pointer transition-colors ${selectedId === dh._id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                            className={`px-4 py-3 cursor-pointer transition-colors ${selectedId === dh._id ? 'bg-sky-200' : 'hover:bg-gray-50'}`}
                         >
                             <div className="flex items-center justify-between mb-1">
                                 <span className="font-semibold text-blue-700 text-sm">
@@ -131,23 +131,26 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                     <colgroup>
                         {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
                     </colgroup>
-                    <thead className="bg-blue-50 text-blue-600 font-medium border-b sticky top-0 z-10">
+                    <thead className="text-sky-500 font-medium border-b sticky top-0 z-10">
                         <tr>
                             <th className={thBase}>Nhận lúc<ResizeHandle idx={0} /></th>
                             <th className={thBase}>Số<ResizeHandle idx={1} /></th>
                             <th className={thBase}>Khách hàng<ResizeHandle idx={2} /></th>
                             <th className={`${thBase} hidden md:table-cell`}>Bác sĩ<ResizeHandle idx={3} /></th>
                             <th className={`${thBase} hidden md:table-cell`}>Bệnh nhân<ResizeHandle idx={4} /></th>
-                            <th className={`${thBase} hidden lg:table-cell`}>Răng<ResizeHandle idx={5} /></th>
-                            <th className={thBase}>Trạng thái<ResizeHandle idx={6} /></th>
-                            <th className={thBase}>Hẹn giao<ResizeHandle idx={7} /></th>
-                            <th className={`${thBase} hidden xl:table-cell`}>Ghi chú<ResizeHandle idx={8} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>Loại<ResizeHandle idx={5} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>Sản phẩm<ResizeHandle idx={6} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>S.L<ResizeHandle idx={7} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>Vị trí răng<ResizeHandle idx={8} /></th>
+                            <th className={thBase}>Trạng thái<ResizeHandle idx={9} /></th>
+                            <th className={thBase}>Hẹn giao<ResizeHandle idx={10} /></th>
+                            <th className={`${thBase} hidden xl:table-cell`}>Ghi chú<ResizeHandle idx={11} /></th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-700">
                         {renderData.length === 0 ? (
                             <tr>
-                                <td colSpan="9" className="text-center py-8 text-gray-500">
+                                <td colSpan="12" className="text-center py-8 text-gray-500">
                                     Không có dữ liệu đơn hàng
                                 </td>
                             </tr>
@@ -155,18 +158,37 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                             renderData.map((dh) => (
                                 <tr
                                     key={dh._id}
-                                    className={`border-b cursor-pointer transition-colors ${selectedId === dh._id ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'}`}
+                                    className={`border-b cursor-pointer transition-colors ${selectedId === dh._id ? 'bg-sky-200 border-sky-200' : 'hover:bg-gray-50'}`}
                                     onClick={() => onRowClick(dh)}
                                 >
-                                    <td className="px-3 py-3 truncate">{formatDateTime(dh.ngayNhan)}</td>
-                                    <td className="px-3 py-3 font-medium truncate">{dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8).toUpperCase()}`}</td>
-                                    <td className="px-3 py-3 truncate">{dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen}</td>
-                                    <td className="px-3 py-3 truncate hidden md:table-cell">{dh.bacSi?.hoVaTen}</td>
-                                    <td className="px-3 py-3 truncate hidden md:table-cell">{dh.benhNhan?.hoVaTen}</td>
-                                    <td className="px-3 py-3 truncate hidden lg:table-cell" title={renderTomTatRang(dh.danhSachSanPham)}>{renderTomTatRang(dh.danhSachSanPham)}</td>
-                                    <td className="px-3 py-3"><TrangThaiBadge value={dh.trangThai} /></td>
-                                    <td className="px-3 py-3 truncate">{formatDateTime(dh.henGiao)}</td>
-                                    <td className="px-3 py-3 truncate hidden xl:table-cell" title={dh.ghiChuChung || ""}>{dh.ghiChuChung || ""}</td>
+                                    <td className="px-3 truncate">{formatDateTime(dh.ngayNhan)}</td>
+                                    <td className="px-3 truncate">{dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8).toUpperCase()}`}</td>
+                                    <td className="px-3 truncate">{dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen}</td>
+                                    <td className="px-3 truncate hidden md:table-cell">{dh.bacSi?.hoVaTen}</td>
+                                    <td className="px-3 truncate hidden md:table-cell">{dh.benhNhan?.hoVaTen}</td>
+                                    <td className="px-3 hidden lg:table-cell">
+                                        {(dh.danhSachSanPham || []).map((sp, i) => (
+                                            <div key={i}>{loaiDonPrefix[sp.loaiDon] || "Mới"}</div>
+                                        ))}
+                                    </td>
+                                    <td className="px-3 py-2 hidden lg:table-cell">
+                                        {(dh.danhSachSanPham || []).map((sp, i) => (
+                                            <div key={i} className="truncate">{sp.sanPham?.tenSanPham || ""}</div>
+                                        ))}
+                                    </td>
+                                    <td className="px-3 py-2 hidden lg:table-cell text-center">
+                                        {(dh.danhSachSanPham || []).map((sp, i) => (
+                                            <div key={i}>{sp.soLuong || 1}</div>
+                                        ))}
+                                    </td>
+                                    <td className="px-3 py-2 hidden lg:table-cell">
+                                        {(dh.danhSachSanPham || []).map((sp, i) => (
+                                            <div key={i} className="truncate">{renderViTri(sp.viTri)}</div>
+                                        ))}
+                                    </td>
+                                    <td className="px-3"><TrangThaiBadge value={dh.trangThai} /></td>
+                                    <td className="px-3 truncate">{formatDateTime(dh.henGiao)}</td>
+                                    <td className="px-3 truncate hidden xl:table-cell" title={dh.ghiChuChung || ""}>{dh.ghiChuChung || ""}</td>
                                 </tr>
                             ))
                         )}
@@ -185,7 +207,7 @@ const TrangThaiBadge = ({ value }) => {
         'Đã giao': 'bg-gray-100 text-gray-700',
     };
     return (
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${map[value] || 'bg-gray-100 text-gray-600'}`}>
+        <span className={`px-2 py-1 font-medium ${map[value] || 'bg-gray-100 text-gray-600'}`}>
             {value || 'Chờ xử lý'}
         </span>
     );

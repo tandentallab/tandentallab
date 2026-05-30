@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchDonHang, fetchMoreDonHang } from "../../redux/slices/donHangSlice";
+import { api } from "../../config/api";
 import {
   format,
   isToday,
@@ -36,6 +37,8 @@ const KeHoachGiaoHangTable = () => {
   const [showFilterBar, setShowFilterBar] = useState(false);
 
   const [page, setPage] = useState(1);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [printOrders, setPrintOrders] = useState(null);
 
   // State quản lý việc mở panel chi tiết đơn hàng
   const [selectedDonHang, setSelectedDonHang] = useState(null);
@@ -82,8 +85,8 @@ const KeHoachGiaoHangTable = () => {
   }, [page, pagination?.totalPages, loadingMore, loading]);
 
   // ================= FILTER LOGIC =================
-  const filteredOrders = useMemo(() => {
-    let result = [...data];
+  const applyFilters = useCallback((sourceData) => {
+    let result = [...sourceData];
 
     result = result.filter((order) => {
       const henGiaoDate = parseISO(order.henGiao);
@@ -100,12 +103,10 @@ const KeHoachGiaoHangTable = () => {
       return true;
     });
 
-    // 🔥 FILTER TRẠNG THÁI
     if (filterStatus !== "all") {
       result = result.filter((order) => order.trangThai === filterStatus);
     }
 
-    // 🔥 FILTER ĐƠN GẤP
     if (showUrgentOnly) {
       result = result.filter((order) => {
         const henGiaoDate = parseISO(order.henGiao);
@@ -117,7 +118,6 @@ const KeHoachGiaoHangTable = () => {
       });
     }
 
-    // 🔥 SEARCH
     if (searchText.trim()) {
       const q = searchText.toLowerCase();
       result = result.filter(
@@ -129,19 +129,23 @@ const KeHoachGiaoHangTable = () => {
       );
     }
 
-    // Sắp xếp theo hẹn giao từ mới nhất đến cũ nhất
     result.sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
-
     return result;
-  }, [
-    data,
-    showUrgentOnly,
-    filterType,
-    filterStatus,
-    fromDate,
-    toDate,
-    searchText,
-  ]);
+  }, [filterType, filterStatus, fromDate, toDate, showUrgentOnly, searchText, todayStart]);
+
+  const filteredOrders = useMemo(() => applyFilters(data), [data, applyFilters]);
+
+  // Lấy toàn bộ dữ liệu (không phân trang) rồi áp filter
+  const fetchAllFiltered = useCallback(async () => {
+    setLoadingAll(true);
+    try {
+      const res = await api.get("/donhang", { params: { page: 1, limit: 9999 } });
+      const allData = res.data.data || [];
+      return applyFilters(allData);
+    } finally {
+      setLoadingAll(false);
+    }
+  }, [applyFilters]);
 
   // ================= COUNT =================
   const countToday = data.filter((o) => isToday(parseISO(o.henGiao))).length;
@@ -202,7 +206,25 @@ const KeHoachGiaoHangTable = () => {
   };
 
   const handleExportExcel = async () => {
-    await exportKeHoachGiaoHangToExcel(filteredOrders, formatDanhSachSanPham);
+    const allFiltered = await fetchAllFiltered();
+    await exportKeHoachGiaoHangToExcel(allFiltered, formatDanhSachSanPham);
+  };
+
+  const handlePrint = async () => {
+    const allFiltered = await fetchAllFiltered();
+    setPrintOrders(allFiltered);
+    // Đợi React render xong rồi mới in
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        // Dọn dẹp sau khi in xong
+        const cleanup = () => {
+          setPrintOrders(null);
+          window.removeEventListener("afterprint", cleanup);
+        };
+        window.addEventListener("afterprint", cleanup);
+      });
+    });
   };
 
   return (
@@ -255,11 +277,12 @@ const KeHoachGiaoHangTable = () => {
             <FiDownload size={17} />
           </button>
           <button
-            onClick={() => window.print()}
-            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
+            onClick={handlePrint}
+            disabled={loadingAll}
+            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition disabled:opacity-50"
             title="In danh sách"
           >
-            <FiPrinter size={17} />
+            {loadingAll ? <FiRefreshCw size={17} className="animate-spin" /> : <FiPrinter size={17} />}
           </button>
           <button
             onClick={() => { if (page === 1) loadData(); else setPage(1); }}
@@ -526,7 +549,7 @@ const KeHoachGiaoHangTable = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order) => {
+              {(printOrders ?? filteredOrders).map((order) => {
                 const maDon = order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`;
                 return (
                   <tr key={order._id}>
@@ -544,7 +567,7 @@ const KeHoachGiaoHangTable = () => {
                   </tr>
                 );
               })}
-              {filteredOrders.length === 0 && (
+              {(printOrders ?? filteredOrders).length === 0 && (
                 <tr>
                   <td colSpan="7" className="border border-black text-center py-4">
                     Không có dữ liệu

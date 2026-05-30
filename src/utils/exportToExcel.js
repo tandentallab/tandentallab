@@ -598,51 +598,67 @@ export const exportDonHangListToExcel = async (
       })
       : "";
 
+  let currentRowIndex = headerRow + 1;
+
   donHangList.forEach((dh, idx) => {
-    const rowIndex = headerRow + 1 + idx;
     const so =
       dh?.maDonHang ||
       (dh?._id ? `TAN${dh._id.toString().slice(-8).toUpperCase()}` : "");
     const dssp = dh?.danhSachSanPham || [];
+    const numProducts = dssp.length > 0 ? dssp.length : 1;
+    const startRow = currentRowIndex;
+    const endRow = currentRowIndex + numProducts - 1;
 
-    const loaiStr = dssp
-      .map((sp) => loaiDonPrefix[sp.loaiDon] || "Mới")
-      .join("\n");
-    const sanPhamStr = dssp
-      .map((sp) => sp?.sanPham?.tenSanPham || "")
-      .join("\n");
-    const soLuongStr = dssp.map((sp) => sp?.soLuong ?? 1).join("\n");
-    const viTriStr = dssp.map((sp) => renderViTri(sp.viTri)).join("\n");
+    if (numProducts > 1) {
+      // Merge order level details vertically
+      worksheet.mergeCells(startRow, 1, endRow, 1);   // Nhận lúc
+      worksheet.mergeCells(startRow, 2, endRow, 2);   // Số
+      worksheet.mergeCells(startRow, 3, endRow, 3);   // Khách hàng
+      worksheet.mergeCells(startRow, 4, endRow, 4);   // Bác sĩ
+      worksheet.mergeCells(startRow, 5, endRow, 5);   // Bệnh nhân
+      worksheet.mergeCells(startRow, 10, endRow, 10); // Trạng thái
+      worksheet.mergeCells(startRow, 11, endRow, 11); // Hẹn giao
+    }
 
-    const hasMultiLine = dssp.length > 1;
-
-    worksheet.getRow(rowIndex).values = [
+    // Write first product + order details
+    const firstRowValues = [
       formatDT(dh?.ngayNhan),
       so,
       dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
       dh?.bacSi?.hoVaTen || "",
       dh?.benhNhan?.hoVaTen || "",
-      loaiStr,
-      sanPhamStr,
-      soLuongStr,
-      viTriStr,
+      dssp.length > 0 ? (loaiDonPrefix[dssp[0].loaiDon] || "Mới") : "",
+      dssp.length > 0 ? (dssp[0]?.sanPham?.tenSanPham || "") : "",
+      dssp.length > 0 ? (dssp[0]?.soLuong ?? 1) : "",
+      dssp.length > 0 ? renderViTri(dssp[0].viTri) : "",
       dh?.trangThai || "",
       formatDT(dh?.henGiao),
     ];
+    worksheet.getRow(startRow).values = firstRowValues;
 
-    const row = worksheet.getRow(rowIndex);
-    row.alignment = { vertical: "middle", wrapText: hasMultiLine };
-    row.getCell(8).alignment = {
-      horizontal: "center",
-      vertical: "middle",
-      wrapText: hasMultiLine,
-    };
-
-    if (hasMultiLine) row.height = 16 * dssp.length;
-
-    for (let col = 1; col <= headers.length; col += 1) {
-      applyBorder(worksheet.getCell(rowIndex, col), "thin");
+    // Write subsequent products if any
+    for (let pIdx = 1; pIdx < dssp.length; pIdx++) {
+      const prodRow = startRow + pIdx;
+      const sp = dssp[pIdx];
+      worksheet.getCell(prodRow, 6).value = loaiDonPrefix[sp.loaiDon] || "Mới";
+      worksheet.getCell(prodRow, 7).value = sp?.sanPham?.tenSanPham || "";
+      worksheet.getCell(prodRow, 8).value = sp?.soLuong ?? 1;
+      worksheet.getCell(prodRow, 9).value = renderViTri(sp.viTri);
     }
+
+    // Apply borders and alignments
+    for (let r = startRow; r <= endRow; r++) {
+      const row = worksheet.getRow(r);
+      row.alignment = { vertical: "middle", horizontal: "left" };
+      row.getCell(8).alignment = { horizontal: "center", vertical: "middle" };
+      row.height = 20;
+
+      for (let col = 1; col <= headers.length; col += 1) {
+        applyBorder(worksheet.getCell(r, col), "thin");
+      }
+    }
+
+    currentRowIndex = endRow + 1;
   });
 
   const buffer = await workbook.xlsx.writeBuffer();

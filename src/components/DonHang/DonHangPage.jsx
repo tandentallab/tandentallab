@@ -625,8 +625,8 @@ const DonHangPage = () => {
               if (!p.isCalendar) setOpenDateModal(null);
             }}
             className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${cf.preset === p.key
-                ? "bg-blue-50 text-blue-700 font-semibold"
-                : "text-gray-700 hover:bg-gray-50"
+              ? "bg-blue-50 text-blue-700 font-semibold"
+              : "text-gray-700 hover:bg-gray-50"
               }`}
           >
             {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
@@ -677,8 +677,8 @@ const DonHangPage = () => {
                 onClick={handleOpenFilter}
                 title="Bộ lọc"
                 className={`relative p-1.5 rounded transition ${isFiltered
-                    ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
-                    : "text-gray-500 hover:bg-gray-100"
+                  ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                  : "text-gray-500 hover:bg-gray-100"
                   }`}
               >
                 <FilterAltIcon sx={{ fontSize: 20 }} />
@@ -848,8 +848,8 @@ const DonHangPage = () => {
                               setOpenPickerModal(null);
                             }}
                             className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftNhaKhoa?._id === item._id
-                                ? "bg-blue-50 text-blue-700 font-semibold"
-                                : "text-gray-700 hover:bg-gray-50"
+                              ? "bg-blue-50 text-blue-700 font-semibold"
+                              : "text-gray-700 hover:bg-gray-50"
                               }`}
                           >
                             {item.name}
@@ -920,8 +920,8 @@ const DonHangPage = () => {
                               setOpenPickerModal(null);
                             }}
                             className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftBenhNhan?._id === item._id
-                                ? "bg-blue-50 text-blue-700 font-semibold"
-                                : "text-gray-700 hover:bg-gray-50"
+                              ? "bg-blue-50 text-blue-700 font-semibold"
+                              : "text-gray-700 hover:bg-gray-50"
                               }`}
                           >
                             {item.name}
@@ -1216,10 +1216,6 @@ const DonHangPage = () => {
             selectedId={selectedDonHangId}
             onRowClick={handleRowClick}
           />
-          <div className="bg-gray-50 border-t px-3 py-2 text-xs text-gray-500">
-            Hiển thị {filteredDonHangs.length} / {pagination?.total || 0} đơn
-            hàng
-          </div>
           {loadingMore && (
             <div className="text-center py-3 text-gray-400 text-sm">
               Đang tải thêm...

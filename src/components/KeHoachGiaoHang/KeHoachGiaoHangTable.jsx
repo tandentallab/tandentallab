@@ -48,6 +48,8 @@ const KeHoachGiaoHangTable = () => {
   const [showFilterBar, setShowFilterBar] = useState(false);
 
   const [page, setPage] = useState(1);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [printOrders, setPrintOrders] = useState(null);
 
   // State quản lý việc mở panel chi tiết đơn hàng
   const [selectedDonHang, setSelectedDonHang] = useState(null);
@@ -110,8 +112,8 @@ const KeHoachGiaoHangTable = () => {
   }, [page, pagination?.totalPages, loadingMore, loading]);
 
   // ================= FILTER LOGIC =================
-  const filteredOrders = useMemo(() => {
-    let result = [...data];
+  const applyFilters = useCallback((sourceData) => {
+    let result = [...sourceData];
 
     result = result.filter((order) => {
       const henGiaoDate = parseISO(order.henGiao);
@@ -128,12 +130,10 @@ const KeHoachGiaoHangTable = () => {
       return true;
     });
 
-    // 🔥 FILTER TRẠNG THÁI
     if (filterStatus !== "all") {
       result = result.filter((order) => order.trangThai === filterStatus);
     }
 
-    // 🔥 FILTER ĐƠN GẤP
     if (showUrgentOnly) {
       result = result.filter((order) => {
         const henGiaoDate = parseISO(order.henGiao);
@@ -145,7 +145,6 @@ const KeHoachGiaoHangTable = () => {
       });
     }
 
-    // 🔥 SEARCH
     if (searchText.trim()) {
       const q = searchText.toLowerCase();
       result = result.filter(
@@ -157,19 +156,23 @@ const KeHoachGiaoHangTable = () => {
       );
     }
 
-    // Sắp xếp theo hẹn giao từ mới nhất đến cũ nhất
     result.sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
-
     return result;
-  }, [
-    data,
-    showUrgentOnly,
-    filterType,
-    filterStatus,
-    fromDate,
-    toDate,
-    searchText,
-  ]);
+  }, [filterType, filterStatus, fromDate, toDate, showUrgentOnly, searchText, todayStart]);
+
+  const filteredOrders = useMemo(() => applyFilters(data), [data, applyFilters]);
+
+  // Lấy toàn bộ dữ liệu (không phân trang) rồi áp filter
+  const fetchAllFiltered = useCallback(async () => {
+    setLoadingAll(true);
+    try {
+      const res = await api.get("/donhang", { params: { page: 1, limit: 9999 } });
+      const allData = res.data.data || [];
+      return applyFilters(allData);
+    } finally {
+      setLoadingAll(false);
+    }
+  }, [applyFilters]);
 
   // ================= COUNT =================
   const countToday = data.filter((o) => isToday(parseISO(o.henGiao))).length;
@@ -284,11 +287,12 @@ const KeHoachGiaoHangTable = () => {
             <FiDownload size={17} />
           </button>
           <button
-            onClick={() => window.print()}
-            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
+            onClick={handlePrint}
+            disabled={loadingAll}
+            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition disabled:opacity-50"
             title="In danh sách"
           >
-            <FiPrinter size={17} />
+            {loadingAll ? <FiRefreshCw size={17} className="animate-spin" /> : <FiPrinter size={17} />}
           </button>
           <button
             onClick={() => {
@@ -426,8 +430,8 @@ const KeHoachGiaoHangTable = () => {
                       key={`${order._id}_${spIdx}`}
                       onClick={() => setSelectedDonHang(order)}
                       className={`border-b cursor-pointer transition-colors ${selectedDonHang?._id === order._id
-                          ? "bg-sky-100 border-sky-200"
-                          : "hover:bg-gray-50"
+                        ? "bg-sky-100 border-sky-200"
+                        : "hover:bg-gray-50"
                         }`}
                     >
                       {/* NHẬN LÚC */}
@@ -445,10 +449,10 @@ const KeHoachGiaoHangTable = () => {
                             navigate(`/donhang/${order._id}/edit`);
                           }}
                           className={`font-medium text-sm hover:underline ${overdue
-                              ? "text-red-500"
-                              : today
-                                ? "text-blue-600"
-                                : "text-gray-700"
+                            ? "text-red-500"
+                            : today
+                              ? "text-blue-600"
+                              : "text-gray-700"
                             }`}
                         >
                           {maDon}
@@ -515,18 +519,8 @@ const KeHoachGiaoHangTable = () => {
             {/* ================= INFINITE SCROLL SENTINEL ================= */}
             <div ref={sentinelRef} className="h-4" />
             {loadingMore && (
-              <div className="text-center py-3 text-gray-400 text-sm">
-                Đang tải thêm...
-              </div>
+              <div className="text-center py-3 text-gray-400 text-sm">Đang tải thêm...</div>
             )}
-            {!loadingMore &&
-              pagination?.totalPages &&
-              page >= pagination.totalPages &&
-              filteredOrders.length > 0 && (
-                <div className="text-center py-2 text-gray-400 text-xs">
-                  Đã tải {data.length} / {pagination.total} đơn
-                </div>
-              )}
           </div>
         </div>
 
@@ -627,45 +621,46 @@ const KeHoachGiaoHangTable = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.flatMap((order) => {
-                const dssp = order.danhSachSanPham || [];
-                const products = dssp.length > 0 ? dssp : [null];
-                const maDon =
-                  order.maDonHang ||
-                  `TAN${order._id
-                    .substring(order._id.length - 8)
-                    .toUpperCase()}`;
-                return products.map((sp, spIdx) => (
-                  <tr key={`${order._id}_${spIdx}`}>
-                    <td className="border border-black px-2 py-1 text-center">
-                      {order.ngayNhan
-                        ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
-                        : "—"}
-                    </td>
-                    <td className="border border-black px-2 py-1 text-center font-semibold">
-                      {maDon}
-                    </td>
-                    <td className="border border-black px-2 py-1">
-                      {order.nhaKhoa?.hoVaTen}
-                    </td>
-                    <td className="border border-black px-2 py-1">
-                      {order.benhNhan?.hoVaTen}
-                    </td>
-                    <td className="border border-black px-2 py-1">
-                      {formatSingleSanPham(sp)}
-                    </td>
-                    <td className="border border-black px-2 py-1 text-center">
-                      {order.henGiao
-                        ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm")
-                        : "—"}
-                    </td>
-                    <td className="border border-black px-2 py-1">
-                      {order.ghiChuChung}
-                    </td>
-                  </tr>
-                ));
-              })}
-              {filteredOrders.length === 0 && (
+              {
+                filteredOrders.flatMap((order) => {
+                  const dssp = order.danhSachSanPham || [];
+                  const products = dssp.length > 0 ? dssp : [null];
+                  const maDon =
+                    order.maDonHang ||
+                    `TAN${order._id
+                      .substring(order._id.length - 8)
+                      .toUpperCase()}`;
+                  return products.map((sp, spIdx) => (
+                    <tr key={`${order._id}_${spIdx}`}>
+                      <td className="border border-black px-2 py-1 text-center">
+                        {order.ngayNhan
+                          ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
+                          : "—"}
+                      </td>
+                      <td className="border border-black px-2 py-1 text-center font-semibold">
+                        {maDon}
+                      </td>
+                      <td className="border border-black px-2 py-1">
+                        {order.nhaKhoa?.hoVaTen}
+                      </td>
+                      <td className="border border-black px-2 py-1">
+                        {order.benhNhan?.hoVaTen}
+                      </td>
+                      <td className="border border-black px-2 py-1">
+                        {formatSingleSanPham(sp)}
+                      </td>
+                      <td className="border border-black px-2 py-1 text-center">
+                        {order.henGiao
+                          ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm")
+                          : "—"}
+                      </td>
+                      <td className="border border-black px-2 py-1">
+                        {order.ghiChuChung}
+                      </td>
+                    </tr>
+                  ));
+                })}
+              {(printOrders ?? filteredOrders).length === 0 && (
                 <tr>
                   <td
                     colSpan="7"
@@ -676,18 +671,20 @@ const KeHoachGiaoHangTable = () => {
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </table >
+        </div >
+      </div >
 
       {/* Hiển thị Panel Chi Tiết Đơn Hàng nếu đang chọn 1 đơn hàng */}
-      {selectedDonHang && (
-        <DonHangDetailPanel
-          donHang={selectedDonHang}
-          onClose={() => setSelectedDonHang(null)}
-        />
-      )}
-    </div>
+      {
+        selectedDonHang && (
+          <DonHangDetailPanel
+            donHang={selectedDonHang}
+            onClose={() => setSelectedDonHang(null)}
+          />
+        )
+      }
+    </div >
   );
 };
 

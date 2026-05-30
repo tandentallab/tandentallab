@@ -6,6 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { api } from "../../config/api";
 import {
   fetchDonHang,
   fetchMoreDonHang,
@@ -226,6 +227,23 @@ const KeHoachGiaoHangTable = () => {
 
   const handleExportExcel = async () => {
     await exportKeHoachGiaoHangToExcel(filteredOrders, formatSingleSanPham);
+  };
+
+  const handlePrint = async () => {
+    const allFiltered = await fetchAllFiltered();
+    setPrintOrders(allFiltered);
+    // Đợi React render xong rồi mới in
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        // Dọn dẹp sau khi in xong
+        const cleanup = () => {
+          setPrintOrders(null);
+          window.removeEventListener("afterprint", cleanup);
+        };
+        window.addEventListener("afterprint", cleanup);
+      });
+    });
   };
 
   if (loading && page === 1)

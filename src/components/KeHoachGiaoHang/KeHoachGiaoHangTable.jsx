@@ -6,14 +6,17 @@ import {
   isToday,
   isBefore,
   startOfDay,
-  endOfDay,
   parseISO,
 } from "date-fns";
+import dayjs from "dayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import ThongKeKeHoachGiaoHang from "./ThongKeKeHoachGiaoHang";
 import { useNavigate } from "react-router-dom";
 import { exportKeHoachGiaoHangToExcel } from "../../utils/exportToExcel";
 import {
-  FiFilter,
   FiSearch,
   FiRefreshCw,
   FiPlus,
@@ -21,8 +24,10 @@ import {
   FiDownload,
   FiPrinter,
 } from "react-icons/fi";
+import ReplayIcon from '@mui/icons-material/Replay';
 // Đảm bảo đường dẫn import DonHangDetailPanel đúng với cấu trúc thư mục của bạn
 import DonHangDetailPanel from "../DonHang/DonHangDetailPanel";
+import SaveIcon from '@mui/icons-material/Save';
 
 const ROWS_PER_PAGE = 20;
 
@@ -30,14 +35,25 @@ const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
   const { data, loading, loadingMore, pagination } = useSelector((state) => state.donHang);
 
-  const [showUrgentOnly, setShowUrgentOnly] = useState(false);
-  const [filterType, setFilterType] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("Chờ xử lý");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [draftFromDate, setDraftFromDate] = useState("");
+  const [draftToDate, setDraftToDate] = useState("");
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [showFilterBar, setShowFilterBar] = useState(false);
+
+  const handleApply = () => {
+    setFromDate(draftFromDate);
+    setToDate(draftToDate);
+  };
+
+  const handleReset = () => {
+    setDraftFromDate("");
+    setDraftToDate("");
+    setFromDate("");
+    setToDate("");
+    setSearchText("");
+  };
 
   const [page, setPage] = useState(1);
 
@@ -62,34 +78,21 @@ const KeHoachGiaoHangTable = () => {
   // Reset page khi filter thay đổi
   useEffect(() => {
     setPage(1);
-  }, [filterType, fromDate, toDate, filterStatus]);
+  }, [fromDate, toDate]);
 
   // Build params và dispatch load
   const loadData = useCallback(() => {
     const params = { page, limit: ROWS_PER_PAGE };
     if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
-    if (filterStatus !== "all") params.trangThai = filterStatus;
-
-    const today = startOfDay(new Date());
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (filterType === "today") {
-      params.henGiaoFrom = today.toISOString();
-      params.henGiaoTo = tomorrow.toISOString();
-    } else if (filterType === "overdue") {
-      params.henGiaoTo = today.toISOString();
-    } else if (filterType === "range") {
-      if (fromDate) params.henGiaoFrom = startOfDay(new Date(fromDate)).toISOString();
-      if (toDate) params.henGiaoTo = endOfDay(new Date(toDate)).toISOString();
-    }
+    if (fromDate) params.henGiaoFrom = new Date(fromDate).toISOString();
+    if (toDate) params.henGiaoTo = new Date(toDate).toISOString();
 
     if (page === 1) {
       dispatch(fetchDonHang(params));
     } else {
       dispatch(fetchMoreDonHang(params));
     }
-  }, [dispatch, page, debouncedSearch, filterStatus, filterType, fromDate, toDate]);
+  }, [dispatch, page, debouncedSearch, fromDate, toDate]);
 
   useEffect(() => {
     loadData();
@@ -111,29 +114,10 @@ const KeHoachGiaoHangTable = () => {
     return () => observer.disconnect();
   }, [page, pagination?.totalPages, loadingMore, loading]);
 
-  // ================= FILTER LOGIC (client-side phần còn lại) =================
+  // ================= FILTER LOGIC (client-side) =================
   const filteredOrders = useMemo(() => {
-    let result = [...data];
-
-    // Khi lọc "overdue" mà không chọn trạng thái cụ thể, loại bỏ đơn Hoàn thành
-    if (filterType === "overdue" && filterStatus === "all") {
-      result = result.filter((o) => o.trangThai !== "Hoàn thành");
-    }
-
-    // 🔥 FILTER ĐƠN GẤP
-    if (showUrgentOnly) {
-      result = result.filter((order) => {
-        const henGiaoDate = parseISO(order.henGiao);
-        return (
-          isToday(henGiaoDate) ||
-          (isBefore(henGiaoDate, todayStart) &&
-            order.trangThai !== "Hoàn thành")
-        );
-      });
-    }
-
-    return result;
-  }, [data, filterType, filterStatus, showUrgentOnly, todayStart]);
+    return [...data];
+  }, [data]);
 
   // ================= COUNT =================
   const countToday = data.filter((o) => isToday(parseISO(o.henGiao))).length;
@@ -210,16 +194,75 @@ const KeHoachGiaoHangTable = () => {
         </div>
 
         {/* ================= TOOLBAR ================= */}
-        <div className="flex items-center gap-2 mb-2 px-1 print:hidden">
-          {/* Filter icon toggle */}
-          <button
-            onClick={() => setShowFilterBar((v) => !v)}
-            className={`p-2 rounded hover:bg-gray-200 transition ${showFilterBar ? "text-blue-600" : "text-gray-500"
-              }`}
-            title="Lọc"
-          >
-            <FiFilter size={18} />
-          </button>
+        <div className="flex flex-wrap items-center gap-2 mb-3 px-1 print:hidden">
+          {/* Hẹn giao từ */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <span className="w-24">Hẹn giao từ:</span>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  value={draftFromDate ? dayjs(draftFromDate.split("T")[0]) : null}
+                  onChange={(val) =>
+                    setDraftFromDate(val ? `${val.format("YYYY-MM-DD")}T${draftFromDate.split("T")[1] || "00:00"}` : "")
+                  }
+                  slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem" } } } }}
+                />
+              </LocalizationProvider>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <TimePicker
+                  ampm={false}
+                  value={draftFromDate?.split("T")[1] ? dayjs(`2000-01-01T${draftFromDate.split("T")[1]}`) : null}
+                  onChange={(val) =>
+                    setDraftFromDate((prev) => prev ? `${prev.split("T")[0]}T${val ? val.format("HH:mm") : "00:00"}` : "")
+                  }
+                  slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "5.5rem" } } } }}
+                />
+              </LocalizationProvider>
+
+              {/* Nút reset */}
+              <button
+                onClick={handleApply}
+                className="w-10 h-10 rounded-full bg-sky-500 text-white shadow"
+                title="Áp dụng bộ lọc"
+              >
+                <SaveIcon fontSize="small" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="w-24">đến:</span>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  value={draftToDate ? dayjs(draftToDate.split("T")[0]) : null}
+                  onChange={(val) =>
+                    setDraftToDate(val ? `${val.format("YYYY-MM-DD")}T${draftToDate.split("T")[1] || "23:59"}` : "")
+                  }
+                  slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem" } } } }}
+                />
+              </LocalizationProvider>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <TimePicker
+                  ampm={false}
+                  value={draftToDate?.split("T")[1] ? dayjs(`2000-01-01T${draftToDate.split("T")[1]}`) : null}
+                  onChange={(val) =>
+                    setDraftToDate((prev) => prev ? `${prev.split("T")[0]}T${val ? val.format("HH:mm") : "23:59"}` : "")
+                  }
+                  slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "5.5rem" } } } }}
+                />
+              </LocalizationProvider>
+
+              {/* Nút áp dụng */}
+              <button
+                onClick={handleReset}
+                className="w-10 h-10 rounded-full bg-green-500 text-white shadow"
+                title="Đặt lại bộ lọc"
+              >
+                <ReplayIcon fontSize="small" />
+              </button>
+            </div>
+          </div>
 
           <div className="flex-1" />
 
@@ -262,51 +305,6 @@ const KeHoachGiaoHangTable = () => {
           </button>
         </div>
 
-        {/* ================= FILTER BAR ================= */}
-        {showFilterBar && (
-          <div className="flex flex-wrap gap-2 mb-3 px-1 py-2 bg-white rounded border text-sm print:hidden">
-            {/* Loại lọc ngày */}
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="border px-2 py-1.5 rounded text-sm"
-            >
-              <option value="all">Tất cả ngày</option>
-              <option value="today">Giao hôm nay</option>
-              <option value="overdue">Trễ hẹn</option>
-              <option value="range">Khoảng ngày</option>
-            </select>
-
-            {filterType === "range" && (
-              <>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="border px-2 py-1.5 rounded text-sm"
-                />
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="border px-2 py-1.5 rounded text-sm"
-                />
-              </>
-            )}
-
-            {/* Lọc trạng thái */}
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="border px-2 py-1.5 rounded text-sm"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="Chờ xử lý">Chờ xử lý</option>
-              <option value="Hoàn thành">Hoàn thành</option>
-            </select>
-          </div>
-        )}
-
         {/* ================= TABLE ================= */}
         <div className="bg-white rounded shadow-sm overflow-hidden border print:hidden">
           <div className="overflow-x-auto">
@@ -344,14 +342,14 @@ const KeHoachGiaoHangTable = () => {
                       key={order._id}
                       onClick={() => setSelectedDonHang(order)}
                       className={`border-b cursor-pointer transition-colors ${selectedDonHang?._id === order._id
-                          ? "bg-sky-200 border-sky-200"
-                          : "hover:bg-gray-50"
+                        ? "bg-sky-200 border-sky-200"
+                        : "hover:bg-gray-50"
                         }`}
                     >
                       {/* NHẬN LÚC */}
                       <td className="px-3 truncate">
                         {order.ngayNhan
-                          ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
+                          ? format(parseISO(order.ngayNhan), "HH:mm dd/MM/yyyy")
                           : "—"}
                       </td>
 
@@ -370,9 +368,9 @@ const KeHoachGiaoHangTable = () => {
                       </td>
 
                       {/* HẸN GIAO */}
-                      <td className={`px-3 truncate ${overdue ? "text-red-500" : today ? "text-blue-600" : ""
+                      <td className={`px-3 truncate ${overdue ? "text-red-500" : ""
                         }`}>
-                        {format(date, "dd/MM/yyyy HH:mm")}
+                        {format(date, "HH:mm dd/MM/yyyy")}
                       </td>
 
                       {/* KHÁCH HÀNG */}
@@ -498,9 +496,9 @@ const KeHoachGiaoHangTable = () => {
                 <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Số</th>
                 <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Khách hàng</th>
                 <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Bệnh nhân</th>
-                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "80%" }}>Răng</th>
+                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "60%" }}>Răng</th>
                 <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Hẹn giao</th>
-                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "20%" }}>Ghi chú</th>
+                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "40%" }}>Ghi chú</th>
               </tr>
             </thead>
             <tbody>
@@ -509,16 +507,16 @@ const KeHoachGiaoHangTable = () => {
                 return (
                   <tr key={order._id}>
                     <td className="border border-black px-2 py-1 text-center" style={{ width: "1%", whiteSpace: "nowrap" }}>
-                      {order.ngayNhan ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm") : "—"}
+                      {order.ngayNhan ? format(parseISO(order.ngayNhan), "HH:mm dd/MM/yyyy") : "—"}
                     </td>
                     <td className="border border-black px-2 py-1 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>{maDon}</td>
                     <td className="border border-black px-2 py-1" style={{ width: "1%", whiteSpace: "nowrap" }}>{order.nhaKhoa?.hoVaTen}</td>
                     <td className="border border-black px-2 py-1" style={{ width: "1%", whiteSpace: "nowrap" }}>{order.benhNhan?.hoVaTen}</td>
-                    <td className="border border-black px-2 py-1" style={{ width: "80%" }}>{formatDanhSachSanPham(order.danhSachSanPham)}</td>
+                    <td className="border border-black px-2 py-1" style={{ width: "60%" }}>{formatDanhSachSanPham(order.danhSachSanPham)}</td>
                     <td className="border border-black px-2 py-1 text-center" style={{ width: "1%", whiteSpace: "nowrap" }}>
-                      {order.henGiao ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm") : "—"}
+                      {order.henGiao ? format(parseISO(order.henGiao), "HH:mm dd/MM/yyyy") : "—"}
                     </td>
-                    <td className="border border-black px-2 py-1" style={{ width: "20%" }}>{order.ghiChuChung}</td>
+                    <td className="border border-black px-2 py-1" style={{ width: "40%" }}>{order.ghiChuChung}</td>
                   </tr>
                 );
               })}

@@ -152,8 +152,11 @@ const PhieuBaoHanhPage = () => {
       const actualEndStr = new Date(item.baoHanhDen).toISOString().slice(0, 10);
       const isExactYears = expectedEnd === actualEndStr;
 
+      const defaultName = item.sanPham?.tenSanPham || (typeof item.sanPham === 'string' ? item.sanPham : item.sanPham?.ten || "");
+
       return {
         ...item,
+        tenSanPhamBaoHanh: item.tenSanPhamBaoHanh || defaultName || "",
         selectedYears: isExactYears ? yearsDiff : "",
         customEndDate: isExactYears ? "" : actualEndStr,
       };
@@ -246,6 +249,7 @@ const PhieuBaoHanhPage = () => {
                 ...existingMatch,
                 soLuong: op.soLuong,
                 mau: op.mau,
+                tenSanPhamBaoHanh: existingMatch.tenSanPhamBaoHanh || op.tenSanPham || "",
               };
             }
 
@@ -263,6 +267,7 @@ const PhieuBaoHanhPage = () => {
               viTriRang: op.viTriRang,
               soLuong: op.soLuong,
               mau: op.mau,
+              tenSanPhamBaoHanh: op.tenSanPham || "",
               baoHanhTu: newBaoHanhTu,
               baoHanhDen: newBaoHanhDen,
               selectedYears: defaultYears > 0 ? defaultYears : "",
@@ -726,7 +731,7 @@ const PhieuBaoHanhPage = () => {
                       >
                         <div className="font-bold text-slate-800">
                           {idx + 1}.{" "}
-                          {item.sanPham?.tenSanPham || item.sanPham || "---"}
+                          {item.tenSanPhamBaoHanh || item.sanPham?.tenSanPham || item.sanPham || "---"}
                         </div>
                         <div className="text-slate-500 mt-1 flex flex-wrap gap-2">
                           {item.viTriRang && (
@@ -871,6 +876,33 @@ const PhieuBaoHanhPage = () => {
                             )}
                           </span>
                         </div>
+                      </div>
+
+                      {/* Tên sản phẩm bảo hành */}
+                      <div className="mb-4">
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                          Tên sản phẩm bảo hành:
+                        </label>
+                        <TextField
+                          placeholder="Nhập tên sản phẩm bảo hành..."
+                          value={item.tenSanPhamBaoHanh || ""}
+                          onChange={(e) => {
+                            const newDanhSach = [...editForm.danhSachBaoHanh];
+                            newDanhSach[idx] = {
+                              ...newDanhSach[idx],
+                              tenSanPhamBaoHanh: e.target.value,
+                            };
+                            setEditForm({
+                              ...editForm,
+                              danhSachBaoHanh: newDanhSach,
+                            });
+                          }}
+                          fullWidth
+                          size="small"
+                          InputProps={{
+                            className: "rounded-lg text-sm bg-white",
+                          }}
+                        />
                       </div>
 
                       {/* Các input thay đổi ngày (Giữ nguyên logic gốc) */}

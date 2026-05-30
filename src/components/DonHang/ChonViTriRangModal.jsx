@@ -11,10 +11,10 @@ const upperRow = [...upperLeft, ...upperRight];
 const lowerRow = [...lowerLeft, ...lowerRight];
 
 // ── Layout constants ──────────────────────────────────────────────────────────
-const TW = 42;          // tooth width  (px)
-const TH = 76;          // tooth height (px)
-const GAP = 3;           // gap between teeth
-const SEC_GAP = 22;          // center gap between left/right sections
+const TW = 84;          // tooth width  (px)
+const TH = 152;          // tooth height (px)
+const GAP = 1;           // gap between teeth
+const SEC_GAP = 1;          // center gap between left/right sections
 const CELL = TW + GAP;    // 45px per column
 
 // x-position (left edge) for column col (0–15)
@@ -23,127 +23,51 @@ const colToX = (col) =>
 
 const ROW_W = colToX(15) + TW;   // total row width in px
 
-// ── Tooth SVG paths ───────────────────────────────────────────────────────────
-// Upper orientation: root at top (small y), crown at bottom (large y)
-// viewBox "0 0 44 90"
-// Lower teeth use transform="scale(1,-1) translate(0,-90)" to flip → y' = 90-y
-const PATHS = {
-    // 1 – Central incisor: narrow root, slightly flared rectangular crown
-    1: `M22 5
-      C19 5 17 11 16 25 C15 39 15 54 17 62
-      C13 64 10 70 10 79 C10 85 15 90 22 90 C29 90 34 85 34 79
-      C34 70 31 64 27 62
-      C29 54 29 39 28 25 C27 11 25 5 22 5 Z`,
-
-    // 2 – Lateral incisor: similar but slightly smaller
-    2: `M22 6
-      C19 6 17 12 16 26 C15 40 16 54 18 62
-      C14 64 12 69 12 77 C12 83 16 88 22 88 C28 88 32 83 32 77
-      C32 69 30 64 26 62
-      C28 54 29 40 28 26 C27 12 25 6 22 6 Z`,
-
-    // 3 – Canine: long root, pointed crown tip
-    3: `M22 5
-      C19 5 16 13 15 28 C14 44 15 58 16 67
-      C15 73 14 79 15 85 L22 90 L29 85
-      C30 79 29 73 28 67
-      C29 58 30 44 29 28 C28 13 25 5 22 5 Z`,
-
-    // 4 – First premolar: two cusps, slightly wider crown
-    4: `M22 5
-      C18 5 15 11 14 24 C13 37 14 52 16 62
-      C12 64 8 70 8 79 C8 86 13 90 19 90 L22 90 L25 90
-      C31 90 36 86 36 79 C36 70 32 64 28 62
-      C30 52 31 37 30 24 C29 11 26 5 22 5 Z`,
-
-    // 5 – Second premolar: similar to 4
-    5: `M22 5
-      C18 5 15 11 14 24 C13 37 14 51 16 61
-      C12 63 8 69 8 78 C8 85 13 89 19 89 L22 89 L25 89
-      C31 89 36 85 36 78 C36 69 32 63 28 61
-      C30 51 31 37 30 24 C29 11 26 5 22 5 Z`,
-
-    // 6 – First molar: wide, dual-root visible, wide crown
-    6: `M15 4
-      C12 4 10 8  9 17 C8 26  9 36 11 44
-      C8 47  5 53  5 63 C5 73  8 80 13 85
-      C16 87 19 89 22 89 C25 89 28 87 31 85
-      C36 80 39 73 39 63 C39 53 36 47 33 44
-      C35 36 36 26 35 17 C34 8 32 4 29 4 L22 3 Z`,
-
-    // 7 – Second molar
-    7: `M15 5
-      C12 5 10 9  9 18 C8 27  9 37 11 45
-      C8 48  5 54  5 64 C5 74  8 81 13 85
-      C16 87 19 88 22 88 C25 88 28 87 31 85
-      C36 81 39 74 39 64 C39 54 36 48 33 45
-      C35 37 36 27 35 18 C34 9 32 5 29 5 L22 4 Z`,
-
-    // 8 – Wisdom tooth (slightly shorter crown)
-    8: `M16 6
-      C13 6 11 10 10 19 C9 28 10 38 12 46
-      C9 49  7 55  7 64 C7 74 10 80 15 84
-      C18 86 20 87 22 87 C24 87 26 86 29 84
-      C34 80 37 74 37 64 C37 55 35 49 32 46
-      C34 38 35 28 34 19 C33 10 31 6 28 6 L22 5 Z`,
-};
-
 // ── Tooth icon component ──────────────────────────────────────────────────────
-function ToothIcon({ num, isUpper, isRoi, isCau, isDragging: drag }) {
-    const type = num % 10 || 8;
-    const d = PATHS[type] || PATHS[1];
-
-    // Color scheme
-    let fill = '#eef5ff';
-    let stroke = '#93c5fd';
-    let sw = 1.6;
-    if (drag) { fill = '#dbeafe'; stroke = '#60a5fa'; sw = 2; }
-    else if (isCau) { fill = '#fff7ed'; stroke = '#f97316'; sw = 2; }
-    else if (isRoi) { fill = '#bfdbfe'; stroke = '#2563eb'; sw = 2; }
-
-    // Flip vertically for lower teeth: y' = 90 - y
-    const g = isUpper ? undefined : 'scale(1,-1) translate(0,-90)';
-
-    // Cervical line position (separating root from crown)
-    const cx = isUpper ? 62 : 90 - 62;   // y-coord after potential flip is irrelevant since we're in pre-transform space
-    const cervicalY = 62;
+function ToothIcon({ num, isRoi, isCau, isDragging: drag }) {
+    let overlayBg = null;
+    let borderColor = 'transparent';
+    if (drag) { overlayBg = 'rgba(147,197,253,0.45)'; borderColor = '#60a5fa'; }
+    else if (isCau) { overlayBg = 'rgba(249,115,22,0.30)'; borderColor = '#f97316'; }
+    else if (isRoi) { overlayBg = 'rgba(37,99,235,0.22)'; borderColor = '#2563eb'; }
 
     return (
-        <svg
-            viewBox="0 0 44 90"
-            width={TW}
-            height={TH}
-            style={{ display: 'block', overflow: 'visible' }}
+        <div
+            style={{
+                position: 'relative',
+                width: TW,
+                height: TH,
+                borderRadius: 4,
+                border: `2px solid ${borderColor}`,
+                boxSizing: 'border-box',
+                flexShrink: 0,
+            }}
         >
-            <g transform={g}>
-                {/* Main silhouette */}
-                <path
-                    d={d}
-                    fill={fill}
-                    stroke={stroke}
-                    strokeWidth={sw}
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
+            <img
+                src={`/teeth/tooth_${num}.svg`}
+                alt={String(num)}
+                draggable={false}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    display: 'block',
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                }}
+            />
+            {overlayBg && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: overlayBg,
+                        borderRadius: 2,
+                        pointerEvents: 'none',
+                    }}
                 />
-                {/* Subtle cervical line (crown–root junction) */}
-                <path
-                    d={`M14 ${cervicalY} Q22 ${cervicalY + 5} 30 ${cervicalY}`}
-                    fill="none"
-                    stroke={stroke}
-                    strokeWidth="0.8"
-                    strokeOpacity="0.45"
-                />
-                {/* Molar root bifurcation hint */}
-                {type >= 6 && (
-                    <line
-                        x1="22" y1="18" x2="22" y2="42"
-                        stroke={stroke}
-                        strokeWidth="0.7"
-                        strokeOpacity="0.35"
-                    />
-                )}
-            </g>
-        </svg>
+            )}
+        </div>
     );
 }
 
@@ -203,8 +127,31 @@ export default function ChonViTriRangModal({
                     ? next.filter((o) => !o.soRang.includes(t))
                     : [...next, { kieu: 'Rời', soRang: [t] }];
             } else {
-                const dup = next.some((o) => JSON.stringify(o.soRang) === JSON.stringify(range));
-                if (!dup) next = [...next, { kieu: 'Cầu', soRang: range }];
+                // Split upper jaw and lower jaw into separate bridges
+                const upperPart = range.filter(t => upperRow.includes(t));
+                const lowerPart = range.filter(t => lowerRow.includes(t));
+
+                if (upperPart.length > 0 && lowerPart.length > 0) {
+                    // Cross-jaw: add two separate entries
+                    if (upperPart.length === 1) {
+                        if (!next.some(o => o.soRang.includes(upperPart[0])))
+                            next = [...next, { kieu: 'Rời', soRang: upperPart }];
+                    } else {
+                        const dup = next.some(o => JSON.stringify(o.soRang) === JSON.stringify(upperPart));
+                        if (!dup) next = [...next, { kieu: 'Cầu', soRang: upperPart }];
+                    }
+                    if (lowerPart.length === 1) {
+                        if (!next.some(o => o.soRang.includes(lowerPart[0])))
+                            next = [...next, { kieu: 'Rời', soRang: lowerPart }];
+                    } else {
+                        const dup = next.some(o => JSON.stringify(o.soRang) === JSON.stringify(lowerPart));
+                        if (!dup) next = [...next, { kieu: 'Cầu', soRang: lowerPart }];
+                    }
+                } else {
+                    // Same jaw: single bridge
+                    const dup = next.some((o) => JSON.stringify(o.soRang) === JSON.stringify(range));
+                    if (!dup) next = [...next, { kieu: 'Cầu', soRang: range }];
+                }
             }
             const used = new Set();
             return next
@@ -307,7 +254,7 @@ export default function ChonViTriRangModal({
                             const s = getStatus(num);
                             return (
                                 <div key={num} style={{ cursor: 'pointer', userSelect: 'none' }} {...bindCell(num)}>
-                                    <ToothIcon num={num} isUpper={isUpper} {...s} />
+                                    <ToothIcon num={num} {...s} />
                                 </div>
                             );
                         })}
@@ -318,7 +265,7 @@ export default function ChonViTriRangModal({
                             const s = getStatus(num);
                             return (
                                 <div key={num} style={{ cursor: 'pointer', userSelect: 'none' }} {...bindCell(num)}>
-                                    <ToothIcon num={num} isUpper={isUpper} {...s} />
+                                    <ToothIcon num={num} {...s} />
                                 </div>
                             );
                         })}

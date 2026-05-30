@@ -23,7 +23,8 @@ const now = new Date();
 const currentYear = now.getFullYear();
 const currentMonth = now.getMonth() + 1;
 
-const BASE_YEAR = 2024;
+const BASE_YEAR = 2026;
+const BASE_MONTH = 5;
 const NAM_LIST = Array.from(
     { length: currentYear - BASE_YEAR + 1 },
     (_, i) => BASE_YEAR + i
@@ -36,13 +37,13 @@ const ExcelSvgIcon = () => (
         <rect width="24" height="24" rx="3" fill="#217346" />
         <path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4z" fill="#185C37" />
         <path d="M14 3v4h4" fill="none" stroke="#fff" strokeWidth="1.2" strokeLinejoin="round" />
-        <text x="4" y="18" fill="white" fontSize="8" fontWeight="bold" fontFamily="Cambria,serif">XLS</text>
+        <text x="4" y="18" fill="white" fontSize="8" fontWeight="bold" fontFamily="Segoe UI,serif">XLS</text>
     </svg>
 );
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
-const FONT = "'Cambria', 'serif'";
+const FONT = "'Segoe UI', 'serif'";
 
 const headerSx = {
     backgroundColor: '#1a237e',
@@ -77,17 +78,14 @@ async function exportToExcel(data, thang, nam) {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet(`THANG ${String(thang).padStart(2, '0')} ${nam}`);
 
-    const COLS = 10;
+    const COLS = 7;
     ws.getColumn(1).width = 5;
     ws.getColumn(2).width = 35;
     ws.getColumn(3).width = 18;
     ws.getColumn(4).width = 18;
     ws.getColumn(5).width = 18;
     ws.getColumn(6).width = 18;
-    ws.getColumn(7).width = 10;
-    ws.getColumn(8).width = 22;
-    ws.getColumn(9).width = 14;
-    ws.getColumn(10).width = 35;
+    ws.getColumn(7).width = 50;
 
     const numFmt = '#,##0;(#,##0);0';
 
@@ -99,7 +97,7 @@ async function exportToExcel(data, thang, nam) {
     ws.getRow(1).height = 28;
 
     const { noDauKy, phatSinh, thanhToan, conNo } = data.tongHop;
-    const sumRow = ws.addRow(['', '', noDauKy, phatSinh, thanhToan, conNo, '', '', '', '']);
+    const sumRow = ws.addRow(['', '', noDauKy, phatSinh, thanhToan, conNo, '']);
     sumRow.eachCell((cell, col) => {
         cell.font = { bold: true };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
@@ -112,7 +110,7 @@ async function exportToExcel(data, thang, nam) {
     });
     ws.getRow(2).height = 22;
 
-    const headers = ['STT', 'TÊN NHA KHOA', 'NỢ ĐẦU KỲ', 'PHÁT SINH', 'THANH TOÁN', 'CÒN NỢ', 'A', 'B', 'C', 'NOTE'];
+    const headers = ['STT', 'TÊN NHA KHOA', 'NỢ ĐẦU KỲ', 'PHÁT SINH', 'THANH TOÁN', 'CÒN NỢ', 'GHI CHÚ'];
     const headerRow = ws.addRow(headers);
     headerRow.eachCell((cell) => {
         cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
@@ -135,7 +133,7 @@ async function exportToExcel(data, thang, nam) {
         const dataRow = ws.addRow([
             row.stt, row.tenNhaKhoa,
             row.noDauKy ?? 0, row.phatSinh ?? 0, row.thanhToan ?? 0, row.conNo ?? 0,
-            '', '', '', '',
+            '',
         ]);
 
         dataRow.eachCell({ includeEmpty: true }, (cell, col) => {
@@ -172,10 +170,24 @@ export default function BaoCaoDoanhThuPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
 
     // ── Báo cáo ───────────────────────────────────────────────────────────────
-    const availableMonths = nam === currentYear
-        ? Array.from({ length: Math.min(currentMonth + 1, 12) }, (_, i) => i + 1)
-        : Array.from({ length: 12 }, (_, i) => i + 1);
+    let startMonth = 1;
+    let endMonth = 12;
 
+    // 1. Chặn biên dưới: Nếu đang xem năm bắt đầu (2024), thì tháng nhỏ nhất phải là BASE_MONTH
+    if (nam === BASE_YEAR) {
+        startMonth = BASE_MONTH;
+    }
+
+    // 2. Chặn biên trên: Nếu đang xem năm hiện tại, thì tháng lớn nhất chỉ tới (Tháng hiện tại + 1)
+    if (nam === currentYear) {
+        endMonth = Math.min(currentMonth + 1, 12);
+    }
+
+    // 3. Sinh ra mảng tháng dựa trên biên đã tính
+    const availableMonths = Array.from(
+        { length: endMonth - startMonth + 1 },
+        (_, i) => startMonth + i
+    );
     const handleNamChange = (e) => {
         const selectedNam = Number(e.target.value);
         setNam(selectedNam);
@@ -474,3 +486,11 @@ export default function BaoCaoDoanhThuPage() {
         </Box>
     );
 }
+
+
+// SAU NÀY CÓ ĐỔI SANG THÁNG 6
+// Dòng 1: đổi tháng mặc định
+// const [activeThang, setActiveThang] = useState(5);  // → useState(6)
+
+// Dòng 2: đổi danh sách tab
+// const THANG_LIST = [5, 6];  // → [6]

@@ -68,16 +68,14 @@ const DashboardPage = () => {
     dispatch(fetchChartData({ chartId, startDate, endDate, groupBy: config.groupBy }));
   }, [dispatch]);
 
+  // Luôn fetch mới khi mount (navigate vào trang), không check data.length
+  // handleConfigSave đã tự gọi loadDataForChart khi config thay đổi nên không cần effect theo dõi config
   useEffect(() => {
-    if (chart1.data.length === 0) loadDataForChart('chart1', chart1.config);
-    if (chart2.data.length === 0) loadDataForChart('chart2', chart2.config);
-    if (chart3.data.length === 0) loadDataForChart('chart3', chart3.config);
-    if (chart4.data.length === 0) loadDataForChart('chart4', chart4.config);
-  }, [
-    loadDataForChart,
-    chart1.config, chart2.config, chart3.config, chart4.config,
-    chart1.data.length, chart2.data.length, chart3.data.length, chart4.data.length,
-  ]);
+    loadDataForChart('chart1', chart1.config);
+    loadDataForChart('chart2', chart2.config);
+    loadDataForChart('chart3', chart3.config);
+    loadDataForChart('chart4', chart4.config);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfigSave = (chartId, newConfig) => {
     dispatch(updateChartConfig({ chartId, config: newConfig }));

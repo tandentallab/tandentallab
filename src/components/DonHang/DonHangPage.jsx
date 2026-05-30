@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { fetchDonHang } from "../../redux/slices/donHangSlice";
+import { fetchDonHang, fetchMoreDonHang } from "../../redux/slices/donHangSlice";
 import { api } from "../../config/api";
 import DonHangTable from "./DonHangTable";
 import DonHangDetailPanel from "./DonHangDetailPanel";
@@ -179,6 +179,7 @@ const DonHangPage = () => {
   const {
     data: donHangs,
     loading,
+    loadingMore,
     error,
     pagination,
     stats,
@@ -189,6 +190,7 @@ const DonHangPage = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selectedDonHangId, setSelectedDonHangId] = useState(null);
+  const sentinelRef = useRef(null);
 
   // Applied filters
   const [appliedNgayNhan, setAppliedNgayNhan] = useState(EMPTY_DATE);
@@ -282,7 +284,11 @@ const DonHangPage = () => {
       params,
       getFilterParams(appliedHenGiao, "henGiaoFrom", "henGiaoTo")
     );
-    dispatch(fetchDonHang(params));
+    if (page === 1) {
+      dispatch(fetchDonHang(params));
+    } else {
+      dispatch(fetchMoreDonHang(params));
+    }
   }, [
     dispatch,
     page,
@@ -299,6 +305,22 @@ const DonHangPage = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Infinite scroll: khi sentinel vào viewport thì tải trang tiếp theo
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && page < (pagination?.totalPages || 1) && !loadingMore && !loading) {
+          setPage((p) => p + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [page, pagination?.totalPages, loadingMore, loading]);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -561,8 +583,6 @@ const DonHangPage = () => {
   const choXuLy = stats?.["Chờ xử lý"] || 0;
   const dangSanXuat = stats?.["Đang sản xuất"] || 0;
   const treHen = stats?.treHen || 0;
-
-  const totalPages = pagination?.totalPages || 1;
 
   const isFiltered = !!(
     appliedNgayNhan.preset ||
@@ -1036,28 +1056,13 @@ const DonHangPage = () => {
             selectedId={selectedDonHangId}
             onRowClick={handleRowClick}
           />
-          <div className="bg-gray-50 border-t p-3 flex justify-between items-center text-sm text-gray-600">
-            <span>Tổng: {pagination?.total || 0} đơn hàng</span>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="px-2 py-1 border rounded text-xs hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                ← Trước
-              </button>
-              <span className="text-xs">
-                Trang {page} / {totalPages}
-              </span>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="px-2 py-1 border rounded text-xs hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Sau →
-              </button>
-            </div>
+          <div className="bg-gray-50 border-t px-3 py-2 text-xs text-gray-500">
+            Hiển thị {filteredDonHangs.length} / {pagination?.total || 0} đơn hàng
           </div>
+          {loadingMore && (
+            <div className="text-center py-3 text-gray-400 text-sm">Đang tải thêm...</div>
+          )}
+          <div ref={sentinelRef} className="h-4" />
         </>
       )}
 

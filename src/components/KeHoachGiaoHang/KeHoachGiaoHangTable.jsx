@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchDonHangAll } from "../../redux/slices/donHangSlice";
+import { fetchDonHang, fetchMoreDonHang } from "../../redux/slices/donHangSlice";
 import {
   format,
   isToday,
@@ -16,17 +16,16 @@ import {
   FiFilter,
   FiSearch,
   FiRefreshCw,
-  FiPlus,
-  FiMoreVertical,
   FiDownload,
   FiPrinter,
 } from "react-icons/fi";
-// Đảm bảo đường dẫn import DonHangDetailPanel đúng với cấu trúc thư mục của bạn
 import DonHangDetailPanel from "../DonHang/DonHangDetailPanel";
+
+const ROWS_PER_PAGE = 20;
 
 const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
-  const { allData: data, loading } = useSelector((state) => state.donHang);
+  const { data, loading, loadingMore, pagination } = useSelector((state) => state.donHang);
 
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [filterType, setFilterType] = useState("all");
@@ -37,18 +36,50 @@ const KeHoachGiaoHangTable = () => {
   const [showFilterBar, setShowFilterBar] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // State quản lý việc mở panel chi tiết đơn hàng
   const [selectedDonHang, setSelectedDonHang] = useState(null);
 
-  useEffect(() => {
-    dispatch(fetchDonHangAll());
-  }, [dispatch]);
+  const sentinelRef = useRef(null);
 
   const todayStart = startOfDay(new Date());
 
   const navigate = useNavigate();
+
+  // Build params và dispatch load
+  const loadData = useCallback(() => {
+    const params = { page, limit: ROWS_PER_PAGE };
+    if (page === 1) {
+      dispatch(fetchDonHang(params));
+    } else {
+      dispatch(fetchMoreDonHang(params));
+    }
+  }, [dispatch, page]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Reset page khi filter thay đổi
+  useEffect(() => {
+    setPage(1);
+  }, [filterType, fromDate, toDate, showUrgentOnly, filterStatus, searchText]);
+
+  // Infinite scroll: khi sentinel vào viewport thì tải trang tiếp theo
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && page < (pagination?.totalPages || 1) && !loadingMore && !loading) {
+          setPage((p) => p + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [page, pagination?.totalPages, loadingMore, loading]);
 
   // ================= FILTER LOGIC =================
   const filteredOrders = useMemo(() => {
@@ -98,6 +129,9 @@ const KeHoachGiaoHangTable = () => {
       );
     }
 
+    // Sắp xếp theo hẹn giao từ mới nhất đến cũ nhất
+    result.sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
+
     return result;
   }, [
     data,
@@ -109,18 +143,6 @@ const KeHoachGiaoHangTable = () => {
     searchText,
   ]);
 
-  // ================= PAGINATION =================
-  const totalPages = Math.ceil(filteredOrders.length / rowsPerPage);
-
-  const paginatedOrders = useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    return filteredOrders.slice(start, start + rowsPerPage);
-  }, [filteredOrders, page, rowsPerPage]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [filterType, fromDate, toDate, showUrgentOnly, filterStatus, searchText]);
-
   // ================= COUNT =================
   const countToday = data.filter((o) => isToday(parseISO(o.henGiao))).length;
   const countOverdue = data.filter(
@@ -129,7 +151,7 @@ const KeHoachGiaoHangTable = () => {
   ).length;
   const countDone = data.filter((o) => o.trangThai === "Hoàn thành").length;
 
-  if (loading)
+  if (loading && page === 1)
     return <div className="p-6 text-center text-gray-500">Đang tải...</div>;
 
   // Hàm format danh sách sản phẩm của đơn hàng
@@ -240,7 +262,7 @@ const KeHoachGiaoHangTable = () => {
             <FiPrinter size={17} />
           </button>
           <button
-            onClick={() => dispatch(fetchDonHangAll())}
+            onClick={() => { if (page === 1) loadData(); else setPage(1); }}
             className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
             title="Làm mới"
           >
@@ -294,43 +316,25 @@ const KeHoachGiaoHangTable = () => {
         )}
 
         {/* ================= TABLE ================= */}
-        <div className="bg-white rounded-lg shadow overflow-hidden print:hidden">
+        <div className="bg-white rounded shadow-sm overflow-hidden border print:hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Nhận lúc
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Số
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Hẹn giao
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Khách hàng
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Bác sĩ
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Bệnh nhân
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Răng
-                  </th>{" "}
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Trạng thái
-                  </th>
-                  <th className="px-4 py-3 text-left text-blue-600 font-semibold whitespace-nowrap text-xs">
-                    Ghi chú
-                  </th>
+            <table className="w-full min-w-[900px] text-sm text-left">
+              <thead className="text-sky-500 font-medium border-b sticky top-0 bg-white z-10">
+                <tr>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Nhận lúc</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Số</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Hẹn giao</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Khách hàng</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Bác sĩ</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Bệnh nhân</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Răng</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Trạng thái</th>
+                  <th className="px-3 py-3 select-none whitespace-nowrap">Ghi chú</th>
                 </tr>
               </thead>
 
               <tbody>
-                {paginatedOrders.map((order) => {
+                {filteredOrders.map((order) => {
                   const date = parseISO(order.henGiao);
                   const overdue =
                     isBefore(date, todayStart) &&
@@ -347,20 +351,23 @@ const KeHoachGiaoHangTable = () => {
                     <tr
                       key={order._id}
                       onClick={() => setSelectedDonHang(order)}
-                      className="border-b border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer"
+                      className={`border-b cursor-pointer transition-colors ${selectedDonHang?._id === order._id
+                        ? "bg-sky-100 border-sky-200"
+                        : "hover:bg-gray-50"
+                        }`}
                     >
                       {/* NHẬN LÚC */}
-                      <td className="px-4 py-2.5 text-gray-600 font-bold whitespace-nowrap text-xs">
+                      <td className="px-3 py-2.5 whitespace-nowrap text-xs text-gray-600">
                         {order.ngayNhan
-                          ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
+                          ? format(parseISO(order.ngayNhan), "HH:mm dd/MM/yyyy")
                           : "—"}
                       </td>
 
-                      {/* SỐ ĐƠN: Bấm vào đây thì navigate sang trang edit */}
-                      <td className="px-4 py-2.5 whitespace-nowrap">
+                      {/* SỐ ĐƠN */}
+                      <td className="px-3 py-2.5 whitespace-nowrap">
                         <button
                           onClick={(e) => {
-                            e.stopPropagation(); // Ngăn sự kiện onClick truyền lên thẻ <tr>
+                            e.stopPropagation();
                             navigate(`/donhang/${order._id}/edit`);
                           }}
                           className={`font-medium text-sm hover:underline ${overdue
@@ -375,65 +382,44 @@ const KeHoachGiaoHangTable = () => {
                       </td>
 
                       {/* HẸN GIAO */}
-                      <td className="px-4 py-2.5 whitespace-nowrap">
-                        <span
-                          className={`text-sm font-medium ${overdue
-                            ? "text-red-500"
-                            : today
-                              ? "text-gray-800"
-                              : "text-gray-700"
-                            }`}
-                        >
-                          {format(date, "dd/MM/yyyy HH:mm")}
-                        </span>
+                      <td className={`px-3 py-2.5 whitespace-nowrap text-sm font-medium ${overdue ? "text-red-500" : "text-gray-700"}`}>
+                        {format(date, "HH:mm dd/MM/yyyy")}
                       </td>
 
                       {/* KHÁCH HÀNG */}
-                      <td className="px-4 py-2.5 min-w-[180px]">
-                        <span className="text-gray-800 text-sm">
-                          {order.nhaKhoa?.hoVaTen}
-                        </span>
+                      <td className="px-3 py-2.5 text-sm text-gray-800 truncate max-w-[180px]">
+                        {order.nhaKhoa?.hoVaTen}
                       </td>
 
                       {/* BÁC SĨ */}
-                      <td className="px-4 py-2.5 min-w-[120px] text-gray-700 text-sm">
+                      <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[120px]">
                         {order.bacSi?.hoVaTen}
                       </td>
 
                       {/* BỆNH NHÂN */}
-                      <td className="px-4 py-2.5 min-w-[140px] text-gray-700 text-sm">
+                      <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[140px]">
                         {order.benhNhan?.hoVaTen}
                       </td>
-                      <td className="px-4 py-2.5 min-w-[140px] text-gray-700 text-sm">
+
+                      {/* RĂNG */}
+                      <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[200px]">
                         {formatDanhSachSanPham(order.danhSachSanPham)}
                       </td>
 
                       {/* TRẠNG THÁI */}
-                      <td className="px-4 py-2.5 whitespace-nowrap">
-                        <span
-                          className={`text-xs font-medium ${order.trangThai === "Hoàn thành"
-                            ? "text-green-700"
-                            : order.trangThai === "Đang sản xuất"
-                              ? "text-blue-700"
-                              : "text-gray-600"
-                            }`}
-                        >
-                          {order.trangThai
-                            ? order.trangThai.length > 10
-                              ? order.trangThai.substring(0, 10) + "..."
-                              : order.trangThai
-                            : "—"}
-                        </span>
+                      <td className="px-3 py-2.5 whitespace-nowrap">
+                        <TrangThaiBadge value={order.trangThai} />
                       </td>
 
-                      <td className="px-4 py-2.5 min-w-[140px] text-gray-700 text-sm">
+                      {/* GHI CHÚ */}
+                      <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[160px]" title={order.ghiChuChung || ""}>
                         {order.ghiChuChung}
                       </td>
                     </tr>
                   );
                 })}
 
-                {filteredOrders.length === 0 && (
+                {filteredOrders.length === 0 && !loading && (
                   <tr>
                     <td
                       colSpan="9"
@@ -446,46 +432,16 @@ const KeHoachGiaoHangTable = () => {
               </tbody>
             </table>
 
-            {/* ================= PAGINATION ================= */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-2 px-4 py-3 border-t bg-white text-sm">
-              <div className="flex items-center gap-2 text-gray-600">
-                <span>Hiển thị</span>
-                <select
-                  value={rowsPerPage}
-                  onChange={(e) => {
-                    setRowsPerPage(Number(e.target.value));
-                    setPage(1);
-                  }}
-                  className="border rounded px-2 py-1 text-sm"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-                <span>/ {filteredOrders.length} đơn</span>
+            {/* ================= INFINITE SCROLL SENTINEL ================= */}
+            <div ref={sentinelRef} className="h-4" />
+            {loadingMore && (
+              <div className="text-center py-3 text-gray-400 text-sm">Đang tải thêm...</div>
+            )}
+            {!loadingMore && pagination?.totalPages && page >= pagination.totalPages && filteredOrders.length > 0 && (
+              <div className="text-center py-2 text-gray-400 text-xs">
+                Đã tải {data.length} / {pagination.total} đơn
               </div>
-
-              <div className="flex items-center gap-1">
-                <button
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                  className="px-3 py-1 rounded border text-sm disabled:opacity-40 hover:bg-gray-100 transition"
-                >
-                  Trước
-                </button>
-                <span className="px-2 text-gray-600">
-                  Trang {page} / {totalPages || 1}
-                </span>
-                <button
-                  disabled={page === totalPages || totalPages === 0}
-                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                  className="px-3 py-1 rounded border text-sm disabled:opacity-40 hover:bg-gray-100 transition"
-                >
-                  Sau
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -493,15 +449,66 @@ const KeHoachGiaoHangTable = () => {
         <div id="print-section" className="hidden print:block w-full">
           <style>{`
             @media print {
-              @page { size: A4 landscape; margin: 10mm; }
+              @page { 
+                size: A4 landscape; 
+                margin: 8mm; 
+              }
+              
+              /* Triệt tiêu các thuộc tính căn chỉnh flex, margin, padding của các thẻ cha (Dashboard/Header/Sidebar) khi in */
+              html, body, #root, #root > div, main, .bg-gray-100, .max-w-full {
+                position: static !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                display: block !important;
+                box-shadow: none !important;
+                background: white !important;
+              }
+              
               body * { visibility: hidden; }
               #print-section, #print-section * { visibility: visible; }
               #print-section {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
                 background-color: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+                display: block !important;
+              }
+              #print-section h2 {
+                margin: 0 0 16px 0 !important;
+                padding: 0 !important;
+                text-align: center !important;
+                font-size: 20px !important;
+                font-weight: bold !important;
+                text-transform: uppercase !important;
+              }
+              #print-section table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin: 0 !important;
+                padding: 0 !important;
+              }
+              #print-section table td,
+              #print-section table th {
+                border: 1px solid black !important;
+                padding: 8px 10px !important;
+                font-size: 13px !important;
+                line-height: 1.4 !important;
+                vertical-align: middle !important;
+              }
+              #print-section table th {
+                background-color: #f3f4f6 !important;
+                font-weight: bold !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
             }
           `}</style>
@@ -557,6 +564,20 @@ const KeHoachGiaoHangTable = () => {
         />
       )}
     </div>
+  );
+};
+
+const TrangThaiBadge = ({ value }) => {
+  const map = {
+    "Chờ xử lý": "bg-yellow-100 text-yellow-800",
+    "Đang sản xuất": "bg-blue-100 text-blue-800",
+    "Hoàn thành": "bg-green-100 text-green-800",
+    "Đã giao": "bg-gray-100 text-gray-700",
+  };
+  return (
+    <span className={`px-2 py-1 rounded font-medium text-xs ${map[value] || "bg-gray-100 text-gray-600"}`}>
+      {value || "Chờ xử lý"}
+    </span>
   );
 };
 

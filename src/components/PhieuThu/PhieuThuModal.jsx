@@ -27,7 +27,6 @@ const getInitials = (name) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-// Đã bổ sung 2 props initialNhaKhoaId và initialHoaDonId để làm đường tắt
 export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoaId, initialHoaDonId }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -35,7 +34,6 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
   const { hoaDonChuaThanhToan, loadingHoaDon, loading } = useSelector(
     (s) => s.phieuThu
   );
-  const currentUser = useSelector((s) => s.auth.user);
 
   const [selectedNhaKhoa, setSelectedNhaKhoa] = useState("");
   const [search, setSearch] = useState("");
@@ -47,21 +45,21 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
   const [noiDung, setNoiDung] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [autoSelected, setAutoSelected] = useState(false); // Cờ chặn auto-select lại nhiều lần
+  const [autoSelected, setAutoSelected] = useState(false);
   const searchRef = useRef(null);
 
   useEffect(() => {
     dispatch(fetchNhaKhoa());
   }, [dispatch]);
 
-  // 1️⃣ ĐƯỜNG TẮT: Tự động chọn Nha Khoa nếu có truyền ID qua
+  // ĐƯỜNG TẮT: Tự động chọn Nha Khoa nếu có truyền ID qua
   useEffect(() => {
     if (open && initialNhaKhoaId) {
       setSelectedNhaKhoa(initialNhaKhoaId);
     }
   }, [open, initialNhaKhoaId]);
 
-  // 2️⃣ ĐƯỜNG TẮT: Tự động điền text hiển thị cho ô tìm kiếm
+  // ĐƯỜNG TẮT: Tự động điền text hiển thị cho ô tìm kiếm
   useEffect(() => {
     if (open && initialNhaKhoaId && nhaKhoaList.length > 0) {
       const nk = nhaKhoaList.find(n => n._id === initialNhaKhoaId);
@@ -78,14 +76,14 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     }
   }, [selectedNhaKhoa, dispatch]);
 
-  // 3️⃣ ĐƯỜNG TẮT: Khi đã có danh sách hóa đơn, tự động check chọn hóa đơn đó
+  // ĐƯỜNG TẮT: Khi đã có danh sách hóa đơn, tự động check chọn hóa đơn đó
   useEffect(() => {
     if (open && initialHoaDonId && hoaDonChuaThanhToan.length > 0 && !autoSelected) {
       const hd = hoaDonChuaThanhToan.find(h => h._id === initialHoaDonId);
       if (hd) {
         setSelectedHDs({ [initialHoaDonId]: { soTienThanhToan: hd.conLai || 0 } });
         setSoTienThuInput(String(hd.conLai || 0));
-        setAutoSelected(true); // Ghi nhận là đã tự chọn thành công
+        setAutoSelected(true);
       }
     }
   }, [open, initialHoaDonId, hoaDonChuaThanhToan, autoSelected]);
@@ -135,18 +133,23 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     setSoTienThuInput(total > 0 ? String(total) : "");
   };
 
-  const handleAmountChange = (hdId, value, maxVal) => {
-    const num = Number(value) || 0;
+  // 🔥 SỬA: Xử lý nhập giá trị TỪNG DÒNG HÓA ĐƠN (Format VNĐ)
+  const handleAmountChange = (hdId, rawValue, maxVal) => {
+    const digits = rawValue.replace(/[^\d]/g, ""); // Chỉ lấy số
+    const num = Number(digits) || 0;
+
     let next;
     if (num > 0) {
       next = {
         ...selectedHDs,
-        [hdId]: { soTienThanhToan: Math.min(num, maxVal) },
+        [hdId]: { soTienThanhToan: Math.min(num, maxVal) }, // Không cho nhập lố số nợ
       };
     } else {
       next = { ...selectedHDs };
       delete next[hdId];
     }
+
+    // Cộng dồn lại để hiển thị lên ô Tổng (tôn trọng 100% số vừa gõ)
     const total = Object.values(next).reduce(
       (s, v) => s + (v.soTienThanhToan || 0),
       0
@@ -179,16 +182,31 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     }
   };
 
+  // 🔥 SỬA: Auto-phân bổ ưu tiên gánh nợ cho hóa đơn cũ trước và CHẶN VƯỢT GIÁ
   const handleSoTienThuInput = (raw) => {
     const digits = raw.replace(/[^\d]/g, "");
-    const total = Number(digits) || 0;
-    setSoTienThuInput(digits);
-    const sorted = [...hoaDonChuaThanhToan].sort(
-      (a, b) =>
-        new Date(a.ngayXuatHoaDon || 0) - new Date(b.ngayXuatHoaDon || 0)
-    );
+    let total = Number(digits) || 0; // Đổi const thành let để có thể gán lại
+
+    // Tính tổng công nợ hiện tại
+    const tongConNoHienTai = hoaDonChuaThanhToan.reduce((sum, hd) => sum + (hd.conLai || 0), 0);
+
+    // 🔥 RÀNG BUỘC: Nếu gõ lố tổng nợ thì tự động chặn lại ở mức tối đa bằng tổng nợ
+    if (total > tongConNoHienTai) {
+      total = tongConNoHienTai;
+    }
+
+    setSoTienThuInput(total > 0 ? String(total) : "");
+
+    // Sắp xếp: Ưu tiên ngày xuất hóa đơn cũ nhất, nếu bằng nhau thì ưu tiên theo thời gian tạo.
+    const sorted = [...hoaDonChuaThanhToan].sort((a, b) => {
+      const timeA = new Date(a.ngayXuatHoaDon || a.createdAt || 0).getTime();
+      const timeB = new Date(b.ngayXuatHoaDon || b.createdAt || 0).getTime();
+      return timeA - timeB;
+    });
+
     let remaining = total;
     const next = {};
+
     for (const hd of sorted) {
       if (remaining <= 0) break;
       const pay = Math.min(remaining, hd.conLai || 0);
@@ -217,26 +235,67 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     );
   }, [hoaDonChuaThanhToan, tongThuTien]);
 
+  // 🔥 THÊM VÀO: Tìm ngày xuất HĐ mới nhất trong các HĐ đang được chọn để làm mốc min
+  const minNgayThuStr = useMemo(() => {
+    const selectedHoaDons = hoaDonChuaThanhToan.filter(
+      (hd) => selectedHDs[hd._id] && selectedHDs[hd._id].soTienThanhToan > 0
+    );
+    if (selectedHoaDons.length === 0) return "";
+
+    const maxNgayHD = selectedHoaDons.reduce((max, hd) => {
+      const d = new Date(hd.ngayXuatHoaDon || hd.createdAt || 0).getTime();
+      return d > max ? d : max;
+    }, 0);
+
+    if (maxNgayHD === 0) return "";
+    return toLocalDatetimeInput(new Date(maxNgayHD));
+  }, [hoaDonChuaThanhToan, selectedHDs]);
+
   const handleSubmit = async () => {
     setSubmitError("");
     if (!selectedNhaKhoa) {
       setSubmitError("Vui lòng chọn khách hàng.");
       return;
     }
+    // 🔥 THÊM KHÓA AN TOÀN TRƯỚC KHI LƯU
+    const tongConNoHienTai = hoaDonChuaThanhToan.reduce((sum, hd) => sum + (hd.conLai || 0), 0);
+    if (tongThuTien > tongConNoHienTai) {
+      setSubmitError(`Số tiền thu không được vượt quá tổng công nợ (${fmt(tongConNoHienTai)} ₫).`);
+      return;
+    }
+
+    // ✅ THÊM VÀO ĐÂY
+    const selectedHoaDons = hoaDonChuaThanhToan.filter(hd => selectedHDs[hd._id] && selectedHDs[hd._id].soTienThanhToan > 0);
+    const maxNgayHD = selectedHoaDons.reduce((max, hd) => {
+      const d = new Date(hd.ngayXuatHoaDon || 0).getTime();
+      return d > max ? d : max;
+    }, 0);
+
+    if (maxNgayHD > 0 && new Date(ngayThu).setHours(0, 0, 0, 0) < new Date(maxNgayHD).setHours(0, 0, 0, 0)) {
+      setSubmitError(`Ngày thu không được trước ngày xuất hóa đơn mới nhất (${new Date(maxNgayHD).toLocaleDateString("vi-VN")}).`);
+      return;
+    }
+
+    // Gửi data gốc dựa trên các số đã nhập
     const entries = Object.entries(selectedHDs);
     if (!entries.length) {
       setSubmitError("Vui lòng chọn ít nhất một hóa đơn.");
       return;
     }
+
     for (const [, { soTienThanhToan }] of entries) {
       if (!soTienThanhToan || soTienThanhToan <= 0) {
         setSubmitError("Số tiền thanh toán phải lớn hơn 0.");
         return;
       }
     }
+
     try {
       await dispatch(
         createPhieuThu({
+          nhaKhoaId: selectedNhaKhoa,
+          soTienThu: tongThuTien,
+
           danhSachHoaDon: entries.map(([hdId, { soTienThanhToan }]) => ({
             hoaDon: hdId,
             soTienThanhToan,
@@ -246,6 +305,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
           phuongThucThanhToan: phuongThuc,
         })
       ).unwrap();
+
       setSubmitSuccess(true);
       if (onSuccess) onSuccess();
       setTimeout(() => {
@@ -269,7 +329,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     setNoiDung("");
     setSubmitError("");
     setSubmitSuccess(false);
-    setAutoSelected(false); // Quan trọng: Đặt lại cờ để lần sau mở còn chạy tự động
+    setAutoSelected(false);
     onClose();
   };
 
@@ -428,6 +488,8 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                 <input
                   type="datetime-local"
                   value={ngayThu}
+                  min={minNgayThuStr}                    // 🔥 KHÓA LÙI: Không cho lùi qua ngày xuất HĐ mới nhất
+                  max={toLocalDatetimeInput(new Date())} // 🔥 KHÓA TỚI: Không cho chọn tương lai
                   onChange={(e) => setNgayThu(e.target.value)}
                   className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-sm text-gray-800 py-1 outline-none"
                 />
@@ -499,70 +561,82 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                     </tr>
                   </thead>
                   <tbody>
-                    {hoaDonChuaThanhToan.map((hd, idx) => {
-                      const checked = !!selectedHDs[hd._id];
-                      return (
-                        <tr
-                          key={hd._id}
-                          className={`border-b border-gray-50 last:border-0 transition-colors ${checked ? "bg-blue-50/60" : "hover:bg-gray-50"
-                            }`}
-                        >
-                          <td className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => handleToggleHD(hd._id)}
-                              className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
-                          <td className="px-4 py-3 font-medium text-[#29b6f6]">
-                            <span
-                              className="cursor-pointer hover:underline"
-                              onClick={() => {
-                                handleClose();
-                                navigate(`/hoa-don/${hd._id}/edit`);
-                              }}
-                            >
-                              {hd.soHoaDon || formatSoHoaDon(hd._id)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">
-                            {hd.ngayXuatHoaDon
-                              ? new Date(hd.ngayXuatHoaDon).toLocaleDateString(
-                                "vi-VN"
-                              )
-                              : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-700">
-                            {fmt(hd.giaTriThanhToan)}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-500">
-                            {fmt(hd.daThanhToan)}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-700">
-                            {fmt(hd.conLai)}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <input
-                              type="number"
-                              min={0}
-                              max={hd.conLai}
-                              value={selectedHDs[hd._id]?.soTienThanhToan ?? ""}
-                              placeholder="0"
-                              onChange={(e) =>
-                                handleAmountChange(
-                                  hd._id,
-                                  e.target.value,
-                                  hd.conLai
+                    {[...hoaDonChuaThanhToan]
+                      .sort((a, b) => {
+                        // So sánh ngày xuất hóa đơn (hoặc ngày tạo nếu chưa có ngày xuất)
+                        const timeA = new Date(a.ngayXuatHoaDon || a.createdAt || 0).getTime();
+                        const timeB = new Date(b.ngayXuatHoaDon || b.createdAt || 0).getTime();
+                        // Trả về timeB - timeA để sắp xếp giảm dần (mới nhất ở trên)
+                        return timeB - timeA;
+                      })
+                      .map((hd, idx) => {
+                        const checked = !!selectedHDs[hd._id];
+                        return (
+                          <tr
+                            key={hd._id}
+                            className={`border-b border-gray-50 last:border-0 transition-colors ${checked ? "bg-blue-50/60" : "hover:bg-gray-50"
+                              }`}
+                          >
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => handleToggleHD(hd._id)}
+                                className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
+                            <td className="px-4 py-3 font-medium text-[#29b6f6]">
+                              <span
+                                className="cursor-pointer hover:underline"
+                                onClick={() => {
+                                  handleClose();
+                                  navigate(`/hoa-don/${hd._id}/edit`);
+                                }}
+                              >
+                                {hd.soHoaDon || formatSoHoaDon(hd._id)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-gray-600">
+                              {hd.ngayXuatHoaDon
+                                ? new Date(hd.ngayXuatHoaDon).toLocaleDateString(
+                                  "vi-VN"
                                 )
-                              }
-                              className="w-28 border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-right text-sm text-gray-800 outline-none py-0.5"
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
+                                : "—"}
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-700">
+                              {fmt(hd.giaTriThanhToan)}
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-500">
+                              {fmt(hd.daThanhToan)}
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-700">
+                              {fmt(hd.conLai)}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {/* 🔥 SỬA: Đổi input từ dạng số sang dạng chữ để format VNĐ */}
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={
+                                  selectedHDs[hd._id]?.soTienThanhToan
+                                    ? fmt(selectedHDs[hd._id].soTienThanhToan)
+                                    : ""
+                                }
+                                placeholder="0"
+                                onChange={(e) =>
+                                  handleAmountChange(
+                                    hd._id,
+                                    e.target.value,
+                                    hd.conLai
+                                  )
+                                }
+                                className="w-28 border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-right text-sm text-gray-800 outline-none py-0.5"
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>

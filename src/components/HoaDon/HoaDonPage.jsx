@@ -355,8 +355,8 @@ const HoaDonPage = () => {
             </div>
 
             {/* DÒNG 2: TOOLBAR */}
-            <div className="mt-4 shrink-0 rounded-t-lg bg-white shadow-sm relative z-30">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-b border-gray-100">
+            <div className=" shrink-0 rounded-t-lg bg-white shadow-sm relative z-30">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-2 border-b border-gray-100">
                     <div className="relative" ref={filterContainerRef}>
                         <Tooltip title="Bộ lọc">
                             <IconButton
@@ -527,7 +527,7 @@ const HoaDonPage = () => {
                 {/* Khu vực phân trang: Đóng đinh cứng ở dưới đáy */}
                 <div className="border-t border-gray-100 bg-white shrink-0 z-10 relative">
                     <TablePagination
-                        rowsPerPageOptions={[5, 10, 25]}
+                        rowsPerPageOptions={[5, 10, 25, 50]}
                         component="div"
                         count={pagination?.total || 0}
                         page={page}

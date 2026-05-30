@@ -1,39 +1,49 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Dialog, DialogContent, DialogActions, Button, CircularProgress } from "@mui/material";
+import { Dialog, DialogContent, DialogActions, Button, CircularProgress, MenuItem, TextField } from "@mui/material";
 import { api } from "../../config/api";
 
-const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
+const WarrantyCardPrint = ({ open, onClose, warranty, donHang, initialMauTheId }) => {
   const [mauThe, setMauThe] = useState(null);
+  const [mauTheList, setMauTheList] = useState([]);
+  const [selectedMauTheId, setSelectedMauTheId] = useState("");
   const [loading, setLoading] = useState(false);
+  const cardRef = useRef(null);
 
   useEffect(() => {
-    if (open) loadMauThe();
-  }, [open, warranty]);
+    if (open) loadMauTheList();
+  }, [open, warranty, initialMauTheId]);
 
-  const loadMauThe = async () => {
+  const loadMauTheList = async () => {
     try {
       setLoading(true);
-      const mauTheId = typeof warranty?.mauThe === 'object' ? warranty.mauThe?._id : warranty?.mauThe;
+      const listRes = await api.get("/mau-the-bao-hanh");
+      if (listRes.data?.success && listRes.data.data.length > 0) {
+        const list = listRes.data.data;
+        setMauTheList(list);
 
-      let res;
-      if (mauTheId) {
-        res = await api.get(`/mau-the-bao-hanh/${mauTheId}`);
+        // Ưu tiên: initialMauTheId (truyền từ ngoài) → mẫu gắn với phiếu → mẫu đầu tiên
+        const attachedId = typeof warranty?.mauThe === 'object' ? warranty.mauThe?._id : warranty?.mauThe;
+        const defaultId = initialMauTheId || attachedId || list[0]._id;
+        setSelectedMauTheId(defaultId);
+
+        const selected = list.find(m => m._id === defaultId) || list[0];
+        setMauThe(selected);
       } else {
-        const listRes = await api.get("/mau-the-bao-hanh", { params: { nhaKhoaId: warranty.nhaKhoa?._id } });
-        if (listRes.data?.success && listRes.data.data.length > 0) {
-          res = { data: { success: true, data: listRes.data.data[0] } };
-        }
-      }
-
-      if (res?.data?.success && res.data.data) {
-        setMauThe(res.data.data);
+        setMauTheList([]);
+        setMauThe(null);
       }
     } catch (error) {
       console.error("Lỗi tải mẫu:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectMauThe = (id) => {
+    setSelectedMauTheId(id);
+    const selected = mauTheList.find(m => m._id === id);
+    setMauThe(selected || null);
   };
 
   const getFieldValue = (loaiTruong) => {
@@ -54,7 +64,7 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
         return warranty?.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen || "---";
 
       case "sanPham":
-        return warranty?.danhSachBaoHanh?.[0]?.sanPham?.tenSanPham || donHang?.danhSachSanPham?.[0]?.sanPham?.tenSanPham || "---";
+        return warranty?.danhSachBaoHanh?.[0]?.tenSanPhamBaoHanh || warranty?.danhSachBaoHanh?.[0]?.sanPham?.tenSanPham || donHang?.danhSachSanPham?.[0]?.sanPham?.tenSanPham || "---";
 
       case "viTriRang": {
         const viTriStr = warranty?.danhSachBaoHanh?.[0]?.viTriRang;
@@ -88,18 +98,104 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
     }
   };
 
+  const handlePrint = () => {
+    if (!cardRef.current) return;
+
+    const printContent = cardRef.current.innerHTML;
+    const printWindow = window.open("", "", "width=800,height=600");
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>In Thẻ Bảo Hành</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 0;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              background-color: #fff;
+              font-family: sans-serif;
+            }
+            .card-container {
+              width: 85mm;
+              height: 53mm;
+              position: relative;
+              border: 1px dashed #ccc; 
+            }
+            @media print {
+              @page { size: auto; margin: 0; }
+              body { padding: 10mm; display: block; }
+              .card-container { border: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="card-container">
+            ${printContent}
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
+  };
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{ style: { boxShadow: 'none', border: 'none' } }} // Xóa bóng mờ của khung dialog
+      PaperProps={{ style: { boxShadow: 'none', border: 'none' } }}
     >
-      <DialogContent id="print-content" style={{ minHeight: "300px", padding: 0 }}>
-        {loading ? <CircularProgress /> : !mauThe ? <p>Không tìm thấy mẫu.</p> : (
-          /* Xóa border: "1px dashed #ccc" ở đây */
-          <div style={{ position: "relative", width: "100%", height: "297mm", border: "none" }}>
+      {/* Selector mẫu thẻ — chỉ hiện khi KHÔNG có initialMauTheId (tức là chưa chọn từ ngoài) */}
+      {!initialMauTheId && (
+        <div style={{ padding: "12px 16px 0 16px" }}>
+          <TextField
+            select
+            size="small"
+            fullWidth
+            label="Chọn mẫu thẻ bảo hành"
+            value={selectedMauTheId}
+            onChange={(e) => handleSelectMauThe(e.target.value)}
+            disabled={loading || mauTheList.length === 0}
+          >
+            {mauTheList.map((m) => (
+              <MenuItem key={m._id} value={m._id}>{m.tenMau}</MenuItem>
+            ))}
+          </TextField>
+        </div>
+      )}
+
+      <DialogContent style={{
+        minHeight: "260px",
+        padding: "24px 0",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#0f172a",
+        backgroundImage: "radial-gradient(#1e293b 1px, transparent 1px)",
+        backgroundSize: "16px 16px",
+      }}>
+        {loading ? <CircularProgress /> : !mauThe ? <p style={{ padding: 16, color: "#fff" }}>Không tìm thấy mẫu thẻ bảo hành.</p> : (
+          <div ref={cardRef} className="card-container" style={{
+            position: "relative",
+            width: "85mm",
+            height: "53mm",
+            backgroundColor: "white",
+            borderRadius: "4px",
+            boxShadow: "0 10px 25px -5px rgb(0 0 0 / 0.5)",
+            overflow: "hidden",
+            border: "none",
+          }}>
             {mauThe.cacTruong?.map((field, idx) => {
               const left = Number(field.leTrai) || 0;
               const top = Number(field.leTren) || 0;
@@ -109,7 +205,7 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
                 const rawCode = (warranty?.maQR || "N/A").replace(/^TAN/, "");
 
                 // 2. Tạo đường dẫn đầy đủ
-                const fullUrl = `${window.location.origin}/warranty/?qrcode=${rawCode}`;
+                const fullUrl = `${window.location.origin}/tra-cuu-bao-hanh/?qrcode=${rawCode}`;
 
                 return (
                   <div key={idx} style={{ position: "absolute", left: `${left}mm`, top: `${top}mm` }}>
@@ -126,6 +222,9 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
                   top: `${top}mm`,
                   fontSize: `${field.coChu || 12}pt`,
                   fontWeight: field.doDam ? "bold" : "normal",
+                  fontStyle: field.nghieng ? "italic" : "normal",
+                  textDecoration: field.gachChan ? "underline" : "none",
+                  textTransform: field.inHoa ? "uppercase" : "none",
                   color: "#000",
                   whiteSpace: "nowrap"
                 }}>
@@ -136,20 +235,10 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang }) => {
           </div>
         )}
       </DialogContent>
-      <DialogActions className="print-hidden">
+      <DialogActions>
         <Button onClick={onClose}>Đóng</Button>
-        <Button variant="contained" onClick={() => window.print()}>In</Button>
+        <Button variant="contained" onClick={handlePrint}>In</Button>
       </DialogActions>
-
-      <style>{`
-        @media print {
-          .print-hidden { display: none !important; }
-          @page { size: auto; margin: 0; }
-          body * { visibility: hidden; }
-          #print-content, #print-content * { visibility: visible; border: none !important; box-shadow: none !important; }
-          #print-content { position: absolute; left: 0; top: 0; width: 100%; }
-        }
-      `}</style>
     </Dialog>
   );
 };

@@ -16,6 +16,21 @@ export const fetchDonHang = createAsyncThunk(
     }
 );
 
+/* ================= GET MORE (append, dùng cho infinite scroll) ================= */
+export const fetchMoreDonHang = createAsyncThunk(
+    "donHang/fetchMore",
+    async (params = {}, { rejectWithValue }) => {
+        try {
+            const res = await api.get("/donhang", { params });
+            return res.data;
+        } catch (err) {
+            return rejectWithValue(
+                err.response?.data?.message || "Lỗi tải thêm đơn hàng"
+            );
+        }
+    }
+);
+
 /* ================= GET ALL (không phân trang, dùng cho KeHoachGiaoHang) ================= */
 export const fetchDonHangAll = createAsyncThunk(
     "donHang/fetchAll_noPage",
@@ -115,6 +130,7 @@ const donHangSlice = createSlice({
         data: [],
         allData: [], // dùng cho KeHoachGiaoHang (không phân trang)
         loading: false,
+        loadingMore: false,
         error: null,
         pagination: { total: 0, totalPages: 1, currentPage: 1 },
         stats: {},
@@ -142,6 +158,24 @@ const donHangSlice = createSlice({
             .addCase(fetchDonHang.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
+            })
+
+            /* ===== FETCH MORE (append) ===== */
+            .addCase(fetchMoreDonHang.pending, (state) => {
+                state.loadingMore = true;
+            })
+            .addCase(fetchMoreDonHang.fulfilled, (state, action) => {
+                state.loadingMore = false;
+                state.data = [...state.data, ...(action.payload.data || [])];
+                state.pagination = {
+                    total: action.payload.total || 0,
+                    totalPages: action.payload.totalPages || 1,
+                    currentPage: action.payload.currentPage || 1,
+                };
+                state.stats = action.payload.stats || {};
+            })
+            .addCase(fetchMoreDonHang.rejected, (state) => {
+                state.loadingMore = false;
             })
 
             /* ===== FETCH ALL (no pagination) ===== */

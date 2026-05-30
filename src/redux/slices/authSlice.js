@@ -47,9 +47,12 @@ export const restoreAuth = createAsyncThunk(
 
       return { token, staff: res.data.staff || null };
     } catch (err) {
-      // Token hết hạn hoặc invalid → xóa token
-      localStorage.removeItem("token");
-      localStorage.removeItem("currentUser");
+      // Chỉ xóa token khi server xác nhận token không hợp lệ (401/403)
+      // Không xóa token khi lỗi mạng/server down để tránh logout oan
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("currentUser");
+      }
       return null;
     }
   }

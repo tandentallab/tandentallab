@@ -95,7 +95,8 @@ export default function StaffTable() {
 
   return (
     <>
-      <TableContainer component={Paper}>
+      {/* DESKTOP TABLE */}
+      <TableContainer component={Paper} className="hidden md:block">
         <Table>
           <TableHead>
             <TableRow>
@@ -191,6 +192,85 @@ export default function StaffTable() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* MOBILE CARDS */}
+      <div className="md:hidden space-y-4">
+        {loading && (
+          <div className="flex justify-center py-8">
+            <CircularProgress />
+          </div>
+        )}
+
+        {error && (
+          <Typography color="error" className="text-center py-4">
+            {error}
+          </Typography>
+        )}
+
+        {!loading && data.length === 0 && (
+          <Typography className="text-center py-4 text-gray-500">
+            Không có dữ liệu
+          </Typography>
+        )}
+
+        {!loading &&
+          data.map((item) => (
+            <div
+              key={item._id}
+              className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleEditClick(item._id)}
+            >
+              {/* Header */}
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="font-bold text-gray-800">{item.HoTenNV}</h3>
+                  <p className="text-xs text-gray-500">{item.MSNV || "-"}</p>
+                </div>
+                <Chip
+                  label={getStatusText(item.Status)}
+                  color={getStatusColor(item.Status)}
+                  size="small"
+                />
+              </div>
+
+              {/* Details */}
+              <div className="space-y-2 text-sm text-gray-700 mb-3">
+                <div>
+                  <span className="font-semibold">Email:</span> {item.Email}
+                </div>
+                <div>
+                  <span className="font-semibold">Điện thoại:</span>{" "}
+                  {item.DienThoai || "-"}
+                </div>
+                <div>
+                  <span className="font-semibold">Quyền:</span>{" "}
+                  {item.quyenSuDung?.ten || "-"}
+                </div>
+                <div>
+                  <span className="font-semibold">Ngày tạo:</span>{" "}
+                  {formatDate(item.createdAt)}
+                </div>
+              </div>
+
+              {/* Actions */}
+              {isAdmin && (
+                <div className="pt-2 border-t border-gray-100">
+                  <IconButton
+                    fullWidth
+                    color="error"
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClick(item._id);
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" /> Xóa
+                  </IconButton>
+                </div>
+              )}
+            </div>
+          ))}
+      </div>
 
       {/* DELETE DIALOG */}
       <Dialog open={openDelete} onClose={() => setOpenDelete(false)}>

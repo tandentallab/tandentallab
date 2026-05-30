@@ -14,18 +14,37 @@ const parseToothPositions = (viTriRang) => {
   if (!viTriRang) return [];
   const positions = new Set();
   const entries = viTriRang.split(';').map(e => e.trim());
-  
+
   entries.forEach(entry => {
+    // 1. Tìm các số răng riêng lẻ
     const numberMatches = entry.match(/\d+/g);
     if (numberMatches) {
       numberMatches.forEach(num => positions.add(parseInt(num)));
     }
-    const rangeMatch = entry.match(/(\d+)\s*-\s*(\d+)/g);
+
+    // 2. Tìm khoảng răng (chấp nhận cả kí tự -> hoặc - hoặc –)
+    const rangeMatch = entry.match(/(\d+)\s*(?:->|-|–)\s*(\d+)/g);
     if (rangeMatch) {
       rangeMatch.forEach(range => {
-        const [start, end] = range.split('-').map(n => parseInt(n.trim()));
-        for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
-          positions.add(i);
+        const parts = range.split(/(?:->|-|–)/).map(n => parseInt(n.trim()));
+        if (parts.length === 2) {
+          const [start, end] = parts;
+          const indexStart = FULL_TEETH_ORDER.indexOf(start);
+          const indexEnd = FULL_TEETH_ORDER.indexOf(end);
+
+          if (indexStart !== -1 && indexEnd !== -1) {
+            // Duyệt theo vị trí thực tế trên cung hàm (FDI World Dental Federation Grid)
+            const minIdx = Math.min(indexStart, indexEnd);
+            const maxIdx = Math.max(indexStart, indexEnd);
+            for (let i = minIdx; i <= maxIdx; i++) {
+              positions.add(FULL_TEETH_ORDER[i]);
+            }
+          } else {
+            // Nhỡ không khớp bảng răng thì fallback theo số học bình thường
+            for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+              positions.add(i);
+            }
+          }
         }
       });
     }
@@ -63,11 +82,11 @@ const CheckPhieuBaoHanhPage = () => {
     if (isZalo) {
       document.documentElement.classList.add('zalo-browser');
     }
-    
+
     const qrcode = searchParams.get('qrcode');
     if (qrcode && qrcode.trim()) {
       const cleanQr = qrcode.trim(); // ĐÃ BỎ .toUpperCase() - GIỮ NGUYÊN CHỮ HOA THƯỜNG (ví dụ: x6TC)
-      setCode(cleanQr); 
+      setCode(cleanQr);
       searchWarranty(cleanQr);
     }
 
@@ -127,11 +146,11 @@ const CheckPhieuBaoHanhPage = () => {
   return (
     <div className="warranty-lookup-body">
       <div className="container">
-        <img 
-          src="/logo_tan_dental.jpg" 
-          className="logo" 
-          alt="Logo" 
-          onError={(e) => e.target.src = '/logo192.png'} 
+        <img
+          src="/logo_tan_dental.jpg"
+          className="logo"
+          alt="Logo"
+          onError={(e) => e.target.src = '/logo192.png'}
         />
         <h4>THÔNG TIN BẢO HÀNH RĂNG SỨ<br />CÔNG TY TNHH TẤN DENTAL</h4>
 
@@ -149,7 +168,7 @@ const CheckPhieuBaoHanhPage = () => {
             <button type="submit" className="btn-tra-cuu" disabled={loading || !code.trim()}>
               {loading ? <CircularProgress size={20} style={{ color: 'white' }} /> : 'Tra cứu'}
             </button>
-            
+
             {warranty && (
               <button type="button" className="btn-clear" onClick={handleClear}>
                 Xóa kết quả
@@ -187,7 +206,7 @@ const CheckPhieuBaoHanhPage = () => {
                   <div className="wc-section">
                     <div className="wc-row">
                       <span className="wc-label">🦷 Loại răng</span>
-                      <span className="wc-value">{item.tenSanPham || 'Không rõ'}</span>
+                      <span className="wc-value">{item.tenSanPhamBaoHanh || item.tenSanPham || 'Không rõ'}</span>
                     </div>
                   </div>
 
@@ -204,15 +223,6 @@ const CheckPhieuBaoHanhPage = () => {
                       <span className="wc-value">{item.soLuong || 1} Răng</span>
                     </div>
                   </div>
-
-                  {item.mau && (
-                    <div className="wc-section">
-                      <div className="wc-row">
-                        <span className="wc-label">🎨 Màu sắc</span>
-                        <span className="wc-value">{item.mau}</span>
-                      </div>
-                    </div>
-                  )}
 
                   <div className="wc-section wc-highlight">
                     <div className="wc-row">

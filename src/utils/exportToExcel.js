@@ -492,20 +492,21 @@ export const exportDonHangListToExcel = async (
   const worksheet = workbook.addWorksheet("Danh sách đơn hàng");
 
   worksheet.columns = [
-    { width: 16 },
-    { width: 20 },
-    { width: 24 },
-    { width: 16 },
-    { width: 22 },
-    { width: 48 },
-    { width: 20 },
-    { width: 12 },
-    { width: 18 },
-    { width: 18 },
+    { width: 18 }, // A: Nhận lúc
+    { width: 16 }, // B: Số
+    { width: 24 }, // C: Khách hàng
+    { width: 18 }, // D: Bác sĩ
+    { width: 32 }, // E: Bệnh nhân
+    { width: 12 }, // F: Loại
+    { width: 32 }, // G: Sản phẩm
+    { width: 6 }, // H: S.L
+    { width: 20 }, // I: Vị trí răng
+    { width: 14 }, // J: Trạng thái
+    { width: 18 }, // K: Hẹn giao
   ];
 
   worksheet.mergeCells("A1:D1");
-  worksheet.mergeCells("A2:F2");
+  worksheet.mergeCells("A2:H2");
   worksheet.mergeCells("A3:D3");
   worksheet.mergeCells("A4:D4");
 
@@ -538,16 +539,17 @@ export const exportDonHangListToExcel = async (
 
   const headerRow = 10;
   const headers = [
-    "Số",
     "Nhận lúc",
-    "Nha khoa",
+    "Số",
+    "Khách hàng",
     "Bác sĩ",
     "Bệnh nhân",
-    "Răng",
+    "Loại",
+    "Sản phẩm",
+    "S.L",
+    "Vị trí răng",
+    "Trạng thái",
     "Hẹn giao",
-    "Tiến độ",
-    "Tiến độ sản xuất",
-    "Loại đơn hàng",
   ];
 
   worksheet.getRow(headerRow).values = headers;
@@ -561,71 +563,82 @@ export const exportDonHangListToExcel = async (
     applyBorder(worksheet.getCell(headerRow, i + 1), "thin");
   });
 
-  const buildTeethSummary = (danhSachSanPham = []) => {
-    if (!Array.isArray(danhSachSanPham) || danhSachSanPham.length === 0) return "";
+  const loaiDonPrefix = {
+    "Hàng sửa": "Sửa",
+    "Hàng làm lại": "Làm lại",
+    "Hàng bảo hành": "Bảo hành",
+  };
 
-    return danhSachSanPham
-      .map((sp) => {
-        const tenSp = sp?.sanPham?.tenSanPham || "SP";
-        const soLuong = sp?.soLuong || 0;
-        const rangText = (sp?.viTri || [])
-          .map((vt) => (Array.isArray(vt?.soRang) ? vt.soRang.join(", ") : ""))
-          .filter(Boolean)
-          .join("; ");
-
-        return `${soLuong} ${tenSp}${rangText ? ` ${rangText}` : ""}`;
+  const renderViTri = (viTri) => {
+    if (!Array.isArray(viTri) || viTri.length === 0) return "";
+    return viTri
+      .map((vt) => {
+        const soRang = vt.soRang || [];
+        if (soRang.length === 0) return "";
+        if (vt.kieu === "Cầu" && soRang.length >= 2) {
+          const min = Math.min(...soRang);
+          const max = Math.max(...soRang);
+          return `R${min}->${max}`;
+        }
+        return soRang.map((r) => `R${r}`).join(" ");
       })
-      .join(" | ");
+      .filter(Boolean)
+      .join(" ");
   };
 
-  const getProgress = (status = "") => {
-    if (status === "Đang sản xuất") return 50;
-    if (status === "Hoàn thành" || status === "Đã giao") return 100;
-    return 0;
-  };
+  const formatDT = (value) =>
+    value
+      ? new Date(value).toLocaleString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
+      : "";
 
   donHangList.forEach((dh, idx) => {
     const rowIndex = headerRow + 1 + idx;
-    const so = dh?.maDonHang || (dh?._id ? `TAN${dh._id.toString().slice(-8).toUpperCase()}` : "");
-    const loaiDonHang = Array.from(
-      new Set((dh?.danhSachSanPham || []).map((sp) => sp?.loaiDon).filter(Boolean))
-    ).join(", ");
+    const so =
+      dh?.maDonHang ||
+      (dh?._id ? `TAN${dh._id.toString().slice(-8).toUpperCase()}` : "");
+    const dssp = dh?.danhSachSanPham || [];
+
+    const loaiStr = dssp
+      .map((sp) => loaiDonPrefix[sp.loaiDon] || "Mới")
+      .join("\n");
+    const sanPhamStr = dssp
+      .map((sp) => sp?.sanPham?.tenSanPham || "")
+      .join("\n");
+    const soLuongStr = dssp.map((sp) => sp?.soLuong ?? 1).join("\n");
+    const viTriStr = dssp.map((sp) => renderViTri(sp.viTri)).join("\n");
+
+    const hasMultiLine = dssp.length > 1;
 
     worksheet.getRow(rowIndex).values = [
+      formatDT(dh?.ngayNhan),
       so,
-      dh?.ngayNhan
-        ? new Date(dh.ngayNhan).toLocaleString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })
-        : "",
       dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
       dh?.bacSi?.hoVaTen || "",
       dh?.benhNhan?.hoVaTen || "",
-      buildTeethSummary(dh?.danhSachSanPham),
-      dh?.henGiao
-        ? new Date(dh.henGiao).toLocaleString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })
-        : "",
-      getProgress(dh?.trangThai),
+      loaiStr,
+      sanPhamStr,
+      soLuongStr,
+      viTriStr,
       dh?.trangThai || "",
-      loaiDonHang,
+      formatDT(dh?.henGiao),
     ];
 
-    worksheet.getCell(rowIndex, 8).alignment = {
-      horizontal: "right",
+    const row = worksheet.getRow(rowIndex);
+    row.alignment = { vertical: "middle", wrapText: hasMultiLine };
+    row.getCell(8).alignment = {
+      horizontal: "center",
       vertical: "middle",
+      wrapText: hasMultiLine,
     };
+
+    if (hasMultiLine) row.height = 16 * dssp.length;
 
     for (let col = 1; col <= headers.length; col += 1) {
       applyBorder(worksheet.getCell(rowIndex, col), "thin");
@@ -967,8 +980,16 @@ export const exportKeHoachGiaoHangToExcel = async (filteredOrders, formatDanhSac
   // Thêm dữ liệu
   filteredOrders.forEach((order) => {
     const maDon = order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`;
-    const nhanLuc = order.ngayNhan ? new Date(order.ngayNhan).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : "—";
-    const henGiao = order.henGiao ? new Date(order.henGiao).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : "—";
+    const formatDateCustom = (dateStr) => {
+      if (!dateStr) return "—";
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "—";
+      const pad = (num) => String(num).padStart(2, '0');
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${pad(d.getFullYear())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    const nhanLuc = formatDateCustom(order.ngayNhan);
+    const henGiao = formatDateCustom(order.henGiao);
 
     const row = worksheet.addRow([
       nhanLuc,

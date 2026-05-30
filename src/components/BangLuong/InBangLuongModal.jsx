@@ -50,7 +50,7 @@ export default function InBangLuongModal({ open, onClose, salaryData, thang, nam
         <head>
           <title>In Phiếu Lương - ${selectedData?.hoVaTen || ''}</title>
           <style>
-            body { font-family: 'Cambria', serif; padding: 20px; color: #000; }
+            body { font-family: 'Segoe UI', serif; padding: 20px; color: #000; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
             th, td { border: 1px solid #000; padding: 8px; text-align: left; }
             th { background-color: #f2f2f2; }
@@ -107,7 +107,7 @@ export default function InBangLuongModal({ open, onClose, salaryData, thang, nam
 
         {selectedData ? (
           <Box sx={{ p: { xs: 2, sm: 4 }, border: "1px dashed #ccc", borderRadius: 2, bgcolor: "#fff", overflowX: "auto" }}>
-            <div ref={printRef} style={{ minWidth: "600px", color: "#000", fontFamily: "Cambria, serif" }}>
+            <div ref={printRef} style={{ minWidth: "600px", color: "#000", fontFamily: "Segoe UI, serif" }}>
               <div style={{ textAlign: "center", marginBottom: "8px" }}>
                 <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "bold", textTransform: "uppercase" }}>CÔNG TY TNHH TẤN DENTAL</h2>
                 <p style={{ margin: "2px 0 0", fontSize: "13px" }}>Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ</p>

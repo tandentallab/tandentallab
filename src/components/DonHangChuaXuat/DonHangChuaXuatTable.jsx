@@ -56,10 +56,10 @@ const fmtVND = (v) => vndFormatter.format(Math.round(v || 0));
 const fmtDate = (d) =>
   d
     ? new Date(d).toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
     : "-";
 
 const getFirstName = (fullName) => {
@@ -79,10 +79,9 @@ const renderViTriText = (viTriArr) => {
     .join("; ");
 };
 
-// ================= NUMERIC KEYS (module-level, không đổi) =================
+// ================= NUMERIC KEYS =================
 const NUMERIC_KEYS = new Set(["soLuong", "donGia", "tongCong"]);
 
-// ================= RESIZABLE HEADER CELL (ngoài component, tránh re-define mỗi render) =================
 const ResizableHeaderCell = React.memo(
   ({ label, columnKey, isLast, style, onResize }) => (
     <TableCell sx={isLast ? { ...style, borderTopRightRadius: "12px" } : style}>
@@ -97,7 +96,6 @@ const ResizableHeaderCell = React.memo(
   )
 );
 
-// ================= ROW COMPONENT (React.memo → chỉ re-render khi isSelected thay đổi) =================
 const RowComponent = React.memo(
   ({ row, isSelected, cellStyles, onToggle, onNavigate }) => (
     <TableRow
@@ -176,11 +174,13 @@ export default function DonHangChuaXuatTable({
   const { donHangs = [], loading } = useSelector((state) => state.hoaDon) || {};
   const { data: bangGia = [] } = useSelector((state) => state.bangGia) || {};
 
-  const [dateFilter, setDateFilter] = useState("all");
+  // Mặc định lọc "Tháng này" và xóa mục "Tất cả" theo ý sếp
+  const [dateFilter, setDateFilter] = useState("custom");
   const [searchMaDon, setSearchMaDon] = useState("");
   const [visibleCount, setVisibleCount] = useState(25);
   const containerRef = useRef(null);
   const sentinelRef = useRef(null);
+
   const today = new Date().toISOString().split("T")[0];
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
@@ -200,7 +200,6 @@ export default function DonHangChuaXuatTable({
     ghiChuTaiChinh: 160,
   });
 
-  // Ref để handleResize luôn đọc được width mới nhất mà không cần recreate callback
   const columnWidthsRef = useRef(columnWidths);
   useEffect(() => {
     columnWidthsRef.current = columnWidths;
@@ -211,7 +210,6 @@ export default function DonHangChuaXuatTable({
     [columnWidths]
   );
 
-  // ── FIX 1: RAF throttle cho resize, stable reference nhờ ref ──
   const handleResize = useCallback((key, e) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -239,9 +237,8 @@ export default function DonHangChuaXuatTable({
 
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
-  }, []); // stable — không phụ thuộc columnWidths nhờ ref
+  }, []);
 
-  // ── FIX 2: Precompute tất cả cell styles 1 lần khi columnWidths thay đổi ──
   const cellStyles = useMemo(() => {
     const base = (key, isHeader = false) => ({
       width: columnWidths[key],
@@ -266,9 +263,7 @@ export default function DonHangChuaXuatTable({
       bgcolor: isHeader ? "#e6f7ff" : "transparent",
     });
 
-    // Row cell styles (bao gồm các biến thể đặc biệt dùng trong RowComponent)
     return {
-      // Header styles
       maDonHang_h: base("maDonHang", true),
       ngayNhan_h: base("ngayNhan", true),
       bacSi_h: base("bacSi", true),
@@ -280,15 +275,11 @@ export default function DonHangChuaXuatTable({
       donGia_h: base("donGia", true),
       tongCong_h: base("tongCong", true),
       ghiChuTaiChinh_h: base("ghiChuTaiChinh", true),
-
-      // Row styles
       ngayNhan: base("ngayNhan"),
       bacSi: base("bacSi"),
       benhNhan: base("benhNhan"),
       loai: base("loai"),
       donGia: base("donGia"),
-
-      // Row styles với variant
       maDonHang_link: {
         ...base("maDonHang"),
         color: "#00a8df",
@@ -322,11 +313,12 @@ export default function DonHangChuaXuatTable({
     }
   }, [selectedClinic, dispatch]);
 
-  /* ================= LỌC NGÀY ================= */
-  const filteredDonHangs = useMemo(() => {
-    if (dateFilter === "all") return donHangs;
+  /* 🔥 THÀNH PHẦN MỚI: TÍNH TOÁN KHOẢNG NGÀY ĐANG ĐƯỢC CHỌN TRÊN BỘ LỌC CÓ SẴN */
+  const activeDateRange = useMemo(() => {
     const now = new Date();
-    let start, end;
+    let start = startOfMonth(now);
+    let end = endOfDay(now);
+
     switch (dateFilter) {
       case "today":
         start = startOfDay(now);
@@ -359,19 +351,27 @@ export default function DonHangChuaXuatTable({
         break;
       }
       case "custom":
-        if (!fromDate || !toDate) return donHangs;
-        start = startOfDay(new Date(fromDate));
-        end = endOfDay(new Date(toDate));
+        if (fromDate && toDate) {
+          start = startOfDay(new Date(fromDate));
+          end = endOfDay(new Date(toDate));
+        }
         break;
       default:
-        return donHangs;
+        break;
     }
-    return donHangs.filter((o) =>
-      isWithinInterval(new Date(o.ngayNhan), { start, end })
-    );
-  }, [donHangs, dateFilter, fromDate, toDate]);
+    return { start, end };
+  }, [dateFilter, fromDate, toDate]);
 
-  /* ================= MAP TÊN + GIÁ ================= */
+  /* ================= LỌC NGÀY TRÊN BẢNG (Dùng chung activeDateRange) ================= */
+  const filteredDonHangs = useMemo(() => {
+    return donHangs.filter((o) =>
+      isWithinInterval(new Date(o.ngayNhan), {
+        start: activeDateRange.start,
+        end: activeDateRange.end
+      })
+    );
+  }, [donHangs, activeDateRange]);
+
   const mapTen = useMemo(() => buildProductNameMap(bangGia), [bangGia]);
 
   const donGiaMap = useMemo(() => {
@@ -385,7 +385,6 @@ export default function DonHangChuaXuatTable({
     return map;
   }, [bangGia]);
 
-  /* ================= FLATTEN ================= */
   const flattenedData = useMemo(() => {
     const result = [];
     filteredDonHangs.forEach((order) => {
@@ -423,19 +422,16 @@ export default function DonHangChuaXuatTable({
     );
   }, [flattenedData, searchMaDon]);
 
-  // ── FIX 3: Tổng tiền memoized ──
   const totalCost = useMemo(
     () => displayedData.reduce((s, r) => s + r.tongCong, 0),
     [displayedData]
   );
 
-  // ── FIX 4: selectedSet O(1) lookup thay vì .some() O(N) ──
   const selectedSet = useMemo(
     () => new Set(selectedOrders.map((o) => o._id)),
     [selectedOrders]
   );
 
-  // ── FIX 5: Unique orders từ displayedData (fix bug toggleAll) ──
   const uniqueOrdersInDisplay = useMemo(() => {
     const seen = new Set();
     const orders = [];
@@ -482,7 +478,6 @@ export default function DonHangChuaXuatTable({
     [setSelectedOrders]
   );
 
-  // ── FIX 5 (tiếp): toggleAll dùng uniqueOrdersInDisplay (đúng với search) ──
   const toggleAll = useCallback(() => {
     const allSelected =
       uniqueOrdersInDisplay.length > 0 &&
@@ -513,13 +508,18 @@ export default function DonHangChuaXuatTable({
         return;
       }
     }
+
     try {
+      // 🔥 SỬA CHÍNH: Bốc thẳng khoảng thời gian của bộ lọc hiện tại để gửi xuống backend
       await dispatch(
         createHoaDon({
           nhaKhoaId,
           danhSachDonHangIds: selectedOrders.map((o) => o._id),
+          tuNgay: activeDateRange.start.toISOString(),
+          denNgay: new Date().toISOString(), // Bắt ngay khoảnh khắc hiện tại
         })
       ).unwrap();
+
       toast.success("Tạo hóa đơn thành công!");
       navigate(`/hoa-don`);
       setSelectedOrders([]);
@@ -528,7 +528,6 @@ export default function DonHangChuaXuatTable({
     }
   };
 
-  // Checkbox header state (dựa trên uniqueOrdersInDisplay, không phải filteredDonHangs)
   const allDisplaySelected =
     uniqueOrdersInDisplay.length > 0 &&
     uniqueOrdersInDisplay.every((o) => selectedSet.has(o._id));
@@ -561,20 +560,20 @@ export default function DonHangChuaXuatTable({
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0 h-full w-full relative">
       {/* TOOLBAR RESPONSIVE */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-2 border-b bg-white flex-shrink-0">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 px-4 py-2 border-b bg-white flex-shrink-0">
+
         {/* Nhóm Lọc & Tìm kiếm */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto flex-1">
           <FormControl
             size="small"
-            sx={{ minWidth: 200, width: { xs: "100%", sm: "auto" } }}
+            sx={{ minWidth: 160, width: { xs: "100%", sm: "auto" } }}
           >
-            <InputLabel>Lọc theo ngày nhận</InputLabel>
+            <InputLabel>Lọc bảng theo ngày</InputLabel>
             <Select
               value={dateFilter}
-              label="Lọc theo ngày nhận"
+              label="Lọc bảng theo ngày"
               onChange={(e) => setDateFilter(e.target.value)}
             >
-              <MenuItem value="all">Tất cả đơn hàng</MenuItem>
               <MenuItem value="custom">Chọn khoảng ngày</MenuItem>
               <MenuItem value="today">Hôm nay</MenuItem>
               <MenuItem value="yesterday">Hôm qua</MenuItem>
@@ -586,25 +585,27 @@ export default function DonHangChuaXuatTable({
           </FormControl>
 
           {dateFilter === "custom" && (
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <TextField
-                label="Từ ngày"
-                type="date"
-                size="small"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ minWidth: 140, flex: { xs: 1, sm: "none" } }}
-              />
-              <TextField
-                label="Đến ngày"
-                type="date"
-                size="small"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ minWidth: 140, flex: { xs: 1, sm: "none" } }}
-              />
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col">
+                <label className="text-xs text-gray-400 mb-0.5">Từ ngày</label>
+                <input
+                  type="date"
+                  value={fromDate}
+                  max={today}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm outline-none focus:border-[#29b6f6]"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-xs text-gray-400 mb-0.5">Đến ngày</label>
+                <input
+                  type="date"
+                  value={toDate}
+                  max={today}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm outline-none focus:border-[#29b6f6]"
+                />
+              </div>
             </div>
           )}
 
@@ -653,15 +654,15 @@ export default function DonHangChuaXuatTable({
           </div>
         </div>
 
-        {/* Nhóm Nút Tạo hóa đơn */}
+        {/* Nhóm Nút Tạo hóa đơn đơn giản, không rườm rà */}
         {selectedOrders.length > 0 && (
-          <div className="w-full md:w-auto flex justify-end">
+          <div className="w-full xl:w-auto flex justify-end">
             <Button
               variant="contained"
               color="primary"
               size="small"
               onClick={handleCreateHoaDon}
-              sx={{ width: { xs: "100%", md: "auto" } }}
+              sx={{ width: { xs: "100%", xl: "auto" }, height: '40px', px: 4 }}
             >
               Tạo hóa đơn ({selectedOrders.length} đơn)
             </Button>
@@ -804,8 +805,6 @@ export default function DonHangChuaXuatTable({
                   onResize={handleResize}
                   isLast
                 />
-
-                {/* Cột ảo fill space */}
                 <TableCell
                   sx={{
                     width: "auto",
@@ -816,8 +815,8 @@ export default function DonHangChuaXuatTable({
                     bgcolor: "#e6f7ff",
                   }}
                 />
-              </TableRow>
-            </TableHead>
+              </TableRow >
+            </TableHead >
 
             <TableBody>
               {loading ? (
@@ -868,12 +867,12 @@ export default function DonHangChuaXuatTable({
                 </TableRow>
               )}
             </TableBody>
-          </Table>
-        </TableContainer>
-      </div>
+          </Table >
+        </TableContainer >
+      </div >
 
       {/* FOOTER */}
-      <div className="px-4 py-2 border-t bg-white flex-shrink-0 flex justify-between items-center relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      < div className="px-4 py-2 border-t bg-white flex-shrink-0 flex justify-between items-center relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" >
         <Typography variant="caption" color="text.secondary" fontSize={12}>
           {visibleCount < displayedData.length
             ? `${visibleCount} / ${displayedData.length} dòng`
@@ -882,7 +881,7 @@ export default function DonHangChuaXuatTable({
         <Typography variant="caption" color="text.secondary" fontSize={12}>
           Tổng: <strong>{fmtVND(totalCost)}</strong>
         </Typography>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

@@ -19,15 +19,26 @@ export const fetchNgayXuatHoaDonGanNhatAll = createAsyncThunk(
   }
 );
 
-// 🔥 Lấy đơn hàng chưa xuất hóa đơn
+// 🔥 Lấy đơn hàng chưa xuất hóa đơn (Hỗ trợ kèm ngày tháng chốt sổ)
 export const fetchDonHangChuaHoaDon = createAsyncThunk(
   "hoaDon/fetchDonHangChuaHoaDon",
-  async (nhaKhoaId) => {
-    const res = await api.get(
-      `/hoa-don/don-hang-chua-xuat/${nhaKhoaId}`
-    );
+  async (payload, { rejectWithValue }) => {
+    try {
+      // Kiểm tra xem payload truyền vào là một chuỗi (ID) hay là một object chứa nhiều tham số
+      const isObject = typeof payload === "object" && payload !== null;
+      const nhaKhoaId = isObject ? payload.nhaKhoaId : payload;
 
-    return res.data;
+      // Nếu là object, bóc tách tuNgay và denNgay ra làm params
+      const params = isObject
+        ? { tuNgay: payload.tuNgay, denNgay: payload.denNgay }
+        : {};
+
+      const res = await api.get(`/hoa-don/don-hang-chua-xuat/${nhaKhoaId}`, { params });
+
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Lỗi khi tải danh sách đơn hàng");
+    }
   }
 );
 
@@ -42,6 +53,8 @@ export const fetchDonHangChuaHoaDonAll = createAsyncThunk(
     return res.data;
   }
 );
+
+
 
 // 🔥 Admin lấy tất cả hóa đơn
 export const fetchAllHoaDonAdmin = createAsyncThunk(
@@ -460,11 +473,6 @@ const slice = createSlice({
           state.error =
             action.payload?.message ||
             action.error.message;
-
-          toast.error(
-            action.payload?.message ||
-            "Cập nhật thất bại"
-          );
         }
       )
 
@@ -546,8 +554,6 @@ const slice = createSlice({
             state.chiTietHoaDon =
               updatedHoaDon;
           }
-
-          toast.success("Thanh toán thành công");
         }
       )
 
@@ -559,11 +565,6 @@ const slice = createSlice({
           state.error =
             action.payload?.message ||
             action.error.message;
-
-          toast.error(
-            action.payload?.message ||
-            "Thanh toán thất bại"
-          );
         }
       )
 
@@ -586,18 +587,12 @@ const slice = createSlice({
             state.chiTietHoaDon =
               null;
           }
-
-          toast.success("Xóa hóa đơn thành công");
         }
       )
 
       .addCase(
         deleteHoaDon.rejected,
         (state, action) => {
-          toast.error(
-            action.payload?.message ||
-            "Xóa thất bại"
-          );
         }
       )
 

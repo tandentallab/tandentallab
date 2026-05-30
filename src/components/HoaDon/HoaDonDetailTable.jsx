@@ -64,7 +64,7 @@ const RHCell = React.memo(({ label, style, columnKey, onResize }) => (
 ));
 
 // ================= COMPONENT CHÍNH =================
-const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaChange }) => {
+const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaChange, isLocked }) => {
     const [columnWidths, setColumnWidths] = useState({
         donHang: 110,
         ngayNhan: 95,
@@ -254,6 +254,7 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                                             <input
                                                 type="text"
                                                 inputMode="numeric"
+                                                disabled={isLocked}
                                                 value={
                                                     sp.loaiGiamGia === "phanTram"
                                                         ? (sp.giamGiaPhanTram || "")
@@ -266,6 +267,7 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                                                 className="w-[calc(100%-34px)] border border-gray-300 rounded-md px-2 py-1 outline-none text-right bg-white focus:border-blue-500"
                                             />
                                             <select
+                                                disabled={isLocked}
                                                 value={sp.loaiGiamGia || "phanTram"}
                                                 onChange={(e) =>
                                                     handleGiamGiaChange(

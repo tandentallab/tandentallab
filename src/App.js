@@ -1,6 +1,7 @@
 import Dashboard from "./components/Pages/Dashboard";
 import LoginPage from "./components/Pages/LoginPage";
-import CheckPhieuBaoHanhPage from "./components/CheckPhieuBaoHanh";
+import CheckPhieuBaoHanhCuPage from "./components/CheckPhieuBaoHanh";
+import CheckPhieuBaoHanhPage from "./components/CheckPhieuBaoHanh/CheckPhieuBaoHanhPage";
 import { useSelector, useDispatch } from "react-redux";
 import { useEffect } from "react";
 import { restoreAuth } from "./redux/slices/authSlice";
@@ -28,8 +29,9 @@ function App() {
   return (
     <Routes>
       {/* Public routes - không cần xác thực */}
-      <Route path="/warranty" element={<CheckPhieuBaoHanhPage />} />
-      
+      <Route path="/warranty" element={<CheckPhieuBaoHanhCuPage />} />
+      <Route path="/tra-cuu-bao-hanh" element={<CheckPhieuBaoHanhPage />} />
+
       {/* Protected routes - cần xác thực */}
       <Route path="*" element={isAuthenticated ? <Dashboard /> : <LoginPage />} />
     </Routes>

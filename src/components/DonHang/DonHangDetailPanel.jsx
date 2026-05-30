@@ -283,7 +283,7 @@ const DonHangDetailPanel = (props) => {
 
   const conLaiCongDoan = totalCongDoanCount - doneCongDoanCount;
 
-  const groupedNhatKy = (donHang?.nhatKyChinhSua || []).reduce((acc, entry) => {
+  const groupedNhatKy = (donHang?.nhatKyChinhSua || []).filter(e => e.hanhDong !== "Chỉnh sửa đơn hàng (không có thay đổi)").reduce((acc, entry) => {
     const d = new Date(entry.thoiGian);
     const dateKey = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
     if (!acc[dateKey]) acc[dateKey] = [];

@@ -7,7 +7,12 @@ import React, {
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { fetchDonHang, fetchMoreDonHang } from "../../redux/slices/donHangSlice";
+import {
+  fetchDonHang,
+  fetchMoreDonHang,
+  resetDonHangPageFilter,
+  setDonHangPageFilter,
+} from "../../redux/slices/donHangSlice";
 import { api } from "../../config/api";
 import DonHangTable from "./DonHangTable";
 import DonHangDetailPanel from "./DonHangDetailPanel";
@@ -19,7 +24,6 @@ import {
   Box,
   Typography,
   Divider,
-  Grid,
   FormControl,
   Select,
   MenuItem,
@@ -35,8 +39,6 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import StoreIcon from "@mui/icons-material/Store";
 import PersonIcon from "@mui/icons-material/Person";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import DownloadIcon from "@mui/icons-material/Download";
 import { exportDonHangListToExcel } from "../../utils/exportToExcel";
 import ExportDateSelector from "../common/ExportDateSelector";
@@ -61,10 +63,7 @@ const DATE_PRESETS = [
   { key: "last_30", label: "Trong vòng 30 ngày" },
 ];
 
-const TRANG_THAI_OPTIONS = [
-  "Chờ xử lý",
-  "Hoàn thành",
-];
+const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Hoàn thành"];
 const ROWS_PER_PAGE = 20;
 
 const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
@@ -192,13 +191,21 @@ const DonHangPage = () => {
   const [selectedDonHangId, setSelectedDonHangId] = useState(null);
   const sentinelRef = useRef(null);
 
+  //
+  const { donHangPageFilter } = useSelector((state) => state.donHang);
+
   // Applied filters
-  const [appliedNgayNhan, setAppliedNgayNhan] = useState(EMPTY_DATE);
-  const [appliedYcHoanThanh, setAppliedYcHoanThanh] = useState(EMPTY_DATE);
-  const [appliedHenGiao, setAppliedHenGiao] = useState(EMPTY_DATE);
-  const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(null);
-  const [appliedBenhNhan, setAppliedBenhNhan] = useState(null);
-  const [appliedTrangThai, setAppliedTrangThai] = useState([]);
+  const appliedNgayNhan = donHangPageFilter.appliedNgayNhan;
+
+  const appliedYcHoanThanh = donHangPageFilter.appliedYcHoanThanh;
+
+  const appliedHenGiao = donHangPageFilter.appliedHenGiao;
+
+  const appliedNhaKhoa = donHangPageFilter.appliedNhaKhoa;
+
+  const appliedBenhNhan = donHangPageFilter.appliedBenhNhan;
+
+  const appliedTrangThai = donHangPageFilter.appliedTrangThai;
 
   // Draft filters
   const [draftNgayNhan, setDraftNgayNhan] = useState(EMPTY_DATE);
@@ -312,7 +319,12 @@ const DonHangPage = () => {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && page < (pagination?.totalPages || 1) && !loadingMore && !loading) {
+        if (
+          entry.isIntersecting &&
+          page < (pagination?.totalPages || 1) &&
+          !loadingMore &&
+          !loading
+        ) {
           setPage((p) => p + 1);
         }
       },
@@ -326,7 +338,10 @@ const DonHangPage = () => {
     const handleClick = (e) => {
       if (filterRef.current && !filterRef.current.contains(e.target)) {
         // Don't close when clicking inside MUI portals (Select dropdown, Popover, etc.)
-        if (e.target.closest?.('.MuiPopover-root, .MuiMenu-root, .MuiModal-root')) return;
+        if (
+          e.target.closest?.(".MuiPopover-root, .MuiMenu-root, .MuiModal-root")
+        )
+          return;
         setShowFilter(false);
       }
     };
@@ -338,11 +353,11 @@ const DonHangPage = () => {
     const data = nhaKhoaState?.data || [];
     return Array.isArray(data)
       ? data
-        .map((nk) => ({
-          _id: nk._id,
-          name: nk.tenGiaoDich || nk.hoVaTen || "",
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name))
+          .map((nk) => ({
+            _id: nk._id,
+            name: nk.tenGiaoDich || nk.hoVaTen || "",
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }, [nhaKhoaState?.data]);
 
@@ -350,11 +365,11 @@ const DonHangPage = () => {
     const data = benhNhanState?.data || [];
     return Array.isArray(data)
       ? data
-        .map((bn) => ({
-          _id: bn._id,
-          name: bn.hoVaTen || "",
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name))
+          .map((bn) => ({
+            _id: bn._id,
+            name: bn.hoVaTen || "",
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }, [benhNhanState?.data]);
 
@@ -371,27 +386,32 @@ const DonHangPage = () => {
   }, [benhNhanOptions, benhNhanSearch]);
 
   const handleOpenFilter = () => {
-    setDraftNgayNhan(appliedNgayNhan);
-    setDraftYcHoanThanh(appliedYcHoanThanh);
-    setDraftHenGiao(appliedHenGiao);
-    setDraftNhaKhoa(appliedNhaKhoa);
-    setDraftBenhNhan(appliedBenhNhan);
-    setDraftTrangThai([...appliedTrangThai]);
-    setOpenDateModal(null);
-    setOpenPickerModal(null);
-    setOpenSection(null);
-    setNhaKhoaSearch("");
-    setBenhNhanSearch("");
+    setDraftNgayNhan(donHangPageFilter.appliedNgayNhan);
+
+    setDraftYcHoanThanh(donHangPageFilter.appliedYcHoanThanh);
+
+    setDraftHenGiao(donHangPageFilter.appliedHenGiao);
+
+    setDraftNhaKhoa(donHangPageFilter.appliedNhaKhoa);
+
+    setDraftBenhNhan(donHangPageFilter.appliedBenhNhan);
+
+    setDraftTrangThai([...donHangPageFilter.appliedTrangThai]);
+
     setShowFilter(true);
   };
 
   const handleApplyFilters = () => {
-    setAppliedNgayNhan(draftNgayNhan);
-    setAppliedYcHoanThanh(draftYcHoanThanh);
-    setAppliedHenGiao(draftHenGiao);
-    setAppliedNhaKhoa(draftNhaKhoa);
-    setAppliedBenhNhan(draftBenhNhan);
-    setAppliedTrangThai([...draftTrangThai]);
+    dispatch(
+      setDonHangPageFilter({
+        appliedNgayNhan: draftNgayNhan,
+        appliedYcHoanThanh: draftYcHoanThanh,
+        appliedHenGiao: draftHenGiao,
+        appliedNhaKhoa: draftNhaKhoa,
+        appliedBenhNhan: draftBenhNhan,
+        appliedTrangThai: draftTrangThai,
+      })
+    );
     setPage(1);
     setOpenDateModal(null);
     setOpenPickerModal(null);
@@ -409,12 +429,7 @@ const DonHangPage = () => {
 
   const handleRefresh = () => {
     setSearchTerm("");
-    setAppliedNgayNhan(EMPTY_DATE);
-    setAppliedYcHoanThanh(EMPTY_DATE);
-    setAppliedHenGiao(EMPTY_DATE);
-    setAppliedNhaKhoa(null);
-    setAppliedBenhNhan(null);
-    setAppliedTrangThai([]);
+    dispatch(resetDonHangPageFilter());
     setPage(1);
   };
 
@@ -524,7 +539,9 @@ const DonHangPage = () => {
 
       handleCloseExport();
     } catch (err) {
-      toast.error(`Xuất Excel thất bại: ${err?.message || "Lỗi không xác định"}`);
+      toast.error(
+        `Xuất Excel thất bại: ${err?.message || "Lỗi không xác định"}`
+      );
     } finally {
       setExporting(false);
     }
@@ -601,13 +618,17 @@ const DonHangPage = () => {
         <div key={p.key}>
           <button
             onClick={() => {
-              scf((prev) => ({ ...prev, preset: prev.preset === p.key ? null : p.key }));
+              scf((prev) => ({
+                ...prev,
+                preset: prev.preset === p.key ? null : p.key,
+              }));
               if (!p.isCalendar) setOpenDateModal(null);
             }}
-            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${cf.preset === p.key
-              ? "bg-blue-50 text-blue-700 font-semibold"
-              : "text-gray-700 hover:bg-gray-50"
-              }`}
+            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${
+              cf.preset === p.key
+                ? "bg-blue-50 text-blue-700 font-semibold"
+                : "text-gray-700 hover:bg-gray-50"
+            }`}
           >
             {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
             {p.label}
@@ -622,7 +643,9 @@ const DonHangPage = () => {
                 <input
                   type="date"
                   value={cf.customFrom}
-                  onChange={(e) => scf((prev) => ({ ...prev, customFrom: e.target.value }))}
+                  onChange={(e) =>
+                    scf((prev) => ({ ...prev, customFrom: e.target.value }))
+                  }
                   className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
                 />
               </div>
@@ -631,7 +654,9 @@ const DonHangPage = () => {
                 <input
                   type="date"
                   value={cf.customTo}
-                  onChange={(e) => scf((prev) => ({ ...prev, customTo: e.target.value }))}
+                  onChange={(e) =>
+                    scf((prev) => ({ ...prev, customTo: e.target.value }))
+                  }
                   className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
                 />
               </div>
@@ -652,10 +677,11 @@ const DonHangPage = () => {
               <button
                 onClick={handleOpenFilter}
                 title="Bộ lọc"
-                className={`relative p-1.5 rounded transition ${isFiltered
-                  ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
-                  : "text-gray-500 hover:bg-gray-100"
-                  }`}
+                className={`relative p-1.5 rounded transition ${
+                  isFiltered
+                    ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                    : "text-gray-500 hover:bg-gray-100"
+                }`}
               >
                 <FilterAltIcon sx={{ fontSize: 20 }} />
                 {isFiltered && (
@@ -664,48 +690,114 @@ const DonHangPage = () => {
               </button>
 
               {showFilter && (
-                <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-white rounded-xl shadow-2xl border border-gray-200" onClick={() => { setOpenDateModal(null); setOpenPickerModal(null); }}>
+                <div
+                  className="absolute left-0 top-full mt-1 z-50 w-64 bg-white rounded-xl shadow-2xl border border-gray-200"
+                  onClick={() => {
+                    setOpenDateModal(null);
+                    setOpenPickerModal(null);
+                  }}
+                >
                   {/* Ngày nhận */}
-                  <div className="relative border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="relative border-b border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
-                      onClick={() => { setOpenPickerModal(null); setOpenDateModal(openDateModal === "ngayNhan" ? null : "ngayNhan"); }}
+                      onClick={() => {
+                        setOpenPickerModal(null);
+                        setOpenDateModal(
+                          openDateModal === "ngayNhan" ? null : "ngayNhan"
+                        );
+                      }}
                     >
-                      <span className={draftNgayNhan.preset ? "text-blue-600 font-medium" : "text-gray-600"}>
-                        {draftNgayNhan.preset ? getDateLabel(draftNgayNhan) : "Ngày nhận"}
+                      <span
+                        className={
+                          draftNgayNhan.preset
+                            ? "text-blue-600 font-medium"
+                            : "text-gray-600"
+                        }
+                      >
+                        {draftNgayNhan.preset
+                          ? getDateLabel(draftNgayNhan)
+                          : "Ngày nhận"}
                       </span>
-                      <CalendarTodayIcon sx={{ fontSize: 16, color: "#9ca3af" }} />
+                      <CalendarTodayIcon
+                        sx={{ fontSize: 16, color: "#9ca3af" }}
+                      />
                     </button>
-                    {openDateModal === "ngayNhan" && renderDateDropdown(draftNgayNhan, setDraftNgayNhan)}
+                    {openDateModal === "ngayNhan" &&
+                      renderDateDropdown(draftNgayNhan, setDraftNgayNhan)}
                   </div>
                   {/* Y/c hoàn thành */}
-                  <div className="relative border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="relative border-b border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
-                      onClick={() => { setOpenPickerModal(null); setOpenDateModal(openDateModal === "ycHoanThanh" ? null : "ycHoanThanh"); }}
+                      onClick={() => {
+                        setOpenPickerModal(null);
+                        setOpenDateModal(
+                          openDateModal === "ycHoanThanh" ? null : "ycHoanThanh"
+                        );
+                      }}
                     >
-                      <span className={draftYcHoanThanh.preset ? "text-blue-600 font-medium" : "text-gray-600"}>
-                        {draftYcHoanThanh.preset ? getDateLabel(draftYcHoanThanh) : "Y/c hoàn thành"}
+                      <span
+                        className={
+                          draftYcHoanThanh.preset
+                            ? "text-blue-600 font-medium"
+                            : "text-gray-600"
+                        }
+                      >
+                        {draftYcHoanThanh.preset
+                          ? getDateLabel(draftYcHoanThanh)
+                          : "Y/c hoàn thành"}
                       </span>
-                      <CalendarTodayIcon sx={{ fontSize: 16, color: "#9ca3af" }} />
+                      <CalendarTodayIcon
+                        sx={{ fontSize: 16, color: "#9ca3af" }}
+                      />
                     </button>
-                    {openDateModal === "ycHoanThanh" && renderDateDropdown(draftYcHoanThanh, setDraftYcHoanThanh)}
+                    {openDateModal === "ycHoanThanh" &&
+                      renderDateDropdown(draftYcHoanThanh, setDraftYcHoanThanh)}
                   </div>
                   {/* Hẹn giao */}
-                  <div className="relative border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="relative border-b border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
-                      onClick={() => { setOpenPickerModal(null); setOpenDateModal(openDateModal === "henGiao" ? null : "henGiao"); }}
+                      onClick={() => {
+                        setOpenPickerModal(null);
+                        setOpenDateModal(
+                          openDateModal === "henGiao" ? null : "henGiao"
+                        );
+                      }}
                     >
-                      <span className={draftHenGiao.preset ? "text-blue-600 font-medium" : "text-gray-600"}>
-                        {draftHenGiao.preset ? getDateLabel(draftHenGiao) : "Hẹn giao"}
+                      <span
+                        className={
+                          draftHenGiao.preset
+                            ? "text-blue-600 font-medium"
+                            : "text-gray-600"
+                        }
+                      >
+                        {draftHenGiao.preset
+                          ? getDateLabel(draftHenGiao)
+                          : "Hẹn giao"}
                       </span>
-                      <CalendarTodayIcon sx={{ fontSize: 16, color: "#9ca3af" }} />
+                      <CalendarTodayIcon
+                        sx={{ fontSize: 16, color: "#9ca3af" }}
+                      />
                     </button>
-                    {openDateModal === "henGiao" && renderDateDropdown(draftHenGiao, setDraftHenGiao)}
+                    {openDateModal === "henGiao" &&
+                      renderDateDropdown(draftHenGiao, setDraftHenGiao)}
                   </div>
                   {/* Nha khoa */}
-                  <div className="relative border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="relative border-b border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {openPickerModal === "nhaKhoa" ? (
                       <div className="px-3 py-2">
                         <input
@@ -720,9 +812,19 @@ const DonHangPage = () => {
                     ) : (
                       <button
                         className="w-full flex items-start px-4 py-3 hover:bg-gray-50 transition text-sm"
-                        onClick={() => { setOpenDateModal(null); setNhaKhoaSearch(""); setOpenPickerModal("nhaKhoa"); }}
+                        onClick={() => {
+                          setOpenDateModal(null);
+                          setNhaKhoaSearch("");
+                          setOpenPickerModal("nhaKhoa");
+                        }}
                       >
-                        <span className={draftNhaKhoa ? "text-blue-600 font-medium truncate" : "text-gray-400"}>
+                        <span
+                          className={
+                            draftNhaKhoa
+                              ? "text-blue-600 font-medium truncate"
+                              : "text-gray-400"
+                          }
+                        >
                           {draftNhaKhoa ? draftNhaKhoa.name : "Nha khoa"}
                         </span>
                       </button>
@@ -731,7 +833,10 @@ const DonHangPage = () => {
                       <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded shadow-xl border border-t-0 border-gray-200 max-h-56 overflow-y-auto">
                         {draftNhaKhoa && (
                           <button
-                            onClick={() => { setDraftNhaKhoa(null); setOpenPickerModal(null); }}
+                            onClick={() => {
+                              setDraftNhaKhoa(null);
+                              setOpenPickerModal(null);
+                            }}
                             className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 border-b border-gray-100 transition"
                           >
                             Bỏ chọn
@@ -740,21 +845,32 @@ const DonHangPage = () => {
                         {filteredNhaKhoaOpts.map((item) => (
                           <button
                             key={item._id}
-                            onClick={() => { setDraftNhaKhoa(item); setOpenPickerModal(null); }}
-                            className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftNhaKhoa?._id === item._id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"
-                              }`}
+                            onClick={() => {
+                              setDraftNhaKhoa(item);
+                              setOpenPickerModal(null);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
+                              draftNhaKhoa?._id === item._id
+                                ? "bg-blue-50 text-blue-700 font-semibold"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
                           >
                             {item.name}
                           </button>
                         ))}
                         {filteredNhaKhoaOpts.length === 0 && (
-                          <p className="text-center text-xs text-gray-400 py-4">Không tìm thấy</p>
+                          <p className="text-center text-xs text-gray-400 py-4">
+                            Không tìm thấy
+                          </p>
                         )}
                       </div>
                     )}
                   </div>
                   {/* Bệnh nhân */}
-                  <div className="relative border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="relative border-b border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {openPickerModal === "benhNhan" ? (
                       <div className="px-3 py-2">
                         <input
@@ -769,9 +885,19 @@ const DonHangPage = () => {
                     ) : (
                       <button
                         className="w-full flex items-start px-4 py-3 hover:bg-gray-50 transition text-sm"
-                        onClick={() => { setOpenDateModal(null); setBenhNhanSearch(""); setOpenPickerModal("benhNhan"); }}
+                        onClick={() => {
+                          setOpenDateModal(null);
+                          setBenhNhanSearch("");
+                          setOpenPickerModal("benhNhan");
+                        }}
                       >
-                        <span className={draftBenhNhan ? "text-blue-600 font-medium truncate" : "text-gray-400"}>
+                        <span
+                          className={
+                            draftBenhNhan
+                              ? "text-blue-600 font-medium truncate"
+                              : "text-gray-400"
+                          }
+                        >
                           {draftBenhNhan ? draftBenhNhan.name : "Bệnh nhân"}
                         </span>
                       </button>
@@ -780,7 +906,10 @@ const DonHangPage = () => {
                       <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded shadow-xl border border-t-0 border-gray-200 max-h-56 overflow-y-auto">
                         {draftBenhNhan && (
                           <button
-                            onClick={() => { setDraftBenhNhan(null); setOpenPickerModal(null); }}
+                            onClick={() => {
+                              setDraftBenhNhan(null);
+                              setOpenPickerModal(null);
+                            }}
                             className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 border-b border-gray-100 transition"
                           >
                             Bỏ chọn
@@ -789,15 +918,23 @@ const DonHangPage = () => {
                         {filteredBenhNhanOpts.map((item) => (
                           <button
                             key={item._id}
-                            onClick={() => { setDraftBenhNhan(item); setOpenPickerModal(null); }}
-                            className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftBenhNhan?._id === item._id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"
-                              }`}
+                            onClick={() => {
+                              setDraftBenhNhan(item);
+                              setOpenPickerModal(null);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
+                              draftBenhNhan?._id === item._id
+                                ? "bg-blue-50 text-blue-700 font-semibold"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
                           >
                             {item.name}
                           </button>
                         ))}
                         {filteredBenhNhanOpts.length === 0 && (
-                          <p className="text-center text-xs text-gray-400 py-4">Không tìm thấy</p>
+                          <p className="text-center text-xs text-gray-400 py-4">
+                            Không tìm thấy
+                          </p>
                         )}
                       </div>
                     )}
@@ -819,12 +956,22 @@ const DonHangPage = () => {
                         renderValue={(selected) => {
                           if (selected.length === 0)
                             return (
-                              <em style={{ color: "#9ca3af", fontStyle: "normal", fontSize: "0.875rem" }}>
+                              <em
+                                style={{
+                                  color: "#9ca3af",
+                                  fontStyle: "normal",
+                                  fontSize: "0.875rem",
+                                }}
+                              >
                                 Trạng thái
                               </em>
                             );
                           if (selected.length === 1)
-                            return <span style={{ fontSize: "0.875rem" }}>{selected[0]}</span>;
+                            return (
+                              <span style={{ fontSize: "0.875rem" }}>
+                                {selected[0]}
+                              </span>
+                            );
                           return (
                             <span style={{ fontSize: "0.875rem" }}>
                               {selected[0]} (+{selected.length - 1} Khác)
@@ -832,12 +979,19 @@ const DonHangPage = () => {
                           );
                         }}
                         sx={{
-                          "& .MuiOutlinedInput-notchedOutline": { borderColor: "#e5e7eb" },
+                          "& .MuiOutlinedInput-notchedOutline": {
+                            borderColor: "#e5e7eb",
+                          },
                           "& .MuiSelect-select": { py: "6px" },
                         }}
                       >
                         {TRANG_THAI_OPTIONS.map((status) => (
-                          <MenuItem key={status} value={status} dense sx={{ fontSize: "0.875rem" }}>
+                          <MenuItem
+                            key={status}
+                            value={status}
+                            dense
+                            sx={{ fontSize: "0.875rem" }}
+                          >
                             {status}
                           </MenuItem>
                         ))}
@@ -939,7 +1093,9 @@ const DonHangPage = () => {
                   ` → ${appliedNgayNhan.customTo}`}
                 <button
                   onClick={() => {
-                    setAppliedNgayNhan(EMPTY_DATE);
+                    setDonHangPageFilter({
+                      appliedNgayNhan: EMPTY_DATE,
+                    });
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -960,7 +1116,9 @@ const DonHangPage = () => {
                   ` → ${appliedYcHoanThanh.customTo}`}
                 <button
                   onClick={() => {
-                    setAppliedYcHoanThanh(EMPTY_DATE);
+                    setDonHangPageFilter({
+                      appliedYcHoanThanh: EMPTY_DATE,
+                    });
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -981,7 +1139,9 @@ const DonHangPage = () => {
                   ` → ${appliedHenGiao.customTo}`}
                 <button
                   onClick={() => {
-                    setAppliedHenGiao(EMPTY_DATE);
+                    setDonHangPageFilter({
+                      appliedHenGiao: EMPTY_DATE,
+                    });
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -996,7 +1156,9 @@ const DonHangPage = () => {
                 {appliedNhaKhoa.name}
                 <button
                   onClick={() => {
-                    setAppliedNhaKhoa(null);
+                    setDonHangPageFilter({
+                      appliedNhaKhoa: null,
+                    });
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -1011,7 +1173,9 @@ const DonHangPage = () => {
                 {appliedBenhNhan.name}
                 <button
                   onClick={() => {
-                    setAppliedBenhNhan(null);
+                    setDonHangPageFilter({
+                      appliedBenhNhan: null,
+                    });
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -1028,9 +1192,10 @@ const DonHangPage = () => {
                 {status}
                 <button
                   onClick={() => {
-                    setAppliedTrangThai((prev) =>
-                      prev.filter((s) => s !== status)
-                    );
+                    setDonHangPageFilter({
+                      appliedTrangThai: null,
+                    });
+
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -1057,10 +1222,13 @@ const DonHangPage = () => {
             onRowClick={handleRowClick}
           />
           <div className="bg-gray-50 border-t px-3 py-2 text-xs text-gray-500">
-            Hiển thị {filteredDonHangs.length} / {pagination?.total || 0} đơn hàng
+            Hiển thị {filteredDonHangs.length} / {pagination?.total || 0} đơn
+            hàng
           </div>
           {loadingMore && (
-            <div className="text-center py-3 text-gray-400 text-sm">Đang tải thêm...</div>
+            <div className="text-center py-3 text-gray-400 text-sm">
+              Đang tải thêm...
+            </div>
           )}
           <div ref={sentinelRef} className="h-4" />
         </>

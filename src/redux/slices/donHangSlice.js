@@ -120,7 +120,7 @@ export const updateCongDoanTrangThai = createAsyncThunk(
         }
     }
 );
-//Khởi tạo filter
+//Khởi tạo filter kế hoạch giao hàng
 const initialFilterState = {
     showUrgentOnly: false,
     filterType: "all",
@@ -128,6 +128,34 @@ const initialFilterState = {
     fromDate: "",
     toDate: "",
     searchText: "",
+};
+
+//Khởi tạo filter đơn hàng page
+
+const initialDonHangPageFilter = {
+    searchTerm: "",
+
+    appliedNgayNhan: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedYcHoanThanh: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedHenGiao: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedNhaKhoa: null,
+    appliedBenhNhan: null,
+    appliedTrangThai: [],
 };
 
 
@@ -140,6 +168,7 @@ const donHangSlice = createSlice({
         data: [],
         allData: [], // dùng cho KeHoachGiaoHang (không phân trang)
         filters: initialFilterState,
+        donHangPageFilter: initialDonHangPageFilter,
         loading: false,
         loadingMore: false,
         error: null,
@@ -158,7 +187,18 @@ const donHangSlice = createSlice({
         resetFilter(state) {
             state.filters = initialFilterState;
         },
-    },
+
+         setDonHangPageFilter(state, action) {
+            state.donHangPageFilter = {
+                ...state.donHangPageFilter,
+                ...action.payload,
+            };
+        },
+
+        resetDonHangPageFilter(state) {
+            state.donHangPageFilter = initialDonHangPageFilter;
+        },
+        },
 
     extraReducers: (builder) => {
         builder
@@ -257,6 +297,11 @@ const donHangSlice = createSlice({
             });
     },
 });
+
+export const {
+    setDonHangPageFilter,
+    resetDonHangPageFilter,
+} = donHangSlice.actions;
 
 export const { setFilter, resetFilter } = donHangSlice.actions;
 

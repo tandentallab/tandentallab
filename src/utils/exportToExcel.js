@@ -621,7 +621,6 @@ export const exportDonHangListToExcel = async (
         dh?.trangThai || "",
         formatDT(dh?.henGiao),
       ]);
-
       row.alignment = { vertical: "middle", horizontal: "left" };
       row.getCell(8).alignment = { horizontal: "center", vertical: "middle" };
       row.height = 20;

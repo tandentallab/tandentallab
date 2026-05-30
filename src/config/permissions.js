@@ -15,9 +15,13 @@ const normalizeRoleName = (value = "") =>
 export const resolveAppRoleFromUser = (user) => {
   const roleFromToken = normalizeRoleName(user?.appRole);
   if (roleFromToken === APP_ROLES.ADMIN) return APP_ROLES.ADMIN;
+  if (roleFromToken === APP_ROLES.KE_TOAN || roleFromToken === "ketoan") return APP_ROLES.KE_TOAN;
+  if (roleFromToken === APP_ROLES.NHAN_VIEN || roleFromToken === "nhanvien") return APP_ROLES.NHAN_VIEN;
   
   const roleFromQuyen = normalizeRoleName(user?.quyenSuDung?.ten);
   if (roleFromQuyen === APP_ROLES.ADMIN) return APP_ROLES.ADMIN;
+  if (roleFromQuyen === APP_ROLES.KE_TOAN || roleFromQuyen === "ketoan") return APP_ROLES.KE_TOAN;
+  if (roleFromQuyen === APP_ROLES.NHAN_VIEN || roleFromQuyen === "nhanvien") return APP_ROLES.NHAN_VIEN;
 
   return APP_ROLES.NHAN_VIEN;
 };

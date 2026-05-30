@@ -1,5 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDispatch } from "react-redux";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Table,
   TableBody,
@@ -25,12 +31,16 @@ const vndFormatter = new Intl.NumberFormat("vi-VN");
 const dateFormatter = new Intl.DateTimeFormat("vi-VN");
 
 const fmtVND = (v) => vndFormatter.format(v || 0);
-const fmtDate = (d) => d ? dateFormatter.format(new Date(d)) : "—";
+const fmtDate = (d) => (d ? dateFormatter.format(new Date(d)) : "—");
 
 // ================= CONSTANTS =================
 const NUMERIC_KEYS = new Set([
-  "tongCong", "giamGia", "giaTriThanhToan",
-  "daThanhToan", "conLai", "chiPhiKhac",
+  "tongCong",
+  "giamGia",
+  "giaTriThanhToan",
+  "daThanhToan",
+  "conLai",
+  "chiPhiKhac",
 ]);
 
 const STATUS_CLASS = {
@@ -40,15 +50,17 @@ const STATUS_CLASS = {
 };
 
 // ================= RESIZABLE HEADER CELL =================
-const ResizableHeaderCell = React.memo(({ label, style, columnKey, onResize }) => (
-  <TableCell sx={style}>
-    {label}
-    <div
-      onMouseDown={(e) => onResize(columnKey, e)}
-      className="absolute top-0 right-0 w-3 h-full cursor-col-resize z-10 flex items-center justify-center transition-all hover:bg-gray-100 after:content-[''] after:absolute after:w-[2px] after:h-3/5 after:bg-gray-300 after:rounded"
-    />
-  </TableCell>
-));
+const ResizableHeaderCell = React.memo(
+  ({ label, style, columnKey, onResize }) => (
+    <TableCell sx={style}>
+      {label}
+      <div
+        onMouseDown={(e) => onResize(columnKey, e)}
+        className="absolute top-0 right-0 w-3 h-full cursor-col-resize z-10 flex items-center justify-center transition-all hover:bg-gray-100 after:content-[''] after:absolute after:w-[2px] after:h-3/5 after:bg-gray-300 after:rounded"
+      />
+    </TableCell>
+  )
+);
 
 // ================= ROW COMPONENT =================
 const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => (
@@ -60,41 +72,29 @@ const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => (
     <TableCell sx={cellStyles.ngayXuat}>
       {fmtDate(hd.ngayXuatHoaDon || hd.createdAt)}
     </TableCell>
-    <TableCell sx={cellStyles.soHoaDon}>
-      {hd.soHoaDon}
-    </TableCell>
+    <TableCell sx={cellStyles.soHoaDon}>{hd.soHoaDon}</TableCell>
     <TableCell sx={cellStyles.nhaKhoa}>
       {hd.nhaKhoa?.hoVaTen || hd.nhaKhoa?.tenNhaKhoa || "—"}
     </TableCell>
-    <TableCell sx={cellStyles.tongCong}>
-      {fmtVND(hd.tongCong)}
-    </TableCell>
-    <TableCell sx={cellStyles.giamGia}>
-      {fmtVND(hd.chietKhau)}
-    </TableCell>
+    <TableCell sx={cellStyles.tongCong}>{fmtVND(hd.tongCong)}</TableCell>
+    <TableCell sx={cellStyles.giamGia}>{fmtVND(hd.chietKhau)}</TableCell>
     <TableCell sx={cellStyles.giaTriThanhToan}>
       {fmtVND(hd.giaTriThanhToan)}
     </TableCell>
-    <TableCell sx={cellStyles.daThanhToan}>
-      {fmtVND(hd.daThanhToan)}
-    </TableCell>
-    <TableCell sx={cellStyles.conLai}>
-      {fmtVND(hd.conLai)}
-    </TableCell>
-    <TableCell sx={cellStyles.chiPhiKhac}>
-      {fmtVND(hd.chiPhiKhac)}
-    </TableCell>
+    <TableCell sx={cellStyles.daThanhToan}>{fmtVND(hd.daThanhToan)}</TableCell>
+    <TableCell sx={cellStyles.conLai}>{fmtVND(hd.conLai)}</TableCell>
+    <TableCell sx={cellStyles.chiPhiKhac}>{fmtVND(hd.chiPhiKhac)}</TableCell>
     <TableCell sx={cellStyles.trangThai}>
-      <span className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide ${STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"}`}>
+      <span
+        className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide ${
+          STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"
+        }`}
+      >
         {hd.trangThai || "—"}
       </span>
     </TableCell>
-    <TableCell sx={cellStyles.ghiChu}>
-      {hd.ghiChuChoKhachHang || "—"}
-    </TableCell>
-    <TableCell sx={cellStyles.ngayDenHan}>
-      {fmtDate(hd.ngayDenHan)}
-    </TableCell>
+    <TableCell sx={cellStyles.ghiChu}>{hd.ghiChuChoKhachHang || "—"}</TableCell>
+    <TableCell sx={cellStyles.ngayDenHan}>{fmtDate(hd.ngayDenHan)}</TableCell>
   </TableRow>
 ));
 
@@ -126,7 +126,9 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
 
   // Ref để handleResize stable, không cần re-create khi columnWidths đổi
   const columnWidthsRef = useRef(columnWidths);
-  useEffect(() => { columnWidthsRef.current = columnWidths; }, [columnWidths]);
+  useEffect(() => {
+    columnWidthsRef.current = columnWidths;
+  }, [columnWidths]);
 
   const totalTableWidth = useMemo(
     () => Object.values(columnWidths).reduce((a, b) => a + b, 0),
@@ -138,7 +140,9 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
   const containerRef = useRef(null);
   const sentinelRef = useRef(null);
 
-  useEffect(() => { setVisibleCount(30); }, [danhSachHoaDon]);
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [danhSachHoaDon]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -147,7 +151,9 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting)
-          setVisibleCount((prev) => Math.min(prev + 30, danhSachHoaDon?.length ?? 0));
+          setVisibleCount((prev) =>
+            Math.min(prev + 30, danhSachHoaDon?.length ?? 0)
+          );
       },
       { root: container, threshold: 0.1 }
     );
@@ -224,12 +230,23 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
     // Row styles
     const row = {};
     const hdr = {};
-    ["ngayXuat", "soHoaDon", "nhaKhoa", "tongCong", "giamGia",
-      "giaTriThanhToan", "daThanhToan", "conLai", "chiPhiKhac",
-      "trangThai", "ghiChu", "ngayDenHan"].forEach((k) => {
-        row[k] = base(k);
-        hdr[k] = baseHeader(k);
-      });
+    [
+      "ngayXuat",
+      "soHoaDon",
+      "nhaKhoa",
+      "tongCong",
+      "giamGia",
+      "giaTriThanhToan",
+      "daThanhToan",
+      "conLai",
+      "chiPhiKhac",
+      "trangThai",
+      "ghiChu",
+      "ngayDenHan",
+    ].forEach((k) => {
+      row[k] = base(k);
+      hdr[k] = baseHeader(k);
+    });
 
     return { row, hdr };
   }, [columnWidths]);
@@ -237,7 +254,9 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
   const onNavigate = useCallback((path) => navigate(path), [navigate]);
 
   const handleConfirmUpdate = async () => {
-    await dispatch(updateHoaDon({ id: selectedHD._id, data: { trangThai: statusUpdate } }));
+    await dispatch(
+      updateHoaDon({ id: selectedHD._id, data: { trangThai: statusUpdate } })
+    );
     setOpenUpdate(false);
   };
 
@@ -257,26 +276,95 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
           WebkitOverflowScrolling: "touch",
           "&::-webkit-scrollbar": { height: 14, width: 14 },
           "&::-webkit-scrollbar-track": { background: "transparent" },
-          "&::-webkit-scrollbar-thumb": { backgroundColor: "#cbd5e1", borderRadius: 10, border: "3px solid #ffffff" },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#cbd5e1",
+            borderRadius: 10,
+            border: "3px solid #ffffff",
+          },
           "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "#94a3b8" },
         }}
       >
-        <Table sx={{ tableLayout: "fixed", width: totalTableWidth, minWidth: totalTableWidth }}>
-
+        <Table
+          sx={{
+            tableLayout: "fixed",
+            width: totalTableWidth,
+            minWidth: totalTableWidth,
+          }}
+        >
           <TableHead>
             <TableRow>
-              <ResizableHeaderCell label="Ngày xuất" columnKey="ngayXuat" style={cellStyles.hdr.ngayXuat} onResize={handleResize} />
-              <ResizableHeaderCell label="Số" columnKey="soHoaDon" style={cellStyles.hdr.soHoaDon} onResize={handleResize} />
-              <ResizableHeaderCell label="Nha khoa" columnKey="nhaKhoa" style={cellStyles.hdr.nhaKhoa} onResize={handleResize} />
-              <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" style={cellStyles.hdr.tongCong} onResize={handleResize} />
-              <ResizableHeaderCell label="Giảm giá" columnKey="giamGia" style={cellStyles.hdr.giamGia} onResize={handleResize} />
-              <ResizableHeaderCell label="Giá trị thanh toán" columnKey="giaTriThanhToan" style={cellStyles.hdr.giaTriThanhToan} onResize={handleResize} />
-              <ResizableHeaderCell label="Đã thanh toán" columnKey="daThanhToan" style={cellStyles.hdr.daThanhToan} onResize={handleResize} />
-              <ResizableHeaderCell label="Còn lại" columnKey="conLai" style={cellStyles.hdr.conLai} onResize={handleResize} />
-              <ResizableHeaderCell label="Chi phí khác" columnKey="chiPhiKhac" style={cellStyles.hdr.chiPhiKhac} onResize={handleResize} />
-              <ResizableHeaderCell label="Trạng thái" columnKey="trangThai" style={cellStyles.hdr.trangThai} onResize={handleResize} />
-              <ResizableHeaderCell label="Ghi chú cho khách hàng" columnKey="ghiChu" style={cellStyles.hdr.ghiChu} onResize={handleResize} />
-              <ResizableHeaderCell label="Ngày đến hạn" columnKey="ngayDenHan" style={cellStyles.hdr.ngayDenHan} onResize={handleResize} />
+              <ResizableHeaderCell
+                label="Ngày xuất"
+                columnKey="ngayXuat"
+                style={cellStyles.hdr.ngayXuat}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Số"
+                columnKey="soHoaDon"
+                style={cellStyles.hdr.soHoaDon}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Nha khoa"
+                columnKey="nhaKhoa"
+                style={cellStyles.hdr.nhaKhoa}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Tổng cộng"
+                columnKey="tongCong"
+                style={cellStyles.hdr.tongCong}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Giảm giá"
+                columnKey="giamGia"
+                style={cellStyles.hdr.giamGia}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Giá trị thanh toán"
+                columnKey="giaTriThanhToan"
+                style={cellStyles.hdr.giaTriThanhToan}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Đã thanh toán"
+                columnKey="daThanhToan"
+                style={cellStyles.hdr.daThanhToan}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Còn lại"
+                columnKey="conLai"
+                style={cellStyles.hdr.conLai}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Chi phí khác"
+                columnKey="chiPhiKhac"
+                style={cellStyles.hdr.chiPhiKhac}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Trạng thái"
+                columnKey="trangThai"
+                style={cellStyles.hdr.trangThai}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Ghi chú cho khách hàng"
+                columnKey="ghiChu"
+                style={cellStyles.hdr.ghiChu}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Ngày đến hạn"
+                columnKey="ngayDenHan"
+                style={cellStyles.hdr.ngayDenHan}
+                onResize={handleResize}
+              />
             </TableRow>
           </TableHead>
 
@@ -299,7 +387,11 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
                 ))}
                 {visibleCount < (danhSachHoaDon?.length ?? 0) && (
                   <TableRow ref={sentinelRef}>
-                    <TableCell colSpan={12} align="center" sx={{ py: 2, borderBottom: "none" }}>
+                    <TableCell
+                      colSpan={12}
+                      align="center"
+                      sx={{ py: 2, borderBottom: "none" }}
+                    >
                       <CircularProgress size={18} sx={{ color: "#26a69a" }} />
                     </TableCell>
                   </TableRow>
@@ -307,7 +399,11 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
               </>
             ) : (
               <TableRow>
-                <TableCell colSpan={12} align="center" className="py-20 text-gray-500">
+                <TableCell
+                  colSpan={12}
+                  align="center"
+                  className="py-20 text-gray-500"
+                >
                   Không tìm thấy dữ liệu hóa đơn nào.
                 </TableCell>
               </TableRow>
@@ -326,40 +422,62 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
               <span className="text-xs text-gray-400 block">Nha khoa</span>
-              <span className="font-medium text-gray-800">{selectedHD?.nhaKhoa?.hoVaTen || selectedHD?.nhaKhoa?.tenNhaKhoa}</span>
+              <span className="font-medium text-gray-800">
+                {selectedHD?.nhaKhoa?.hoVaTen ||
+                  selectedHD?.nhaKhoa?.tenNhaKhoa}
+              </span>
             </div>
             <div>
               <span className="text-xs text-gray-400 block">Trạng thái</span>
               <Chip label={selectedHD?.trangThai} size="small" color="info" />
             </div>
             <div>
-              <span className="text-xs text-gray-400 block">Tổng tiền chưa CK</span>
-              <span className="font-medium">{fmtVND(selectedHD?.tongCong)}đ</span>
+              <span className="text-xs text-gray-400 block">
+                Tổng tiền chưa CK
+              </span>
+              <span className="font-medium">
+                {fmtVND(selectedHD?.tongCong)}đ
+              </span>
             </div>
             <div>
-              <span className="text-xs text-red-400 block">Thực thu (Sau CK)</span>
-              <span className="text-lg font-bold text-red-600">{fmtVND(selectedHD?.giaTriThanhToan)}đ</span>
+              <span className="text-xs text-red-400 block">
+                Thực thu (Sau CK)
+              </span>
+              <span className="text-lg font-bold text-red-600">
+                {fmtVND(selectedHD?.giaTriThanhToan)}đ
+              </span>
             </div>
           </div>
 
-          <p className="font-semibold mb-2 text-sm uppercase text-gray-500">Danh sách sản phẩm</p>
+          <p className="font-semibold mb-2 text-sm uppercase text-gray-500">
+            Danh sách sản phẩm
+          </p>
           <div className="max-h-60 overflow-y-auto bg-gray-50 rounded border p-3 flex flex-col gap-3">
             {selectedHD?.danhSachSanPham?.map((item, idx) => (
-              <div key={idx} className="pb-3 border-b border-gray-200 last:border-0 flex justify-between items-center">
+              <div
+                key={idx}
+                className="pb-3 border-b border-gray-200 last:border-0 flex justify-between items-center"
+              >
                 <div>
-                  <div className="font-semibold text-blue-700">{item.tenSanPham || item.sanPham?.tenSanPham || "Sản phẩm"}</div>
+                  <div className="font-semibold text-blue-700">
+                    {item.tenSanPham || item.sanPham?.tenSanPham || "Sản phẩm"}
+                  </div>
                   <div className="text-xs text-gray-500 mt-1">
                     SL: {item.soLuong} | Đơn giá: {fmtVND(item.donGia)}đ
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="font-bold text-gray-800">{fmtVND(item.tongCongSanPham)}đ</span>
+                  <span className="font-bold text-gray-800">
+                    {fmtVND(item.tongCongSanPham)}đ
+                  </span>
                 </div>
               </div>
             ))}
           </div>
           <div className="flex justify-end mt-6">
-            <Button onClick={() => setOpenDetail(false)} variant="outlined">Đóng</Button>
+            <Button onClick={() => setOpenDetail(false)} variant="outlined">
+              Đóng
+            </Button>
           </div>
         </div>
       </Modal>
@@ -367,17 +485,29 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
       {/* MODAL CẬP NHẬT TRẠNG THÁI */}
       <Modal open={openUpdate} onClose={() => setOpenUpdate(false)}>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[96%] max-w-[450px] bg-white shadow-2xl p-6 rounded-lg outline-none">
-          <h3 className="text-lg font-bold mb-6 text-center text-gray-800">Cập Nhật Trạng Thái</h3>
+          <h3 className="text-lg font-bold mb-6 text-center text-gray-800">
+            Cập Nhật Trạng Thái
+          </h3>
           <FormControl fullWidth className="mb-6">
             <InputLabel>Trạng thái</InputLabel>
-            <Select value={statusUpdate} label="Trạng thái" onChange={(e) => setStatusUpdate(e.target.value)}>
+            <Select
+              value={statusUpdate}
+              label="Trạng thái"
+              onChange={(e) => setStatusUpdate(e.target.value)}
+            >
               <MenuItem value="Chưa thanh toán">Chưa thanh toán</MenuItem>
               <MenuItem value="Đã thanh toán">Đã thanh toán</MenuItem>
             </Select>
           </FormControl>
           <div className="flex justify-end gap-3">
             <Button onClick={() => setOpenUpdate(false)}>Hủy</Button>
-            <Button variant="contained" color="primary" onClick={handleConfirmUpdate}>Lưu thay đổi</Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleConfirmUpdate}
+            >
+              Lưu thay đổi
+            </Button>
           </div>
         </div>
       </Modal>

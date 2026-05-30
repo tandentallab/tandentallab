@@ -600,65 +600,38 @@ export const exportDonHangListToExcel = async (
 
   let currentRowIndex = headerRow + 1;
 
-  donHangList.forEach((dh, idx) => {
+  donHangList.forEach((dh) => {
     const so =
       dh?.maDonHang ||
       (dh?._id ? `TAN${dh._id.toString().slice(-8).toUpperCase()}` : "");
     const dssp = dh?.danhSachSanPham || [];
-    const numProducts = dssp.length > 0 ? dssp.length : 1;
-    const startRow = currentRowIndex;
-    const endRow = currentRowIndex + numProducts - 1;
+    const products = dssp.length > 0 ? dssp : [null];
 
-    if (numProducts > 1) {
-      // Merge order level details vertically
-      worksheet.mergeCells(startRow, 1, endRow, 1);   // Nhận lúc
-      worksheet.mergeCells(startRow, 2, endRow, 2);   // Số
-      worksheet.mergeCells(startRow, 3, endRow, 3);   // Khách hàng
-      worksheet.mergeCells(startRow, 4, endRow, 4);   // Bác sĩ
-      worksheet.mergeCells(startRow, 5, endRow, 5);   // Bệnh nhân
-      worksheet.mergeCells(startRow, 10, endRow, 10); // Trạng thái
-      worksheet.mergeCells(startRow, 11, endRow, 11); // Hẹn giao
-    }
+    products.forEach((sp) => {
+      const row = worksheet.addRow([
+        formatDT(dh?.ngayNhan),
+        so,
+        dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
+        dh?.bacSi?.hoVaTen || "",
+        dh?.benhNhan?.hoVaTen || "",
+        sp ? (loaiDonPrefix[sp.loaiDon] || "Mới") : "",
+        sp?.sanPham?.tenSanPham || "",
+        sp ? (sp?.soLuong ?? 1) : "",
+        sp ? renderViTri(sp.viTri) : "",
+        dh?.trangThai || "",
+        formatDT(dh?.henGiao),
+      ]);
 
-    // Write first product + order details
-    const firstRowValues = [
-      formatDT(dh?.ngayNhan),
-      so,
-      dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
-      dh?.bacSi?.hoVaTen || "",
-      dh?.benhNhan?.hoVaTen || "",
-      dssp.length > 0 ? (loaiDonPrefix[dssp[0].loaiDon] || "Mới") : "",
-      dssp.length > 0 ? (dssp[0]?.sanPham?.tenSanPham || "") : "",
-      dssp.length > 0 ? (dssp[0]?.soLuong ?? 1) : "",
-      dssp.length > 0 ? renderViTri(dssp[0].viTri) : "",
-      dh?.trangThai || "",
-      formatDT(dh?.henGiao),
-    ];
-    worksheet.getRow(startRow).values = firstRowValues;
-
-    // Write subsequent products if any
-    for (let pIdx = 1; pIdx < dssp.length; pIdx++) {
-      const prodRow = startRow + pIdx;
-      const sp = dssp[pIdx];
-      worksheet.getCell(prodRow, 6).value = loaiDonPrefix[sp.loaiDon] || "Mới";
-      worksheet.getCell(prodRow, 7).value = sp?.sanPham?.tenSanPham || "";
-      worksheet.getCell(prodRow, 8).value = sp?.soLuong ?? 1;
-      worksheet.getCell(prodRow, 9).value = renderViTri(sp.viTri);
-    }
-
-    // Apply borders and alignments
-    for (let r = startRow; r <= endRow; r++) {
-      const row = worksheet.getRow(r);
       row.alignment = { vertical: "middle", horizontal: "left" };
       row.getCell(8).alignment = { horizontal: "center", vertical: "middle" };
       row.height = 20;
 
       for (let col = 1; col <= headers.length; col += 1) {
-        applyBorder(worksheet.getCell(r, col), "thin");
+        applyBorder(worksheet.getCell(currentRowIndex, col), "thin");
       }
-    }
 
-    currentRowIndex = endRow + 1;
+      currentRowIndex += 1;
+    });
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
@@ -939,7 +912,7 @@ export const exportBangGiaRiengToExcel = async (nhaKhoaInfo, bangGiaData = []) =
   saveAs(new Blob([buffer]), fileName);
 };
 
-export const exportKeHoachGiaoHangToExcel = async (filteredOrders, formatDanhSachSanPham) => {
+export const exportKeHoachGiaoHangToExcel = async (filteredOrders, formatSingleSanPham) => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Kế Hoạch Giao Hàng');
 
@@ -993,38 +966,42 @@ export const exportKeHoachGiaoHangToExcel = async (filteredOrders, formatDanhSac
     { width: 30 }  // Ghi chú
   ];
 
-  // Thêm dữ liệu
+  // Thêm dữ liệu — tách 1 dòng/sản phẩm
+  const formatDateCustom = (dateStr) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "—";
+    const pad = (num) => String(num).padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${pad(d.getFullYear())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   filteredOrders.forEach((order) => {
     const maDon = order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`;
-    const formatDateCustom = (dateStr) => {
-      if (!dateStr) return "—";
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return "—";
-      const pad = (num) => String(num).padStart(2, '0');
-      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${pad(d.getFullYear())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    };
-
     const nhanLuc = formatDateCustom(order.ngayNhan);
     const henGiao = formatDateCustom(order.henGiao);
+    const dssp = order.danhSachSanPham || [];
+    const products = dssp.length > 0 ? dssp : [null];
 
-    const row = worksheet.addRow([
-      nhanLuc,
-      maDon,
-      order.nhaKhoa?.hoVaTen || "",
-      order.benhNhan?.hoVaTen || "",
-      formatDanhSachSanPham(order.danhSachSanPham),
-      henGiao,
-      order.ghiChuChung || ""
-    ]);
+    products.forEach((sp) => {
+      const row = worksheet.addRow([
+        nhanLuc,
+        maDon,
+        order.nhaKhoa?.hoVaTen || "",
+        order.benhNhan?.hoVaTen || "",
+        formatSingleSanPham(sp),
+        henGiao,
+        order.ghiChuChung || ""
+      ]);
 
-    row.eachCell((cell, colNumber) => {
-      cell.font = { name: 'Arial', size: 11 };
-      cell.alignment = {
-        horizontal: colNumber === 1 || colNumber === 2 || colNumber === 6 ? 'center' : 'left',
-        vertical: 'middle',
-        wrapText: true
-      };
-      applyBorder(cell, 'thin');
+      row.eachCell((cell, colNumber) => {
+        cell.font = { name: 'Arial', size: 11 };
+        cell.alignment = {
+          horizontal: colNumber === 1 || colNumber === 2 || colNumber === 6 ? 'center' : 'left',
+          vertical: 'middle',
+          wrapText: true
+        };
+        applyBorder(cell, 'thin');
+      });
     });
   });
 

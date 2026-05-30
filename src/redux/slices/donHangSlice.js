@@ -120,6 +120,44 @@ export const updateCongDoanTrangThai = createAsyncThunk(
         }
     }
 );
+//Khởi tạo filter kế hoạch giao hàng
+const initialFilterState = {
+    showUrgentOnly: false,
+    filterType: "all",
+    filterStatus: "Chờ xử lý",
+    fromDate: "",
+    toDate: "",
+    searchText: "",
+};
+
+//Khởi tạo filter đơn hàng page
+
+const initialDonHangPageFilter = {
+    searchTerm: "",
+
+    appliedNgayNhan: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedYcHoanThanh: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedHenGiao: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedNhaKhoa: null,
+    appliedBenhNhan: null,
+    appliedTrangThai: [],
+};
+
 
 /* ================= SLICE ================= */
 
@@ -129,6 +167,8 @@ const donHangSlice = createSlice({
     initialState: {
         data: [],
         allData: [], // dùng cho KeHoachGiaoHang (không phân trang)
+        filters: initialFilterState,
+        donHangPageFilter: initialDonHangPageFilter,
         loading: false,
         loadingMore: false,
         error: null,
@@ -136,7 +176,29 @@ const donHangSlice = createSlice({
         stats: {},
     },
 
-    reducers: {},
+    reducers: {
+        setFilter(state, action) {
+                    state.filters = {
+                        ...state.filters,
+                        ...action.payload,
+                    };
+        },
+
+        resetFilter(state) {
+            state.filters = initialFilterState;
+        },
+
+         setDonHangPageFilter(state, action) {
+            state.donHangPageFilter = {
+                ...state.donHangPageFilter,
+                ...action.payload,
+            };
+        },
+
+        resetDonHangPageFilter(state) {
+            state.donHangPageFilter = initialDonHangPageFilter;
+        },
+        },
 
     extraReducers: (builder) => {
         builder
@@ -235,5 +297,12 @@ const donHangSlice = createSlice({
             });
     },
 });
+
+export const {
+    setDonHangPageFilter,
+    resetDonHangPageFilter,
+} = donHangSlice.actions;
+
+export const { setFilter, resetFilter } = donHangSlice.actions;
 
 export default donHangSlice.reducer;

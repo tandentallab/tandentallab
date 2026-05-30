@@ -242,6 +242,17 @@ export const fetchCountDonHangChuaXuat =
     }
   );
 
+//Khởi tạo filter
+const initialHoaDonFilter = {
+  ngayXuat: {
+    preset: null,
+    customFrom: "",
+    customTo: "",
+  },
+  nhaKhoa: null,
+  trangThai: [],
+};
+
 /* ================= SLICE ================= */
 
 const slice = createSlice({
@@ -254,6 +265,9 @@ const slice = createSlice({
 
     // 🔥 CHI TIẾT HÓA ĐƠN
     chiTietHoaDon: null,
+
+    filters: initialHoaDonFilter,
+
 
     thongKeCongNo: {
       conNo: {
@@ -287,6 +301,17 @@ const slice = createSlice({
     clearChiTietHoaDon: (state) => {
       state.chiTietHoaDon = null;
     },
+
+     setHoaDonFilter: (state, action) => {
+        state.filters = {
+          ...state.filters,
+          ...action.payload,
+        };
+      },
+
+      resetHoaDonFilter: (state) => {
+        state.filters = initialHoaDonFilter;
+      },
   },
 
   extraReducers: (builder) => {
@@ -669,6 +694,11 @@ const slice = createSlice({
       })
   },
 });
+
+export const {
+  setHoaDonFilter,
+  resetHoaDonFilter,
+} = slice.actions
 
 export const {
   clearChiTietHoaDon,

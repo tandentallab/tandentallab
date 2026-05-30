@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import { Box, Typography } from '@mui/material';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-
+import { useNavigate } from 'react-router-dom';
 import BaoCaoSanLuongChart from './BaoCaoSanLuongChart';
 import BaoCaoChiTietTable from './BaoCaoChiTietTable';
 import PrintTemplate from './PrintTemplate';
@@ -13,6 +13,10 @@ import PrintPreviewDialog from './PrintPreviewDialog';
 import BaoCaoDoanhThuPage from '../BaoCao/BaoCaoDoanhThuPage';
 
 // ─── Date range helper ──────────────────────────────────────────────────────
+
+
+
+
 const computeDateRange = (filter, customDates) => {
     if (filter === 'custom') return { startDate: customDates.start, endDate: customDates.end };
     const now = dayjs();
@@ -41,7 +45,7 @@ const TABS = [
 // ─── Main component ──────────────────────────────────────────────────────────
 const BaoCaoPage = () => {
     const [activeTab, setActiveTab] = useState('san-luong');
-
+    const navigate = useNavigate();
     return (
         <div className="bg-gray-50 min-h-screen w-full">
 
@@ -62,7 +66,13 @@ const BaoCaoPage = () => {
                     return (
                         <button
                             key={id}
-                            onClick={() => setActiveTab(id)}
+                            onClick={() => {
+                                if (id === 'doanh-thu') {
+                                    navigate('/bao-cao/doanh-thu');
+                                } else {
+                                    setActiveTab(id);
+                                }
+                            }}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',

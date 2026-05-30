@@ -213,21 +213,34 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                       const giaTriHoaDon = item.giaTriHoaDon || hd.giaTriThanhToan || 0;
                       const tongCong = daTTruocLanNay + (soTienThanhToan || 0);
                       const conLai = giaTriHoaDon - tongCong;
+
                       return (
                         <div key={hd._id || idx} className={`${idx > 0 ? "border-t pt-3" : ""}`}>
                           <div className="flex justify-between items-center mb-2">
-                            <Button
-                              variant="text"
-                              size="small"
-                              sx={{ minWidth: 0, p: 0, fontSize: "0.875rem" }}
-                              onClick={() => { navigate(`/hoa-don/${hd._id}/edit`); }}
-                            >
-                              {hd.soHoaDon || formatSoPhieu(hd._id)}
-                            </Button>
+                            {/* 🔥 LOGIC HIỂN THỊ SDDK (Chữ cam, ẩn link) VÀ HÓA ĐƠN THƯỜNG */}
+                            {hd.soHoaDon?.startsWith("SDDK") ? (
+                              <span className="text-orange-600 font-bold text-sm">
+                                Số dư đầu kỳ (Nợ cũ)
+                              </span>
+                            ) : (
+                              <Button
+                                variant="text"
+                                size="small"
+                                sx={{ minWidth: 0, p: 0, fontSize: "0.875rem" }}
+                                onClick={() => { navigate(`/hoa-don/${hd._id}/edit`); }}
+                              >
+                                {hd.soHoaDon || formatSoPhieu(hd._id)}
+                              </Button>
+                            )}
+
+                            {/* 🔥 ẨN NGÀY XUẤT CHO SDDK */}
                             <span className="text-xs text-gray-500">
-                              {formatDateShort(hd.ngayXuatHoaDon)}
+                              {hd.soHoaDon?.startsWith("SDDK")
+                                ? "—"
+                                : formatDateShort(hd.ngayXuatHoaDon)}
                             </span>
                           </div>
+
                           <div className="space-y-0">
                             <InfoRow label="Giá trị hóa đơn:" value={formatNumber(giaTriHoaDon)} />
                             <InfoRow
@@ -250,10 +263,13 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                               valueClass={conLai > 0 ? "text-orange-500" : "text-green-600"}
                             />
                           </div>
+
                           {hd.trangThai && (
                             <div className="mt-2 flex justify-end">
-                              <span className={`text-xs px-3 py-1 rounded-full font-medium ${hd.trangThai === "Đã thanh toán" ? "bg-green-100 text-green-700"
-                                : hd.trangThai === "Thanh toán một phần" ? "bg-yellow-100 text-yellow-700"
+                              <span className={`text-xs px-3 py-1 rounded-full font-medium ${hd.trangThai === "Đã thanh toán"
+                                ? "bg-green-100 text-green-700"
+                                : hd.trangThai === "Thanh toán một phần"
+                                  ? "bg-yellow-100 text-yellow-700"
                                   : "bg-red-100 text-red-700"
                                 }`}>
                                 {hd.trangThai}

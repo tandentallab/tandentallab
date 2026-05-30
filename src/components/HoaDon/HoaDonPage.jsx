@@ -178,14 +178,38 @@ const HoaDonPage = () => {
     loading = false,
   } = useSelector((state) => state.hoaDon);
   const nhaKhoa = useSelector((state) => state.nhaKhoa);
+  // =====================================================================
+  // KHAI BÁO STATE TỪ SESSION STORAGE (GIỮ BỘ LỌC CỨNG KHI CHUYỂN TRANG)
+  // =====================================================================
+  const [page, setPage] = useState(() => Number(sessionStorage.getItem("hd_page")) || 0);
+  const [rowsPerPage, setRowsPerPage] = useState(() => Number(sessionStorage.getItem("hd_rowsPerPage")) || 10);
 
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  //   const [appliedNgayXuat, setAppliedNgayXuat] = useState(EMPTY_DATE);
-  //   const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(null);
-  //   const [appliedTrangThai, setAppliedTrangThai] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [appliedNgayXuat, setAppliedNgayXuat] = useState(() => {
+    const saved = sessionStorage.getItem("hd_appliedNgayXuat");
+    return saved ? JSON.parse(saved) : EMPTY_DATE;
+  });
+
+  const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(() => {
+    const saved = sessionStorage.getItem("hd_appliedNhaKhoa");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [appliedTrangThai, setAppliedTrangThai] = useState(() => {
+    const saved = sessionStorage.getItem("hd_appliedTrangThai");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("hd_searchTerm") || "");
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+
+  // 🔥 LƯU TRẠNG THÁI VÀO SESSION KHI CÓ THAY ĐỔI
+  useEffect(() => { sessionStorage.setItem("hd_page", page.toString()); }, [page]);
+  useEffect(() => { sessionStorage.setItem("hd_rowsPerPage", rowsPerPage.toString()); }, [rowsPerPage]);
+  useEffect(() => { sessionStorage.setItem("hd_appliedNgayXuat", JSON.stringify(appliedNgayXuat)); }, [appliedNgayXuat]);
+  useEffect(() => { sessionStorage.setItem("hd_appliedNhaKhoa", JSON.stringify(appliedNhaKhoa)); }, [appliedNhaKhoa]);
+  useEffect(() => { sessionStorage.setItem("hd_appliedTrangThai", JSON.stringify(appliedTrangThai)); }, [appliedTrangThai]);
+  useEffect(() => { sessionStorage.setItem("hd_searchTerm", searchTerm); }, [searchTerm]);
+  // =====================================================================
   const [openFilter, setOpenFilter] = useState(false);
   const filterContainerRef = useRef(null);
 
@@ -370,9 +394,8 @@ const HoaDonPage = () => {
               <IconButton
                 onClick={() => setOpenFilter(!openFilter)}
                 size="small"
-                className={`transition-colors ${
-                  openFilter ? "bg-blue-50" : ""
-                }`}
+                className={`transition-colors ${openFilter ? "bg-blue-50" : ""
+                  }`}
                 sx={{
                   color: isFiltered ? "#1976d2" : "#555",
                   p: "8px",
@@ -483,11 +506,10 @@ const HoaDonPage = () => {
               <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
                 <CalendarTodayIcon sx={{ fontSize: 12 }} />
                 {appliedNgayXuat.preset === "custom"
-                  ? `${appliedNgayXuat.customFrom || "?"} → ${
-                      appliedNgayXuat.customTo || "?"
-                    }`
+                  ? `${appliedNgayXuat.customFrom || "?"} → ${appliedNgayXuat.customTo || "?"
+                  }`
                   : DATE_PRESETS.find((p) => p.key === appliedNgayXuat.preset)
-                      ?.label || appliedNgayXuat.preset}
+                    ?.label || appliedNgayXuat.preset}
                 <button
                   onClick={() => {
                     dispatch(

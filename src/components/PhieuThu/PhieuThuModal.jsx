@@ -9,6 +9,11 @@ import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import dayjs from "dayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker"; // 👉 Thêm ông này
+
 
 const toLocalDatetimeInput = (d) => {
   const dt = d ? new Date(d) : new Date();
@@ -41,7 +46,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
   const [selectedHDs, setSelectedHDs] = useState({});
   const [soTienThuInput, setSoTienThuInput] = useState("");
   const [ngayThu, setNgayThu] = useState(toLocalDatetimeInput(new Date()));
-  const [phuongThuc, setPhuongThuc] = useState("Tiền mặt");
+  const [phuongThuc, setPhuongThuc] = useState("Chuyển khoản");
   const [noiDung, setNoiDung] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -71,22 +76,32 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
   useEffect(() => {
     if (selectedNhaKhoa) {
       dispatch(fetchHoaDonChuaThanhToan(selectedNhaKhoa));
-      setSelectedHDs({});
-      setSoTienThuInput("");
     }
   }, [selectedNhaKhoa, dispatch]);
 
   // ĐƯỜNG TẮT: Khi đã có danh sách hóa đơn, tự động check chọn hóa đơn đó
   useEffect(() => {
     if (open && initialHoaDonId && hoaDonChuaThanhToan.length > 0 && !autoSelected) {
-      const hd = hoaDonChuaThanhToan.find(h => h._id === initialHoaDonId);
+      const stringId = initialHoaDonId.toString();
+
+      const hd = hoaDonChuaThanhToan.find(
+        h => h._id.toString() === stringId
+      );
+
       if (hd) {
-        setSelectedHDs({ [initialHoaDonId]: { soTienThanhToan: hd.conLai || 0 } });
+        setSelectedHDs({ [stringId]: { soTienThanhToan: hd.conLai || 0 } });
         setSoTienThuInput(String(hd.conLai || 0));
         setAutoSelected(true);
       }
     }
   }, [open, initialHoaDonId, hoaDonChuaThanhToan, autoSelected]);
+
+  // 🔥 THÊM CÁI NÀY: Khắc phục lỗi kẹt state khi đóng mở Modal nhiều lần
+  useEffect(() => {
+    if (!open) {
+      setAutoSelected(false);
+    }
+  }, [open]);
 
   const selectedNhaKhoaObj = useMemo(
     () => nhaKhoaList.find((nk) => nk._id === selectedNhaKhoa) || null,
@@ -107,6 +122,10 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     setSelectedNhaKhoa(nk._id);
     setSearch(nk.hoVaTen || nk.tenGiaoDich || "");
     setShowDropdown(false);
+
+    // 🔥 THÊM VÀO ĐÂY: Chỉ reset tick khi đổi khách hàng bằng tay
+    setSelectedHDs({});
+    setSoTienThuInput("");
   };
 
   const handleClearNhaKhoa = () => {
@@ -182,40 +201,66 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     }
   };
 
-  // 🔥 SỬA: Auto-phân bổ ưu tiên gánh nợ cho hóa đơn cũ trước và CHẶN VƯỢT GIÁ
+  // 🔥 SỬA: Thác nước thông minh - Ưu tiên hóa đơn đang chọn, dư tiền mới tràn sang hóa đơn khác
   const handleSoTienThuInput = (raw) => {
     const digits = raw.replace(/[^\d]/g, "");
-    let total = Number(digits) || 0; // Đổi const thành let để có thể gán lại
+    let total = Number(digits) || 0;
 
     // Tính tổng công nợ hiện tại
     const tongConNoHienTai = hoaDonChuaThanhToan.reduce((sum, hd) => sum + (hd.conLai || 0), 0);
 
-    // 🔥 RÀNG BUỘC: Nếu gõ lố tổng nợ thì tự động chặn lại ở mức tối đa bằng tổng nợ
+    // Chặn vượt tổng nợ
     if (total > tongConNoHienTai) {
       total = tongConNoHienTai;
     }
 
     setSoTienThuInput(total > 0 ? String(total) : "");
 
-    // Sắp xếp: Ưu tiên ngày xuất hóa đơn cũ nhất, nếu bằng nhau thì ưu tiên theo thời gian tạo.
-    const sorted = [...hoaDonChuaThanhToan].sort((a, b) => {
+    let remaining = total;
+    const nextSelected = {};
+
+    // Phân tách HĐ đã chọn và chưa chọn
+    const checkedHDs = [];
+    const uncheckedHDs = [];
+
+    hoaDonChuaThanhToan.forEach(hd => {
+      if (selectedHDs[hd._id]) checkedHDs.push(hd);
+      else uncheckedHDs.push(hd);
+    });
+
+    // Hàm sắp xếp cũ nhất -> mới nhất
+    const sortFn = (a, b) => {
       const timeA = new Date(a.ngayXuatHoaDon || a.createdAt || 0).getTime();
       const timeB = new Date(b.ngayXuatHoaDon || b.createdAt || 0).getTime();
       return timeA - timeB;
-    });
+    };
 
-    let remaining = total;
-    const next = {};
+    checkedHDs.sort(sortFn);
+    uncheckedHDs.sort(sortFn);
 
-    for (const hd of sorted) {
+    // 1. Ưu tiên rót vào các HÓA ĐƠN ĐANG CHỌN trước
+    for (const hd of checkedHDs) {
       if (remaining <= 0) break;
       const pay = Math.min(remaining, hd.conLai || 0);
       if (pay > 0) {
-        next[hd._id] = { soTienThanhToan: pay };
+        nextSelected[hd._id] = { soTienThanhToan: pay };
         remaining -= pay;
       }
     }
-    setSelectedHDs(next);
+
+    // 2. Nếu dư tiền (nhập lố tiền HĐ đã chọn) -> Mới bắt đầu Thác nước xuống HÓA ĐƠN CHƯA CHỌN
+    if (remaining > 0) {
+      for (const hd of uncheckedHDs) {
+        if (remaining <= 0) break;
+        const pay = Math.min(remaining, hd.conLai || 0);
+        if (pay > 0) {
+          nextSelected[hd._id] = { soTienThanhToan: pay };
+          remaining -= pay;
+        }
+      }
+    }
+
+    setSelectedHDs(nextSelected);
   };
 
   const tongThuTien = useMemo(
@@ -325,7 +370,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     setSelectedHDs({});
     setSoTienThuInput("");
     setNgayThu(toLocalDatetimeInput(new Date()));
-    setPhuongThuc("Tiền mặt");
+    setPhuongThuc("Chuyển khoản");
     setNoiDung("");
     setSubmitError("");
     setSubmitSuccess(false);
@@ -393,7 +438,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-[50%_1fr_30%] gap-0 sm:gap-x-0">
             <div>
               <p className="text-xs text-gray-400 mb-1">Công ty</p>
               <div className="relative" ref={searchRef}>
@@ -471,28 +516,83 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
               )}
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 sm:col-start-3">
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">Số tiền thu</p>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={soTienThuInput ? fmt(soTienThuInput) : ""}
-                  onChange={(e) => handleSoTienThuInput(e.target.value)}
-                  placeholder="Nhập để tự phân bổ..."
-                  className="w-full text-2xl font-bold text-gray-900 border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent pb-1 outline-none placeholder:text-gray-300 placeholder:text-base placeholder:font-normal"
-                />
+                <p className="text-xs text-gray-400 mb-1">Tổng số tiền thu</p>
+                <div className="border border-gray-200 rounded-xl px-4 py-3">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={soTienThuInput ? fmt(soTienThuInput) : ""}
+                    onChange={(e) => handleSoTienThuInput(e.target.value)}
+                    placeholder="Nhập để tự phân bổ..."
+                    className="w-full text-2xl font-bold text-gray-900 bg-transparent outline-none placeholder:text-gray-300 placeholder:text-base placeholder:font-normal"
+                  />
+                </div>
               </div>
               <div>
                 <p className="text-xs text-gray-400 mb-0.5">Ngày thu</p>
-                <input
-                  type="datetime-local"
-                  value={ngayThu}
-                  min={minNgayThuStr}                    // 🔥 KHÓA LÙI: Không cho lùi qua ngày xuất HĐ mới nhất
-                  max={toLocalDatetimeInput(new Date())} // 🔥 KHÓA TỚI: Không cho chọn tương lai
-                  onChange={(e) => setNgayThu(e.target.value)}
-                  className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-sm text-gray-800 py-1 outline-none"
-                />
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <DateTimePicker
+                    format="DD/MM/YYYY HH:mm"
+                    ampm={false}
+                    value={ngayThu ? dayjs(ngayThu) : null}
+                    minDateTime={minNgayThuStr ? dayjs(minNgayThuStr) : undefined}
+                    maxDateTime={dayjs()}
+                    onChange={(val) => setNgayThu(val ? val.format("YYYY-MM-DDTHH:mm") : "")}
+                    slotProps={{
+                      textField: {
+                        variant: "standard",
+                        fullWidth: true,
+                        sx: {
+                          "& input": {
+                            fontSize: "0.875rem",
+                            color: "#1f2937",
+                            py: "4px",
+                          },
+                          "& .MuiInput-underline:before": {
+                            borderBottom: "2px solid #e5e7eb",
+                          },
+                          "& .MuiInput-underline:hover:not(.Mui-disabled):before": {
+                            borderBottom: "2px solid #e5e7eb",
+                          },
+                          "& .MuiInput-underline:after": {
+                            borderBottom: "2px solid #29b6f6",
+                          }
+                        }
+                      },
+                      popper: {
+                        placement: "bottom-end",
+                        sx: {
+                          zIndex: 99999,
+                          "& .MuiPaper-root": {
+                            transform: "scale(0.75) !important",
+                            transformOrigin: "top right !important",
+                          }
+                        }
+                      },
+                      dialog: {
+                        sx: {
+                          zIndex: 99999,
+                          "& .MuiPaper-root": {
+                            transform: "scale(0.75) !important",
+                          }
+                        }
+                      },
+                      desktopPaper: {
+                        sx: {
+                          transform: "scale(0.75) !important",
+                          transformOrigin: "top right !important",
+                        }
+                      },
+                      mobilePaper: {
+                        sx: {
+                          transform: "scale(0.75) !important",
+                        }
+                      }
+                    }}
+                  />
+                </LocalizationProvider>
               </div>
               <div>
                 <p className="text-xs text-gray-400 mb-0.5">
@@ -586,23 +686,32 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                               />
                             </td>
                             <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
-                            <td className="px-4 py-3 font-medium text-[#29b6f6]">
-                              <span
-                                className="cursor-pointer hover:underline"
-                                onClick={() => {
-                                  handleClose();
-                                  navigate(`/hoa-don/${hd._id}/edit`);
-                                }}
-                              >
-                                {hd.soHoaDon || formatSoHoaDon(hd._id)}
-                              </span>
+                            {/* CỘT HÓA ĐƠN */}
+                            <td className="px-4 py-3 font-medium">
+                              {hd.soHoaDon?.startsWith("SDDK") ? (
+                                <span className="text-orange-600 font-bold">
+                                  Số dư đầu kỳ (Nợ cũ)
+                                </span>
+                              ) : (
+                                <span
+                                  className="text-[#29b6f6] cursor-pointer hover:underline"
+                                  onClick={() => {
+                                    handleClose();
+                                    navigate(`/hoa-don/${hd._id}/edit`);
+                                  }}
+                                >
+                                  {hd.soHoaDon || formatSoHoaDon(hd._id)}
+                                </span>
+                              )}
                             </td>
+
+                            {/* CỘT NGÀY XUẤT */}
                             <td className="px-4 py-3 text-gray-600">
-                              {hd.ngayXuatHoaDon
-                                ? new Date(hd.ngayXuatHoaDon).toLocaleDateString(
-                                  "vi-VN"
-                                )
-                                : "—"}
+                              {hd.soHoaDon?.startsWith("SDDK")
+                                ? "—" // Ẩn ngày xuất nếu là Nợ đầu kỳ
+                                : hd.ngayXuatHoaDon
+                                  ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN")
+                                  : "—"}
                             </td>
                             <td className="px-4 py-3 text-right text-gray-700">
                               {fmt(hd.giaTriThanhToan)}

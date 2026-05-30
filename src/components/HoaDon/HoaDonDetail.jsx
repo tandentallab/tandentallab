@@ -9,6 +9,11 @@ import { exportHoaDonToExcel } from "../../utils/exportToExcel";
 import HoaDonDetailTable from "./HoaDonDetailTable";
 import PhieuThuModal from "../PhieuThu/PhieuThuModal";
 import { toast } from "sonner"; // Đảm bảo đã import thư viện thông báo
+import dayjs from "dayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+
 
 const fmtVND = (v) =>
   new Intl.NumberFormat("vi-VN").format(Math.round(v || 0));
@@ -227,7 +232,7 @@ const HoaDonDetail = () => {
   const fin = useMemo(() => {
     if (!hoaDon) return {
       tongCong: 0, chietKhauTien: 0, chietKhauPhanTram: 0,
-      thueTien: 0, thuePhanTram: 0, giaTriThanhToan: 0, tongDaThanhToan: 0, conLai: 0
+      thueTien: 0, thuePhanTram: 0, giaTriThanhToan: 0, tongDaThanhToan: 0, conLai: 0, noDauKy: 0
     };
 
     const tongCong = (hoaDon.danhSachSanPham || []).reduce((s, sp) => s + (sp.tongCongSanPham || 0), 0);
@@ -250,12 +255,12 @@ const HoaDonDetail = () => {
       ? (sauCK > 0 ? parseFloat((thueTien / sauCK * 100).toFixed(2)) : 0)
       : formState.thuePhanTram;
 
-    const phatSinhKycay = sauCK + thueTien + Number(formState.chiPhiKhac || 0);
-    const noDauKy = Number(hoaDon.noDauKy || 0);
-    const soDuMigrate = Number(hoaDon.soDuMigrate || 0);
-    const tongNoHoaDonCu = noDauKy - soDuMigrate;
+    // 🔥 LOGIC MỚI: Chỉ lấy thuần phát sinh kỳ này
+    const phatSinhKyNay = sauCK + thueTien + Number(formState.chiPhiKhac || 0);
+    const giaTriThanhToan = phatSinhKyNay;
 
-    const giaTriThanhToan = phatSinhKycay + soDuMigrate;
+    // Lấy con số nợ đầu kỳ động từ API Backend trả về (chỉ để hiển thị tham khảo)
+    const noDauKy = Number(hoaDon.noDauKy || 0);
 
     const tongDaThanhToan = phieuThuList.reduce((sum, pt) => {
       let tien = 0;
@@ -270,8 +275,7 @@ const HoaDonDetail = () => {
 
     return {
       tongCong, chietKhauTien, chietKhauPhanTram,
-      thueTien, thuePhanTram, noDauKy, soDuMigrate,
-      tongNoHoaDonCu, giaTriThanhToan, tongDaThanhToan, conLai
+      thueTien, thuePhanTram, noDauKy, giaTriThanhToan, tongDaThanhToan, conLai
     };
   }, [hoaDon, formState, phieuThuList, id]);
 
@@ -474,14 +478,6 @@ const HoaDonDetail = () => {
         </div>
       </div>
 
-      {/* ── Số dư đầu kỳ ── */}
-      {fin.soDuMigrate > 0 && (
-        <div className="flex items-start justify-between">
-          <span className="text-gray-800 text-sm">Số dư đầu kỳ (hệ thống cũ) </span>
-          <span className="font-bold text-gray-900 text-[15px]">{fmtVND(fin.soDuMigrate)}</span>
-        </div>
-      )}
-
       <div className="pt-4 border-t border-gray-200/60 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-gray-900 font-bold text-[15px]">Giá trị thanh toán</span>
@@ -622,14 +618,41 @@ const HoaDonDetail = () => {
           </p>
           <p className="text-[11px] text-gray-400 font-medium">Ngày xuất</p>
           <div className="flex items-center mt-0.5">
-            <input
-              type="date"
-              min={minNgayXuatStr} // Chặn lịch chọn lùi
-              max={toLocalDateInput()}
-              value={formState.ngayXuatHoaDon}
-              onChange={handleNgayXuatChange}
-              className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent w-36"
-            />
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                format="DD/MM/YYYY"
+                // 1. Chuyển đổi min/max sang chuẩn của MUI Pickers
+                minDate={minNgayXuatStr ? dayjs(minNgayXuatStr) : undefined}
+                maxDate={dayjs()} // Nếu toLocalDateInput() có logic riêng, bạn dùng: dayjs(toLocalDateInput())
+
+                // 2. Chuyển đổi value
+                value={formState.ngayXuatHoaDon ? dayjs(formState.ngayXuatHoaDon) : null}
+
+                // 3. Xử lý onChange: Giả lập một event (e) để không làm "vỡ" hàm handleNgayXuatChange cũ của bạn
+                onChange={(val) => {
+                  handleNgayXuatChange({
+                    target: { value: val ? val.format("YYYY-MM-DD") : "" }
+                  });
+                }}
+
+                // 4. Bơm CSS y hệt như cũ (w-36, border-b, text-sm)
+                slotProps={{
+                  textField: {
+                    variant: "standard", // Xóa khung viền, chỉ để lại gạch dưới
+                    sx: {
+                      width: 144, // Tương đương class w-36
+                      "& input": {
+                        fontSize: "0.875rem", // Tương đương text-sm
+                        color: "#1f2937",     // text-gray-800
+                      },
+                      "& .MuiInput-underline:before": {
+                        borderBottomColor: "#d1d5db", // border-gray-300
+                      }
+                    }
+                  }
+                }}
+              />
+            </LocalizationProvider>
           </div>
         </div>
 
@@ -709,13 +732,41 @@ const HoaDonDetail = () => {
           <div className="flex flex-col gap-1">
             <p className="text-[11px] text-gray-400 font-medium">Ngày xuất</p>
             <div className="flex items-center">
-              <input
-                type="date"
-                min={minNgayXuatStr} // Chặn lịch chọn lùi
-                value={formState.ngayXuatHoaDon}
-                onChange={handleNgayXuatChange}
-                className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent w-36"
-              />
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  // 1. Chuyển đổi min/max sang chuẩn của MUI Pickers
+                  minDate={minNgayXuatStr ? dayjs(minNgayXuatStr) : undefined}
+                  maxDate={dayjs()} // Nếu toLocalDateInput() có logic riêng, bạn dùng: dayjs(toLocalDateInput())
+
+                  // 2. Chuyển đổi value
+                  value={formState.ngayXuatHoaDon ? dayjs(formState.ngayXuatHoaDon) : null}
+
+                  // 3. Xử lý onChange: Giả lập một event (e) để không làm "vỡ" hàm handleNgayXuatChange cũ của bạn
+                  onChange={(val) => {
+                    handleNgayXuatChange({
+                      target: { value: val ? val.format("YYYY-MM-DD") : "" }
+                    });
+                  }}
+
+                  // 4. Bơm CSS y hệt như cũ (w-36, border-b, text-sm)
+                  slotProps={{
+                    textField: {
+                      variant: "standard", // Xóa khung viền, chỉ để lại gạch dưới
+                      sx: {
+                        width: 144, // Tương đương class w-36
+                        "& input": {
+                          fontSize: "0.875rem", // Tương đương text-sm
+                          color: "#1f2937",     // text-gray-800
+                        },
+                        "& .MuiInput-underline:before": {
+                          borderBottomColor: "#d1d5db", // border-gray-300
+                        }
+                      }
+                    }
+                  }}
+                />
+              </LocalizationProvider>
             </div>
           </div>
         </div>

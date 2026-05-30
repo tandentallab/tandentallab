@@ -17,7 +17,7 @@ export default function NguoiLienHeUpdateModal({ open, setOpen, data }) {
   const dispatch = useDispatch();
 
   const { loading } = useSelector((state) => state.nguoiLienHe);
-  const { data: nhaKhoas } = useSelector((state) => state.nhaKhoa);
+  const { data: nhaKhoas = [] } = useSelector((state) => state.nhaKhoa);
 
   const [form, setForm] = useState({
     hoVaTen: "",

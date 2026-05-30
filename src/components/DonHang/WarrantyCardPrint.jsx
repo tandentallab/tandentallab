@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogActions, Button, CircularProgress, MenuItem, TextField } from "@mui/material";
 import { api } from "../../config/api";
@@ -8,6 +8,7 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang, initialMauTheId }
   const [mauTheList, setMauTheList] = useState([]);
   const [selectedMauTheId, setSelectedMauTheId] = useState("");
   const [loading, setLoading] = useState(false);
+  const cardRef = useRef(null);
 
   useEffect(() => {
     if (open) loadMauTheList();
@@ -63,7 +64,7 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang, initialMauTheId }
         return warranty?.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen || "---";
 
       case "sanPham":
-        return warranty?.danhSachBaoHanh?.[0]?.sanPham?.tenSanPham || donHang?.danhSachSanPham?.[0]?.sanPham?.tenSanPham || "---";
+        return warranty?.danhSachBaoHanh?.[0]?.tenSanPhamBaoHanh || warranty?.danhSachBaoHanh?.[0]?.sanPham?.tenSanPham || donHang?.danhSachSanPham?.[0]?.sanPham?.tenSanPham || "---";
 
       case "viTriRang": {
         const viTriStr = warranty?.danhSachBaoHanh?.[0]?.viTriRang;
@@ -97,6 +98,56 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang, initialMauTheId }
     }
   };
 
+  const handlePrint = () => {
+    if (!cardRef.current) return;
+
+    const printContent = cardRef.current.innerHTML;
+    const printWindow = window.open("", "", "width=800,height=600");
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>In Thẻ Bảo Hành</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 0;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              background-color: #fff;
+              font-family: sans-serif;
+            }
+            .card-container {
+              width: 85mm;
+              height: 53mm;
+              position: relative;
+              border: 1px dashed #ccc; 
+            }
+            @media print {
+              @page { size: auto; margin: 0; }
+              body { padding: 10mm; display: block; }
+              .card-container { border: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="card-container">
+            ${printContent}
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
+  };
+
   return (
     <Dialog
       open={open}
@@ -107,7 +158,7 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang, initialMauTheId }
     >
       {/* Selector mẫu thẻ — chỉ hiện khi KHÔNG có initialMauTheId (tức là chưa chọn từ ngoài) */}
       {!initialMauTheId && (
-        <div className="print-hidden" style={{ padding: "12px 16px 0 16px" }}>
+        <div style={{ padding: "12px 16px 0 16px" }}>
           <TextField
             select
             size="small"
@@ -124,10 +175,27 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang, initialMauTheId }
         </div>
       )}
 
-      <DialogContent id="print-content" style={{ minHeight: "300px", padding: 0 }}>
-        {loading ? <CircularProgress /> : !mauThe ? <p style={{ padding: 16 }}>Không tìm thấy mẫu thẻ bảo hành.</p> : (
-          /* Xóa border: "1px dashed #ccc" ở đây */
-          <div style={{ position: "relative", width: "100%", height: "150mm", border: "none" }}>
+      <DialogContent style={{
+        minHeight: "260px",
+        padding: "24px 0",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#0f172a",
+        backgroundImage: "radial-gradient(#1e293b 1px, transparent 1px)",
+        backgroundSize: "16px 16px",
+      }}>
+        {loading ? <CircularProgress /> : !mauThe ? <p style={{ padding: 16, color: "#fff" }}>Không tìm thấy mẫu thẻ bảo hành.</p> : (
+          <div ref={cardRef} className="card-container" style={{
+            position: "relative",
+            width: "85mm",
+            height: "53mm",
+            backgroundColor: "white",
+            borderRadius: "4px",
+            boxShadow: "0 10px 25px -5px rgb(0 0 0 / 0.5)",
+            overflow: "hidden",
+            border: "none",
+          }}>
             {mauThe.cacTruong?.map((field, idx) => {
               const left = Number(field.leTrai) || 0;
               const top = Number(field.leTren) || 0;
@@ -154,6 +222,9 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang, initialMauTheId }
                   top: `${top}mm`,
                   fontSize: `${field.coChu || 12}pt`,
                   fontWeight: field.doDam ? "bold" : "normal",
+                  fontStyle: field.nghieng ? "italic" : "normal",
+                  textDecoration: field.gachChan ? "underline" : "none",
+                  textTransform: field.inHoa ? "uppercase" : "none",
                   color: "#000",
                   whiteSpace: "nowrap"
                 }}>
@@ -164,21 +235,10 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang, initialMauTheId }
           </div>
         )}
       </DialogContent>
-      <DialogActions className="print-hidden">
+      <DialogActions>
         <Button onClick={onClose}>Đóng</Button>
-        <Button variant="contained" onClick={() => window.print()}>In</Button>
+        <Button variant="contained" onClick={handlePrint}>In</Button>
       </DialogActions>
-
-      <style>{`
-        @media print {
-          .print-hidden { display: none !important; }
-          @page { size: auto; margin: 0; }
-          body * { visibility: hidden; }
-          #print-section { display: none !important; visibility: hidden !important; }
-          #print-content, #print-content * { visibility: visible; border: none !important; box-shadow: none !important; }
-          #print-content { position: absolute; left: 0; top: 0; width: 100%; }
-        }
-      `}</style>
     </Dialog>
   );
 };

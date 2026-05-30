@@ -142,9 +142,12 @@ const Header = ({ onToggleSidebar }) => {
             <IconButton color="inherit" onClick={onToggleSidebar}>
               <MenuIcon />
             </IconButton>
-            <div className="w-24 p-1 rounded bg-white flex items-center justify-center">
-              <img className="w-full" src="/logo4.png" alt="Tấn Dental" />
+
+            <div className="w-10 h-10 p-1 rounded-full shadow-md bg-white flex items-center justify-center">
+              <img className="w-full" src="/logo3.png" alt="Tấn Dental" />
             </div>
+
+            <p className="hidden sm:block font-medium text-xl tracking-wide">CÔNG TY TNHH TẤN DENTAL</p>
           </Box>
 
           {/* 👉 THANH TÌM KIẾM ĐÃ ĐƯỢC TỐI ƯU CHO CẢ PC & MOBILE */}

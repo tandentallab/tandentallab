@@ -881,11 +881,11 @@ const DonHangForm = () => {
                         <td className="p-2">
                           <input
                             type="number"
-                            min="1"
+                            min="0"
                             value={sp.soLuong}
                             onFocus={(e) => e.target.select()}
                             onChange={(e) =>
-                              handleSanPhamChange(index, "soLuong", parseInt(e.target.value) || 1)
+                              handleSanPhamChange(index, "soLuong", parseInt(e.target.value))
                             }
                             className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-center font-bold text-gray-700"
                           />

@@ -6,28 +6,20 @@ import {
   isToday,
   isBefore,
   startOfDay,
+  endOfDay,
   parseISO,
 } from "date-fns";
-import dayjs from "dayjs";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import ThongKeKeHoachGiaoHang from "./ThongKeKeHoachGiaoHang";
 import { useNavigate } from "react-router-dom";
 import { exportKeHoachGiaoHangToExcel } from "../../utils/exportToExcel";
 import {
+  FiFilter,
   FiSearch,
   FiRefreshCw,
-  FiPlus,
-  FiMoreVertical,
   FiDownload,
   FiPrinter,
 } from "react-icons/fi";
-import ReplayIcon from '@mui/icons-material/Replay';
-// Đảm bảo đường dẫn import DonHangDetailPanel đúng với cấu trúc thư mục của bạn
 import DonHangDetailPanel from "../DonHang/DonHangDetailPanel";
-import SaveIcon from '@mui/icons-material/Save';
 
 const ROWS_PER_PAGE = 20;
 
@@ -35,25 +27,13 @@ const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
   const { data, loading, loadingMore, pagination } = useSelector((state) => state.donHang);
 
+  const [showUrgentOnly, setShowUrgentOnly] = useState(false);
+  const [filterType, setFilterType] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("Chờ xử lý");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [draftFromDate, setDraftFromDate] = useState("");
-  const [draftToDate, setDraftToDate] = useState("");
   const [searchText, setSearchText] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  const handleApply = () => {
-    setFromDate(draftFromDate);
-    setToDate(draftToDate);
-  };
-
-  const handleReset = () => {
-    setDraftFromDate("");
-    setDraftToDate("");
-    setFromDate("");
-    setToDate("");
-    setSearchText("");
-  };
+  const [showFilterBar, setShowFilterBar] = useState(false);
 
   const [page, setPage] = useState(1);
 
@@ -66,37 +46,24 @@ const KeHoachGiaoHangTable = () => {
 
   const navigate = useNavigate();
 
-  // Debounce search
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setDebouncedSearch(searchText);
-      setPage(1);
-    }, 500);
-    return () => clearTimeout(t);
-  }, [searchText]);
-
-  // Reset page khi filter thay đổi
-  useEffect(() => {
-    setPage(1);
-  }, [fromDate, toDate]);
-
   // Build params và dispatch load
   const loadData = useCallback(() => {
     const params = { page, limit: ROWS_PER_PAGE };
-    if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
-    if (fromDate) params.henGiaoFrom = new Date(fromDate).toISOString();
-    if (toDate) params.henGiaoTo = new Date(toDate).toISOString();
-
     if (page === 1) {
       dispatch(fetchDonHang(params));
     } else {
       dispatch(fetchMoreDonHang(params));
     }
-  }, [dispatch, page, debouncedSearch, fromDate, toDate]);
+  }, [dispatch, page]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Reset page khi filter thay đổi
+  useEffect(() => {
+    setPage(1);
+  }, [filterType, fromDate, toDate, showUrgentOnly, filterStatus, searchText]);
 
   // Infinite scroll: khi sentinel vào viewport thì tải trang tiếp theo
   useEffect(() => {
@@ -114,10 +81,67 @@ const KeHoachGiaoHangTable = () => {
     return () => observer.disconnect();
   }, [page, pagination?.totalPages, loadingMore, loading]);
 
-  // ================= FILTER LOGIC (client-side) =================
+  // ================= FILTER LOGIC =================
   const filteredOrders = useMemo(() => {
-    return [...data];
-  }, [data]);
+    let result = [...data];
+
+    result = result.filter((order) => {
+      const henGiaoDate = parseISO(order.henGiao);
+      const overdue =
+        isBefore(henGiaoDate, todayStart) && order.trangThai !== "Hoàn thành";
+      const dueToday = isToday(henGiaoDate);
+      const from = fromDate ? startOfDay(new Date(fromDate)) : null;
+      const to = toDate ? endOfDay(new Date(toDate)) : null;
+      const inRange = from && to && henGiaoDate >= from && henGiaoDate <= to;
+
+      if (filterType === "today") return dueToday;
+      if (filterType === "overdue") return overdue;
+      if (filterType === "range") return inRange;
+      return true;
+    });
+
+    // 🔥 FILTER TRẠNG THÁI
+    if (filterStatus !== "all") {
+      result = result.filter((order) => order.trangThai === filterStatus);
+    }
+
+    // 🔥 FILTER ĐƠN GẤP
+    if (showUrgentOnly) {
+      result = result.filter((order) => {
+        const henGiaoDate = parseISO(order.henGiao);
+        return (
+          isToday(henGiaoDate) ||
+          (isBefore(henGiaoDate, todayStart) &&
+            order.trangThai !== "Hoàn thành")
+        );
+      });
+    }
+
+    // 🔥 SEARCH
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      result = result.filter(
+        (o) =>
+          (o.maDonHang && o.maDonHang.toLowerCase().includes(q)) ||
+          (o.nhaKhoa?.hoVaTen && o.nhaKhoa.hoVaTen.toLowerCase().includes(q)) ||
+          (o.bacSi?.hoVaTen && o.bacSi.hoVaTen.toLowerCase().includes(q)) ||
+          (o.benhNhan?.hoVaTen && o.benhNhan.hoVaTen.toLowerCase().includes(q))
+      );
+    }
+
+    // Sắp xếp theo hẹn giao từ mới nhất đến cũ nhất
+    result.sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
+
+    return result;
+  }, [
+    data,
+    showUrgentOnly,
+    filterType,
+    filterStatus,
+    fromDate,
+    toDate,
+    searchText,
+  ]);
 
   // ================= COUNT =================
   const countToday = data.filter((o) => isToday(parseISO(o.henGiao))).length;
@@ -194,75 +218,16 @@ const KeHoachGiaoHangTable = () => {
         </div>
 
         {/* ================= TOOLBAR ================= */}
-        <div className="flex flex-wrap items-center gap-2 mb-3 px-1 print:hidden">
-          {/* Hẹn giao từ */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <span className="w-24">Hẹn giao từ:</span>
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DatePicker
-                  format="DD/MM/YYYY"
-                  value={draftFromDate ? dayjs(draftFromDate.split("T")[0]) : null}
-                  onChange={(val) =>
-                    setDraftFromDate(val ? `${val.format("YYYY-MM-DD")}T${draftFromDate.split("T")[1] || "00:00"}` : "")
-                  }
-                  slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem" } } } }}
-                />
-              </LocalizationProvider>
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <TimePicker
-                  ampm={false}
-                  value={draftFromDate?.split("T")[1] ? dayjs(`2000-01-01T${draftFromDate.split("T")[1]}`) : null}
-                  onChange={(val) =>
-                    setDraftFromDate((prev) => prev ? `${prev.split("T")[0]}T${val ? val.format("HH:mm") : "00:00"}` : "")
-                  }
-                  slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "5.5rem" } } } }}
-                />
-              </LocalizationProvider>
-
-              {/* Nút reset */}
-              <button
-                onClick={handleApply}
-                className="w-10 h-10 rounded-full bg-sky-500 text-white shadow"
-                title="Áp dụng bộ lọc"
-              >
-                <SaveIcon fontSize="small" />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="w-24">đến:</span>
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DatePicker
-                  format="DD/MM/YYYY"
-                  value={draftToDate ? dayjs(draftToDate.split("T")[0]) : null}
-                  onChange={(val) =>
-                    setDraftToDate(val ? `${val.format("YYYY-MM-DD")}T${draftToDate.split("T")[1] || "23:59"}` : "")
-                  }
-                  slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem" } } } }}
-                />
-              </LocalizationProvider>
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <TimePicker
-                  ampm={false}
-                  value={draftToDate?.split("T")[1] ? dayjs(`2000-01-01T${draftToDate.split("T")[1]}`) : null}
-                  onChange={(val) =>
-                    setDraftToDate((prev) => prev ? `${prev.split("T")[0]}T${val ? val.format("HH:mm") : "23:59"}` : "")
-                  }
-                  slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "5.5rem" } } } }}
-                />
-              </LocalizationProvider>
-
-              {/* Nút áp dụng */}
-              <button
-                onClick={handleReset}
-                className="w-10 h-10 rounded-full bg-green-500 text-white shadow"
-                title="Đặt lại bộ lọc"
-              >
-                <ReplayIcon fontSize="small" />
-              </button>
-            </div>
-          </div>
+        <div className="flex items-center gap-2 mb-2 px-1 print:hidden">
+          {/* Filter icon toggle */}
+          <button
+            onClick={() => setShowFilterBar((v) => !v)}
+            className={`p-2 rounded hover:bg-gray-200 transition ${showFilterBar ? "text-blue-600" : "text-gray-500"
+              }`}
+            title="Lọc"
+          >
+            <FiFilter size={18} />
+          </button>
 
           <div className="flex-1" />
 
@@ -305,6 +270,51 @@ const KeHoachGiaoHangTable = () => {
           </button>
         </div>
 
+        {/* ================= FILTER BAR ================= */}
+        {showFilterBar && (
+          <div className="flex flex-wrap gap-2 mb-3 px-1 py-2 bg-white rounded border text-sm print:hidden">
+            {/* Loại lọc ngày */}
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="border px-2 py-1.5 rounded text-sm"
+            >
+              <option value="all">Tất cả ngày</option>
+              <option value="today">Giao hôm nay</option>
+              <option value="overdue">Trễ hẹn</option>
+              <option value="range">Khoảng ngày</option>
+            </select>
+
+            {filterType === "range" && (
+              <>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="border px-2 py-1.5 rounded text-sm"
+                />
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="border px-2 py-1.5 rounded text-sm"
+                />
+              </>
+            )}
+
+            {/* Lọc trạng thái */}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="border px-2 py-1.5 rounded text-sm"
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="Chờ xử lý">Chờ xử lý</option>
+              <option value="Hoàn thành">Hoàn thành</option>
+            </select>
+          </div>
+        )}
+
         {/* ================= TABLE ================= */}
         <div className="bg-white rounded shadow-sm overflow-hidden border print:hidden">
           <div className="overflow-x-auto">
@@ -342,25 +352,29 @@ const KeHoachGiaoHangTable = () => {
                       key={order._id}
                       onClick={() => setSelectedDonHang(order)}
                       className={`border-b cursor-pointer transition-colors ${selectedDonHang?._id === order._id
-                        ? "bg-sky-200 border-sky-200"
+                        ? "bg-sky-100 border-sky-200"
                         : "hover:bg-gray-50"
                         }`}
                     >
                       {/* NHẬN LÚC */}
-                      <td className="px-3 truncate">
+                      <td className="px-3 py-2.5 whitespace-nowrap text-xs text-gray-600">
                         {order.ngayNhan
                           ? format(parseISO(order.ngayNhan), "HH:mm dd/MM/yyyy")
                           : "—"}
                       </td>
 
                       {/* SỐ ĐƠN */}
-                      <td className="px-3 truncate">
+                      <td className="px-3 py-2.5 whitespace-nowrap">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/donhang/${order._id}/edit`);
                           }}
-                          className={`hover:underline ${overdue ? "text-red-500" : today ? "text-blue-600" : ""
+                          className={`font-medium text-sm hover:underline ${overdue
+                            ? "text-red-500"
+                            : today
+                              ? "text-blue-600"
+                              : "text-gray-700"
                             }`}
                         >
                           {maDon}
@@ -368,41 +382,49 @@ const KeHoachGiaoHangTable = () => {
                       </td>
 
                       {/* HẸN GIAO */}
-                      <td className={`px-3 truncate ${overdue ? "text-red-500" : ""
-                        }`}>
+                      <td className={`px-3 py-2.5 whitespace-nowrap text-sm font-medium ${overdue ? "text-red-500" : "text-gray-700"}`}>
                         {format(date, "HH:mm dd/MM/yyyy")}
                       </td>
 
                       {/* KHÁCH HÀNG */}
-                      <td className="px-3 truncate">{order.nhaKhoa?.hoVaTen}</td>
+                      <td className="px-3 py-2.5 text-sm text-gray-800 truncate max-w-[180px]">
+                        {order.nhaKhoa?.hoVaTen}
+                      </td>
 
                       {/* BÁC SĨ */}
-                      <td className="px-3 truncate">{order.bacSi?.hoVaTen}</td>
+                      <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[120px]">
+                        {order.bacSi?.hoVaTen}
+                      </td>
 
                       {/* BỆNH NHÂN */}
-                      <td className="px-3 truncate">{order.benhNhan?.hoVaTen}</td>
+                      <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[140px]">
+                        {order.benhNhan?.hoVaTen}
+                      </td>
 
                       {/* RĂNG */}
-                      <td className="px-3 py-2 truncate">
+                      <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[200px]">
                         {formatDanhSachSanPham(order.danhSachSanPham)}
                       </td>
 
                       {/* TRẠNG THÁI */}
-                      <td className="px-3">
+                      <td className="px-3 py-2.5 whitespace-nowrap">
                         <TrangThaiBadge value={order.trangThai} />
                       </td>
 
                       {/* GHI CHÚ */}
-                      <td className="px-3 truncate" title={order.ghiChuChung || ""}>
+                      <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[160px]" title={order.ghiChuChung || ""}>
                         {order.ghiChuChung}
                       </td>
                     </tr>
                   );
                 })}
 
-                {filteredOrders.length === 0 && (
+                {filteredOrders.length === 0 && !loading && (
                   <tr>
-                    <td colSpan="9" className="text-center py-8 text-gray-500">
+                    <td
+                      colSpan="9"
+                      className="text-center py-10 text-gray-400 text-sm"
+                    >
                       Không có dữ liệu
                     </td>
                   </tr>
@@ -416,7 +438,9 @@ const KeHoachGiaoHangTable = () => {
               <div className="text-center py-3 text-gray-400 text-sm">Đang tải thêm...</div>
             )}
             {!loadingMore && pagination?.totalPages && page >= pagination.totalPages && filteredOrders.length > 0 && (
-              <div className="text-center py-2 text-gray-400 text-xs">Đã tải {pagination.total} đơn</div>
+              <div className="text-center py-2 text-gray-400 text-xs">
+                Đã tải {data.length} / {pagination.total} đơn
+              </div>
             )}
           </div>
         </div>
@@ -427,7 +451,7 @@ const KeHoachGiaoHangTable = () => {
             @media print {
               @page { 
                 size: A4 landscape; 
-                margin: 4mm 6mm !important; 
+                margin: 8mm; 
               }
               
               /* Triệt tiêu các thuộc tính căn chỉnh flex, margin, padding của các thẻ cha (Dashboard/Header/Sidebar) khi in */
@@ -475,9 +499,9 @@ const KeHoachGiaoHangTable = () => {
               #print-section table td,
               #print-section table th {
                 border: 1px solid black !important;
-                padding: 4px 6px !important;
-                font-size: 11px !important;
-                line-height: 1.3 !important;
+                padding: 8px 10px !important;
+                font-size: 13px !important;
+                line-height: 1.4 !important;
                 vertical-align: middle !important;
               }
               #print-section table th {
@@ -492,13 +516,13 @@ const KeHoachGiaoHangTable = () => {
           <table className="w-full border-collapse border border-black">
             <thead>
               <tr>
-                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Nhận lúc</th>
-                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Số</th>
-                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Khách hàng</th>
-                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Bệnh nhân</th>
-                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "60%" }}>Răng</th>
-                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>Hẹn giao</th>
-                <th className="border border-black px-1 py-1.5 text-center font-semibold" style={{ width: "40%" }}>Ghi chú</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold">Nhận lúc</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold">Số</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold">Khách hàng</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold">Bệnh nhân</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold w-1/4">Răng</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold">Hẹn giao</th>
+                <th className="border border-black px-2 py-1 text-center font-semibold w-1/6">Ghi chú</th>
               </tr>
             </thead>
             <tbody>
@@ -506,17 +530,17 @@ const KeHoachGiaoHangTable = () => {
                 const maDon = order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`;
                 return (
                   <tr key={order._id}>
-                    <td className="border border-black px-2 py-1 text-center" style={{ width: "1%", whiteSpace: "nowrap" }}>
-                      {order.ngayNhan ? format(parseISO(order.ngayNhan), "HH:mm dd/MM/yyyy") : "—"}
+                    <td className="border border-black px-2 py-1 text-center">
+                      {order.ngayNhan ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm") : "—"}
                     </td>
-                    <td className="border border-black px-2 py-1 text-center font-semibold" style={{ width: "1%", whiteSpace: "nowrap" }}>{maDon}</td>
-                    <td className="border border-black px-2 py-1" style={{ width: "1%", whiteSpace: "nowrap" }}>{order.nhaKhoa?.hoVaTen}</td>
-                    <td className="border border-black px-2 py-1" style={{ width: "1%", whiteSpace: "nowrap" }}>{order.benhNhan?.hoVaTen}</td>
-                    <td className="border border-black px-2 py-1" style={{ width: "60%" }}>{formatDanhSachSanPham(order.danhSachSanPham)}</td>
-                    <td className="border border-black px-2 py-1 text-center" style={{ width: "1%", whiteSpace: "nowrap" }}>
-                      {order.henGiao ? format(parseISO(order.henGiao), "HH:mm dd/MM/yyyy") : "—"}
+                    <td className="border border-black px-2 py-1 text-center font-semibold">{maDon}</td>
+                    <td className="border border-black px-2 py-1">{order.nhaKhoa?.hoVaTen}</td>
+                    <td className="border border-black px-2 py-1">{order.benhNhan?.hoVaTen}</td>
+                    <td className="border border-black px-2 py-1">{formatDanhSachSanPham(order.danhSachSanPham)}</td>
+                    <td className="border border-black px-2 py-1 text-center">
+                      {order.henGiao ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm") : "—"}
                     </td>
-                    <td className="border border-black px-2 py-1" style={{ width: "40%" }}>{order.ghiChuChung}</td>
+                    <td className="border border-black px-2 py-1">{order.ghiChuChung}</td>
                   </tr>
                 );
               })}
@@ -551,7 +575,7 @@ const TrangThaiBadge = ({ value }) => {
     "Đã giao": "bg-gray-100 text-gray-700",
   };
   return (
-    <span className={`px-2 py-1 font-medium text-xs ${map[value] || "bg-gray-100 text-gray-600"}`}>
+    <span className={`px-2 py-1 rounded font-medium text-xs ${map[value] || "bg-gray-100 text-gray-600"}`}>
       {value || "Chờ xử lý"}
     </span>
   );

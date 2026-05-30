@@ -120,6 +120,16 @@ export const updateCongDoanTrangThai = createAsyncThunk(
         }
     }
 );
+//Khởi tạo filter
+const initialFilterState = {
+    showUrgentOnly: false,
+    filterType: "all",
+    filterStatus: "Chờ xử lý",
+    fromDate: "",
+    toDate: "",
+    searchText: "",
+};
+
 
 /* ================= SLICE ================= */
 
@@ -129,6 +139,7 @@ const donHangSlice = createSlice({
     initialState: {
         data: [],
         allData: [], // dùng cho KeHoachGiaoHang (không phân trang)
+        filters: initialFilterState,
         loading: false,
         loadingMore: false,
         error: null,
@@ -136,7 +147,18 @@ const donHangSlice = createSlice({
         stats: {},
     },
 
-    reducers: {},
+    reducers: {
+        setFilter(state, action) {
+                    state.filters = {
+                        ...state.filters,
+                        ...action.payload,
+                    };
+        },
+
+        resetFilter(state) {
+            state.filters = initialFilterState;
+        },
+    },
 
     extraReducers: (builder) => {
         builder
@@ -235,5 +257,7 @@ const donHangSlice = createSlice({
             });
     },
 });
+
+export const { setFilter, resetFilter } = donHangSlice.actions;
 
 export default donHangSlice.reducer;

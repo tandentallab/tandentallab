@@ -16,6 +16,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <Toaster
         position="top-right"
         theme="light"
+        offset="50px"
+        duration={2000}
       />
     </BrowserRouter>
   </Provider>

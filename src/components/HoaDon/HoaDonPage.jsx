@@ -171,13 +171,38 @@ const HoaDonPage = () => {
     } = useSelector((state) => state.hoaDon);
     const nhaKhoa = useSelector((state) => state.nhaKhoa);
 
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [appliedNgayXuat, setAppliedNgayXuat] = useState(EMPTY_DATE);
-    const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(null);
-    const [appliedTrangThai, setAppliedTrangThai] = useState([]);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [debouncedSearch, setDebouncedSearch] = useState("");
+    // =====================================================================
+    // KHAI BÁO STATE TỪ SESSION STORAGE (GIỮ BỘ LỌC CỨNG KHI CHUYỂN TRANG)
+    // =====================================================================
+    const [page, setPage] = useState(() => Number(sessionStorage.getItem("hd_page")) || 0);
+    const [rowsPerPage, setRowsPerPage] = useState(() => Number(sessionStorage.getItem("hd_rowsPerPage")) || 10);
+
+    const [appliedNgayXuat, setAppliedNgayXuat] = useState(() => {
+        const saved = sessionStorage.getItem("hd_appliedNgayXuat");
+        return saved ? JSON.parse(saved) : EMPTY_DATE;
+    });
+
+    const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(() => {
+        const saved = sessionStorage.getItem("hd_appliedNhaKhoa");
+        return saved ? JSON.parse(saved) : null;
+    });
+
+    const [appliedTrangThai, setAppliedTrangThai] = useState(() => {
+        const saved = sessionStorage.getItem("hd_appliedTrangThai");
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("hd_searchTerm") || "");
+    const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+
+    // 🔥 LƯU TRẠNG THÁI VÀO SESSION KHI CÓ THAY ĐỔI
+    useEffect(() => { sessionStorage.setItem("hd_page", page.toString()); }, [page]);
+    useEffect(() => { sessionStorage.setItem("hd_rowsPerPage", rowsPerPage.toString()); }, [rowsPerPage]);
+    useEffect(() => { sessionStorage.setItem("hd_appliedNgayXuat", JSON.stringify(appliedNgayXuat)); }, [appliedNgayXuat]);
+    useEffect(() => { sessionStorage.setItem("hd_appliedNhaKhoa", JSON.stringify(appliedNhaKhoa)); }, [appliedNhaKhoa]);
+    useEffect(() => { sessionStorage.setItem("hd_appliedTrangThai", JSON.stringify(appliedTrangThai)); }, [appliedTrangThai]);
+    useEffect(() => { sessionStorage.setItem("hd_searchTerm", searchTerm); }, [searchTerm]);
+    // =====================================================================
     const [openFilter, setOpenFilter] = useState(false);
     const filterContainerRef = useRef(null);
 

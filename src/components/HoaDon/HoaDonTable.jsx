@@ -124,7 +124,6 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
     ngayDenHan: 130,
   });
 
-  // Ref để handleResize stable, không cần re-create khi columnWidths đổi
   const columnWidthsRef = useRef(columnWidths);
   useEffect(() => { columnWidthsRef.current = columnWidths; }, [columnWidths]);
 
@@ -133,12 +132,45 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
     [columnWidths]
   );
 
+  // 🔥 ── Lọc / Sắp xếp Ngày Xuất ── 🔥
+  const [sortOrder, setSortOrder] = useState("desc"); // "desc" = Trễ nhất (mới nhất), "asc" = Sớm nhất (cũ nhất)
+
+  const handleToggleSort = () => {
+    setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
+  };
+
+  const sortedDanhSachHoaDon = useMemo(() => {
+    if (!danhSachHoaDon) return [];
+    const copy = [...danhSachHoaDon];
+
+    copy.sort((a, b) => {
+      // 1. Lấy Tiêu chí chính: Ngày xuất hóa đơn
+      const timeA = new Date(a.ngayXuatHoaDon || a.createdAt || 0).getTime();
+      const timeB = new Date(b.ngayXuatHoaDon || b.createdAt || 0).getTime();
+
+      // Nếu Ngày xuất khác nhau -> Cứ thế mà xếp
+      if (timeA !== timeB) {
+        return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
+      }
+
+      // 🔥 2. TIÊU CHÍ PHỤ (Tie-breaker): Nếu Ngày xuất giống hệt nhau
+      // Chuyển sang so sánh mili-giây tạo thực tế (createdAt)
+      const createdA = new Date(a.createdAt || 0).getTime();
+      const createdB = new Date(b.createdAt || 0).getTime();
+
+      return sortOrder === "asc" ? createdA - createdB : createdB - createdA;
+    });
+
+    return copy;
+  }, [danhSachHoaDon, sortOrder]);
+
   // ── Virtual scroll ──
   const [visibleCount, setVisibleCount] = useState(30);
   const containerRef = useRef(null);
   const sentinelRef = useRef(null);
 
-  useEffect(() => { setVisibleCount(30); }, [danhSachHoaDon]);
+  // Cập nhật lại list mỗi khi đổi filter hoặc đổi data
+  useEffect(() => { setVisibleCount(30); }, [sortedDanhSachHoaDon]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -147,17 +179,17 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting)
-          setVisibleCount((prev) => Math.min(prev + 30, danhSachHoaDon?.length ?? 0));
+          setVisibleCount((prev) => Math.min(prev + 30, sortedDanhSachHoaDon.length));
       },
       { root: container, threshold: 0.1 }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [danhSachHoaDon?.length]);
+  }, [sortedDanhSachHoaDon.length]);
 
   const visibleRows = useMemo(
-    () => (danhSachHoaDon ?? []).slice(0, visibleCount),
-    [danhSachHoaDon, visibleCount]
+    () => sortedDanhSachHoaDon.slice(0, visibleCount),
+    [sortedDanhSachHoaDon, visibleCount]
   );
 
   // ── RAF throttle resize ──
@@ -188,9 +220,9 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
 
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-  }, []); // stable
+  }, []);
 
-  // ── Precompute tất cả cell styles 1 lần khi columnWidths đổi ──
+  // ── Precompute tất cả cell styles 1 lần ──
   const cellStyles = useMemo(() => {
     const base = (key) => ({
       width: columnWidths[key],
@@ -221,7 +253,6 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
       borderBottom: "2px solid #cbd5e1",
     });
 
-    // Row styles
     const row = {};
     const hdr = {};
     ["ngayXuat", "soHoaDon", "nhaKhoa", "tongCong", "giamGia",
@@ -262,10 +293,29 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
         }}
       >
         <Table sx={{ tableLayout: "fixed", width: totalTableWidth, minWidth: totalTableWidth }}>
-
           <TableHead>
             <TableRow>
-              <ResizableHeaderCell label="Ngày xuất" columnKey="ngayXuat" style={cellStyles.hdr.ngayXuat} onResize={handleResize} />
+              <ResizableHeaderCell
+                label={
+                  <div
+                    className="flex items-center gap-1 cursor-pointer hover:text-[#00796b] transition-colors"
+                    onClick={handleToggleSort}
+                    title={sortOrder === "desc" ? "Đang xếp: Mới nhất -> Cũ nhất (Bấm để xem Sớm nhất)" : "Đang xếp: Cũ nhất -> Mới nhất (Bấm để xem Trễ nhất)"}
+                  >
+                    Ngày xuất
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`w-4 h-4 transition-transform duration-300 ${sortOrder === "desc" ? "rotate-180" : ""}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                    </svg>
+                  </div>
+                }
+                columnKey="ngayXuat"
+                style={cellStyles.hdr.ngayXuat}
+                onResize={handleResize}
+              />
               <ResizableHeaderCell label="Số" columnKey="soHoaDon" style={cellStyles.hdr.soHoaDon} onResize={handleResize} />
               <ResizableHeaderCell label="Nha khoa" columnKey="nhaKhoa" style={cellStyles.hdr.nhaKhoa} onResize={handleResize} />
               <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" style={cellStyles.hdr.tongCong} onResize={handleResize} />

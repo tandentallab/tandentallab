@@ -40,6 +40,8 @@ import {
   fetchDonHangChuaHoaDon,
   fetchDonHangChuaHoaDonAll,
   createHoaDon,
+  fetchCountDonHangChuaXuat,
+  fetchNgayXuatHoaDonGanNhatAll,
 } from "../../redux/slices/hoaDonSlice";
 import {
   fetchBangGiaByNhaKhoa,
@@ -48,6 +50,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { buildProductNameMap } from "../../utils/hoaDonUtils";
+import dayjs from "dayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 // ================= UTILS =================
 const vndFormatter = new Intl.NumberFormat("vi-VN");
@@ -521,8 +527,17 @@ export default function DonHangChuaXuatTable({
       ).unwrap();
 
       toast.success("Tạo hóa đơn thành công!");
-      navigate(`/hoa-don`);
       setSelectedOrders([]);
+      // 👉 THÊM VÀO ĐÂY: Lệnh cho Sidebar cập nhật lại con số
+      dispatch(fetchCountDonHangChuaXuat());
+      dispatch(fetchNgayXuatHoaDonGanNhatAll());
+
+      // 👉 KÈM THEO: Load lại luôn danh sách đơn trên BẢNG hiện tại để nó mất đi các đơn vừa gom
+      if (selectedClinic === "all") {
+        dispatch(fetchDonHangChuaHoaDonAll());
+      } else {
+        dispatch(fetchDonHangChuaHoaDon(selectedClinic));
+      }
     } catch (err) {
       toast.error(err?.message || "Tạo hóa đơn thất bại");
     }
@@ -585,27 +600,35 @@ export default function DonHangChuaXuatTable({
           </FormControl>
 
           {dateFilter === "custom" && (
-            <div className="flex items-center gap-2">
-              <div className="flex flex-col">
-                <label className="text-xs text-gray-400 mb-0.5">Từ ngày</label>
-                <input
-                  type="date"
-                  value={fromDate}
-                  max={today}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm outline-none focus:border-[#29b6f6]"
+            <div className="flex items-center gap-3">
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  label="Từ ngày"
+                  format="DD/MM/YYYY"
+                  value={fromDate ? dayjs(fromDate) : null}
+                  maxDate={dayjs()} // Chặn không cho chọn ngày tương lai
+                  onChange={(val) => setFromDate(val ? val.format("YYYY-MM-DD") : "")}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      sx: { width: 150, bgcolor: "white" }
+                    }
+                  }}
                 />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-xs text-gray-400 mb-0.5">Đến ngày</label>
-                <input
-                  type="date"
-                  value={toDate}
-                  max={today}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm outline-none focus:border-[#29b6f6]"
+                <DatePicker
+                  label="Đến ngày"
+                  format="DD/MM/YYYY"
+                  value={toDate ? dayjs(toDate) : null}
+                  maxDate={dayjs()} // Chặn không cho chọn ngày tương lai
+                  onChange={(val) => setToDate(val ? val.format("YYYY-MM-DD") : "")}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      sx: { width: 150, bgcolor: "white" }
+                    }
+                  }}
                 />
-              </div>
+              </LocalizationProvider>
             </div>
           )}
 

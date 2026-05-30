@@ -7,6 +7,12 @@ import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import PrintIcon from "@mui/icons-material/Print";
 import { useNavigate } from "react-router-dom";
 
+
+import dayjs from "dayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker"; // 👉 Thêm ông này
+
 const toLocalDatetimeInput = (d) => {
     if (!d) return "";
     const dt = new Date(d);
@@ -156,7 +162,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
         loadData();
     }, [phieuThu, open, dispatch]);
 
-    // ================= LOGIC THÁC NƯỚC (Khi gõ Tổng Tiền) =================
+    // ================= LOGIC THÁC NƯỚC THÔNG MINH =================
     const handleTotalAmountChange = (val) => {
         const digits = val.replace(/[^\d]/g, "");
         setSoTienThu(digits);
@@ -164,25 +170,57 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
 
         const newList = [...chiTietHoaDon];
 
-        // Thác nước: Rót cho hóa đơn CŨ NHẤT TRƯỚC (Ascending)
-        const sortedIndices = newList
-            .map((item, idx) => ({ idx, date: new Date(item.hoaDon?.ngayXuatHoaDon || 0).getTime() }))
-            .sort((a, b) => a.date - b.date);
+        // Phân tách index của HĐ ĐÃ CHỌN và CHƯA CHỌN
+        const checkedIndices = [];
+        const uncheckedIndices = [];
 
-        newList.forEach(item => {
-            if (item.selected) item.soTienThanhToanInput = "0";
+        newList.forEach((item, idx) => {
+            if (item.selected) checkedIndices.push(idx);
+            else uncheckedIndices.push(idx);
         });
 
-        for (const { idx } of sortedIndices) {
-            const item = newList[idx];
-            if (!item.selected) continue;
+        // Sắp xếp cũ nhất -> mới nhất
+        const sortFn = (idxA, idxB) => {
+            const timeA = new Date(newList[idxA].hoaDon?.ngayXuatHoaDon || newList[idxA].hoaDon?.createdAt || 0).getTime();
+            const timeB = new Date(newList[idxB].hoaDon?.ngayXuatHoaDon || newList[idxB].hoaDon?.createdAt || 0).getTime();
+            return timeA - timeB;
+        };
 
-            if (remaining > 0) {
-                const payAmount = Math.min(remaining, item.conLaiToiDa);
-                newList[idx].soTienThanhToanInput = String(payAmount);
-                remaining -= payAmount;
+        checkedIndices.sort(sortFn);
+        uncheckedIndices.sort(sortFn);
+
+        // Reset trạng thái trước khi rót tiền
+        newList.forEach(item => {
+            item.selected = false;
+            item.soTienThanhToanInput = "0";
+        });
+
+        // 1. Rót tiền vào các HÓA ĐƠN ĐANG CHỌN trước
+        for (const idx of checkedIndices) {
+            if (remaining <= 0) break;
+            const item = newList[idx];
+            const pay = Math.min(remaining, item.conLaiToiDa);
+            if (pay > 0) {
+                item.soTienThanhToanInput = String(pay);
+                item.selected = true;
+                remaining -= pay;
             }
         }
+
+        // 2. Nếu còn dư tiền -> Rót thác nước xuống HÓA ĐƠN CHƯA CHỌN
+        if (remaining > 0) {
+            for (const idx of uncheckedIndices) {
+                if (remaining <= 0) break;
+                const item = newList[idx];
+                const pay = Math.min(remaining, item.conLaiToiDa);
+                if (pay > 0) {
+                    item.soTienThanhToanInput = String(pay);
+                    item.selected = true;
+                    remaining -= pay;
+                }
+            }
+        }
+
         setChiTietHoaDon(newList);
     };
 
@@ -368,7 +406,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                         )}
 
                         {/* TOP: 2 col */}
-                        <div className="grid grid-cols-2 gap-8">
+                        <div className="grid grid-cols-[50%_1fr_30%]">
                             {/* LEFT: customer info */}
                             <div>
                                 <p className="text-xs text-gray-400 mb-1">Công ty</p>
@@ -390,27 +428,24 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                             </div>
 
                             {/* RIGHT: editable fields */}
-                            <div className="space-y-4">
+                            <div className="space-y-4 col-start-3">
                                 <div className="relative">
-                                    <p className="text-xs text-gray-400 mb-0.5">Tổng số tiền thu (Tự động chia vào hóa đơn cũ nhất)</p>
-                                    <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        value={fmt(soTienThu)}
-                                        onChange={(e) => handleTotalAmountChange(e.target.value)}
-                                        onFocus={() => setShowAmountSuggestions(true)}
-                                        onBlur={() => setTimeout(() => setShowAmountSuggestions(false), 150)}
-                                        className={`w-full text-2xl font-bold text-gray-900 border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent pb-1 outline-none`}
-                                    />
-                                    {Number(soTienThu) > 0 && (
-                                        <div className="mt-0.5 space-y-0.5 flex justify-between items-center">
-                                            <p className="text-xs text-gray-500 italic">{docSoTien(Number(soTienThu))}</p>
-                                            {lechTien !== 0 && (
-                                                <p className={`text-xs font-semibold ${lechTien > 0 ? "text-orange-500" : "text-red-500"}`}>
-                                                    {lechTien > 0 ? `Còn dư: ${fmt(lechTien)}` : `Bị lệch: ${fmt(lechTien)}`}
-                                                </p>
-                                            )}
-                                        </div>
+                                    <p className="text-xs text-gray-400 mb-0.5">Tổng số tiền thu</p>
+                                    <div className="border border-gray-200 rounded-xl px-4 py-3">
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={fmt(soTienThu)}
+                                            onChange={(e) => handleTotalAmountChange(e.target.value)}
+                                            onFocus={() => setShowAmountSuggestions(true)}
+                                            onBlur={() => setTimeout(() => setShowAmountSuggestions(false), 150)}
+                                            className={`w-full text-2xl font-bold text-gray-900 bg-transparent outline-none`}
+                                        />
+                                    </div>
+                                    {lechTien !== 0 && Number(soTienThu) > 0 && (
+                                        <p className={`text-xs font-semibold mt-1 text-right ${lechTien > 0 ? "text-orange-500" : "text-red-500"}`}>
+                                            {lechTien > 0 ? `Còn dư: ${fmt(lechTien)}` : `Bị lệch: ${fmt(lechTien)}`}
+                                        </p>
                                     )}
 
                                     {showAmountSuggestions && amountSuggestions.length > 0 && (
@@ -430,11 +465,75 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-400 mb-0.5">Ngày thu</p>
-                                    <input type="datetime-local" value={ngayThu}
-                                        min={minNgayThuStr}                     // 🔥 Chặn lùi qua ngày HĐ mới nhất
-                                        max={toLocalDatetimeInput(new Date())}  // 🔥 Chặn chọn tương lai
-                                        onChange={(e) => setNgayThu(e.target.value)}
-                                        className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-sm text-gray-800 py-1 outline-none" />
+                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                        <DateTimePicker
+                                            format="DD/MM/YYYY HH:mm"
+                                            ampm={false}
+                                            value={ngayThu ? dayjs(ngayThu) : null}
+                                            minDateTime={minNgayThuStr ? dayjs(minNgayThuStr) : undefined}
+                                            maxDateTime={dayjs()}
+                                            onChange={(val) => setNgayThu(val ? val.format("YYYY-MM-DDTHH:mm") : "")}
+                                            slotProps={{
+                                                // CSS cho thanh input (giữ nguyên của bạn)
+                                                textField: {
+                                                    variant: "standard",
+                                                    fullWidth: true,
+                                                    sx: {
+                                                        "& input": {
+                                                            fontSize: "0.875rem",
+                                                            color: "#1f2937",
+                                                            py: "4px",
+                                                        },
+                                                        "& .MuiInput-underline:before": {
+                                                            borderBottom: "2px solid #e5e7eb",
+                                                        },
+                                                        "& .MuiInput-underline:hover:not(.Mui-disabled):before": {
+                                                            borderBottom: "2px solid #e5e7eb",
+                                                        },
+                                                        "& .MuiInput-underline:after": {
+                                                            borderBottom: "2px solid #29b6f6",
+                                                        }
+                                                    }
+                                                },
+
+                                                // 1. DÀNH CHO MÀN HÌNH RỘNG (Dạng rớt xuống)
+                                                popper: {
+                                                    placement: "bottom-end",
+                                                    sx: {
+                                                        zIndex: 99999,
+                                                        // Thêm !important để ép MUI phải nghe lời
+                                                        "& .MuiPaper-root": {
+                                                            transform: "scale(0.75) !important",
+                                                            transformOrigin: "top right !important",
+                                                        }
+                                                    }
+                                                },
+
+                                                // 2. DÀNH CHO MÀN HÌNH NHỎ (Dạng popup bật giữa màn hình)
+                                                dialog: {
+                                                    sx: {
+                                                        zIndex: 99999,
+                                                        "& .MuiPaper-root": {
+                                                            transform: "scale(0.75) !important",
+                                                        }
+                                                    }
+                                                },
+
+                                                // 3. ĐÁNH TRỰC TIẾP VÀO LÕI PAPER (Phòng hờ các bản MUI đời mới)
+                                                desktopPaper: {
+                                                    sx: {
+                                                        transform: "scale(0.75) !important",
+                                                        transformOrigin: "top right !important",
+                                                    }
+                                                },
+                                                mobilePaper: {
+                                                    sx: {
+                                                        transform: "scale(0.75) !important",
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </LocalizationProvider>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-400 mb-0.5">Phương thức thanh toán</p>
@@ -504,15 +603,29 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
 
                                                         <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
 
-                                                        <td
-                                                            className="px-4 py-3 font-medium text-[#29b6f6] cursor-pointer hover:underline"
-                                                            onClick={() => navigate(`/hoa-don/${hd._id}/edit`)}
-                                                        >
-                                                            {hd.soHoaDon || formatSoHoaDon(hd._id)}
+                                                        {/* CỘT HÓA ĐƠN */}
+                                                        <td className="px-4 py-3 font-medium">
+                                                            {hd.soHoaDon?.startsWith("SDDK") ? (
+                                                                <span className="text-orange-600 font-bold">
+                                                                    Số dư đầu kỳ (Nợ cũ)
+                                                                </span>
+                                                            ) : (
+                                                                <span
+                                                                    className="text-[#29b6f6] cursor-pointer hover:underline"
+                                                                    onClick={() => navigate(`/hoa-don/${hd._id}/edit`)}
+                                                                >
+                                                                    {hd.soHoaDon || formatSoHoaDon(hd._id)}
+                                                                </span>
+                                                            )}
                                                         </td>
 
+                                                        {/* CỘT NGÀY XUẤT */}
                                                         <td className="px-4 py-3 text-gray-600">
-                                                            {hd.ngayXuatHoaDon ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN") : "—"}
+                                                            {hd.soHoaDon?.startsWith("SDDK")
+                                                                ? "—" // Ẩn ngày xuất nếu là Nợ đầu kỳ
+                                                                : hd.ngayXuatHoaDon
+                                                                    ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN")
+                                                                    : "—"}
                                                         </td>
 
                                                         <td className="px-4 py-3 text-right text-gray-700">

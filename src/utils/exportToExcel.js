@@ -605,60 +605,65 @@ export const exportDonHangListToExcel = async (
       dh?.maDonHang ||
       (dh?._id ? `TAN${dh._id.toString().slice(-8).toUpperCase()}` : "");
     const dssp = dh?.danhSachSanPham || [];
-    const numProducts = dssp.length > 0 ? dssp.length : 1;
-    const startRow = currentRowIndex;
-    const endRow = currentRowIndex + numProducts - 1;
 
-    if (numProducts > 1) {
-      // Merge order level details vertically
-      worksheet.mergeCells(startRow, 1, endRow, 1);   // Nhận lúc
-      worksheet.mergeCells(startRow, 2, endRow, 2);   // Số
-      worksheet.mergeCells(startRow, 3, endRow, 3);   // Khách hàng
-      worksheet.mergeCells(startRow, 4, endRow, 4);   // Bác sĩ
-      worksheet.mergeCells(startRow, 5, endRow, 5);   // Bệnh nhân
-      worksheet.mergeCells(startRow, 10, endRow, 10); // Trạng thái
-      worksheet.mergeCells(startRow, 11, endRow, 11); // Hẹn giao
-    }
+    if (dssp.length === 0) {
+      const rowValues = [
+        formatDT(dh?.ngayNhan),
+        so,
+        dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
+        dh?.bacSi?.hoVaTen || "",
+        dh?.benhNhan?.hoVaTen || "",
+        "",
+        "",
+        "",
+        "",
+        dh?.trangThai || "",
+        formatDT(dh?.henGiao),
+      ];
+      worksheet.getRow(currentRowIndex).values = rowValues;
 
-    // Write first product + order details
-    const firstRowValues = [
-      formatDT(dh?.ngayNhan),
-      so,
-      dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
-      dh?.bacSi?.hoVaTen || "",
-      dh?.benhNhan?.hoVaTen || "",
-      dssp.length > 0 ? (loaiDonPrefix[dssp[0].loaiDon] || "Mới") : "",
-      dssp.length > 0 ? (dssp[0]?.sanPham?.tenSanPham || "") : "",
-      dssp.length > 0 ? (dssp[0]?.soLuong ?? 1) : "",
-      dssp.length > 0 ? renderViTri(dssp[0].viTri) : "",
-      dh?.trangThai || "",
-      formatDT(dh?.henGiao),
-    ];
-    worksheet.getRow(startRow).values = firstRowValues;
-
-    // Write subsequent products if any
-    for (let pIdx = 1; pIdx < dssp.length; pIdx++) {
-      const prodRow = startRow + pIdx;
-      const sp = dssp[pIdx];
-      worksheet.getCell(prodRow, 6).value = loaiDonPrefix[sp.loaiDon] || "Mới";
-      worksheet.getCell(prodRow, 7).value = sp?.sanPham?.tenSanPham || "";
-      worksheet.getCell(prodRow, 8).value = sp?.soLuong ?? 1;
-      worksheet.getCell(prodRow, 9).value = renderViTri(sp.viTri);
-    }
-
-    // Apply borders and alignments
-    for (let r = startRow; r <= endRow; r++) {
-      const row = worksheet.getRow(r);
+      const row = worksheet.getRow(currentRowIndex);
       row.alignment = { vertical: "middle", horizontal: "left" };
       row.getCell(8).alignment = { horizontal: "center", vertical: "middle" };
       row.height = 20;
 
       for (let col = 1; col <= headers.length; col += 1) {
-        applyBorder(worksheet.getCell(r, col), "thin");
+        applyBorder(worksheet.getCell(currentRowIndex, col), "thin");
       }
-    }
 
-    currentRowIndex = endRow + 1;
+      currentRowIndex += 1;
+    } else {
+      dssp.forEach((sp) => {
+        const qtyRaw = sp?.soLuong !== undefined && sp?.soLuong !== null ? Number(sp.soLuong) : 1;
+        const qty = isNaN(qtyRaw) ? 1 : qtyRaw;
+
+        const rowValues = [
+          formatDT(dh?.ngayNhan),
+          so,
+          dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
+          dh?.bacSi?.hoVaTen || "",
+          dh?.benhNhan?.hoVaTen || "",
+          loaiDonPrefix[sp.loaiDon] || "Mới",
+          sp?.sanPham?.tenSanPham || "",
+          qty, // Lưu giá trị số lượng dưới dạng kiểu Number của Excel
+          renderViTri(sp.viTri),
+          dh?.trangThai || "",
+          formatDT(dh?.henGiao),
+        ];
+        worksheet.getRow(currentRowIndex).values = rowValues;
+
+        const row = worksheet.getRow(currentRowIndex);
+        row.alignment = { vertical: "middle", horizontal: "left" };
+        row.getCell(8).alignment = { horizontal: "center", vertical: "middle" };
+        row.height = 20;
+
+        for (let col = 1; col <= headers.length; col += 1) {
+          applyBorder(worksheet.getCell(currentRowIndex, col), "thin");
+        }
+
+        currentRowIndex += 1;
+      });
+    }
   });
 
   const buffer = await workbook.xlsx.writeBuffer();

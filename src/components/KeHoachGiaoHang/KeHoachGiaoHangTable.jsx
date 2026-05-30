@@ -460,11 +460,6 @@ const KeHoachGiaoHangTable = () => {
             {loadingMore && (
               <div className="text-center py-3 text-gray-400 text-sm">Đang tải thêm...</div>
             )}
-            {!loadingMore && pagination?.totalPages && page >= pagination.totalPages && filteredOrders.length > 0 && (
-              <div className="text-center py-2 text-gray-400 text-xs">
-                Đã tải {data.length} / {pagination.total} đơn
-              </div>
-            )}
           </div>
         </div>
 

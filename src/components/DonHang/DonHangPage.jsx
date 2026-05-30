@@ -1056,9 +1056,6 @@ const DonHangPage = () => {
             selectedId={selectedDonHangId}
             onRowClick={handleRowClick}
           />
-          <div className="bg-gray-50 border-t px-3 py-2 text-xs text-gray-500">
-            Hiển thị {filteredDonHangs.length} / {pagination?.total || 0} đơn hàng
-          </div>
           {loadingMore && (
             <div className="text-center py-3 text-gray-400 text-sm">Đang tải thêm...</div>
           )}

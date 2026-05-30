@@ -112,10 +112,6 @@ const NhanVienFormModal = ({ open, onClose, initialData = null }) => {
         toast.success("Tạo nhân viên thành công");
       }
       onClose();
-      // Reload lại trang để cập nhật permissions/roles cho user hiện tại (nếu họ tự sửa chính mình)
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
     } catch (err) {
       toast.error(err);
     } finally {

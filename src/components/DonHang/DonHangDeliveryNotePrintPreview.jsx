@@ -97,8 +97,6 @@ const DonHangDeliveryNotePrintPreview = () => {
             <span className="font-bold">{benhNhan || "---"}</span>
             <span> Sản phẩm:</span>
             <span className="font-bold">{sanPhamText || "---"}</span>
-            <span>Giờ giao:</span>
-            <span className="font-bold">{formatDateTime(donHang.henGiao)}</span>
           </div>
 
           <div className="border-b border-gray-300 mt-3" />
@@ -129,21 +127,29 @@ const DonHangDeliveryNotePrintPreview = () => {
 
       <style>{`
         @page {
-          margin: 12mm 15mm;
+          margin: 0 !important;
         }
         @media print {
           body {
-            background: white;
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .print-area {
-            box-shadow: none;
-            border: none;
+            box-shadow: none !important;
+            border: none !important;
+            width: 76mm !important;
+            max-width: 100% !important;
+            margin-left: 2mm !important;
+            margin-right: auto !important;
+            padding: 4mm 6mm !important;
+            box-sizing: border-box !important;
           }
           button {
-            display: none;
+            display: none !important;
           }
           .h-10, .mt-4 {
-            display: none;
+            display: none !important;
           }
         }
       `}</style>

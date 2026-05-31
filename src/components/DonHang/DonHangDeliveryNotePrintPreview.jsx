@@ -106,12 +106,8 @@ const DonHangDeliveryNotePrintPreview = () => {
             <span className="font-bold">{benhNhan || "---"}</span>
             <span>Sản phẩm:</span>
             <span className="font-bold">{sanPhamText || "---"}</span>
-          </div>
-
-          <div className="border-b border-gray-300 mt-3" />
-          <div className="mt-2 text-left">
-            <span>Ghi chú SX: </span>
-            <span className="font-bold">{donHang.ghiChuSanXuat || "---"}</span>
+            <span>Kèm theo:</span>
+            <span className="font-bold">{phuKienText || "---"}</span>
           </div>
 
           <div className="border-b border-gray-300 mt-3" />

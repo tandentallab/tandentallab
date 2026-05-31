@@ -195,15 +195,33 @@ const PhieuBaoHanhPage = () => {
             .join("; ");
         };
 
-        // Chuẩn hóa danh sách sản phẩm từ đơn hàng mới nhất
-        const orderProducts = (latestOrder.danhSachSanPham || []).map((sp) => ({
-          sanPhamId: sp.sanPham?._id || sp.sanPham,
-          tenSanPham: sp.sanPham?.tenSanPham || sp.sanPham?.ten || "Sản phẩm",
-          viTriRang: formatViTri(sp.viTri),
-          soLuong: Number(sp.soLuong) || 1,
-          mau: sp.mau || "",
-          baoHanhMacDinh: sp.sanPham?.baoHanhMacDinh || 0,
-        }));
+        const nhaKhoaId = latestOrder.nhaKhoa?._id || latestOrder.nhaKhoa;
+        // Fetch bảng giá nha khoa
+        const bangGiaRes = await api.get(`/bang-gia/nha-khoa/${nhaKhoaId}`).catch(() => null);
+        const mapGia = {};
+        if (bangGiaRes?.data) {
+          bangGiaRes.data.forEach((item) => {
+            if (item.sanPhamId) {
+              mapGia[item.sanPhamId.toString()] = item.donGia || 0;
+            }
+          });
+        }
+
+        // Chuẩn hóa danh sách sản phẩm từ đơn hàng mới nhất và có giá > 0
+        const orderProducts = (latestOrder.danhSachSanPham || [])
+          .filter((sp) => {
+            const spId = sp.sanPham?._id || sp.sanPham;
+            const donGia = mapGia[spId] ?? sp.sanPham?.donGiaChung ?? 0;
+            return sp.loaiDon === "Mới" && donGia > 0;
+          })
+          .map((sp) => ({
+            sanPhamId: sp.sanPham?._id || sp.sanPham,
+            tenSanPham: sp.sanPham?.tenSanPham || sp.sanPham?.ten || "Sản phẩm",
+            viTriRang: formatViTri(sp.viTri),
+            soLuong: Number(sp.soLuong) || 1,
+            mau: sp.mau || "",
+            baoHanhMacDinh: sp.sanPham?.baoHanhMacDinh || 0,
+          }));
 
         // Chuẩn hóa danh sách sản phẩm hiện tại của phiếu bảo hành
         const currentWarrantyProducts = (editForm.danhSachBaoHanh || []).map((w) => ({

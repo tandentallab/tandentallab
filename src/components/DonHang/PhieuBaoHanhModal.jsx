@@ -35,6 +35,28 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   const [ghiChu, setGhiChu] = useState("");
   const [mauTheList, setMauTheList] = useState([]);
   const [selectedMauTheId, setSelectedMauTheId] = useState("");
+  const [mapGia, setMapGia] = useState({});
+
+  useEffect(() => {
+    if (open && donHang?.nhaKhoa) {
+      const nhaKhoaId = donHang.nhaKhoa?._id || donHang.nhaKhoa;
+      api.get(`/bang-gia/nha-khoa/${nhaKhoaId}`)
+        .then((res) => {
+          const map = {};
+          if (res.data) {
+            res.data.forEach((item) => {
+              if (item.sanPhamId) {
+                map[item.sanPhamId.toString()] = item.donGia || 0;
+              }
+            });
+          }
+          setMapGia(map);
+        })
+        .catch((err) => {
+          console.error("Lỗi fetch bang gia:", err);
+        });
+    }
+  }, [open, donHang?.nhaKhoa]);
 
   useEffect(() => {
     if (open) {
@@ -88,7 +110,8 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
 
   const availableProducts = productOptions.filter((sp) => {
     const spId = sp.sanPham?._id || sp.sanPham;
-    return !sanPhamDaCoPhieu.includes(spId);
+    const donGia = mapGia[spId] ?? sp.sanPham?.donGiaChung ?? 0;
+    return !sanPhamDaCoPhieu.includes(spId) && sp.loaiDon === "Mới" && donGia > 0;
   });
 
   // Khởi tạo state cấu hình bảo hành cho từng sản phẩm

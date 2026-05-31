@@ -1077,7 +1077,7 @@ const DonHangForm = () => {
               In Phiếu giao hàng
             </button>
           )}
-          {isEditMode && (
+          {isEditMode && formData.danhSachSanPham?.some(sp => sp.loaiDon === "Mới") && (
             <button
               onClick={() => {
                 if (!formData._id) { toast.error("Vui lòng lưu đơn hàng trước khi thêm thẻ bảo hành"); return; }

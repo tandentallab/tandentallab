@@ -118,6 +118,7 @@ const DonHangDetailPanel = (props) => {
   const trangThaiColor = {
     "Chờ xử lý": "bg-yellow-200 text-yellow-900",
     "Đang sản xuất": "bg-blue-200 text-blue-900",
+    "Đang thử": "bg-purple-200 text-purple-900",
     "Hoàn thành": "bg-green-200 text-green-900",
     "Đã giao": "bg-gray-200 text-gray-800",
   };

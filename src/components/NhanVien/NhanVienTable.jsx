@@ -10,7 +10,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import AssignmentIcon from "@mui/icons-material/Assignment";
-import { Tooltip } from "@mui/material";
+import { Tooltip, Typography } from "@mui/material";
 
 const NhanVienTable = () => {
   const dispatch = useDispatch();
@@ -259,6 +259,13 @@ const NhanVienTable = () => {
                     </td>
                   </tr>
                 )}
+                <tr>
+                  <td colSpan={8} align="center">
+                    <Typography variant="caption" color="text.secondary">
+                      Tổng số {data?.length} người liên hệ
+                    </Typography>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>

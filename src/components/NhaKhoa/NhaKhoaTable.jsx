@@ -278,6 +278,13 @@ export default function NhaKhoaTable() {
         <TableContainer component={Paper} className="rounded-2xl shadow-lg">
           <Table>
             <TableHead>
+              <TableRow>
+                <TableCell colSpan={8} align="left">
+                  <Typography variant="caption" color="text.secondary">
+                    Tổng số {data?.length} nha khoa
+                  </Typography>
+                </TableCell>
+              </TableRow>
               <TableRow className="bg-gray-100">
                 <TableCell></TableCell>
                 <TableCell>
@@ -401,6 +408,13 @@ export default function NhaKhoaTable() {
                   </TableCell>
                 </TableRow>
               ))}
+              <TableRow>
+                <TableCell colSpan={8} align="right">
+                  <Typography variant="caption" color="text.secondary">
+                    Tổng số {data?.length} nha khoa
+                  </Typography>
+                </TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </TableContainer>

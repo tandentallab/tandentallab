@@ -120,11 +120,27 @@ export const updateCongDoanTrangThai = createAsyncThunk(
         }
     }
 );
+
+/* ================= GET THONG KE ================= */
+export const fetchThongKe = createAsyncThunk(
+    "donHang/fetchThongKe",
+    async (_, { rejectWithValue }) => {
+        try {
+            const res = await api.get("/donhang/thong-ke");
+            return res.data.data; // { giaoHomNay, treHenGiao, guiThu }
+        } catch (err) {
+            return rejectWithValue(
+                err.response?.data?.message || "Lỗi tải thống kê đơn hàng"
+            );
+        }
+    }
+);
+
 //Khởi tạo filter kế hoạch giao hàng
 const initialFilterState = {
     showUrgentOnly: false,
     filterType: "all",
-    filterStatus: "Chờ xử lý",
+    filterStatus: "all",
     fromDate: "",
     toDate: "",
     searchText: "",
@@ -174,21 +190,26 @@ const donHangSlice = createSlice({
         error: null,
         pagination: { total: 0, totalPages: 1, currentPage: 1 },
         stats: {},
+        thongKe: {
+            giaoHomNay: 0,
+            treHenGiao: 0,
+            guiThu: 0,
+        },
     },
 
     reducers: {
         setFilter(state, action) {
-                    state.filters = {
-                        ...state.filters,
-                        ...action.payload,
-                    };
+            state.filters = {
+                ...state.filters,
+                ...action.payload,
+            };
         },
 
         resetFilter(state) {
             state.filters = initialFilterState;
         },
 
-         setDonHangPageFilter(state, action) {
+        setDonHangPageFilter(state, action) {
             state.donHangPageFilter = {
                 ...state.donHangPageFilter,
                 ...action.payload,
@@ -198,7 +219,7 @@ const donHangSlice = createSlice({
         resetDonHangPageFilter(state) {
             state.donHangPageFilter = initialDonHangPageFilter;
         },
-        },
+    },
 
     extraReducers: (builder) => {
         builder
@@ -294,6 +315,18 @@ const donHangSlice = createSlice({
                 state.data = state.data.filter(
                     (item) => item._id !== action.payload
                 );
+            })
+
+            /* ===== THONG KE ===== */
+            .addCase(fetchThongKe.pending, (state) => {
+                state.loadingThongKe = true;
+            })
+            .addCase(fetchThongKe.fulfilled, (state, action) => {
+                state.loadingThongKe = false;
+                state.thongKe = action.payload;
+            })
+            .addCase(fetchThongKe.rejected, (state) => {
+                state.loadingThongKe = false;
             });
     },
 });

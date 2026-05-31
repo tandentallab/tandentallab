@@ -120,6 +120,22 @@ export const updateCongDoanTrangThai = createAsyncThunk(
         }
     }
 );
+
+/* ================= GET THONG KE ================= */
+export const fetchThongKe = createAsyncThunk(
+    "donHang/fetchThongKe",
+    async (_, { rejectWithValue }) => {
+        try {
+            const res = await api.get("/donhang/thong-ke");
+            return res.data.data; // { giaoHomNay, treHenGiao, guiThu }
+        } catch (err) {
+            return rejectWithValue(
+                err.response?.data?.message || "Lỗi tải thống kê đơn hàng"
+            );
+        }
+    }
+);
+
 //Khởi tạo filter kế hoạch giao hàng
 const initialFilterState = {
     showUrgentOnly: false,
@@ -174,6 +190,11 @@ const donHangSlice = createSlice({
         error: null,
         pagination: { total: 0, totalPages: 1, currentPage: 1 },
         stats: {},
+        thongKe: {
+            giaoHomNay: 0,
+            treHenGiao: 0,
+            guiThu: 0,
+        },
     },
 
     reducers: {
@@ -294,7 +315,19 @@ const donHangSlice = createSlice({
                 state.data = state.data.filter(
                     (item) => item._id !== action.payload
                 );
-            });
+            })
+
+             /* ===== THONG KE ===== */
+                        .addCase(fetchThongKe.pending, (state) => {
+                            state.loadingThongKe = true;
+                        })
+                        .addCase(fetchThongKe.fulfilled, (state, action) => {
+                            state.loadingThongKe = false;
+                            state.thongKe = action.payload;
+                        })
+                        .addCase(fetchThongKe.rejected, (state) => {
+                            state.loadingThongKe = false;
+                        });
     },
 });
 

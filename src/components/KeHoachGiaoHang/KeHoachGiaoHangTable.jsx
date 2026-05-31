@@ -10,6 +10,7 @@ import { api } from "../../config/api";
 import {
   fetchDonHang,
   fetchMoreDonHang,
+  fetchThongKe,
   setFilter,
 } from "../../redux/slices/donHangSlice";
 import {
@@ -20,7 +21,6 @@ import {
   endOfDay,
   parseISO,
 } from "date-fns";
-import ThongKeKeHoachGiaoHang from "./ThongKeKeHoachGiaoHang";
 import { useNavigate } from "react-router-dom";
 import { exportKeHoachGiaoHangToExcel } from "../../utils/exportToExcel";
 import {
@@ -60,6 +60,14 @@ const KeHoachGiaoHangTable = () => {
   const todayStart = startOfDay(new Date());
 
   const navigate = useNavigate();
+
+  const { thongKe, loadingThongKe } = useSelector((state) => state.donHang);
+
+  useEffect(() => {
+    dispatch(fetchThongKe());
+  }, [dispatch]);
+
+  const { giaoHomNay = 0, treHenGiao = 0, guiThu = 0 } = thongKe || {};
 
   const filters = useSelector((state) => state.donHang.filters);
 
@@ -113,61 +121,79 @@ const KeHoachGiaoHangTable = () => {
   }, [page, pagination?.totalPages, loadingMore, loading]);
 
   // ================= FILTER LOGIC =================
-  const applyFilters = useCallback((sourceData) => {
-    let result = [...sourceData];
+  const applyFilters = useCallback(
+    (sourceData) => {
+      let result = [...sourceData];
 
-    result = result.filter((order) => {
-      const henGiaoDate = parseISO(order.henGiao);
-      const overdue =
-        isBefore(henGiaoDate, todayStart) && order.trangThai !== "Hoàn thành";
-      const dueToday = isToday(henGiaoDate);
-      const from = fromDate ? startOfDay(new Date(fromDate)) : null;
-      const to = toDate ? endOfDay(new Date(toDate)) : null;
-      const inRange = from && to && henGiaoDate >= from && henGiaoDate <= to;
-
-      if (filterType === "today") return dueToday;
-      if (filterType === "overdue") return overdue;
-      if (filterType === "range") return inRange;
-      return true;
-    });
-
-    if (filterStatus !== "all") {
-      result = result.filter((order) => order.trangThai === filterStatus);
-    }
-
-    if (showUrgentOnly) {
       result = result.filter((order) => {
         const henGiaoDate = parseISO(order.henGiao);
-        return (
-          isToday(henGiaoDate) ||
-          (isBefore(henGiaoDate, todayStart) &&
-            order.trangThai !== "Hoàn thành")
-        );
+        const overdue =
+          isBefore(henGiaoDate, todayStart) && order.trangThai !== "Hoàn thành";
+        const dueToday = isToday(henGiaoDate);
+        const from = fromDate ? startOfDay(new Date(fromDate)) : null;
+        const to = toDate ? endOfDay(new Date(toDate)) : null;
+        const inRange = from && to && henGiaoDate >= from && henGiaoDate <= to;
+
+        if (filterType === "today") return dueToday;
+        if (filterType === "overdue") return overdue;
+        if (filterType === "range") return inRange;
+        return true;
       });
-    }
 
-    if (searchText.trim()) {
-      const q = searchText.toLowerCase();
-      result = result.filter(
-        (o) =>
-          (o.maDonHang && o.maDonHang.toLowerCase().includes(q)) ||
-          (o.nhaKhoa?.hoVaTen && o.nhaKhoa.hoVaTen.toLowerCase().includes(q)) ||
-          (o.bacSi?.hoVaTen && o.bacSi.hoVaTen.toLowerCase().includes(q)) ||
-          (o.benhNhan?.hoVaTen && o.benhNhan.hoVaTen.toLowerCase().includes(q))
-      );
-    }
+      if (filterStatus !== "all") {
+        result = result.filter((order) => order.trangThai === filterStatus);
+      }
 
-    result.sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
-    return result;
-  }, [filterType, filterStatus, fromDate, toDate, showUrgentOnly, searchText, todayStart]);
+      if (showUrgentOnly) {
+        result = result.filter((order) => {
+          const henGiaoDate = parseISO(order.henGiao);
+          return (
+            isToday(henGiaoDate) ||
+            (isBefore(henGiaoDate, todayStart) &&
+              order.trangThai !== "Hoàn thành")
+          );
+        });
+      }
 
-  const filteredOrders = useMemo(() => applyFilters(data), [data, applyFilters]);
+      if (searchText.trim()) {
+        const q = searchText.toLowerCase();
+        result = result.filter(
+          (o) =>
+            (o.maDonHang && o.maDonHang.toLowerCase().includes(q)) ||
+            (o.nhaKhoa?.hoVaTen &&
+              o.nhaKhoa.hoVaTen.toLowerCase().includes(q)) ||
+            (o.bacSi?.hoVaTen && o.bacSi.hoVaTen.toLowerCase().includes(q)) ||
+            (o.benhNhan?.hoVaTen &&
+              o.benhNhan.hoVaTen.toLowerCase().includes(q))
+        );
+      }
+
+      result.sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
+      return result;
+    },
+    [
+      filterType,
+      filterStatus,
+      fromDate,
+      toDate,
+      showUrgentOnly,
+      searchText,
+      todayStart,
+    ]
+  );
+
+  const filteredOrders = useMemo(
+    () => applyFilters(data),
+    [data, applyFilters]
+  );
 
   // Lấy toàn bộ dữ liệu (không phân trang) rồi áp filter
   const fetchAllFiltered = useCallback(async () => {
     setLoadingAll(true);
     try {
-      const res = await api.get("/donhang", { params: { page: 1, limit: 9999 } });
+      const res = await api.get("/donhang", {
+        params: { page: 1, limit: 9999 },
+      });
       const allData = res.data.data || [];
       return applyFilters(allData);
     } finally {
@@ -254,11 +280,52 @@ const KeHoachGiaoHangTable = () => {
       <div className="max-w-full mx-auto">
         {/* ================= HEADER STATS ================= */}
         <div className="print:hidden">
-          <ThongKeKeHoachGiaoHang
-            countToday={countToday}
-            countOverdue={countOverdue}
-            countDone={countDone}
-          />
+          <div className="flex w-full mb-4 rounded-lg overflow-hidden shadow-md">
+            {/* Giao hôm nay */}
+            <div
+              className="flex-1 cursor-pointer bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative"
+              onClick={() => dispatch(setFilter({ filterType: "today" }))}
+            >
+              <div>
+                <div className="text-3xl font-extrabold leading-none transition-transform duration-200 group-hover:scale-110">
+                  {loadingThongKe ? "..." : giaoHomNay}
+                </div>
+                <div className="text-sm font-semibold mt-0.5 opacity-90">
+                  Giao hôm nay
+                </div>
+              </div>
+            </div>
+
+            {/* Trễ hạn */}
+            <div
+              className="flex-1 cursor-pointer bg-red-600 hover:bg-red-500 active:bg-red-700 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative"
+              onClick={() => dispatch(setFilter({ filterType: "overdue" }))}
+            >
+              <div>
+                <div className="text-3xl font-extrabold leading-none">
+                  {loadingThongKe ? "..." : treHenGiao}
+                </div>
+                <div className="text-sm font-semibold mt-0.5 opacity-90">
+                  Trễ
+                </div>
+              </div>
+            </div>
+
+            {/* Gởi thử */}
+            <div
+              className="flex-1 cursor-pointer bg-green-700 hover:bg-green-600 active:bg-green-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative"
+              onClick={() => dispatch(setFilter({ filterType: "sent" }))}
+            >
+              <div>
+                <div className="text-3xl font-extrabold leading-none">
+                  {loadingThongKe ? "..." : guiThu}
+                </div>
+                <div className="text-sm font-semibold mt-0.5 opacity-90">
+                  Gởi thử
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ================= TOOLBAR ================= */}
@@ -266,8 +333,9 @@ const KeHoachGiaoHangTable = () => {
           {/* Filter icon toggle */}
           <button
             onClick={() => setShowFilterBar((v) => !v)}
-            className={`p-2 rounded hover:bg-gray-200 transition ${showFilterBar ? "text-blue-600" : "text-gray-500"
-              }`}
+            className={`p-2 rounded hover:bg-gray-200 transition ${
+              showFilterBar ? "text-blue-600" : "text-gray-500"
+            }`}
             title="Lọc"
           >
             <FiFilter size={18} />
@@ -310,7 +378,11 @@ const KeHoachGiaoHangTable = () => {
             className="p-2 rounded hover:bg-gray-200 text-gray-500 transition disabled:opacity-50"
             title="In danh sách"
           >
-            {loadingAll ? <FiRefreshCw size={17} className="animate-spin" /> : <FiPrinter size={17} />}
+            {loadingAll ? (
+              <FiRefreshCw size={17} className="animate-spin" />
+            ) : (
+              <FiPrinter size={17} />
+            )}
           </button>
           <button
             onClick={() => {
@@ -447,10 +519,11 @@ const KeHoachGiaoHangTable = () => {
                     <tr
                       key={`${order._id}_${spIdx}`}
                       onClick={() => setSelectedDonHang(order)}
-                      className={`border-b cursor-pointer transition-colors ${selectedDonHang?._id === order._id
-                        ? "bg-sky-100 border-sky-200"
-                        : "hover:bg-gray-50"
-                        }`}
+                      className={`border-b cursor-pointer transition-colors ${
+                        selectedDonHang?._id === order._id
+                          ? "bg-sky-100 border-sky-200"
+                          : "hover:bg-gray-50"
+                      }`}
                     >
                       {/* NHẬN LÚC */}
                       <td className="px-3 py-2.5 whitespace-nowrap text-xs text-gray-600">
@@ -466,12 +539,13 @@ const KeHoachGiaoHangTable = () => {
                             e.stopPropagation();
                             navigate(`/donhang/${order._id}/edit`);
                           }}
-                          className={`font-medium text-sm hover:underline ${overdue
-                            ? "text-red-500"
-                            : today
+                          className={`font-medium text-sm hover:underline ${
+                            overdue
+                              ? "text-red-500"
+                              : today
                               ? "text-blue-600"
                               : "text-gray-700"
-                            }`}
+                          }`}
                         >
                           {maDon}
                         </button>
@@ -479,8 +553,9 @@ const KeHoachGiaoHangTable = () => {
 
                       {/* HẸN GIAO */}
                       <td
-                        className={`px-3 py-2.5 whitespace-nowrap text-sm font-medium ${overdue ? "text-red-500" : "text-gray-700"
-                          }`}
+                        className={`px-3 py-2.5 whitespace-nowrap text-sm font-medium ${
+                          overdue ? "text-red-500" : "text-gray-700"
+                        }`}
                       >
                         {format(date, "HH:mm dd/MM/yyyy")}
                       </td>
@@ -537,7 +612,9 @@ const KeHoachGiaoHangTable = () => {
             {/* ================= INFINITE SCROLL SENTINEL ================= */}
             <div ref={sentinelRef} className="h-4" />
             {loadingMore && (
-              <div className="text-center py-3 text-gray-400 text-sm">Đang tải thêm...</div>
+              <div className="text-center py-3 text-gray-400 text-sm">
+                Đang tải thêm...
+              </div>
             )}
           </div>
         </div>
@@ -639,45 +716,44 @@ const KeHoachGiaoHangTable = () => {
               </tr>
             </thead>
             <tbody>
-              {
-                filteredOrders.flatMap((order) => {
-                  const dssp = order.danhSachSanPham || [];
-                  const products = dssp.length > 0 ? dssp : [null];
-                  const maDon =
-                    order.maDonHang ||
-                    `TAN${order._id
-                      .substring(order._id.length - 8)
-                      .toUpperCase()}`;
-                  return products.map((sp, spIdx) => (
-                    <tr key={`${order._id}_${spIdx}`}>
-                      <td className="border border-black px-2 py-1 text-center">
-                        {order.ngayNhan
-                          ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
-                          : "—"}
-                      </td>
-                      <td className="border border-black px-2 py-1 text-center font-semibold">
-                        {maDon}
-                      </td>
-                      <td className="border border-black px-2 py-1">
-                        {order.nhaKhoa?.hoVaTen}
-                      </td>
-                      <td className="border border-black px-2 py-1">
-                        {order.benhNhan?.hoVaTen}
-                      </td>
-                      <td className="border border-black px-2 py-1">
-                        {formatSingleSanPham(sp)}
-                      </td>
-                      <td className="border border-black px-2 py-1 text-center">
-                        {order.henGiao
-                          ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm")
-                          : "—"}
-                      </td>
-                      <td className="border border-black px-2 py-1">
-                        {order.ghiChuChung}
-                      </td>
-                    </tr>
-                  ));
-                })}
+              {filteredOrders.flatMap((order) => {
+                const dssp = order.danhSachSanPham || [];
+                const products = dssp.length > 0 ? dssp : [null];
+                const maDon =
+                  order.maDonHang ||
+                  `TAN${order._id
+                    .substring(order._id.length - 8)
+                    .toUpperCase()}`;
+                return products.map((sp, spIdx) => (
+                  <tr key={`${order._id}_${spIdx}`}>
+                    <td className="border border-black px-2 py-1 text-center">
+                      {order.ngayNhan
+                        ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
+                        : "—"}
+                    </td>
+                    <td className="border border-black px-2 py-1 text-center font-semibold">
+                      {maDon}
+                    </td>
+                    <td className="border border-black px-2 py-1">
+                      {order.nhaKhoa?.hoVaTen}
+                    </td>
+                    <td className="border border-black px-2 py-1">
+                      {order.benhNhan?.hoVaTen}
+                    </td>
+                    <td className="border border-black px-2 py-1">
+                      {formatSingleSanPham(sp)}
+                    </td>
+                    <td className="border border-black px-2 py-1 text-center">
+                      {order.henGiao
+                        ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm")
+                        : "—"}
+                    </td>
+                    <td className="border border-black px-2 py-1">
+                      {order.ghiChuChung}
+                    </td>
+                  </tr>
+                ));
+              })}
               {(printOrders ?? filteredOrders).length === 0 && (
                 <tr>
                   <td
@@ -689,20 +765,18 @@ const KeHoachGiaoHangTable = () => {
                 </tr>
               )}
             </tbody>
-          </table >
-        </div >
-      </div >
+          </table>
+        </div>
+      </div>
 
       {/* Hiển thị Panel Chi Tiết Đơn Hàng nếu đang chọn 1 đơn hàng */}
-      {
-        selectedDonHang && (
-          <DonHangDetailPanel
-            donHang={selectedDonHang}
-            onClose={() => setSelectedDonHang(null)}
-          />
-        )
-      }
-    </div >
+      {selectedDonHang && (
+        <DonHangDetailPanel
+          donHang={selectedDonHang}
+          onClose={() => setSelectedDonHang(null)}
+        />
+      )}
+    </div>
   );
 };
 
@@ -715,8 +789,9 @@ const TrangThaiBadge = ({ value }) => {
   };
   return (
     <span
-      className={`px-2 py-1 rounded font-medium text-xs ${map[value] || "bg-gray-100 text-gray-600"
-        }`}
+      className={`px-2 py-1 rounded font-medium text-xs ${
+        map[value] || "bg-gray-100 text-gray-600"
+      }`}
     >
       {value || "Chờ xử lý"}
     </span>

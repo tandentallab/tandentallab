@@ -68,12 +68,12 @@ export default function NhaKhoaTable() {
 
   // ===== DANH SÁCH TỈNH THÀNH =====
   const provinces = useMemo(() => {
-    return [...new Set(data?.map((i) => i.tinh).filter(Boolean))];
+    return [...new Set(data?.map((i) => i.tinh)?.filter(Boolean))];
   }, [data]);
 
   // ===== FILTER =====
   const filteredData = useMemo(() => {
-    return data.filter((item) => {
+    return data?.filter((item) => {
       const keyword = search.toLowerCase();
 
       const matchSearch =
@@ -189,7 +189,7 @@ export default function NhaKhoaTable() {
           >
             <MenuItem value="">Tất cả</MenuItem>
 
-            {provinces.map((province, index) => (
+            {provinces?.map((province, index) => (
               <MenuItem key={index} value={province}>
                 {province}
               </MenuItem>
@@ -313,7 +313,7 @@ export default function NhaKhoaTable() {
                 </TableRow>
               )}
 
-              {!loading && filteredData.length === 0 && (
+              {!loading && filteredData?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} align="center">
                     Không có dữ liệu
@@ -423,12 +423,12 @@ export default function NhaKhoaTable() {
           </Box>
         )}
 
-        {!loading && filteredData.length === 0 && (
+        {!loading && filteredData?.length === 0 && (
           <Paper className="p-5 text-center">Không có dữ liệu</Paper>
         )}
 
         {!loading &&
-          filteredData.map((item) => (
+          filteredData?.map((item) => (
             <Card
               key={item._id}
               sx={{
@@ -566,7 +566,7 @@ export default function NhaKhoaTable() {
                 -- Chọn Nha Khoa --
               </MenuItem>
               {data &&
-                data.map((nk) => (
+                data?.map((nk) => (
                   <MenuItem key={nk._id} value={nk._id}>
                     {nk.hoVaTen || nk.tenGiaoDich}
                   </MenuItem>

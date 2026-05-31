@@ -79,8 +79,8 @@ const nhaKhoaSlice = createSlice({
       })
       .addCase(fetchNhaKhoa.fulfilled, (state, action) => {
         state.loading = false;
-        state.data = action.payload.data; // Lưu mảng danh sách nha khoa
-        state.pagination = action.payload.pagination; // Lưu thông tin phân trang
+        state.data = Array.isArray(action.payload) ? action.payload : (action.payload.data || []);
+        state.pagination = action.payload.pagination || state.pagination;
       })
       .addCase(fetchNhaKhoa.rejected, (state, action) => {
         state.loading = false;

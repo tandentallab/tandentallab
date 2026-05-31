@@ -76,7 +76,7 @@ const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
 export default function PhieuThuPage() {
     const dispatch = useDispatch();
     const { danhSach, pagination, loading } = useSelector((s) => s.phieuThu);
-    const nhaKhoaList = useSelector((s) => s.nhaKhoa.data);
+    const nhaKhoaList = useSelector((s) => s.nhaKhoa.data) ?? [];
 
     const [page, setPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState("");

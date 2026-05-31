@@ -26,10 +26,7 @@ import { toast } from "sonner";
 import DownloadIcon from "@mui/icons-material/Download";
 import SvgIcon from "@mui/material/SvgIcon";
 
-import {
-  fetchAllHoaDonAdmin,
-  setHoaDonFilter,
-} from "../../redux/slices/hoaDonSlice";
+import { fetchAllHoaDonAdmin } from "../../redux/slices/hoaDonSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import ThongKeCongNo from "./ThongKeCongNo";
 import HoaDonFilterDrawer from "./HoaDonFilterDrawer";
@@ -165,11 +162,6 @@ const computeDateRange = (filter) => {
 
 const HoaDonPage = () => {
   const dispatch = useDispatch();
-  const {
-    ngayXuat: appliedNgayXuat,
-    nhaKhoa: appliedNhaKhoa,
-    trangThai: appliedTrangThai,
-  } = useSelector((state) => state.hoaDon.filters);
   const navigate = useNavigate();
 
   const {
@@ -179,13 +171,38 @@ const HoaDonPage = () => {
   } = useSelector((state) => state.hoaDon);
   const nhaKhoa = useSelector((state) => state.nhaKhoa);
 
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  //   const [appliedNgayXuat, setAppliedNgayXuat] = useState(EMPTY_DATE);
-  //   const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(null);
-  //   const [appliedTrangThai, setAppliedTrangThai] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  // =====================================================================
+  // KHAI BÁO STATE TỪ SESSION STORAGE (GIỮ BỘ LỌC CỨNG KHI CHUYỂN TRANG)
+  // =====================================================================
+  const [page, setPage] = useState(() => Number(sessionStorage.getItem("hd_page")) || 0);
+  const [rowsPerPage, setRowsPerPage] = useState(() => Number(sessionStorage.getItem("hd_rowsPerPage")) || 10);
+
+  const [appliedNgayXuat, setAppliedNgayXuat] = useState(() => {
+    const saved = sessionStorage.getItem("hd_appliedNgayXuat");
+    return saved ? JSON.parse(saved) : EMPTY_DATE;
+  });
+
+  const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(() => {
+    const saved = sessionStorage.getItem("hd_appliedNhaKhoa");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [appliedTrangThai, setAppliedTrangThai] = useState(() => {
+    const saved = sessionStorage.getItem("hd_appliedTrangThai");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("hd_searchTerm") || "");
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+
+  // 🔥 LƯU TRẠNG THÁI VÀO SESSION KHI CÓ THAY ĐỔI
+  useEffect(() => { sessionStorage.setItem("hd_page", page.toString()); }, [page]);
+  useEffect(() => { sessionStorage.setItem("hd_rowsPerPage", rowsPerPage.toString()); }, [rowsPerPage]);
+  useEffect(() => { sessionStorage.setItem("hd_appliedNgayXuat", JSON.stringify(appliedNgayXuat)); }, [appliedNgayXuat]);
+  useEffect(() => { sessionStorage.setItem("hd_appliedNhaKhoa", JSON.stringify(appliedNhaKhoa)); }, [appliedNhaKhoa]);
+  useEffect(() => { sessionStorage.setItem("hd_appliedTrangThai", JSON.stringify(appliedTrangThai)); }, [appliedTrangThai]);
+  useEffect(() => { sessionStorage.setItem("hd_searchTerm", searchTerm); }, [searchTerm]);
+  // =====================================================================
   const [openFilter, setOpenFilter] = useState(false);
   const filterContainerRef = useRef(null);
 
@@ -370,9 +387,8 @@ const HoaDonPage = () => {
               <IconButton
                 onClick={() => setOpenFilter(!openFilter)}
                 size="small"
-                className={`transition-colors ${
-                  openFilter ? "bg-blue-50" : ""
-                }`}
+                className={`transition-colors ${openFilter ? "bg-blue-50" : ""
+                  }`}
                 sx={{
                   color: isFiltered ? "#1976d2" : "#555",
                   p: "8px",
@@ -397,24 +413,15 @@ const HoaDonPage = () => {
               appliedTrangThai={appliedTrangThai}
               nhaKhoaList={Array.isArray(nhaKhoa?.data) ? nhaKhoa.data : []}
               onApply={(ngayXuat, nhaKhoa, trangThai) => {
-                dispatch(
-                  setHoaDonFilter({
-                    ngayXuat: ngayXuat,
-                    nhaKhoa: nhaKhoa,
-                    trangThai: trangThai,
-                  })
-                );
+                setAppliedNgayXuat(ngayXuat);
+                setAppliedNhaKhoa(nhaKhoa);
+                setAppliedTrangThai(trangThai);
                 setPage(0);
               }}
               onReset={() => {
-                dispatch(
-                  setHoaDonFilter({
-                    ngayXuat: EMPTY_DATE,
-                    nhaKhoa: null,
-                    trangThai: [],
-                  })
-                );
-
+                setAppliedNgayXuat(EMPTY_DATE);
+                setAppliedNhaKhoa(null);
+                setAppliedTrangThai([]);
                 setPage(0);
               }}
             />
@@ -483,18 +490,13 @@ const HoaDonPage = () => {
               <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
                 <CalendarTodayIcon sx={{ fontSize: 12 }} />
                 {appliedNgayXuat.preset === "custom"
-                  ? `${appliedNgayXuat.customFrom || "?"} → ${
-                      appliedNgayXuat.customTo || "?"
-                    }`
+                  ? `${appliedNgayXuat.customFrom || "?"} → ${appliedNgayXuat.customTo || "?"
+                  }`
                   : DATE_PRESETS.find((p) => p.key === appliedNgayXuat.preset)
-                      ?.label || appliedNgayXuat.preset}
+                    ?.label || appliedNgayXuat.preset}
                 <button
                   onClick={() => {
-                    dispatch(
-                      setHoaDonFilter({
-                        ngayXuat: EMPTY_DATE,
-                      })
-                    );
+                    setAppliedNgayXuat(EMPTY_DATE);
                     setPage(0);
                   }}
                   className="ml-1 hover:text-blue-900 font-bold"
@@ -509,11 +511,7 @@ const HoaDonPage = () => {
                 {appliedNhaKhoa.name}
                 <button
                   onClick={() => {
-                    dispatch(
-                      setHoaDonFilter({
-                        nhaKhoa: null,
-                      })
-                    );
+                    setAppliedNhaKhoa(null);
                     setPage(0);
                   }}
                   className="ml-1 hover:text-blue-900 font-bold"
@@ -530,11 +528,7 @@ const HoaDonPage = () => {
                 {tt}
                 <button
                   onClick={() => {
-                    dispatch(
-                      setHoaDonFilter({
-                        trangThai: [],
-                      })
-                    );
+                    setAppliedTrangThai((prev) => prev.filter((x) => x !== tt));
                     setPage(0);
                   }}
                   className="ml-1 hover:text-blue-900 font-bold"

@@ -151,9 +151,9 @@ const MauTheBaoHanhPage = () => {
       if (newConfigs[field.loaiTruong]) {
         newConfigs[field.loaiTruong] = {
           enabled: true,
-          leTren: field.leTren || 10,
-          leTrai: field.leTrai || field.leTraI || 10,
-          coChu: field.coChu || 12,
+          leTren: field.leTren ?? 10,
+          leTrai: (field.leTrai ?? field.leTraI) ?? 10,
+          coChu: field.coChu ?? 12,
           doDam: field.doDam || false,
           nghieng: field.nghieng || false,
           gachChan: field.gachChan || false,

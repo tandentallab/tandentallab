@@ -42,6 +42,15 @@ const DonHangDeliveryNotePrintPreview = () => {
     });
   };
 
+  const formatDate = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   const nhaKhoaTen =
     donHang.nhaKhoa?.tenGiaoDich || donHang.nhaKhoa?.hoVaTen || "";
   const bacSi = donHang.bacSi?.hoVaTen || "";
@@ -78,24 +87,24 @@ const DonHangDeliveryNotePrintPreview = () => {
 
       <div className="flex flex-col items-center print:items-start py-6 px-4 print:p-0">
         <div
-          className="print-area bg-white w-full max-w-[300px] shadow-lg border border-gray-400 p-6 print:p-0 text-sm"
-          style={{ fontFamily: "'Segoe UI', Georgia, serif" }}
+          className="print-area bg-white w-full max-w-[300px] shadow-lg border border-gray-400 p-6 print:p-0"
+          style={{ fontFamily: "Cambria, Georgia, serif", fontSize: "13px" }}
         >
           <div className="text-center">
-            <div className="font-bold text-lg">CÔNG TY TNHH TẤN DENTAL</div>
-            <div>Điện thoại: 0842312828</div>
-            <div className="text-base mt-2">PHIẾU GIAO HÀNG</div>
+            <div className="font-bold text-base">CÔNG TY TNHH TẤN DENTAL</div>
+            <div className="text-xs">Điện thoại: 0842312828</div>
+            <div className="text-sm font-bold mt-2">PHIẾU GIAO HÀNG</div>
             <div className="border-b border-dashed border-gray-500 mt-2" />
           </div>
 
-          <div className="mt-3 grid grid-cols-[90px_1fr] gap-y-1">
+          <div className="mt-3 grid grid-cols-[78px_1fr] gap-y-1">
             <span>Nha khoa:</span>
             <span className="font-bold">{nhaKhoaTen || "---"}</span>
             <span>Bác sĩ:</span>
             <span className="font-bold">{bacSi || "---"}</span>
-            <span> Bệnh nhân:</span>
+            <span>Bệnh nhân:</span>
             <span className="font-bold">{benhNhan || "---"}</span>
-            <span> Sản phẩm:</span>
+            <span>Sản phẩm:</span>
             <span className="font-bold">{sanPhamText || "---"}</span>
           </div>
 
@@ -126,23 +135,18 @@ const DonHangDeliveryNotePrintPreview = () => {
       </div>
 
       <style>{`
-        @page {
-          margin: 0 !important;
-        }
         @media print {
-          body {
+          html, body {
             background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
           }
           .print-area {
             box-shadow: none !important;
             border: none !important;
-            width: 76mm !important;
+            width: 72mm !important;
             max-width: 100% !important;
-            margin-left: 2mm !important;
+            margin-left: 0 !important;
             margin-right: auto !important;
-            padding: 4mm 6mm !important;
+            padding: 4mm 0 !important;
             box-sizing: border-box !important;
           }
           button {

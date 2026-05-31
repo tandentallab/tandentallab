@@ -30,6 +30,7 @@ import DonHangChuaXuatPage from "../DonHangChuaXuat/DonHangChuaXuatPage";
 import HoaDonDetail from "../HoaDon/HoaDonDetail";
 import KeHoachGiaoHangTable from "../KeHoachGiaoHang/KeHoachGiaoHangTable";
 import HoaDonPrintPreview from "../HoaDon/HoaDonPrintPreview";
+import BaoCaoDoanhThuPage from "../BaoCao/BaoCaoDoanhThuPage"
 import BaoCaoPage from "../BaoCao/BaoCaoPage";
 import PhieuThuPage from "../PhieuThu/PhieuThuPage";
 import PhieuThuPrintPreview from "../PhieuThu/PhieuThuPrintPreview";
@@ -187,6 +188,10 @@ const Dashboard = () => {
           <Route
             path="/hoa-don"
             element={renderProtected("/hoa-don", <HoaDonPage />)}
+          />
+          <Route
+            path="/bao-cao/doanh-thu"
+            element={renderProtected("/bao-cao", <BaoCaoDoanhThuPage />)}
           />
           <Route
             path="/bao-cao"

@@ -353,11 +353,11 @@ const DonHangPage = () => {
     const data = nhaKhoaState?.data || [];
     return Array.isArray(data)
       ? data
-          .map((nk) => ({
-            _id: nk._id,
-            name: nk.tenGiaoDich || nk.hoVaTen || "",
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name))
+        .map((nk) => ({
+          _id: nk._id,
+          name: nk.tenGiaoDich || nk.hoVaTen || "",
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }, [nhaKhoaState?.data]);
 
@@ -365,11 +365,11 @@ const DonHangPage = () => {
     const data = benhNhanState?.data || [];
     return Array.isArray(data)
       ? data
-          .map((bn) => ({
-            _id: bn._id,
-            name: bn.hoVaTen || "",
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name))
+        .map((bn) => ({
+          _id: bn._id,
+          name: bn.hoVaTen || "",
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }, [benhNhanState?.data]);
 
@@ -624,11 +624,10 @@ const DonHangPage = () => {
               }));
               if (!p.isCalendar) setOpenDateModal(null);
             }}
-            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${
-              cf.preset === p.key
-                ? "bg-blue-50 text-blue-700 font-semibold"
-                : "text-gray-700 hover:bg-gray-50"
-            }`}
+            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${cf.preset === p.key
+              ? "bg-blue-50 text-blue-700 font-semibold"
+              : "text-gray-700 hover:bg-gray-50"
+              }`}
           >
             {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
             {p.label}
@@ -677,11 +676,10 @@ const DonHangPage = () => {
               <button
                 onClick={handleOpenFilter}
                 title="Bộ lọc"
-                className={`relative p-1.5 rounded transition ${
-                  isFiltered
-                    ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
-                    : "text-gray-500 hover:bg-gray-100"
-                }`}
+                className={`relative p-1.5 rounded transition ${isFiltered
+                  ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                  : "text-gray-500 hover:bg-gray-100"
+                  }`}
               >
                 <FilterAltIcon sx={{ fontSize: 20 }} />
                 {isFiltered && (
@@ -849,11 +847,10 @@ const DonHangPage = () => {
                               setDraftNhaKhoa(item);
                               setOpenPickerModal(null);
                             }}
-                            className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
-                              draftNhaKhoa?._id === item._id
-                                ? "bg-blue-50 text-blue-700 font-semibold"
-                                : "text-gray-700 hover:bg-gray-50"
-                            }`}
+                            className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftNhaKhoa?._id === item._id
+                              ? "bg-blue-50 text-blue-700 font-semibold"
+                              : "text-gray-700 hover:bg-gray-50"
+                              }`}
                           >
                             {item.name}
                           </button>
@@ -922,11 +919,10 @@ const DonHangPage = () => {
                               setDraftBenhNhan(item);
                               setOpenPickerModal(null);
                             }}
-                            className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
-                              draftBenhNhan?._id === item._id
-                                ? "bg-blue-50 text-blue-700 font-semibold"
-                                : "text-gray-700 hover:bg-gray-50"
-                            }`}
+                            className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftBenhNhan?._id === item._id
+                              ? "bg-blue-50 text-blue-700 font-semibold"
+                              : "text-gray-700 hover:bg-gray-50"
+                              }`}
                           >
                             {item.name}
                           </button>
@@ -1093,9 +1089,9 @@ const DonHangPage = () => {
                   ` → ${appliedNgayNhan.customTo}`}
                 <button
                   onClick={() => {
-                    setDonHangPageFilter({
+                    dispatch(setDonHangPageFilter({
                       appliedNgayNhan: EMPTY_DATE,
-                    });
+                    }));
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -1116,9 +1112,9 @@ const DonHangPage = () => {
                   ` → ${appliedYcHoanThanh.customTo}`}
                 <button
                   onClick={() => {
-                    setDonHangPageFilter({
+                    dispatch(setDonHangPageFilter({
                       appliedYcHoanThanh: EMPTY_DATE,
-                    });
+                    }));
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -1139,9 +1135,9 @@ const DonHangPage = () => {
                   ` → ${appliedHenGiao.customTo}`}
                 <button
                   onClick={() => {
-                    setDonHangPageFilter({
+                    dispatch(setDonHangPageFilter({
                       appliedHenGiao: EMPTY_DATE,
-                    });
+                    }));
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -1156,9 +1152,9 @@ const DonHangPage = () => {
                 {appliedNhaKhoa.name}
                 <button
                   onClick={() => {
-                    setDonHangPageFilter({
+                    dispatch(setDonHangPageFilter({
                       appliedNhaKhoa: null,
-                    });
+                    }));
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -1173,9 +1169,9 @@ const DonHangPage = () => {
                 {appliedBenhNhan.name}
                 <button
                   onClick={() => {
-                    setDonHangPageFilter({
+                    dispatch(setDonHangPageFilter({
                       appliedBenhNhan: null,
-                    });
+                    }));
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -1192,10 +1188,9 @@ const DonHangPage = () => {
                 {status}
                 <button
                   onClick={() => {
-                    setDonHangPageFilter({
-                      appliedTrangThai: null,
-                    });
-
+                    dispatch(setDonHangPageFilter({
+                      appliedTrangThai: appliedTrangThai.filter((s) => s !== status),
+                    }));
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -1221,10 +1216,6 @@ const DonHangPage = () => {
             selectedId={selectedDonHangId}
             onRowClick={handleRowClick}
           />
-          <div className="bg-gray-50 border-t px-3 py-2 text-xs text-gray-500">
-            Hiển thị {filteredDonHangs.length} / {pagination?.total || 0} đơn
-            hàng
-          </div>
           {loadingMore && (
             <div className="text-center py-3 text-gray-400 text-sm">
               Đang tải thêm...

@@ -6,6 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { api } from "../../config/api";
 import {
   fetchDonHang,
   fetchMoreDonHang,
@@ -48,6 +49,8 @@ const KeHoachGiaoHangTable = () => {
   const [showFilterBar, setShowFilterBar] = useState(false);
 
   const [page, setPage] = useState(1);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [printOrders, setPrintOrders] = useState(null);
 
   // State quản lý việc mở panel chi tiết đơn hàng
   const [selectedDonHang, setSelectedDonHang] = useState(null);
@@ -110,8 +113,8 @@ const KeHoachGiaoHangTable = () => {
   }, [page, pagination?.totalPages, loadingMore, loading]);
 
   // ================= FILTER LOGIC =================
-  const filteredOrders = useMemo(() => {
-    let result = [...data];
+  const applyFilters = useCallback((sourceData) => {
+    let result = [...sourceData];
 
     result = result.filter((order) => {
       const henGiaoDate = parseISO(order.henGiao);
@@ -128,12 +131,10 @@ const KeHoachGiaoHangTable = () => {
       return true;
     });
 
-    // 🔥 FILTER TRẠNG THÁI
     if (filterStatus !== "all") {
       result = result.filter((order) => order.trangThai === filterStatus);
     }
 
-    // 🔥 FILTER ĐƠN GẤP
     if (showUrgentOnly) {
       result = result.filter((order) => {
         const henGiaoDate = parseISO(order.henGiao);
@@ -145,7 +146,6 @@ const KeHoachGiaoHangTable = () => {
       });
     }
 
-    // 🔥 SEARCH
     if (searchText.trim()) {
       const q = searchText.toLowerCase();
       result = result.filter(
@@ -157,19 +157,23 @@ const KeHoachGiaoHangTable = () => {
       );
     }
 
-    // Sắp xếp theo hẹn giao từ mới nhất đến cũ nhất
     result.sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
-
     return result;
-  }, [
-    data,
-    showUrgentOnly,
-    filterType,
-    filterStatus,
-    fromDate,
-    toDate,
-    searchText,
-  ]);
+  }, [filterType, filterStatus, fromDate, toDate, showUrgentOnly, searchText, todayStart]);
+
+  const filteredOrders = useMemo(() => applyFilters(data), [data, applyFilters]);
+
+  // Lấy toàn bộ dữ liệu (không phân trang) rồi áp filter
+  const fetchAllFiltered = useCallback(async () => {
+    setLoadingAll(true);
+    try {
+      const res = await api.get("/donhang", { params: { page: 1, limit: 9999 } });
+      const allData = res.data.data || [];
+      return applyFilters(allData);
+    } finally {
+      setLoadingAll(false);
+    }
+  }, [applyFilters]);
 
   // ================= COUNT =================
   const countToday = data.filter((o) => isToday(parseISO(o.henGiao))).length;
@@ -179,59 +183,71 @@ const KeHoachGiaoHangTable = () => {
   ).length;
   const countDone = data.filter((o) => o.trangThai === "Hoàn thành").length;
 
-  if (loading && page === 1)
-    return <div className="p-6 text-center text-gray-500">Đang tải...</div>;
+  // Hàm format vị trí răng
+  const formatViTri = (viTriArr) => {
+    if (!viTriArr || viTriArr.length === 0) return "";
+    return viTriArr
+      .map((v) =>
+        v.kieu === "Rời"
+          ? v.soRang.join(", ")
+          : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+      )
+      .join("; ");
+  };
 
-  // Hàm format danh sách sản phẩm của đơn hàng
-  const formatDanhSachSanPham = (danhSachSanPham = []) => {
-    // Mapping loại đơn
+  // Hàm format 1 sản phẩm duy nhất
+  const formatSingleSanPham = (item) => {
+    if (!item) return "";
     const loaiDonMap = {
       Mới: "",
       "Hàng sửa": "Sửa",
       "Hàng bảo hành": "Bảo hành",
       "Hàng làm lại": "Làm lại",
     };
-
-    // Hàm format vị trí răng
-    const formatViTri = (viTriArr) => {
-      if (!viTriArr || viTriArr.length === 0) return "";
-      return viTriArr
-        .map((v) =>
-          v.kieu === "Rời"
-            ? v.soRang.join(", ")
-            : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
-        )
-        .join("; ");
-    };
-
-    return danhSachSanPham
-      .map((item) => {
-        const loaiDon = loaiDonMap[item.loaiDon] || "";
-
-        const soLuong = item.soLuong || 1;
-
-        // Tên sản phẩm
-        const tenSanPham = item.sanPham?.tenSanPham || item.sanPham?.ten || "";
-
-        // Vị trí
-        const viTri = formatViTri(item.viTri);
-
-        // Màu
-        const mau = item.mau ? `(${item.mau})` : "";
-
-        // Ghép chuỗi
-        return [loaiDon, soLuong, tenSanPham, viTri, mau]
-          .filter(Boolean)
-          .join(" ")
-          .replace(/\s+/g, " ")
-          .trim();
-      })
-      .join(", ");
+    const loaiDon = loaiDonMap[item.loaiDon] || "";
+    const soLuong = item.soLuong || 1;
+    const tenSanPham = item.sanPham?.tenSanPham || item.sanPham?.ten || "";
+    const viTri = formatViTri(item.viTri);
+    const mau = item.mau ? `(${item.mau})` : "";
+    return [loaiDon, soLuong, tenSanPham, viTri, mau]
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
   };
+
+  // Mỗi đơn hàng nhiều sản phẩm được tách ra thành nhiều dòng
+  const expandedRows = useMemo(() => {
+    return filteredOrders.flatMap((order) => {
+      const dssp = order.danhSachSanPham || [];
+      if (dssp.length === 0) return [{ order, sp: null, spIdx: 0 }];
+      return dssp.map((sp, spIdx) => ({ order, sp, spIdx }));
+    });
+  }, [filteredOrders]);
 
   const handleExportExcel = async () => {
-    await exportKeHoachGiaoHangToExcel(filteredOrders, formatDanhSachSanPham);
+    await exportKeHoachGiaoHangToExcel(filteredOrders, formatSingleSanPham);
   };
+
+  const handlePrint = async () => {
+    const allFiltered = await fetchAllFiltered();
+    setPrintOrders(allFiltered);
+    // Đợi React render xong rồi mới in
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        // Dọn dẹp sau khi in xong
+        const cleanup = () => {
+          setPrintOrders(null);
+          window.removeEventListener("afterprint", cleanup);
+        };
+        window.addEventListener("afterprint", cleanup);
+      });
+    });
+  };
+
+  if (loading && page === 1)
+    return <div className="p-6 text-center text-gray-500">Đang tải...</div>;
 
   return (
     <div className="p-4 bg-gray-100 min-h-screen relative">
@@ -250,9 +266,8 @@ const KeHoachGiaoHangTable = () => {
           {/* Filter icon toggle */}
           <button
             onClick={() => setShowFilterBar((v) => !v)}
-            className={`p-2 rounded hover:bg-gray-200 transition ${
-              showFilterBar ? "text-blue-600" : "text-gray-500"
-            }`}
+            className={`p-2 rounded hover:bg-gray-200 transition ${showFilterBar ? "text-blue-600" : "text-gray-500"
+              }`}
             title="Lọc"
           >
             <FiFilter size={18} />
@@ -290,11 +305,12 @@ const KeHoachGiaoHangTable = () => {
             <FiDownload size={17} />
           </button>
           <button
-            onClick={() => window.print()}
-            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
+            onClick={handlePrint}
+            disabled={loadingAll}
+            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition disabled:opacity-50"
             title="In danh sách"
           >
-            <FiPrinter size={17} />
+            {loadingAll ? <FiRefreshCw size={17} className="animate-spin" /> : <FiPrinter size={17} />}
           </button>
           <button
             onClick={() => {
@@ -414,7 +430,7 @@ const KeHoachGiaoHangTable = () => {
               </thead>
 
               <tbody>
-                {filteredOrders.map((order) => {
+                {expandedRows.map(({ order, sp, spIdx }) => {
                   const date = parseISO(order.henGiao);
                   const overdue =
                     isBefore(date, todayStart) &&
@@ -429,13 +445,12 @@ const KeHoachGiaoHangTable = () => {
 
                   return (
                     <tr
-                      key={order._id}
+                      key={`${order._id}_${spIdx}`}
                       onClick={() => setSelectedDonHang(order)}
-                      className={`border-b cursor-pointer transition-colors ${
-                        selectedDonHang?._id === order._id
-                          ? "bg-sky-100 border-sky-200"
-                          : "hover:bg-gray-50"
-                      }`}
+                      className={`border-b cursor-pointer transition-colors ${selectedDonHang?._id === order._id
+                        ? "bg-sky-100 border-sky-200"
+                        : "hover:bg-gray-50"
+                        }`}
                     >
                       {/* NHẬN LÚC */}
                       <td className="px-3 py-2.5 whitespace-nowrap text-xs text-gray-600">
@@ -451,13 +466,12 @@ const KeHoachGiaoHangTable = () => {
                             e.stopPropagation();
                             navigate(`/donhang/${order._id}/edit`);
                           }}
-                          className={`font-medium text-sm hover:underline ${
-                            overdue
-                              ? "text-red-500"
-                              : today
+                          className={`font-medium text-sm hover:underline ${overdue
+                            ? "text-red-500"
+                            : today
                               ? "text-blue-600"
                               : "text-gray-700"
-                          }`}
+                            }`}
                         >
                           {maDon}
                         </button>
@@ -465,9 +479,8 @@ const KeHoachGiaoHangTable = () => {
 
                       {/* HẸN GIAO */}
                       <td
-                        className={`px-3 py-2.5 whitespace-nowrap text-sm font-medium ${
-                          overdue ? "text-red-500" : "text-gray-700"
-                        }`}
+                        className={`px-3 py-2.5 whitespace-nowrap text-sm font-medium ${overdue ? "text-red-500" : "text-gray-700"
+                          }`}
                       >
                         {format(date, "HH:mm dd/MM/yyyy")}
                       </td>
@@ -489,7 +502,7 @@ const KeHoachGiaoHangTable = () => {
 
                       {/* RĂNG */}
                       <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[200px]">
-                        {formatDanhSachSanPham(order.danhSachSanPham)}
+                        {formatSingleSanPham(sp)}
                       </td>
 
                       {/* TRẠNG THÁI */}
@@ -524,18 +537,8 @@ const KeHoachGiaoHangTable = () => {
             {/* ================= INFINITE SCROLL SENTINEL ================= */}
             <div ref={sentinelRef} className="h-4" />
             {loadingMore && (
-              <div className="text-center py-3 text-gray-400 text-sm">
-                Đang tải thêm...
-              </div>
+              <div className="text-center py-3 text-gray-400 text-sm">Đang tải thêm...</div>
             )}
-            {!loadingMore &&
-              pagination?.totalPages &&
-              page >= pagination.totalPages &&
-              filteredOrders.length > 0 && (
-                <div className="text-center py-2 text-gray-400 text-xs">
-                  Đã tải {data.length} / {pagination.total} đơn
-                </div>
-              )}
           </div>
         </div>
 
@@ -636,43 +639,46 @@ const KeHoachGiaoHangTable = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order) => {
-                const maDon =
-                  order.maDonHang ||
-                  `TAN${order._id
-                    .substring(order._id.length - 8)
-                    .toUpperCase()}`;
-                return (
-                  <tr key={order._id}>
-                    <td className="border border-black px-2 py-1 text-center">
-                      {order.ngayNhan
-                        ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
-                        : "—"}
-                    </td>
-                    <td className="border border-black px-2 py-1 text-center font-semibold">
-                      {maDon}
-                    </td>
-                    <td className="border border-black px-2 py-1">
-                      {order.nhaKhoa?.hoVaTen}
-                    </td>
-                    <td className="border border-black px-2 py-1">
-                      {order.benhNhan?.hoVaTen}
-                    </td>
-                    <td className="border border-black px-2 py-1">
-                      {formatDanhSachSanPham(order.danhSachSanPham)}
-                    </td>
-                    <td className="border border-black px-2 py-1 text-center">
-                      {order.henGiao
-                        ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm")
-                        : "—"}
-                    </td>
-                    <td className="border border-black px-2 py-1">
-                      {order.ghiChuChung}
-                    </td>
-                  </tr>
-                );
-              })}
-              {filteredOrders.length === 0 && (
+              {
+                filteredOrders.flatMap((order) => {
+                  const dssp = order.danhSachSanPham || [];
+                  const products = dssp.length > 0 ? dssp : [null];
+                  const maDon =
+                    order.maDonHang ||
+                    `TAN${order._id
+                      .substring(order._id.length - 8)
+                      .toUpperCase()}`;
+                  return products.map((sp, spIdx) => (
+                    <tr key={`${order._id}_${spIdx}`}>
+                      <td className="border border-black px-2 py-1 text-center">
+                        {order.ngayNhan
+                          ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
+                          : "—"}
+                      </td>
+                      <td className="border border-black px-2 py-1 text-center font-semibold">
+                        {maDon}
+                      </td>
+                      <td className="border border-black px-2 py-1">
+                        {order.nhaKhoa?.hoVaTen}
+                      </td>
+                      <td className="border border-black px-2 py-1">
+                        {order.benhNhan?.hoVaTen}
+                      </td>
+                      <td className="border border-black px-2 py-1">
+                        {formatSingleSanPham(sp)}
+                      </td>
+                      <td className="border border-black px-2 py-1 text-center">
+                        {order.henGiao
+                          ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm")
+                          : "—"}
+                      </td>
+                      <td className="border border-black px-2 py-1">
+                        {order.ghiChuChung}
+                      </td>
+                    </tr>
+                  ));
+                })}
+              {(printOrders ?? filteredOrders).length === 0 && (
                 <tr>
                   <td
                     colSpan="7"
@@ -683,18 +689,20 @@ const KeHoachGiaoHangTable = () => {
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
-      </div>
+          </table >
+        </div >
+      </div >
 
       {/* Hiển thị Panel Chi Tiết Đơn Hàng nếu đang chọn 1 đơn hàng */}
-      {selectedDonHang && (
-        <DonHangDetailPanel
-          donHang={selectedDonHang}
-          onClose={() => setSelectedDonHang(null)}
-        />
-      )}
-    </div>
+      {
+        selectedDonHang && (
+          <DonHangDetailPanel
+            donHang={selectedDonHang}
+            onClose={() => setSelectedDonHang(null)}
+          />
+        )
+      }
+    </div >
   );
 };
 
@@ -707,9 +715,8 @@ const TrangThaiBadge = ({ value }) => {
   };
   return (
     <span
-      className={`px-2 py-1 rounded font-medium text-xs ${
-        map[value] || "bg-gray-100 text-gray-600"
-      }`}
+      className={`px-2 py-1 rounded font-medium text-xs ${map[value] || "bg-gray-100 text-gray-600"
+        }`}
     >
       {value || "Chờ xử lý"}
     </span>

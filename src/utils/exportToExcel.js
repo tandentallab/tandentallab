@@ -598,51 +598,39 @@ export const exportDonHangListToExcel = async (
       })
       : "";
 
-  donHangList.forEach((dh, idx) => {
-    const rowIndex = headerRow + 1 + idx;
+  let currentRowIndex = headerRow + 1;
+
+  donHangList.forEach((dh) => {
     const so =
       dh?.maDonHang ||
       (dh?._id ? `TAN${dh._id.toString().slice(-8).toUpperCase()}` : "");
     const dssp = dh?.danhSachSanPham || [];
+    const products = dssp.length > 0 ? dssp : [null];
 
-    const loaiStr = dssp
-      .map((sp) => loaiDonPrefix[sp.loaiDon] || "Mới")
-      .join("\n");
-    const sanPhamStr = dssp
-      .map((sp) => sp?.sanPham?.tenSanPham || "")
-      .join("\n");
-    const soLuongStr = dssp.map((sp) => sp?.soLuong ?? 1).join("\n");
-    const viTriStr = dssp.map((sp) => renderViTri(sp.viTri)).join("\n");
+    products.forEach((sp) => {
+      const row = worksheet.addRow([
+        formatDT(dh?.ngayNhan),
+        so,
+        dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
+        dh?.bacSi?.hoVaTen || "",
+        dh?.benhNhan?.hoVaTen || "",
+        sp ? (loaiDonPrefix[sp.loaiDon] || "Mới") : "",
+        sp?.sanPham?.tenSanPham || "",
+        sp ? (sp?.soLuong ?? 1) : "",
+        sp ? renderViTri(sp.viTri) : "",
+        dh?.trangThai || "",
+        formatDT(dh?.henGiao),
+      ]);
+      row.alignment = { vertical: "middle", horizontal: "left" };
+      row.getCell(8).alignment = { horizontal: "center", vertical: "middle" };
+      row.height = 20;
 
-    const hasMultiLine = dssp.length > 1;
+      for (let col = 1; col <= headers.length; col += 1) {
+        applyBorder(worksheet.getCell(currentRowIndex, col), "thin");
+      }
 
-    worksheet.getRow(rowIndex).values = [
-      formatDT(dh?.ngayNhan),
-      so,
-      dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen || "",
-      dh?.bacSi?.hoVaTen || "",
-      dh?.benhNhan?.hoVaTen || "",
-      loaiStr,
-      sanPhamStr,
-      soLuongStr,
-      viTriStr,
-      dh?.trangThai || "",
-      formatDT(dh?.henGiao),
-    ];
-
-    const row = worksheet.getRow(rowIndex);
-    row.alignment = { vertical: "middle", wrapText: hasMultiLine };
-    row.getCell(8).alignment = {
-      horizontal: "center",
-      vertical: "middle",
-      wrapText: hasMultiLine,
-    };
-
-    if (hasMultiLine) row.height = 16 * dssp.length;
-
-    for (let col = 1; col <= headers.length; col += 1) {
-      applyBorder(worksheet.getCell(rowIndex, col), "thin");
-    }
+      currentRowIndex += 1;
+    });
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
@@ -923,7 +911,7 @@ export const exportBangGiaRiengToExcel = async (nhaKhoaInfo, bangGiaData = []) =
   saveAs(new Blob([buffer]), fileName);
 };
 
-export const exportKeHoachGiaoHangToExcel = async (filteredOrders, formatDanhSachSanPham) => {
+export const exportKeHoachGiaoHangToExcel = async (filteredOrders, formatSingleSanPham) => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Kế Hoạch Giao Hàng');
 
@@ -977,38 +965,42 @@ export const exportKeHoachGiaoHangToExcel = async (filteredOrders, formatDanhSac
     { width: 30 }  // Ghi chú
   ];
 
-  // Thêm dữ liệu
+  // Thêm dữ liệu — tách 1 dòng/sản phẩm
+  const formatDateCustom = (dateStr) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "—";
+    const pad = (num) => String(num).padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${pad(d.getFullYear())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   filteredOrders.forEach((order) => {
     const maDon = order.maDonHang || `TAN${order._id.substring(order._id.length - 8).toUpperCase()}`;
-    const formatDateCustom = (dateStr) => {
-      if (!dateStr) return "—";
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return "—";
-      const pad = (num) => String(num).padStart(2, '0');
-      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${pad(d.getFullYear())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    };
-
     const nhanLuc = formatDateCustom(order.ngayNhan);
     const henGiao = formatDateCustom(order.henGiao);
+    const dssp = order.danhSachSanPham || [];
+    const products = dssp.length > 0 ? dssp : [null];
 
-    const row = worksheet.addRow([
-      nhanLuc,
-      maDon,
-      order.nhaKhoa?.hoVaTen || "",
-      order.benhNhan?.hoVaTen || "",
-      formatDanhSachSanPham(order.danhSachSanPham),
-      henGiao,
-      order.ghiChuChung || ""
-    ]);
+    products.forEach((sp) => {
+      const row = worksheet.addRow([
+        nhanLuc,
+        maDon,
+        order.nhaKhoa?.hoVaTen || "",
+        order.benhNhan?.hoVaTen || "",
+        formatSingleSanPham(sp),
+        henGiao,
+        order.ghiChuChung || ""
+      ]);
 
-    row.eachCell((cell, colNumber) => {
-      cell.font = { name: 'Arial', size: 11 };
-      cell.alignment = {
-        horizontal: colNumber === 1 || colNumber === 2 || colNumber === 6 ? 'center' : 'left',
-        vertical: 'middle',
-        wrapText: true
-      };
-      applyBorder(cell, 'thin');
+      row.eachCell((cell, colNumber) => {
+        cell.font = { name: 'Arial', size: 11 };
+        cell.alignment = {
+          horizontal: colNumber === 1 || colNumber === 2 || colNumber === 6 ? 'center' : 'left',
+          vertical: 'middle',
+          wrapText: true
+        };
+        applyBorder(cell, 'thin');
+      });
     });
   });
 

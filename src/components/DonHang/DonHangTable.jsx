@@ -152,10 +152,15 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                                     Không có dữ liệu đơn hàng
                                 </td>
                             </tr>
-                        ) : (
-                            renderData.map((dh) => (
+                        ) : (() => {
+                            const flatRows = renderData.flatMap((dh) => {
+                                const dssp = dh.danhSachSanPham || [];
+                                if (dssp.length === 0) return [{ dh, sp: null, spIdx: 0 }];
+                                return dssp.map((sp, spIdx) => ({ dh, sp, spIdx }));
+                            });
+                            return flatRows.map(({ dh, sp, spIdx }) => (
                                 <tr
-                                    key={dh._id}
+                                    key={`${dh._id}_${spIdx}`}
                                     className={`border-b cursor-pointer transition-colors ${selectedId === dh._id ? 'bg-sky-200 border-sky-200' : 'hover:bg-gray-50'}`}
                                     onClick={() => onRowClick(dh)}
                                 >
@@ -164,32 +169,20 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                                     <td className="px-3 truncate">{dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen}</td>
                                     <td className="px-3 truncate hidden md:table-cell">{dh.bacSi?.hoVaTen}</td>
                                     <td className="px-3 truncate hidden md:table-cell">{dh.benhNhan?.hoVaTen}</td>
-                                    <td className="px-3 hidden lg:table-cell">
-                                        {(dh.danhSachSanPham || []).map((sp, i) => (
-                                            <div key={i}>{loaiDonPrefix[sp.loaiDon] || "Mới"}</div>
-                                        ))}
-                                    </td>
+                                    <td className="px-3 hidden lg:table-cell">{sp ? (loaiDonPrefix[sp.loaiDon] || "Mới") : ""}</td>
                                     <td className="px-3 py-2 hidden lg:table-cell">
-                                        {(dh.danhSachSanPham || []).map((sp, i) => (
-                                            <div key={i} className="truncate">{sp.sanPham?.tenSanPham || ""}</div>
-                                        ))}
+                                        <div className="truncate">{sp?.sanPham?.tenSanPham || ""}</div>
                                     </td>
-                                    <td className="px-3 py-2 hidden lg:table-cell text-center">
-                                        {(dh.danhSachSanPham || []).map((sp, i) => (
-                                            <div key={i}>{sp.soLuong || 1}</div>
-                                        ))}
-                                    </td>
+                                    <td className="px-3 py-2 hidden lg:table-cell text-center">{sp ? (sp.soLuong || 1) : ""}</td>
                                     <td className="px-3 py-2 hidden lg:table-cell">
-                                        {(dh.danhSachSanPham || []).map((sp, i) => (
-                                            <div key={i} className="truncate">{renderViTri(sp.viTri)}</div>
-                                        ))}
+                                        <div className="truncate">{sp ? renderViTri(sp.viTri) : ""}</div>
                                     </td>
                                     <td className="px-3"><TrangThaiBadge value={dh.trangThai} /></td>
                                     <td className="px-3 truncate">{formatDateTime(dh.henGiao)}</td>
                                     <td className="px-3 truncate hidden xl:table-cell" title={dh.ghiChuChung || ""}>{dh.ghiChuChung || ""}</td>
                                 </tr>
-                            ))
-                        )}
+                            ));
+                        })()}
                     </tbody>
                 </table>
             </div>

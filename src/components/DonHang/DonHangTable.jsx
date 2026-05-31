@@ -192,10 +192,11 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
 
 const TrangThaiBadge = ({ value }) => {
     const map = {
-        'Chờ xử lý': 'bg-yellow-100 text-yellow-800',
-        'Đang sản xuất': 'bg-blue-100 text-blue-800',
-        'Hoàn thành': 'bg-green-100 text-green-800',
-        'Đã giao': 'bg-gray-100 text-gray-700',
+        "Chờ xử lý": "bg-yellow-100 text-yellow-800",
+        "Đang sản xuất": "bg-blue-100 text-blue-800",
+        "Đang thử": "bg-purple-100 text-purple-800",
+        "Hoàn thành": "bg-green-100 text-green-800",
+        "Đã giao": "bg-gray-100 text-gray-700",
     };
     return (
         <span className={`px-2 py-1 font-medium ${map[value] || 'bg-gray-100 text-gray-600'}`}>

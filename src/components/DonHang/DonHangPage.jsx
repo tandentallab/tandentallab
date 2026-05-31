@@ -63,7 +63,7 @@ const DATE_PRESETS = [
   { key: "last_30", label: "Trong vòng 30 ngày" },
 ];
 
-const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Hoàn thành"];
+const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Đang thử", "Hoàn thành"];
 const ROWS_PER_PAGE = 20;
 
 const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
@@ -183,6 +183,7 @@ const DonHangPage = () => {
     pagination,
     stats,
   } = useSelector((state) => state.donHang);
+
   const nhaKhoaState = useSelector((state) => state.nhaKhoa);
   const benhNhanState = useSelector((state) => state.benhNhan);
   const [searchTerm, setSearchTerm] = useState("");
@@ -597,10 +598,6 @@ const DonHangPage = () => {
   const selectedDonHang =
     donHangs.find((dh) => dh._id === selectedDonHangId) || null;
 
-  const choXuLy = stats?.["Chờ xử lý"] || 0;
-  const dangSanXuat = stats?.["Đang sản xuất"] || 0;
-  const treHen = stats?.treHen || 0;
-
   const isFiltered = !!(
     appliedNgayNhan.preset ||
     appliedYcHoanThanh.preset ||
@@ -669,9 +666,9 @@ const DonHangPage = () => {
   return (
     <div className="p-4 bg-gray-100">
       <div className="mb-4 bg-white rounded shadow-sm border">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 p-3">
           {/* Left: status badges & filters */}
-          <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex-1 flex gap-5 flex-wrap items-center">
             <div className="relative" ref={filterRef}>
               <button
                 onClick={handleOpenFilter}
@@ -1013,18 +1010,36 @@ const DonHangPage = () => {
                 </div>
               )}
             </div>
-            <div className="flex gap-1 items-center font-medium text-sm">
-              <div className="bg-teal-700 text-white px-2 sm:px-3 py-1.5 flex items-center gap-1 sm:gap-2 rounded-l">
-                <span>{choXuLy}</span>
-                <span className="hidden sm:inline">Chờ sản xuất</span>
+            <div className="flex-1 flex items-center justify-between rounded overflow-hidden font-bold">
+              <div
+                className="flex-1 cursor-pointer bg-yellow-500 hover:bg-yellow-400 text-white px-2 transition-colors"
+                onClick={() => {
+                  dispatch(setDonHangPageFilter({ appliedTrangThai: ["Chờ xử lý"], appliedHenGiao: { preset: null, customFrom: "", customTo: "" } }));
+                  setPage(1);
+                }}
+              >
+                <p className="text-xl">{stats?.["Chờ xử lý"] || 0}</p>
+                <span className="hidden sm:inline text-sm">Chờ xử lý</span>
               </div>
-              <div className="bg-green-600 text-white px-2 sm:px-3 py-1.5 flex items-center gap-1 sm:gap-2">
-                <span>{dangSanXuat}</span>
-                <span className="hidden sm:inline">Đang sản xuất</span>
+              <div
+                className="flex-1 cursor-pointer bg-purple-600 hover:bg-purple-500 text-white px-2 transition-colors"
+                onClick={() => {
+                  dispatch(setDonHangPageFilter({ appliedTrangThai: ["Đang thử"], appliedHenGiao: { preset: null, customFrom: "", customTo: "" } }));
+                  setPage(1);
+                }}
+              >
+                <p className="text-xl">{stats?.["Đang thử"] || 0}</p>
+                <span className="hidden sm:inline text-sm">Đang thử</span>
               </div>
-              <div className="bg-red-500 text-white px-2 sm:px-3 py-1.5 flex items-center gap-1 sm:gap-2 rounded-r">
-                <span>{treHen}</span>
-                <span className="hidden sm:inline">Trễ giờ hẹn giao</span>
+              <div
+                className="flex-1 cursor-pointer bg-green-600 hover:bg-green-500 text-white px-2 transition-colors"
+                onClick={() => {
+                  dispatch(setDonHangPageFilter({ appliedTrangThai: ["Hoàn thành"], appliedHenGiao: { preset: null, customFrom: "", customTo: "" } }));
+                  setPage(1);
+                }}
+              >
+                <p className="text-xl">{stats?.["Hoàn thành"] || 0}</p>
+                <span className="hidden sm:inline text-sm">Hoàn thành</span>
               </div>
             </div>
           </div>

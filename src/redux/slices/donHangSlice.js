@@ -140,7 +140,7 @@ export const fetchThongKe = createAsyncThunk(
 const initialFilterState = {
     showUrgentOnly: false,
     filterType: "all",
-    filterStatus: "Chờ xử lý",
+    filterStatus: "all",
     fromDate: "",
     toDate: "",
     searchText: "",
@@ -199,17 +199,17 @@ const donHangSlice = createSlice({
 
     reducers: {
         setFilter(state, action) {
-                    state.filters = {
-                        ...state.filters,
-                        ...action.payload,
-                    };
+            state.filters = {
+                ...state.filters,
+                ...action.payload,
+            };
         },
 
         resetFilter(state) {
             state.filters = initialFilterState;
         },
 
-         setDonHangPageFilter(state, action) {
+        setDonHangPageFilter(state, action) {
             state.donHangPageFilter = {
                 ...state.donHangPageFilter,
                 ...action.payload,
@@ -219,7 +219,7 @@ const donHangSlice = createSlice({
         resetDonHangPageFilter(state) {
             state.donHangPageFilter = initialDonHangPageFilter;
         },
-        },
+    },
 
     extraReducers: (builder) => {
         builder
@@ -317,17 +317,17 @@ const donHangSlice = createSlice({
                 );
             })
 
-             /* ===== THONG KE ===== */
-                        .addCase(fetchThongKe.pending, (state) => {
-                            state.loadingThongKe = true;
-                        })
-                        .addCase(fetchThongKe.fulfilled, (state, action) => {
-                            state.loadingThongKe = false;
-                            state.thongKe = action.payload;
-                        })
-                        .addCase(fetchThongKe.rejected, (state) => {
-                            state.loadingThongKe = false;
-                        });
+            /* ===== THONG KE ===== */
+            .addCase(fetchThongKe.pending, (state) => {
+                state.loadingThongKe = true;
+            })
+            .addCase(fetchThongKe.fulfilled, (state, action) => {
+                state.loadingThongKe = false;
+                state.thongKe = action.payload;
+            })
+            .addCase(fetchThongKe.rejected, (state) => {
+                state.loadingThongKe = false;
+            });
     },
 });
 

@@ -192,7 +192,9 @@ export default function BenhNhanTable() {
           <BenhNhanModal />
 
           <Tooltip title="Xuất excel danh sách">
-            <IconButton onClick={() => exportDanhSachBenhNhanToExcel(filteredData)}>
+            <IconButton
+              onClick={() => exportDanhSachBenhNhanToExcel(filteredData)}
+            >
               <DownloadIcon />
             </IconButton>
           </Tooltip>
@@ -330,6 +332,13 @@ export default function BenhNhanTable() {
                     </TableRow>
                   );
                 })}
+              <TableRow>
+                <TableCell colSpan={8} align="center">
+                  <Typography variant="caption" color="text.secondary">
+                    Tổng số {data?.length} bệnh nhân
+                  </Typography>
+                </TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </TableContainer>

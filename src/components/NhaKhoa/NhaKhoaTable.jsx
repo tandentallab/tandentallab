@@ -73,7 +73,7 @@ export default function NhaKhoaTable() {
 
   // ===== FILTER =====
   const filteredData = useMemo(() => {
-    return data.filter((item) => {
+    return (data || []).filter((item) => {
       const keyword = search.toLowerCase();
 
       const matchSearch =

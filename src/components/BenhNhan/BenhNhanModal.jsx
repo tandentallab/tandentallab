@@ -208,7 +208,7 @@ export default function BenhNhanModal({ isQuickMenu }) {
               value={form.nhaKhoa}
               onChange={(e) => handleChange("nhaKhoa", e.target.value)}
             >
-              {nhaKhoas.map((nk) => (
+              {(nhaKhoas || []).map((nk) => (
                 <MenuItem key={nk._id} value={nk._id}>
                   {nk.hoVaTen}
                 </MenuItem>

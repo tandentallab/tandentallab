@@ -56,16 +56,56 @@ const DonHangDeliveryNotePrintPreview = () => {
   const bacSi = donHang.bacSi?.hoVaTen || "";
   const benhNhan = donHang.benhNhan?.hoVaTen || "";
 
+  const buildTeethTextWithR = (viTri = []) => {
+    if (!Array.isArray(viTri)) return "";
+    const parts = viTri
+      .map((v) => {
+        if (!Array.isArray(v.soRang) || v.soRang.length === 0) return "";
+        if (v.soRang.length === 1) return `R${v.soRang[0]}`;
+        return `R${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+      })
+      .filter(Boolean);
+    return parts.join("; ");
+  };
+
   const sanPhamList = donHang.danhSachSanPham || [];
   const sanPhamText = sanPhamList
     .map((sp) => {
+      // 1. Xác định Loại đơn hàng (Mới, Sửa, Làm lại, Bảo hành)
+      let loaiPrefix = "";
+      const loai = sp.loaiDon || "";
+      if (loai === "Hàng sửa" || loai === "Sửa") {
+        loaiPrefix = "Sửa ";
+      } else if (loai === "Hàng làm lại" || loai === "Làm lại") {
+        loaiPrefix = "Làm lại ";
+      } else if (loai === "Hàng bảo hành" || loai === "Bảo hành" || loai === "Bảo hảnh") {
+        loaiPrefix = "Bảo hành ";
+      }
+
+      // 2. Số lượng
       const soLuong = sp.soLuong || 1;
+
+      // 3. Tên sản phẩm
       const ten = sp.sanPham?.tenSanPham || "";
-      const mau = sp.mau ? ` (${sp.mau})` : "";
-      return `${soLuong} ${ten}${mau}`.trim();
+
+      // 4. Vị trí răng (thêm chữ R vào trước)
+      const viTriText = buildTeethTextWithR(sp.viTri || sp.viTriRang);
+
+      // 5. Màu sắc (đặt trong dấu ngoặc tròn)
+      const mau = sp.mau ? `(${sp.mau})` : "";
+
+      const parts = [
+        loaiPrefix ? loaiPrefix.trim() : "",
+        soLuong,
+        ten,
+        viTriText,
+        mau
+      ].filter(Boolean);
+
+      return parts.join(" ");
     })
     .filter(Boolean)
-    .join(", ");
+    .join("\n");
 
   const phuKienList = donHang.danhSachPhuKien || [];
   const phuKienText = phuKienList
@@ -105,9 +145,13 @@ const DonHangDeliveryNotePrintPreview = () => {
             <span>Bệnh nhân:</span>
             <span className="font-bold">{benhNhan || "---"}</span>
             <span>Sản phẩm:</span>
-            <span className="font-bold">{sanPhamText || "---"}</span>
-            <span>Kèm theo:</span>
-            <span className="font-bold">{phuKienText || "---"}</span>
+            <span className="font-bold" style={{ whiteSpace: "pre-line" }}>{sanPhamText || "---"}</span>
+          </div>
+
+          <div className="border-b border-gray-300 mt-3" />
+          <div className="mt-2 text-left">
+            <span>Ghi chú SX: </span>
+            <span className="font-bold">{donHang.ghiChuSanXuat || "---"}</span>
           </div>
 
           <div className="border-b border-gray-300 mt-3" />
@@ -119,13 +163,13 @@ const DonHangDeliveryNotePrintPreview = () => {
             onClick={() => window.print()}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
           >
-            In trang nay (Ctrl+P)
+            In trang này (Ctrl+P)
           </button>
           <button
             onClick={() => navigate(-1)}
             className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition"
           >
-            Quay lai
+            Quay lại
           </button>
         </div>
       </div>

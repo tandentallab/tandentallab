@@ -14,13 +14,14 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 
 // ================= FORMATTERS =================
 const vndFormatter = new Intl.NumberFormat("vi-VN");
 const dateFormatter = new Intl.DateTimeFormat("vi-VN");
 
 const fmtVND = (v) => vndFormatter.format(v || 0);
-const fmtDate = (d) => d ? dateFormatter.format(new Date(d)) : "—";
+const fmtDate = (d) => d ? dateFormatter.format(new Date(d)) : "";
 
 // ================= CONSTANTS =================
 const NUMERIC_KEYS = new Set([
@@ -47,31 +48,58 @@ const ResizableHeaderCell = React.memo(({ label, style, columnKey, onResize }) =
 ));
 
 // ================= ROW COMPONENT =================
-const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => (
-  <TableRow
-    hover
-    className="cursor-pointer transition-colors duration-200 hover:bg-slate-50"
-    onClick={() => onNavigate(`/hoa-don/${hd._id}/edit`)}
-  >
-    <TableCell sx={cellStyles.ngayXuat}>{fmtDate(hd.ngayXuatHoaDon || hd.createdAt)}</TableCell>
-    <TableCell sx={cellStyles.soHoaDon}>{hd.soHoaDon}</TableCell>
-    <TableCell sx={cellStyles.nhaKhoa}>{hd.nhaKhoa?.hoVaTen || hd.nhaKhoa?.tenNhaKhoa || "—"}</TableCell>
-    <TableCell sx={cellStyles.tongCong}>{fmtVND(hd.tongCong)}</TableCell>
-    <TableCell sx={cellStyles.giamGia}>{fmtVND(hd.chietKhau)}</TableCell>
-    <TableCell sx={cellStyles.giaTriThanhToan}>{fmtVND(hd.giaTriThanhToan)}</TableCell>
-    <TableCell sx={cellStyles.daThanhToan}>{fmtVND(hd.daThanhToan)}</TableCell>
-    <TableCell sx={cellStyles.conLai}>{fmtVND(hd.conLai)}</TableCell>
-    <TableCell sx={cellStyles.chiPhiKhac}>{fmtVND(hd.chiPhiKhac)}</TableCell>
-    <TableCell sx={cellStyles.trangThai}>
-      <span className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide ${STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"}`}>
-        {hd.trangThai || "—"}
-      </span>
-    </TableCell>
-    <TableCell sx={cellStyles.ghiChu}>{hd.ghiChuChoKhachHang || "—"}</TableCell>
-    <TableCell sx={cellStyles.ngayDenHan}>{fmtDate(hd.ngayDenHan)}</TableCell>
-  </TableRow>
-));
+const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => {
+  // 1. Tính toán ngày đến hạn (Ngày xuất + 20 ngày)
+  const baseDate = hd.ngayXuatHoaDon || hd.createdAt;
+  let textDenHan = "";
+  let isTreHan = false;
 
+  if (baseDate) {
+    const ngayDenHan = dayjs(baseDate).add(20, 'day').endOf('day');
+    textDenHan = ngayDenHan.format('DD/MM/YYYY');
+
+    // 2. Chỉ báo đỏ khi: Đã qua hạn VÀ khách vẫn còn nợ tiền
+    if (dayjs().isAfter(ngayDenHan) && Number(hd.conLai || 0) > 0) {
+      isTreHan = true;
+    }
+  }
+
+  return (
+    <TableRow
+      hover
+      className="cursor-pointer transition-colors duration-200 hover:bg-slate-50"
+      onClick={() => onNavigate(`/hoa-don/${hd._id}/edit`)}
+    >
+      <TableCell sx={cellStyles.ngayXuat}>{fmtDate(hd.ngayXuatHoaDon || hd.createdAt)}</TableCell>
+      <TableCell sx={cellStyles.soHoaDon}>{hd.soHoaDon}</TableCell>
+      <TableCell sx={cellStyles.nhaKhoa}>{hd.nhaKhoa?.hoVaTen || hd.nhaKhoa?.tenNhaKhoa || ""}</TableCell>
+      <TableCell sx={cellStyles.tongCong}>{fmtVND(hd.tongCong)}</TableCell>
+      <TableCell sx={cellStyles.giamGia}>{fmtVND(hd.chietKhau)}</TableCell>
+      <TableCell sx={cellStyles.giaTriThanhToan}>{fmtVND(hd.giaTriThanhToan)}</TableCell>
+      <TableCell sx={cellStyles.daThanhToan}>{fmtVND(hd.daThanhToan)}</TableCell>
+      <TableCell sx={cellStyles.conLai}>{fmtVND(hd.conLai)}</TableCell>
+      <TableCell sx={cellStyles.chiPhiKhac}>{fmtVND(hd.chiPhiKhac)}</TableCell>
+      <TableCell sx={cellStyles.trangThai}>
+        {/* Tiện tay bo góc (rounded) cái label trạng thái cho đẹp UI sếp nhé */}
+        <span className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide rounded-md ${STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"}`}>
+          {hd.trangThai || ""}
+        </span>
+      </TableCell>
+      <TableCell sx={cellStyles.ghiChu}>{hd.ghiChuChoKhachHang || ""}</TableCell>
+
+      {/* 3. Render cột Đến Hạn với UI tuỳ biến màu sắc */}
+      <TableCell
+        sx={{
+          ...cellStyles.ngayDenHan,
+          color: isTreHan ? '#ef4444' : '#6b7280', // Đỏ báo động nếu trễ, xám nếu an toàn
+          fontWeight: isTreHan ? 600 : 400
+        }}
+      >
+        {textDenHan}
+      </TableCell>
+    </TableRow>
+  );
+});
 // ================= COMPONENT CHÍNH =================
 // Cấu hình Virtual Scroll
 const ROW_HEIGHT = 45;

@@ -6,7 +6,7 @@ const formatSoTien = (value = 0) => {
   return new Intl.NumberFormat("vi-VN").format(value);
 };
 
-const ThongKeCongNo = ({ nhaKhoaId, onCardClick }) => {
+const ThongKeCongNo = ({ nhaKhoaId, onCardClick, activeTab }) => {
   const dispatch = useDispatch();
   const { thongKeCongNo, loading } = useSelector((state) => state.hoaDon);
 
@@ -36,36 +36,39 @@ const ThongKeCongNo = ({ nhaKhoaId, onCardClick }) => {
   ];
 
   return (
-    // 🔥 ĐÃ FIX: Giữ nguyên margin-top (mt-2) và gài thêm h-[52px] để ĐÓNG BĂNG CHIỀU CAO
     <div className="flex w-full mt-2 h-[52px]">
-      {cards.map((card, i) => (
-        <div
-          key={i}
-          onClick={() => !loading && onCardClick && onCardClick(card.id)}
-          // 🔥 ĐÃ FIX: Giữ nguyên padding (px-3), dùng Flexbox để canh giữa.
-          // Tắt hiệu ứng hover/scale khi đang loading để tránh click nhầm
-          className={`w-1/3 ${card.bgcolor} px-3 flex flex-col justify-center border-r border-white/20 last:border-0 h-full
-            ${!loading ? "cursor-pointer hover:-translate-y-1 transition-all duration-300 active:scale-[0.98]" : "opacity-80"}`}
-        >
-          {loading ? (
-            // 💀 KHUNG XƯƠNG (SKELETON) - Kích thước khớp 100% với chữ thật
-            <div className="animate-pulse">
-              <div className="h-[18px] w-2/3 rounded bg-white/40 mb-1" />
-              <div className="h-[14px] w-1/2 rounded bg-white/20" />
-            </div>
-          ) : (
-            // 📦 DỮ LIỆU THẬT
-            <>
-              <div className="text-white font-bold text-base leading-tight">
-                {formatSoTien(card.amount)}
+      {cards.map((card, i) => {
+        // 🔥 ĐÃ SỬA: Chỉ giữ lại logic kiểm tra xem thẻ có đang được bấm hay không
+        const isActive = activeTab === card.id;
+
+        return (
+          <div
+            key={i}
+            onClick={() => !loading && onCardClick && onCardClick(card.id)}
+            // 🔥 ĐÃ SỬA: Bỏ cái vụ làm mờ (opacity) đi. Vẫn giữ hiệu ứng hover nảy lên cho đẹp.
+            className={`w-1/3 ${card.bgcolor} px-3 flex flex-col justify-center border-r border-white/20 last:border-0 h-full
+              ${!loading ? "cursor-pointer transition-all duration-300 active:scale-[0.98] hover:-translate-y-0.5" : "opacity-80"}
+              ${isActive ? "ring-inset ring-2 ring-yellow-400 z-10" : ""}
+            `}
+          >
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-[18px] w-2/3 rounded bg-white/40 mb-1" />
+                <div className="h-[14px] w-1/2 rounded bg-white/20" />
               </div>
-              <div className="text-white/90 text-[11px] mt-0.5">
-                {card.subtitle}
-              </div>
-            </>
-          )}
-        </div>
-      ))}
+            ) : (
+              <>
+                <div className="text-white font-bold text-base leading-tight">
+                  {formatSoTien(card.amount)}
+                </div>
+                <div className="text-white/90 text-[11px] mt-0.5">
+                  {card.subtitle}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };

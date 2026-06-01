@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Box,
     Typography,
@@ -25,7 +26,7 @@ import {
     toISODateRange,
     isValidExportDateFilter,
     isCustomRangeTooLong,
-} from '../../utils/exportDatePresets'; // 🔥 adjust path nếu cần
+} from '../../utils/exportDatePresets';
 
 // ─────────────────────────────────────────
 // Helper: format range để hiển thị trên ô
@@ -269,6 +270,8 @@ const DateFilterField = ({ label, filterKey, value, onChange }) => {
 // Component chính
 // ─────────────────────────────────────────
 const TimKiemNangCaoPage = ({ onClose }) => {
+    const navigate = useNavigate();
+
     const [orders, setOrders] = useState([]);
     const [filteredOrders, setFilteredOrders] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -280,7 +283,6 @@ const TimKiemNangCaoPage = ({ onClose }) => {
         benhNhan: '',
     });
 
-    // 🔥 State bộ lọc ngày riêng từng trường
     const [dateFilters, setDateFilters] = useState({
         ngayNhan: { ...EMPTY_EXPORT_DATE_FILTER },
         henGiao: { ...EMPTY_EXPORT_DATE_FILTER },
@@ -373,6 +375,19 @@ const TimKiemNangCaoPage = ({ onClose }) => {
         });
 
         setFilteredOrders(result);
+    };
+
+    // 🔥 HÀM XỬ LÝ KHI CLICK CHUYỂN TRANG
+    const handleRowClick = (orderId) => {
+        if (!orderId) return;
+
+        // 1. Đóng cái Form tìm kiếm này lại trước
+        onClose();
+
+        // 2. Ép nó đợi 100ms để dọn sạch UI cũ, sau đó mới gọi chuyển trang
+        setTimeout(() => {
+            navigate(`/donhang/${orderId}/edit`);
+        }, 100);
     };
 
     return (
@@ -473,7 +488,6 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                             InputProps={{ style: { fontSize: '14px', paddingBottom: '4px' } }}
                         />
 
-                        {/* 🔥 3 bộ lọc ngày dùng DateFilterField thật */}
                         <DateFilterField
                             label="Ngày nhận"
                             filterKey="ngayNhan"
@@ -564,7 +578,11 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                                         <TableRow
                                             key={row._id || index}
                                             hover
-                                            sx={{ '&:nth-of-type(even)': { bgcolor: '#f9f9f9' } }}
+                                            onClick={() => handleRowClick(row._id)}
+                                            sx={{
+                                                cursor: 'pointer',
+                                                '&:nth-of-type(even)': { bgcolor: '#f9f9f9' }
+                                            }}
                                         >
                                             <TableCell sx={{ fontSize: '13px', py: 1.5 }}>{row.maDonHang || '---'}</TableCell>
                                             <TableCell sx={{ fontSize: '13px' }}>{row.ngayNhan ? dayjs(row.ngayNhan).format('DD/MM/YYYY HH:mm') : ''}</TableCell>
@@ -593,6 +611,7 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                             filteredOrders.map((row, index) => (
                                 <Box
                                     key={row._id || index}
+                                    onClick={() => handleRowClick(row._id)}
                                     sx={{
                                         bgcolor: 'white',
                                         borderRadius: '12px',
@@ -600,6 +619,9 @@ const TimKiemNangCaoPage = ({ onClose }) => {
                                         mb: 1.5,
                                         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                                         border: '1px solid #eef0f5',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.2s',
+                                        '&:hover': { bgcolor: '#f9fafa' }
                                     }}
                                 >
                                     {[

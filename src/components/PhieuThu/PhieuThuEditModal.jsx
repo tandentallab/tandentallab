@@ -121,14 +121,16 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                     const hd = item.hoaDon || {};
                     existingIds.add(hd._id);
                     const giaTriHoaDon = hd.giaTriThanhToan || 0;
-                    const daTTruocLanNay = item.daTTruocLanNay || 0;
-                    const conLaiToiDa = giaTriHoaDon - daTTruocLanNay;
+                    const soTienPTHienTai = item.soTienThanhToan || 0;
+                    const daThanhToanKhac = Math.max(0, (hd.daThanhToan || 0) - soTienPTHienTai); // Trừ đi phần PT này đang giữ
+                    const conLaiToiDa = (hd.conLai || 0) + soTienPTHienTai; // Cộng lại phần PT này đang giữ
 
                     return {
                         ...item,
                         conLaiToiDa,
-                        selected: (item.soTienThanhToan || 0) > 0,
-                        soTienThanhToanInput: String(item.soTienThanhToan || 0)
+                        daThanhToanHienThi: daThanhToanKhac, // field mới để render
+                        selected: soTienPTHienTai > 0,
+                        soTienThanhToanInput: String(soTienPTHienTai)
                     };
                 });
 
@@ -584,7 +586,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                             {chiTietHoaDon.map((item, idx) => {
                                                 const hd = item.hoaDon || {};
                                                 const giaTriHD = hd.giaTriThanhToan || item.giaTriHoaDon || 0;
-                                                const daThanhToan = item.daTTruocLanNay || hd.daThanhToan || 0;
+                                                const daThanhToan = item.daThanhToanHienThi ?? (hd.daThanhToan || 0);
                                                 const inputVal = Number(item.soTienThanhToanInput) || 0;
                                                 const hasError = inputVal > item.conLaiToiDa;
 

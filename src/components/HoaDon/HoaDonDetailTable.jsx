@@ -8,6 +8,8 @@ import {
     TableRow,
     Paper,
 } from "@mui/material";
+import { X } from "lucide-react";
+import { toast } from "sonner";
 
 // ================= FORMATTERS (module-level, khởi tạo 1 lần) =================
 const vndFormatter = new Intl.NumberFormat("vi-VN");
@@ -36,21 +38,7 @@ const getFirstName = (fullName) => {
     return parts[parts.length - 1];
 };
 
-// ================= RESIZABLE HEADER CELL (ngoài component) =================
-const ResizableHeaderCell = React.memo(({ label, columnKey, style }) => (
-    <TableCell sx={style}>
-        {label}
-        <div
-            onMouseDown={(e) => e.currentTarget.__onResize?.(e)}
-            data-col={columnKey}
-            className="absolute top-0 right-0 w-2 h-full cursor-col-resize z-10 flex items-center justify-center group"
-        >
-            <div className="w-[1.5px] h-[75%] bg-sky-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        </div>
-    </TableCell>
-));
-
-// Version nhận onResize qua prop để tránh closure stale
+// ================= RESIZABLE HEADER CELL =================
 const RHCell = React.memo(({ label, style, columnKey, onResize }) => (
     <TableCell sx={style}>
         {label}
@@ -64,7 +52,21 @@ const RHCell = React.memo(({ label, style, columnKey, onResize }) => (
 ));
 
 // ================= COMPONENT CHÍNH =================
-const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaChange, isLocked }) => {
+const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaChange, isLocked, canEditItems, onRemoveDonHang, onAddRowClick }) => {
+
+    // 👉 State quản lý Popup Xóa
+    const [deleteTarget, setDeleteTarget] = useState(null);
+
+    // 🔥 Đếm số đơn hàng độc nhất để chặn xóa hết
+    const uniqueOrdersCount = useMemo(() => {
+        const ids = new Set();
+        rows.forEach(sp => {
+            if (sp.donHang?._id) ids.add(sp.donHang._id);
+            else if (sp.donHang) ids.add(sp.donHang);
+        });
+        return ids.size;
+    }, [rows]);
+
     const [columnWidths, setColumnWidths] = useState({
         donHang: 110,
         ngayNhan: 95,
@@ -81,7 +83,6 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
         ghiChu: 120,
     });
 
-    // Ref để handleResize stable (không cần recreate khi columnWidths đổi)
     const columnWidthsRef = useRef(columnWidths);
     useEffect(() => { columnWidthsRef.current = columnWidths; }, [columnWidths]);
 
@@ -90,7 +91,6 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
         [columnWidths]
     );
 
-    // ── RAF throttle resize ──
     const handleResize = useCallback((columnKey, e) => {
         e.preventDefault();
         const startX = e.clientX;
@@ -118,9 +118,8 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
 
         document.addEventListener("mousemove", onMouseMove);
         document.addEventListener("mouseup", onMouseUp);
-    }, []); // stable
+    }, []);
 
-    // ── Precompute tất cả cell styles 1 lần khi columnWidths đổi ──
     const cellStyles = useMemo(() => {
         const base = (key, isHeader = false) => ({
             width: columnWidths[key],
@@ -158,22 +157,19 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
             hdr[k] = base(k, true);
         });
 
-        // Biến thể row đặc biệt
         row.donHang_link = { ...row.donHang, color: "#00a8df", fontWeight: 500, cursor: "pointer", textDecoration: "underline" };
         row.sanPham_bold = { ...row.sanPham, fontWeight: 500 };
         row.viTri_mono = { ...row.viTri, fontFamily: "monospace" };
         row.soLuong_bold = { ...row.soLuong, fontWeight: "bold" };
         row.tongCong_bold = { ...row.tongCongSanPham, fontWeight: "bold" };
-
-        // Header biến thể isFirst / isLast
         hdr.donHang_first = { ...hdr.donHang, borderTopLeftRadius: "12px" };
-        hdr.ghiChu_last = { ...hdr.ghiChu };   // isLast handled by cột ảo
+        hdr.ghiChu_last = { ...hdr.ghiChu };
 
         return { row, hdr };
     }, [columnWidths]);
 
     return (
-        <div className="px-4 flex-1 flex flex-col min-h-0 bg-white">
+        <div className="px-4 flex-1 flex flex-col min-h-0 bg-white relative">
             <TableContainer
                 component={Paper}
                 elevation={0}
@@ -216,7 +212,6 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                             <RHCell label="Giảm giá" columnKey="giamGia" style={cellStyles.hdr.giamGia} onResize={handleResize} />
                             <RHCell label="Tổng cộng" columnKey="tongCongSanPham" style={cellStyles.hdr.tongCongSanPham} onResize={handleResize} />
                             <RHCell label="Ghi chú" columnKey="ghiChu" style={cellStyles.hdr.ghiChu} onResize={handleResize} />
-
                             <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff" }} />
                         </TableRow>
                     </TableHead>
@@ -230,7 +225,8 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                             </TableRow>
                         ) : (
                             rows.map((sp, idx) => (
-                                <TableRow key={idx} hover className="transition-colors">
+                                // 🔥 Thêm class group để hover hiện nút X
+                                <TableRow key={idx} hover className="transition-colors group">
                                     <TableCell
                                         sx={cellStyles.row.donHang_link}
                                         onClick={() => navigate(`/donhang/${sp.donHang?._id}/edit`)}
@@ -248,7 +244,6 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                                     <TableCell sx={cellStyles.row.donGia}>{fmtVND(sp.donGia)}</TableCell>
                                     <TableCell sx={cellStyles.row.thanhTien}>{fmtVND(sp.thanhTien)}</TableCell>
 
-                                    {/* CỘT GIẢM GIÁ */}
                                     <TableCell sx={cellStyles.row.giamGia}>
                                         <div className="flex items-center gap-2 w-full">
                                             <input
@@ -286,25 +281,83 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
 
                                     <TableCell sx={cellStyles.row.tongCong_bold}>{fmtVND(sp.tongCongSanPham)}</TableCell>
 
-                                    {/* CỘT GHI CHÚ */}
                                     <TableCell sx={cellStyles.row.ghiChu}>
                                         <input
+                                            disabled={isLocked}
                                             type="text"
                                             value={sp.ghiChu || ""}
                                             onChange={(e) => handleGhiChuChange(idx, e.target.value)}
-                                            placeholder="Ghi chú..."
                                             className="w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-[#00a8df] outline-none text-gray-700 transition-colors py-0.5"
                                         />
                                     </TableCell>
 
-                                    {/* CỘT ẢO BODY */}
-                                    <TableCell sx={{ padding: 0, borderBottom: "1px solid #cbd5e1", width: "auto", minWidth: 0 }} />
+                                    {/* 🔥 CỘT ẢO CUỐI CÙNG CHỨA NÚT X (CHỈ HIỆN KHI CHƯA CHỐT) */}
+                                    <TableCell sx={{ padding: 0, borderBottom: "1px solid #cbd5e1", width: "auto", minWidth: 0, position: "relative" }}>
+                                        {canEditItems && (
+                                            <button
+                                                onClick={() => {
+                                                    if (uniqueOrdersCount <= 1) {
+                                                        toast.error("Hóa đơn phải chứa ít nhất 1 đơn hàng! Nếu muốn hủy, vui lòng chọn Xóa Hóa Đơn ở dưới cùng.");
+                                                    } else {
+                                                        setDeleteTarget(sp.donHang);
+                                                    }
+                                                }}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 z-10"
+                                                title="Loại bỏ đơn hàng này"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             ))
+                        )}
+
+                        {/* 🔥 DÒNG: + THÊM DÒNG (CHỈ HIỆN KHI CHƯA CHỐT) */}
+                        {canEditItems && (
+                            <TableRow>
+                                <TableCell colSpan={14} sx={{ py: 2, borderBottom: "none" }}>
+                                    <button
+                                        onClick={onAddRowClick}
+                                        className="text-[#00a8df] font-semibold text-[13px] hover:underline flex items-center gap-1 ml-1"
+                                    >
+                                        + Thêm dòng
+                                    </button>
+                                </TableCell>
+                            </TableRow>
                         )}
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            {/* 👉 POPUP XÁC NHẬN XÓA ĐƠN HÀNG */}
+            {deleteTarget && (
+                <div className="fixed inset-0 z-[1600] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-xl p-6 w-[90%] max-w-md mx-4">
+                        <p className="text-gray-900 font-bold text-lg mb-2">Xác nhận loại bỏ</p>
+                        <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                            Thao tác này sẽ loại bỏ tất cả sản phẩm của Đơn hàng <span className="font-bold text-black">{deleteTarget.maDonHang}</span> ra khỏi danh sách! Bạn có chắc không?
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setDeleteTarget(null)}
+                                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-black hover:bg-gray-100 transition-colors"
+                            >
+                                Không
+                            </button>
+                            <button
+                                onClick={() => {
+                                    onRemoveDonHang(deleteTarget._id);
+                                    setDeleteTarget(null);
+                                }}
+                                className="px-5 py-2.5 bg-[#00a8df] text-white rounded-xl text-sm font-bold hover:bg-sky-600 transition-colors shadow-sm"
+                            >
+                                Có
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

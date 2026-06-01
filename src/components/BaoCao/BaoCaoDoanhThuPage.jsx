@@ -112,6 +112,7 @@ export default function BaoCaoDoanhThuPage() {
     const [thang, setThang] = useState(currentMonth);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [notes, setNotes] = useState({});
+    const [showTable, setShowTable] = useState(false);
 
     // Sync notes từ API khi data thay đổi
     useEffect(() => {
@@ -134,10 +135,14 @@ export default function BaoCaoDoanhThuPage() {
         const y = Number(e.target.value);
         setNam(y);
         if (y === currentYear && thang > currentMonth + 1) setThang(currentMonth + 1);
+        setShowTable(false);
     };
 
     const handleSearch = useCallback(async () => {
-        try { await dispatch(fetchBaoCaoDoanhThuThang({ thang, nam })).unwrap(); }
+        try {
+            await dispatch(fetchBaoCaoDoanhThuThang({ thang, nam })).unwrap();
+            setShowTable(true);
+        }
         catch (err) { console.error(err); }
     }, [dispatch, thang, nam]);
 
@@ -146,47 +151,63 @@ export default function BaoCaoDoanhThuPage() {
     return (
         <div className="bg-[#f0f2f8] flex flex-col overflow-hidden" style={{ fontFamily: FONT, height: 'calc(100vh - 70px)' }}>
 
-            {/* ── Header + Filter (1 dòng) ── */}
-            <div className="shrink-0 mx-4 mt-3 mb-3">
-                <Paper elevation={0} sx={{ px: 2, py: 1.2, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, border: '1px solid #e0e4f0', borderRadius: 2 }}>
-                    {/* LEFT: filter */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                        <Button
-                            startIcon={<ArrowBackIcon fontSize="small" />}
-                            onClick={() => navigate('/bao-cao')}
-                            size="small"
-                            sx={{ fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, color: '#555', '&:hover': { bgcolor: '#e8eaf6' }, px: 1.5, whiteSpace: 'nowrap' }}
-                        >
-                            Quay lại
-                        </Button>
-                        <FormControl size="small" sx={{ minWidth: 90 }}>
-                            <InputLabel sx={{ fontFamily: FONT }}>Năm</InputLabel>
-                            <Select value={nam} label="Năm" onChange={handleNamChange} sx={{ fontFamily: FONT }}>
-                                {NAM_LIST.map(y => <MenuItem key={y} value={y} sx={{ fontFamily: FONT }}>{y}</MenuItem>)}
-                            </Select>
-                        </FormControl>
-                        <FormControl size="small" sx={{ minWidth: 105 }}>
-                            <InputLabel sx={{ fontFamily: FONT }}>Tháng</InputLabel>
-                            <Select value={thang} label="Tháng" onChange={e => setThang(Number(e.target.value))} sx={{ fontFamily: FONT }}>
-                                {availableMonths.map(t => <MenuItem key={t} value={t} sx={{ fontFamily: FONT }}>Tháng {t}</MenuItem>)}
-                            </Select>
-                        </FormControl>
-                        <Button variant="contained"
-                            startIcon={loading ? <CircularProgress size={15} color="inherit" /> : <SearchIcon fontSize="small" />}
-                            onClick={handleSearch} disabled={loading}
-                            sx={{ fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' }, px: 2 }}
-                        >
-                            Xem báo cáo
-                        </Button>
-                    </Box>
+            <Paper elevation={0} sx={{
+                px: { xs: 2, sm: 3 },  // padding trái phải
+                py: 1.2,
+                border: '1px solid #e0e4f0',
+                borderRadius: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+            }}>
+                {/* Dòng 1: filter */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Button
+                        onClick={() => navigate('/bao-cao')}
+                        size="small"
+                        sx={{ fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, color: '#555', '&:hover': { bgcolor: '#e8eaf6' }, minWidth: 0, px: 1 }}
+                    >
+                        <ArrowBackIcon fontSize="small" />
+                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 0.5 }}>Quay lại</Box>
+                    </Button>
+                    <FormControl size="small" sx={{ minWidth: 80 }}>
+                        <InputLabel sx={{ fontFamily: FONT }}>Năm</InputLabel>
+                        <Select value={nam} label="Năm" onChange={handleNamChange} sx={{ fontFamily: FONT }}>
+                            {NAM_LIST.map(y => <MenuItem key={y} value={y} sx={{ fontFamily: FONT }}>{y}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <FormControl size="small" sx={{ minWidth: 95 }}>
+                        <InputLabel sx={{ fontFamily: FONT }}>Tháng</InputLabel>
+                        <Select value={thang} label="Tháng" onChange={e => { setThang(Number(e.target.value)); setShowTable(false); }} sx={{ fontFamily: FONT }}>
+                            {availableMonths.map(t => <MenuItem key={t} value={t} sx={{ fontFamily: FONT }}>Tháng {t}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <Button variant="contained"
+                        startIcon={loading ? <CircularProgress size={15} color="inherit" /> : <SearchIcon fontSize="small" />}
+                        onClick={handleSearch} disabled={loading}
+                        sx={{ fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' }, px: 2, whiteSpace: 'nowrap' }}
+                    >
+                        Xem
+                    </Button>
 
-                    {/* CENTER: tiêu đề */}
-                    <Typography fontWeight={800} sx={{ flexGrow: 1, textAlign: 'center', fontFamily: FONT, fontSize: { xs: '0.85rem', sm: '1rem' }, background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                    {/* Desktop: title ở giữa */}
+                    <Typography fontWeight={800} sx={{
+                        display: { xs: 'none', sm: 'block' },
+                        flexGrow: 1,
+                        textAlign: 'center',
+                        fontFamily: FONT,
+                        fontSize: '1rem',
+                        background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        letterSpacing: '0.04em',
+                        whiteSpace: 'nowrap',
+                    }}>
                         BÁO CÁO DOANH THU THÁNG {String(thang).padStart(2, '0')}/{nam}
                     </Typography>
 
-                    {/* RIGHT: action buttons */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
+                    {/* Desktop: actions */}
+                    <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1, ml: 'auto' }}>
                         <Button variant="outlined" startIcon={<EditNoteIcon fontSize="small" />} onClick={() => setDialogOpen(true)} size="small"
                             sx={{ fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, borderColor: '#1a237e', color: '#1a237e', '&:hover': { bgcolor: '#e8eaf6', borderColor: '#1a237e' }, px: 1.5, whiteSpace: 'nowrap' }}>
                             Số dư đầu kỳ
@@ -198,9 +219,36 @@ export default function BaoCaoDoanhThuPage() {
                             </Button>
                         )}
                     </Box>
-                </Paper>
-            </div>
+                </Box>
 
+                {/* Dòng 2: mobile only — title + actions */}
+                <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', gap: 1 }}>
+                    <Typography fontWeight={800} sx={{
+                        flexGrow: 1,
+                        fontFamily: FONT,
+                        fontSize: '0.78rem',
+                        background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        letterSpacing: '0.04em',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                    }}>
+                        BÁO CÁO DOANH THU THÁNG {String(thang).padStart(2, '0')}/{nam}
+                    </Typography>
+                    <Button variant="outlined" startIcon={<EditNoteIcon fontSize="small" />} onClick={() => setDialogOpen(true)} size="small"
+                        sx={{ fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, borderColor: '#1a237e', color: '#1a237e', '&:hover': { bgcolor: '#e8eaf6', borderColor: '#1a237e' }, px: 1.5, whiteSpace: 'nowrap' }}>
+                        Số dư
+                    </Button>
+                    {data?.chiTiet && (
+                        <Button variant="contained" startIcon={<ExcelSvgIcon />} onClick={handleExport} size="small"
+                            sx={{ bgcolor: '#217346', '&:hover': { bgcolor: '#185C37' }, fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, px: 1.5, whiteSpace: 'nowrap' }}>
+                            Excel
+                        </Button>
+                    )}
+                </Box>
+            </Paper>
             <SoDuDauKyDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
 
             {error && <Alert severity="error" sx={{ mb: 2, mx: 4, fontFamily: FONT }}>{error}</Alert>}
@@ -211,8 +259,19 @@ export default function BaoCaoDoanhThuPage() {
                 </div>
             )}
 
-            {data && !loading && data.chiTiet && data.tongHop && (
-                <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-4 pb-4">
+            {/* 🔥 Giao diện khi chưa bấm Xem báo cáo */}
+            {!loading && !showTable && (
+                <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3 pb-20">
+                    <SearchIcon sx={{ fontSize: 48, opacity: 0.3 }} />
+                    <Typography sx={{ fontFamily: FONT, fontSize: '0.95rem', fontWeight: 500 }}>
+                        Vui lòng chọn thời gian và bấm "Xem báo cáo"
+                    </Typography>
+                </div>
+            )}
+
+            {/* 🔥 Bảng chỉ hiện khi showTable = true */}
+            {showTable && data && !loading && data.chiTiet && data.tongHop && (
+                <div className="flex-1 min-h-0 flex flex-col overflow-hidden animate-in fade-in duration-300">
                     <BaoCaoDoanhThuTable
                         data={data}
                         notes={notes}

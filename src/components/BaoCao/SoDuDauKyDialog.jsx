@@ -11,7 +11,7 @@ import { api } from '../../config/api';
 
 const FONT = "'Inter', 'Roboto', 'Segoe UI', sans-serif";
 const SODUDAUKY_NAM = 2026;
-const FIXED_THANG = 4; // 🔥 KHÓA CỨNG: Chỉ cho phép thao tác duy nhất Tháng 5
+const FIXED_THANG = 5; // 🔥 KHÓA CỨNG: Chỉ cho phép thao tác duy nhất Tháng 5
 
 export default function SoDuDauKyDialog({ open, onClose }) {
     const [dialogSearch, setDialogSearch] = useState('');

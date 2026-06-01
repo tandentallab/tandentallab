@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const DEFAULT_COL_WIDTHS = [120, 100, 170, 80, 150, 70, 100, 40, 110, 100, 120, 170];
+const DEFAULT_COL_WIDTHS = [120, 100, 170, 80, 150, 70, 120, 100, 40, 150, 100, 120, 170];
 
 const DonHangTable = ({ data, selectedId, onRowClick }) => {
     const isDataValid = Array.isArray(data);
@@ -138,17 +138,18 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                             <th className={`${thBase} hidden md:table-cell`}>Bệnh nhân<ResizeHandle idx={4} /></th>
                             <th className={`${thBase} hidden lg:table-cell`}>Loại<ResizeHandle idx={5} /></th>
                             <th className={`${thBase} hidden lg:table-cell`}>Sản phẩm<ResizeHandle idx={6} /></th>
-                            <th className={`${thBase} hidden lg:table-cell`}>S.L<ResizeHandle idx={7} /></th>
-                            <th className={`${thBase} hidden lg:table-cell`}>Vị trí răng<ResizeHandle idx={8} /></th>
-                            <th className={thBase}>Trạng thái<ResizeHandle idx={9} /></th>
-                            <th className={thBase}>Hẹn giao<ResizeHandle idx={10} /></th>
-                            <th className={`${thBase} hidden xl:table-cell`}>Ghi chú<ResizeHandle idx={11} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>Màu<ResizeHandle idx={7} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>S.L<ResizeHandle idx={8} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>Vị trí răng<ResizeHandle idx={9} /></th>
+                            <th className={thBase}>Trạng thái<ResizeHandle idx={10} /></th>
+                            <th className={thBase}>Hẹn giao<ResizeHandle idx={11} /></th>
+                            <th className={`${thBase} hidden xl:table-cell`}>Ghi chú<ResizeHandle idx={12} /></th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-700">
                         {renderData.length === 0 ? (
                             <tr>
-                                <td colSpan="12" className="text-center py-8 text-gray-500">
+                                <td colSpan="13" className="text-center py-8 text-gray-500">
                                     Không có dữ liệu đơn hàng
                                 </td>
                             </tr>
@@ -169,15 +170,16 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                                     <td className="px-3 truncate">{dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen}</td>
                                     <td className="px-3 truncate hidden md:table-cell">{dh.bacSi?.hoVaTen}</td>
                                     <td className="px-3 truncate hidden md:table-cell">{dh.benhNhan?.hoVaTen}</td>
-                                    <td className="px-3 hidden lg:table-cell">{sp ? (loaiDonPrefix[sp.loaiDon] || "Mới") : ""}</td>
+                                    <td className="px-3 truncate hidden lg:table-cell">{sp ? (loaiDonPrefix[sp.loaiDon] || "Mới") : ""}</td>
                                     <td className="px-3 py-2 hidden lg:table-cell">
                                         <div className="truncate">{sp?.sanPham?.tenSanPham || ""}</div>
                                     </td>
-                                    <td className="px-3 py-2 hidden lg:table-cell text-center">{sp ? (sp.soLuong || 1) : ""}</td>
+                                    <td className="px-3 py-2 truncate hidden lg:table-cell">{sp?.mau || ""}</td>
+                                    <td className="px-3 py-2 truncate hidden lg:table-cell text-center">{sp ? (sp.soLuong || 1) : ""}</td>
                                     <td className="px-3 py-2 hidden lg:table-cell">
                                         <div className="truncate">{sp ? renderViTri(sp.viTri) : ""}</div>
                                     </td>
-                                    <td className="px-3"><TrangThaiBadge value={dh.trangThai} /></td>
+                                    <td className="px-3 truncate"><TrangThaiBadge value={dh.trangThai} /></td>
                                     <td className="px-3 truncate">{formatDateTime(dh.henGiao)}</td>
                                     <td className="px-3 truncate hidden xl:table-cell" title={dh.ghiChuChung || ""}>{dh.ghiChuChung || ""}</td>
                                 </tr>

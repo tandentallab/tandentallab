@@ -20,7 +20,7 @@ const now = new Date();
 const currentYear = now.getFullYear();
 const currentMonth = now.getMonth() + 1;
 const BASE_YEAR = 2026;
-const BASE_MONTH = 4;
+const BASE_MONTH = 6;
 const NAM_LIST = Array.from({ length: currentYear - BASE_YEAR + 1 }, (_, i) => BASE_YEAR + i).reverse();
 
 // ─── Excel Icon ──────────────────────────────────────────────────────────────

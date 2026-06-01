@@ -45,7 +45,7 @@ const PhuKienModal = ({ isOpen, onClose, initialSelected, onSave }) => {
 
     const setSoLuong = (index, value) => {
         const newList = [...selectedList];
-        newList[index].soLuong = Math.max(0, parseInt(value) || 0);
+        newList[index].soLuong = Math.max(0, parseInt(value));
         setSelectedList(newList);
     };
 

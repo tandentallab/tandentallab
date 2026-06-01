@@ -118,6 +118,7 @@ const DonHangDetailPanel = (props) => {
   const trangThaiColor = {
     "Chờ xử lý": "bg-yellow-200 text-yellow-900",
     "Đang sản xuất": "bg-blue-200 text-blue-900",
+    "Đang thử": "bg-purple-200 text-purple-900",
     "Hoàn thành": "bg-green-200 text-green-900",
     "Đã giao": "bg-gray-200 text-gray-800",
   };
@@ -243,6 +244,144 @@ const DonHangDetailPanel = (props) => {
       setSavingWarranty(false);
     }
   };
+
+  const handleSyncFromOrder = async () => {
+    if (!donHang?._id) {
+      toast.error("Không tìm thấy thông tin đơn hàng tương ứng");
+      return;
+    }
+
+    try {
+      setSavingWarranty(true);
+      const res = await api.get(`/donhang/${donHang._id}`);
+      if (res.data?.success) {
+        const latestOrder = res.data.data;
+
+        // Hàm format vị trí răng
+        const formatViTri = (viTriArr) => {
+          if (!viTriArr || viTriArr.length === 0) return "";
+          return viTriArr
+            .map((v) =>
+              v.kieu === "Rời"
+                ? v.soRang.join(", ")
+                : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+            )
+            .join("; ");
+        };
+
+        const nhaKhoaId = latestOrder.nhaKhoa?._id || latestOrder.nhaKhoa;
+        // Fetch bảng giá nha khoa
+        const bangGiaRes = await api.get(`/bang-gia/nha-khoa/${nhaKhoaId}`).catch(() => null);
+        const mapGia = {};
+        if (bangGiaRes?.data) {
+          bangGiaRes.data.forEach((item) => {
+            if (item.sanPhamId) {
+              mapGia[item.sanPhamId.toString()] = item.donGia || 0;
+            }
+          });
+        }
+
+        // Lọc sản phẩm loại "Mới" từ đơn hàng mới nhất và có giá > 0
+        const orderProducts = (latestOrder.danhSachSanPham || [])
+          .filter((sp) => {
+            const spId = sp.sanPham?._id || sp.sanPham;
+            const donGia = mapGia[spId] ?? sp.sanPham?.donGiaChung ?? 0;
+            return sp.loaiDon === "Mới" && donGia > 0;
+          })
+          .map((sp) => ({
+            sanPhamId: sp.sanPham?._id || sp.sanPham,
+            tenSanPham: sp.sanPham?.tenSanPham || sp.sanPham?.ten || "Sản phẩm",
+            viTriRang: formatViTri(sp.viTri),
+            soLuong: Number(sp.soLuong) || 1,
+            mau: sp.mau || "",
+            baoHanhMacDinh: sp.sanPham?.baoHanhMacDinh || 0,
+          }));
+
+        // Chuẩn hóa danh sách sản phẩm hiện tại của phiếu bảo hành
+        const currentWarrantyProducts = (warrantyEditForm.danhSachBaoHanh || []).map((w) => ({
+          sanPhamId: w.sanPham?._id || w.sanPham,
+          tenSanPham: w.sanPham?.tenSanPham || w.sanPham?.ten || "Sản phẩm",
+          viTriRang: w.viTriRang || "",
+          soLuong: Number(w.soLuong) || 1,
+          mau: w.mau || "",
+        }));
+
+        // So sánh
+        const sortFn = (a, b) => {
+          const idA = (a.sanPhamId || "").toString();
+          const idB = (b.sanPhamId || "").toString();
+          if (idA !== idB) return idA.localeCompare(idB);
+          return (a.viTriRang || "").localeCompare(b.viTriRang || "");
+        };
+
+        const sortedOrder = [...orderProducts].sort(sortFn);
+        const sortedCurrent = [...currentWarrantyProducts].sort(sortFn);
+
+        const isSame = sortedOrder.length === sortedCurrent.length &&
+          sortedOrder.every((op, idx) => {
+            const cwp = sortedCurrent[idx];
+            return op.sanPhamId === cwp.sanPhamId &&
+              op.viTriRang === cwp.viTriRang &&
+              op.soLuong === cwp.soLuong &&
+              op.mau === cwp.mau;
+          });
+
+        if (isSame) {
+          toast.success("Dữ liệu đồng bộ");
+        } else {
+          // Xây dựng danh sách bảo hành mới
+          const newList = orderProducts.map((op) => {
+            const existingMatch = (warrantyEditForm.danhSachBaoHanh || []).find((w) => {
+              const wId = w.sanPham?._id || w.sanPham;
+              return wId === op.sanPhamId && w.viTriRang === op.viTriRang;
+            });
+
+            if (existingMatch) {
+              return {
+                ...existingMatch,
+                soLuong: op.soLuong,
+                mau: op.mau,
+                tenSanPhamBaoHanh: existingMatch.tenSanPhamBaoHanh || op.tenSanPham || "",
+              };
+            }
+
+            const newBaoHanhTu = warranty?.createdAt
+              ? new Date(warranty.createdAt).toISOString().slice(0, 10)
+              : new Date().toISOString().slice(0, 10);
+            const defaultYears = op.baoHanhMacDinh || 0;
+            const newBaoHanhDen = addYearsToDate(newBaoHanhTu, defaultYears);
+
+            return {
+              sanPham: {
+                _id: op.sanPhamId,
+                tenSanPham: op.tenSanPham,
+              },
+              viTriRang: op.viTriRang,
+              soLuong: op.soLuong,
+              mau: op.mau,
+              tenSanPhamBaoHanh: op.tenSanPham || "",
+              baoHanhTu: newBaoHanhTu,
+              baoHanhDen: newBaoHanhDen,
+              selectedYears: defaultYears > 0 ? defaultYears : "",
+              customEndDate: "",
+            };
+          });
+
+          setWarrantyEditForm({
+            ...warrantyEditForm,
+            danhSachBaoHanh: newList,
+          });
+          toast.success("Đã đồng bộ thông tin mới từ đơn hàng!");
+        }
+      } else {
+        toast.error(res.data?.message || "Lỗi khi lấy dữ liệu đơn hàng");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Lỗi khi lấy dữ liệu đơn hàng");
+    } finally {
+      setSavingWarranty(false);
+    }
+  };
   const CONG_DOAN_TRANG_THAI_OPTIONS = ["Chưa sẵn sàng", "Chờ sản xuất"];
 
   const CONG_DOAN_TRANG_THAI_STYLE = {
@@ -283,7 +422,7 @@ const DonHangDetailPanel = (props) => {
 
   const conLaiCongDoan = totalCongDoanCount - doneCongDoanCount;
 
-  const groupedNhatKy = (donHang?.nhatKyChinhSua || []).reduce((acc, entry) => {
+  const groupedNhatKy = (donHang?.nhatKyChinhSua || []).filter(e => e.hanhDong !== "Chỉnh sửa đơn hàng (không có thay đổi)").reduce((acc, entry) => {
     const d = new Date(entry.thoiGian);
     const dateKey = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
     if (!acc[dateKey]) acc[dateKey] = [];
@@ -428,14 +567,16 @@ const DonHangDetailPanel = (props) => {
                 )}
 
                 {/* --- KHU VỰC ĐÃ CẬP NHẬT GIAO DIỆN NÚT IN BẢO HÀNH --- */}
-                <div className="flex flex-wrap items-center gap-2 mt-3">
-                  <button
-                    onClick={hasWarranty ? handleOpenWarrantyView : handleOpenPhieuBaoHanh}
-                    className={`font-medium text-sm px-3 py-1.5 rounded-full text-white flex items-center gap-2 transition-colors ${hasWarranty ? "bg-teal-500 hover:bg-teal-600" : "bg-slate-500 hover:bg-slate-600"}`}
-                  >
-                    <ReceiptIcon sx={{ fontSize: 18 }} /> Thẻ bảo hành
-                  </button>
-                </div>
+                {(hasWarranty || donHang?.danhSachSanPham?.some((sp) => sp.loaiDon === "Mới")) && (
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
+                    <button
+                      onClick={hasWarranty ? handleOpenWarrantyView : handleOpenPhieuBaoHanh}
+                      className={`font-medium text-sm px-3 py-1.5 rounded-full text-white flex items-center gap-2 transition-colors ${hasWarranty ? "bg-teal-500 hover:bg-teal-600" : "bg-slate-500 hover:bg-slate-600"}`}
+                    >
+                      <ReceiptIcon sx={{ fontSize: 18 }} /> Thẻ bảo hành
+                    </button>
+                  </div>
+                )}
                 {/* --------------------------------------------------- */}
               </div>
 
@@ -713,6 +854,15 @@ const DonHangDetailPanel = (props) => {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            onClick={handleSyncFromOrder}
+            variant="outlined"
+            color="primary"
+            disabled={savingWarranty}
+            style={{ marginRight: "auto" }}
+          >
+            Cập nhật phiếu BH
+          </Button>
           <Button
             onClick={() => setOpenWarrantyDialog(false)}
             variant="contained"

@@ -105,7 +105,7 @@ const DonHangPrintPreview = () => {
       <div className="flex justify-center py-6 px-4">
         <div
           className="print-area bg-white shadow-xl"
-          style={{ width: "148mm", minHeight: "210mm", padding: "5mm", paddingTop: "20mm", fontFamily: "Cambria, serif", fontSize: "11pt", color: "#000", boxSizing: "border-box" }}
+          style={{ width: "148mm", minHeight: "210mm", padding: "5mm", paddingTop: "20mm", fontFamily: "Segoe UI, serif", fontSize: "9pt", color: "#000", boxSizing: "border-box" }}
         >
           {/* Header: 3 cột */}
           <div style={{ display: "grid", gridTemplateColumns: "auto 50px auto", gap: "8px", marginBottom: "8px" }}>
@@ -183,7 +183,9 @@ const DonHangPrintPreview = () => {
                       {sp.mau || ""}
                     </td>
                     <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold" }}>
-                      {sp.loaiDon || "Mới"}
+                      {
+                        sp.loaiDon === "Hàng sửa" ? "Sửa" : sp.loaiDon === "Hàng bảo hành" ? "Bảo hành" : sp.loaiDon === "Hàng làm lại" ? "Làm lại" : "Mới"
+                      }
                     </td>
                   </tr>
                 ))
@@ -263,7 +265,7 @@ const DonHangPrintPreview = () => {
           .print-area, .print-area * { visibility: visible; }
           .print-area {
             position: fixed;
-            top: 0;
+            top: 2cm;
             left: 0;
           }
         }

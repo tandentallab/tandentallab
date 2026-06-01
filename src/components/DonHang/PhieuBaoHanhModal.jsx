@@ -35,6 +35,28 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   const [ghiChu, setGhiChu] = useState("");
   const [mauTheList, setMauTheList] = useState([]);
   const [selectedMauTheId, setSelectedMauTheId] = useState("");
+  const [mapGia, setMapGia] = useState({});
+
+  useEffect(() => {
+    if (open && donHang?.nhaKhoa) {
+      const nhaKhoaId = donHang.nhaKhoa?._id || donHang.nhaKhoa;
+      api.get(`/bang-gia/nha-khoa/${nhaKhoaId}`)
+        .then((res) => {
+          const map = {};
+          if (res.data) {
+            res.data.forEach((item) => {
+              if (item.sanPhamId) {
+                map[item.sanPhamId.toString()] = item.donGia || 0;
+              }
+            });
+          }
+          setMapGia(map);
+        })
+        .catch((err) => {
+          console.error("Lỗi fetch bang gia:", err);
+        });
+    }
+  }, [open, donHang?.nhaKhoa]);
 
   useEffect(() => {
     if (open) {
@@ -88,7 +110,8 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
 
   const availableProducts = productOptions.filter((sp) => {
     const spId = sp.sanPham?._id || sp.sanPham;
-    return !sanPhamDaCoPhieu.includes(spId);
+    const donGia = mapGia[spId] ?? sp.sanPham?.donGiaChung ?? 0;
+    return !sanPhamDaCoPhieu.includes(spId) && sp.loaiDon === "Mới" && donGia > 0;
   });
 
   // Khởi tạo state cấu hình bảo hành cho từng sản phẩm
@@ -99,6 +122,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
         initialConfigs[idx] = {
           customEndDate: "",
           selectedYears: sp.sanPham?.baoHanhMacDinh || 0,
+          tenSanPhamBaoHanh: sp.sanPham?.tenSanPham || sp.sanPham?.ten || "Sản phẩm",
         };
       });
       setProductWarrantyConfigs(initialConfigs);
@@ -169,6 +193,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
           }).filter(Boolean).join("; ") || "---",
           soLuong: product.soLuong || 1,
           mau: product.mau || "",
+          tenSanPhamBaoHanh: config.tenSanPhamBaoHanh || product.sanPham?.tenSanPham || product.sanPham?.ten || "",
           baoHanhTu: startDate,
           baoHanhDen: finalEndDate,
         };
@@ -257,51 +282,70 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
             const config = productWarrantyConfigs[idx] || {};
             const calculatedEndDate = getCalculatedEndDate(sp, config);
             return (
-              <div key={idx} className="border border-blue-100 rounded p-3 bg-blue-50/30 grid grid-cols-12 gap-4 items-center">
-                <div className="col-span-4 flex flex-col gap-1">
-                  <span className="font-bold text-sm text-blue-800">{sp.sanPham?.tenSanPham || `Sản phẩm ${idx + 1}`}</span>
-                  <span className="text-xs text-gray-600">
-                    Vị trí: {sp.viTri?.map((v) => {
-                      if (!v.soRang || v.soRang.length === 0) return "";
-                      if (v.kieu === "Rời" || v.soRang.length === 1) return v.soRang.join(", ");
-                      return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
-                    }).filter(Boolean).join("; ") || "---"} | SL: {sp.soLuong || 1}
-                  </span>
+              <div key={idx} className="border border-blue-100 rounded p-4 bg-blue-50/30 flex flex-col gap-3">
+                <div className="grid grid-cols-12 gap-4 items-center">
+                  <div className="col-span-4 flex flex-col gap-1">
+                    <span className="font-bold text-sm text-blue-800">{sp.sanPham?.tenSanPham || `Sản phẩm ${idx + 1}`}</span>
+                    <span className="text-xs text-gray-600">
+                      Vị trí: {sp.viTri?.map((v) => {
+                        if (!v.soRang || v.soRang.length === 0) return "";
+                        if (v.kieu === "Rời" || v.soRang.length === 1) return v.soRang.join(", ");
+                        return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+                      }).filter(Boolean).join("; ") || "---"} | SL: {sp.soLuong || 1}
+                    </span>
+                  </div>
+
+                  <div className="col-span-4 flex flex-col gap-1 text-xs text-gray-700">
+                    <span className="font-medium">Từ: <span className="font-normal">{formatDateVN(fullDonHang.ngayNhan)}</span></span>
+                    <span className="font-medium">Đến: <span className="text-blue-700 font-semibold">{formatDateVN(calculatedEndDate)}</span></span>
+                  </div>
+
+                  <div className="col-span-2">
+                    <TextField
+                      type="date"
+                      value={config.customEndDate || ""}
+                      onChange={(e) => handleConfigChange(idx, "customEndDate", e.target.value)}
+                      fullWidth
+                      size="small"
+                      inputProps={{ style: { fontSize: '13px' } }}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <TextField
+                      select
+                      value={config.selectedYears ?? (sp.sanPham?.baoHanhMacDinh || 0)}
+                      onChange={(e) => {
+                        handleConfigChange(idx, "selectedYears", e.target.value === "" ? null : Number(e.target.value));
+                        handleConfigChange(idx, "customEndDate", "");
+                      }}
+                      fullWidth
+                      size="small"
+                      inputProps={{ style: { fontSize: '13px' } }}
+                    >
+                      {Array.from({ length: 11 }, (_, i) => i).map((year) => (
+                        <MenuItem key={year} value={year}>
+                          {year} năm
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </div>
                 </div>
 
-                <div className="col-span-4 flex flex-col gap-1 text-xs text-gray-700">
-                  <span className="font-medium">Từ: <span className="font-normal">{formatDateVN(fullDonHang.ngayNhan)}</span></span>
-                  <span className="font-medium">Đến: <span className="text-blue-700 font-semibold">{formatDateVN(calculatedEndDate)}</span></span>
-                </div>
-
-                <div className="col-span-2">
+                {/* Tên sản phẩm bảo hành */}
+                <div>
                   <TextField
-                    type="date"
-                    value={config.customEndDate || ""}
-                    onChange={(e) => handleConfigChange(idx, "customEndDate", e.target.value)}
+                    label="Tên sản phẩm bảo hành"
+                    placeholder="Nhập chi tiết loại răng bảo hành..."
+                    value={config.tenSanPhamBaoHanh ?? ""}
+                    onChange={(e) => handleConfigChange(idx, "tenSanPhamBaoHanh", e.target.value)}
                     fullWidth
                     size="small"
-                    inputProps={{ style: { fontSize: '13px' } }}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <TextField
-                    select
-                    value={config.selectedYears ?? (sp.sanPham?.baoHanhMacDinh || 0)}
-                    onChange={(e) => {
-                      handleConfigChange(idx, "selectedYears", e.target.value === "" ? null : Number(e.target.value));
-                      handleConfigChange(idx, "customEndDate", "");
+                    InputLabelProps={{ shrink: true }}
+                    InputProps={{
+                      className: "bg-white rounded-lg",
+                      style: { fontSize: '13px' }
                     }}
-                    fullWidth
-                    size="small"
-                    inputProps={{ style: { fontSize: '13px' } }}
-                  >
-                    {Array.from({ length: 11 }, (_, i) => i).map((year) => (
-                      <MenuItem key={year} value={year}>
-                        {year} năm
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                  />
                 </div>
               </div>
             );

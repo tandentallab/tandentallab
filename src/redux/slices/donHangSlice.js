@@ -16,6 +16,21 @@ export const fetchDonHang = createAsyncThunk(
     }
 );
 
+/* ================= GET MORE (append, dùng cho infinite scroll) ================= */
+export const fetchMoreDonHang = createAsyncThunk(
+    "donHang/fetchMore",
+    async (params = {}, { rejectWithValue }) => {
+        try {
+            const res = await api.get("/donhang", { params });
+            return res.data;
+        } catch (err) {
+            return rejectWithValue(
+                err.response?.data?.message || "Lỗi tải thêm đơn hàng"
+            );
+        }
+    }
+);
+
 /* ================= GET ALL (không phân trang, dùng cho KeHoachGiaoHang) ================= */
 export const fetchDonHangAll = createAsyncThunk(
     "donHang/fetchAll_noPage",
@@ -106,6 +121,60 @@ export const updateCongDoanTrangThai = createAsyncThunk(
     }
 );
 
+/* ================= GET THONG KE ================= */
+export const fetchThongKe = createAsyncThunk(
+    "donHang/fetchThongKe",
+    async (_, { rejectWithValue }) => {
+        try {
+            const res = await api.get("/donhang/thong-ke");
+            return res.data.data; // { giaoHomNay, treHenGiao, guiThu }
+        } catch (err) {
+            return rejectWithValue(
+                err.response?.data?.message || "Lỗi tải thống kê đơn hàng"
+            );
+        }
+    }
+);
+
+//Khởi tạo filter kế hoạch giao hàng
+const initialFilterState = {
+    showUrgentOnly: false,
+    filterType: "all",
+    filterStatus: "all",
+    fromDate: "",
+    toDate: "",
+    searchText: "",
+};
+
+//Khởi tạo filter đơn hàng page
+
+const initialDonHangPageFilter = {
+    searchTerm: "",
+
+    appliedNgayNhan: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedYcHoanThanh: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedHenGiao: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedNhaKhoa: null,
+    appliedBenhNhan: null,
+    appliedTrangThai: [],
+};
+
+
 /* ================= SLICE ================= */
 
 const donHangSlice = createSlice({
@@ -114,13 +183,43 @@ const donHangSlice = createSlice({
     initialState: {
         data: [],
         allData: [], // dùng cho KeHoachGiaoHang (không phân trang)
+        filters: initialFilterState,
+        donHangPageFilter: initialDonHangPageFilter,
         loading: false,
+        loadingMore: false,
         error: null,
         pagination: { total: 0, totalPages: 1, currentPage: 1 },
         stats: {},
+        thongKe: {
+            giaoHomNay: 0,
+            treHenGiao: 0,
+            guiThu: 0,
+        },
     },
 
-    reducers: {},
+    reducers: {
+        setFilter(state, action) {
+            state.filters = {
+                ...state.filters,
+                ...action.payload,
+            };
+        },
+
+        resetFilter(state) {
+            state.filters = initialFilterState;
+        },
+
+        setDonHangPageFilter(state, action) {
+            state.donHangPageFilter = {
+                ...state.donHangPageFilter,
+                ...action.payload,
+            };
+        },
+
+        resetDonHangPageFilter(state) {
+            state.donHangPageFilter = initialDonHangPageFilter;
+        },
+    },
 
     extraReducers: (builder) => {
         builder
@@ -142,6 +241,24 @@ const donHangSlice = createSlice({
             .addCase(fetchDonHang.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
+            })
+
+            /* ===== FETCH MORE (append) ===== */
+            .addCase(fetchMoreDonHang.pending, (state) => {
+                state.loadingMore = true;
+            })
+            .addCase(fetchMoreDonHang.fulfilled, (state, action) => {
+                state.loadingMore = false;
+                state.data = [...state.data, ...(action.payload.data || [])];
+                state.pagination = {
+                    total: action.payload.total || 0,
+                    totalPages: action.payload.totalPages || 1,
+                    currentPage: action.payload.currentPage || 1,
+                };
+                state.stats = action.payload.stats || {};
+            })
+            .addCase(fetchMoreDonHang.rejected, (state) => {
+                state.loadingMore = false;
             })
 
             /* ===== FETCH ALL (no pagination) ===== */
@@ -198,8 +315,27 @@ const donHangSlice = createSlice({
                 state.data = state.data.filter(
                     (item) => item._id !== action.payload
                 );
+            })
+
+            /* ===== THONG KE ===== */
+            .addCase(fetchThongKe.pending, (state) => {
+                state.loadingThongKe = true;
+            })
+            .addCase(fetchThongKe.fulfilled, (state, action) => {
+                state.loadingThongKe = false;
+                state.thongKe = action.payload;
+            })
+            .addCase(fetchThongKe.rejected, (state) => {
+                state.loadingThongKe = false;
             });
     },
 });
+
+export const {
+    setDonHangPageFilter,
+    resetDonHangPageFilter,
+} = donHangSlice.actions;
+
+export const { setFilter, resetFilter } = donHangSlice.actions;
 
 export default donHangSlice.reducer;

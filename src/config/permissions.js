@@ -15,9 +15,13 @@ const normalizeRoleName = (value = "") =>
 export const resolveAppRoleFromUser = (user) => {
   const roleFromToken = normalizeRoleName(user?.appRole);
   if (roleFromToken === APP_ROLES.ADMIN) return APP_ROLES.ADMIN;
-  
+  if (roleFromToken === APP_ROLES.KE_TOAN || roleFromToken === "ketoan") return APP_ROLES.KE_TOAN;
+  if (roleFromToken === APP_ROLES.NHAN_VIEN || roleFromToken === "nhanvien") return APP_ROLES.NHAN_VIEN;
+
   const roleFromQuyen = normalizeRoleName(user?.quyenSuDung?.ten);
   if (roleFromQuyen === APP_ROLES.ADMIN) return APP_ROLES.ADMIN;
+  if (roleFromQuyen === APP_ROLES.KE_TOAN || roleFromQuyen === "ketoan") return APP_ROLES.KE_TOAN;
+  if (roleFromQuyen === APP_ROLES.NHAN_VIEN || roleFromQuyen === "nhanvien") return APP_ROLES.NHAN_VIEN;
 
   return APP_ROLES.NHAN_VIEN;
 };
@@ -30,7 +34,7 @@ const doesPathMatch = (path, basePath) => {
 
 export const hasRouteAccess = (user, path) => {
   const normalizedPath = String(path || "/").trim();
-  
+
   if (normalizedPath.startsWith("/ho-so")) return true;
 
   const appRole = resolveAppRoleFromUser(user);
@@ -38,7 +42,7 @@ export const hasRouteAccess = (user, path) => {
 
   // Fallback cho admin cũ chưa có permissions để tránh bị khóa
   if (appRole === APP_ROLES.ADMIN && (!permissions || permissions.length === 0)) {
-    return true; 
+    return true;
   }
 
   if (permissions && Array.isArray(permissions)) {

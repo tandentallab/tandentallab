@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const DEFAULT_COL_WIDTHS = [140, 120, 170, 120, 120, 230, 115, 150, 170];
+const DEFAULT_COL_WIDTHS = [140, 120, 200, 80, 200, 80, 120, 100, 40, 120, 120, 140];
 
 const DonHangTable = ({ data, selectedId, onRowClick }) => {
     const isDataValid = Array.isArray(data);
@@ -48,20 +48,18 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
         return new Date(value).toLocaleDateString("vi-VN");
     };
 
-    const loaiDonPrefix = { "Hàng sửa": "sửa", "Hàng làm lại": "làm lại", "Hàng bảo hành": "bảo hành" };
+    const loaiDonPrefix = { "Hàng sửa": "Sửa", "Hàng làm lại": "Làm lại", "Hàng bảo hành": "Bảo hành" };
 
     const renderViTri = (viTri) => {
         if (!Array.isArray(viTri) || viTri.length === 0) return "";
         return viTri.map((vt) => {
             const soRang = vt.soRang || [];
             if (soRang.length === 0) return "";
-            if (vt.kieu === "Cầu" && soRang.length >= 2) {
-                const min = Math.min(...soRang);
-                const max = Math.max(...soRang);
-                return `R${min}->${max}`;
+            if (vt.kieu === "Cầu") {
+                return `${soRang[0]}->${soRang[soRang.length - 1]}`;
             }
-            return soRang.map((r) => `R${r}`).join(" ");
-        }).filter(Boolean).join(" ");
+            return soRang.join(", ");
+        }).filter(Boolean).join("; ");
     };
 
     const renderTomTatRang = (danhSachSanPham) => {
@@ -97,7 +95,7 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                         <div
                             key={dh._id}
                             onClick={() => onRowClick(dh)}
-                            className={`px-4 py-3 cursor-pointer transition-colors ${selectedId === dh._id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                            className={`px-4 py-3 cursor-pointer transition-colors ${selectedId === dh._id ? 'bg-sky-200' : 'hover:bg-gray-50'}`}
                         >
                             <div className="flex items-center justify-between mb-1">
                                 <span className="font-semibold text-blue-700 text-sm">
@@ -131,45 +129,62 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                     <colgroup>
                         {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
                     </colgroup>
-                    <thead className="bg-blue-50 text-blue-600 font-medium border-b sticky top-0 z-10">
+                    <thead className="text-sky-500 font-medium border-b sticky top-0 z-10">
                         <tr>
                             <th className={thBase}>Nhận lúc<ResizeHandle idx={0} /></th>
                             <th className={thBase}>Số<ResizeHandle idx={1} /></th>
                             <th className={thBase}>Khách hàng<ResizeHandle idx={2} /></th>
                             <th className={`${thBase} hidden md:table-cell`}>Bác sĩ<ResizeHandle idx={3} /></th>
                             <th className={`${thBase} hidden md:table-cell`}>Bệnh nhân<ResizeHandle idx={4} /></th>
-                            <th className={`${thBase} hidden lg:table-cell`}>Răng<ResizeHandle idx={5} /></th>
-                            <th className={thBase}>Trạng thái<ResizeHandle idx={6} /></th>
-                            <th className={thBase}>Hẹn giao<ResizeHandle idx={7} /></th>
-                            <th className={`${thBase} hidden xl:table-cell`}>Ghi chú<ResizeHandle idx={8} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>Loại<ResizeHandle idx={5} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>Sản phẩm<ResizeHandle idx={6} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>Màu<ResizeHandle idx={7} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>S.L<ResizeHandle idx={8} /></th>
+                            <th className={`${thBase} hidden lg:table-cell`}>Vị trí răng<ResizeHandle idx={9} /></th>
+                            <th className={thBase}>Trạng thái<ResizeHandle idx={10} /></th>
+                            <th className={thBase}>Hẹn giao<ResizeHandle idx={11} /></th>
+                            <th className={`${thBase} hidden xl:table-cell`}>Ghi chú<ResizeHandle idx={12} /></th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-700">
                         {renderData.length === 0 ? (
                             <tr>
-                                <td colSpan="9" className="text-center py-8 text-gray-500">
+                                <td colSpan="13" className="text-center py-8 text-gray-500">
                                     Không có dữ liệu đơn hàng
                                 </td>
                             </tr>
-                        ) : (
-                            renderData.map((dh) => (
+                        ) : (() => {
+                            const flatRows = renderData.flatMap((dh) => {
+                                const dssp = dh.danhSachSanPham || [];
+                                if (dssp.length === 0) return [{ dh, sp: null, spIdx: 0 }];
+                                return dssp.map((sp, spIdx) => ({ dh, sp, spIdx }));
+                            });
+                            return flatRows.map(({ dh, sp, spIdx }) => (
                                 <tr
-                                    key={dh._id}
-                                    className={`border-b cursor-pointer transition-colors ${selectedId === dh._id ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'}`}
+                                    key={`${dh._id}_${spIdx}`}
+                                    className={`border-b cursor-pointer transition-colors ${selectedId === dh._id ? 'bg-sky-200 border-sky-200' : 'hover:bg-gray-50'}`}
                                     onClick={() => onRowClick(dh)}
                                 >
-                                    <td className="px-3 py-3 truncate">{formatDateTime(dh.ngayNhan)}</td>
-                                    <td className="px-3 py-3 font-medium truncate">{dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8).toUpperCase()}`}</td>
-                                    <td className="px-3 py-3 truncate">{dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen}</td>
-                                    <td className="px-3 py-3 truncate hidden md:table-cell">{dh.bacSi?.hoVaTen}</td>
-                                    <td className="px-3 py-3 truncate hidden md:table-cell">{dh.benhNhan?.hoVaTen}</td>
-                                    <td className="px-3 py-3 truncate hidden lg:table-cell" title={renderTomTatRang(dh.danhSachSanPham)}>{renderTomTatRang(dh.danhSachSanPham)}</td>
-                                    <td className="px-3 py-3"><TrangThaiBadge value={dh.trangThai} /></td>
-                                    <td className="px-3 py-3 truncate">{formatDateTime(dh.henGiao)}</td>
-                                    <td className="px-3 py-3 truncate hidden xl:table-cell" title={dh.ghiChuChung || ""}>{dh.ghiChuChung || ""}</td>
+                                    <td className="px-3 truncate">{formatDateTime(dh.ngayNhan)}</td>
+                                    <td className="px-3 truncate">{dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8).toUpperCase()}`}</td>
+                                    <td className="px-3 truncate">{dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen}</td>
+                                    <td className="px-3 truncate hidden md:table-cell">{dh.bacSi?.hoVaTen}</td>
+                                    <td className="px-3 truncate hidden md:table-cell">{dh.benhNhan?.hoVaTen}</td>
+                                    <td className="px-3 truncate hidden lg:table-cell">{sp ? (loaiDonPrefix[sp.loaiDon] || "Mới") : ""}</td>
+                                    <td className="px-3 py-2 hidden lg:table-cell">
+                                        <div className="truncate">{sp?.sanPham?.tenSanPham || ""}</div>
+                                    </td>
+                                    <td className="px-3 py-2 truncate hidden lg:table-cell">{sp?.mau || ""}</td>
+                                    <td className="px-3 py-2 truncate hidden lg:table-cell text-center">{sp ? (sp.soLuong || 1) : ""}</td>
+                                    <td className="px-3 py-2 hidden lg:table-cell">
+                                        <div className="truncate">{sp ? renderViTri(sp.viTri) : ""}</div>
+                                    </td>
+                                    <td className="px-3 truncate"><TrangThaiBadge value={dh.trangThai} /></td>
+                                    <td className="px-3 truncate">{formatDateTime(dh.henGiao)}</td>
+                                    <td className="px-3 truncate hidden xl:table-cell" title={dh.ghiChuChung || ""}>{dh.ghiChuChung || ""}</td>
                                 </tr>
-                            ))
-                        )}
+                            ));
+                        })()}
                     </tbody>
                 </table>
             </div>
@@ -179,13 +194,14 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
 
 const TrangThaiBadge = ({ value }) => {
     const map = {
-        'Chờ xử lý': 'bg-yellow-100 text-yellow-800',
-        'Đang sản xuất': 'bg-blue-100 text-blue-800',
-        'Hoàn thành': 'bg-green-100 text-green-800',
-        'Đã giao': 'bg-gray-100 text-gray-700',
+        "Chờ xử lý": "bg-yellow-100 text-yellow-800",
+        "Đang sản xuất": "bg-blue-100 text-blue-800",
+        "Đang thử": "bg-purple-100 text-purple-800",
+        "Hoàn thành": "bg-green-100 text-green-800",
+        "Đã giao": "bg-gray-100 text-gray-700",
     };
     return (
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${map[value] || 'bg-gray-100 text-gray-600'}`}>
+        <span className={`px-2 py-1 font-medium ${map[value] || 'bg-gray-100 text-gray-600'}`}>
             {value || 'Chờ xử lý'}
         </span>
     );

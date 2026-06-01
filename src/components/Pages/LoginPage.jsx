@@ -12,7 +12,7 @@ export default function LoginPage() {
     (state) => state.auth
   );
 
-  const [form, setForm] = useState({ Email: "", Password: "" });
+  const [form, setForm] = useState({ identifier: "", Password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [focused, setFocused] = useState(null);
@@ -29,7 +29,7 @@ export default function LoginPage() {
   };
 
   const handleLogin = async () => {
-    if (!form.Email.trim()) {
+    if (!form.identifier.trim()) {
       setErrorMsg("Vui lòng nhập Email hoặc Mã nhân viên");
       return;
     }
@@ -37,8 +37,13 @@ export default function LoginPage() {
       setErrorMsg("Vui lòng nhập Mật khẩu");
       return;
     }
+    const isEmail = form.identifier.includes("@");
+    const payload = {
+      ...(isEmail ? { Email: form.identifier } : { MSNV: form.identifier }),
+      Password: form.Password,
+    };
     try {
-      const result = await dispatch(login(form)).unwrap();
+      const result = await dispatch(login(payload)).unwrap();
       console.log("✅ Đăng nhập thành công:", result);
     } catch (err) {
       console.log("❌ Lỗi đăng nhập:", err);
@@ -474,8 +479,11 @@ export default function LoginPage() {
                 <input
                   className="field-input"
                   placeholder="Nhập email hoặc mã nhân viên"
-                  value={form.Email}
-                  onChange={(e) => handleChange("Email", e.target.value)}
+                  value={form.identifier}
+                  onChange={e => {
+                    setForm(prev => ({ ...prev, identifier: e.target.value }));
+                    setErrorMsg("");
+                  }}
                   onKeyDown={handleKeyPress}
                   onFocus={() => setFocused("email")}
                   onBlur={() => setFocused(null)}
@@ -487,9 +495,7 @@ export default function LoginPage() {
 
             {/* Password */}
             <div
-              className={`field-wrap ${
-                focused === "password" ? "focused" : ""
-              }`}
+              className={`field-wrap ${focused === "password" ? "focused" : ""}`}
             >
               <label className="field-label">Mật khẩu</label>
               <div className="field-input-wrap">

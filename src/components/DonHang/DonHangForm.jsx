@@ -592,7 +592,6 @@ const DonHangForm = () => {
     } else {
       formData.danhSachSanPham.forEach((sp, i) => {
         if (!sp.sanPham) errors.push(`Dòng ${i + 1}: Chưa chọn sản phẩm`);
-        if (!sp.viTri || sp.viTri.length === 0) errors.push(`Dòng ${i + 1}: Chưa chọn vị trí răng`);
       });
     }
 
@@ -880,9 +879,16 @@ const DonHangForm = () => {
                           </div>
                         </td>
                         <td className="p-2">
-                          <div className="w-full border-b border-blue-200 p-1 text-center font-bold text-gray-700 min-h-[30px] flex items-center justify-center">
-                            {sp.soLuong}
-                          </div>
+                          <input
+                            type="number"
+                            min="0"
+                            value={sp.soLuong}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) =>
+                              handleSanPhamChange(index, "soLuong", parseInt(e.target.value))
+                            }
+                            className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-center font-bold text-gray-700"
+                          />
                         </td>
                         <td className="p-2">
                           <input
@@ -1071,7 +1077,7 @@ const DonHangForm = () => {
               In Phiếu giao hàng
             </button>
           )}
-          {isEditMode && (
+          {isEditMode && formData.danhSachSanPham?.some(sp => sp.loaiDon === "Mới") && (
             <button
               onClick={() => {
                 if (!formData._id) { toast.error("Vui lòng lưu đơn hàng trước khi thêm thẻ bảo hành"); return; }

@@ -8,8 +8,9 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
+  InputAdornment,
 } from "@mui/material";
-import { Trash2 } from "lucide-react";
+import { Trash2, Search } from "lucide-react"; // Import thêm icon Search
 import { upsertBangGia, deleteBangGia } from "../../redux/slices/bangGiaSlice";
 import NhaKhoaSelector from "./NhaKhoaSelector";
 
@@ -34,6 +35,9 @@ export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
   // State tạm thời để quản lý việc gõ số trong TextField mà không bị lỗi định dạng
   const [inputValues, setInputValues] = useState({});
 
+  // 🔍 State quản lý từ khóa tìm kiếm sản phẩm
+  const [searchTerm, setSearchTerm] = useState("");
+
   // Cập nhật giá trị hiển thị ban đầu từ props/redux data
   useEffect(() => {
     if (data && data.length > 0) {
@@ -54,6 +58,13 @@ export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
     }));
   };
 
+  // 🔍 Lọc danh sách sản phẩm dựa trên từ khóa tìm kiếm (không phân biệt hoa thường)
+  const filteredData = data
+    ? data.filter((item) =>
+        item.tenSanPham?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
+
   return (
     <Paper
       sx={{
@@ -63,6 +74,29 @@ export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
       }}
     >
       <NhaKhoaSelector nhaKhoaData={nhaKhoaData}></NhaKhoaSelector>
+
+      {/* 🔍 THANH TÌM KIẾM SẢN PHẨM */}
+      <Box sx={{ p: 2, borderTop: "1px solid #e2e8f0" }}>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Tìm kiếm sản phẩm theo tên..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search size={18} style={{ color: "#94a3b8" }} />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              borderRadius: "8px",
+            },
+          }}
+        />
+      </Box>
 
       {/* Loading */}
       {loading ? (
@@ -90,119 +124,122 @@ export default function TabBangGiaRieng({ nhaKhoaData, handleClose }) {
             <Box textAlign="center">Hành động</Box>
           </Box>
 
-          {/* EMPTY */}
-          {(!data || data.length === 0) && (
+          {/* EMPTY (Hiển thị khi không có data gốc hoặc tìm kiếm không ra kết quả) */}
+          {filteredData.length === 0 && (
             <Box sx={{ textAlign: "center", py: 4 }}>
-              <Typography color="text.secondary">Chưa có bảng giá</Typography>
+              <Typography color="text.secondary">
+                {data && data.length > 0
+                  ? "Không tìm thấy sản phẩm phù hợp"
+                  : "Chưa có bảng giá"}
+              </Typography>
             </Box>
           )}
 
           {/* LIST */}
-          {data &&
-            data.map((item) => {
-              // Tìm giá chung tương ứng từ danh sách sản phẩm
-              const productCommon = Array.isArray(sanPham?.data)
-                ? sanPham.data.find((sp) => sp._id === item.sanPhamId)
-                : null;
-              const giaChungHienThi = productCommon
-                ? `${formatCurrency(productCommon.donGiaChung)} đ`
-                : "—";
+          {filteredData.map((item) => {
+            // Tìm giá chung tương ứng từ danh sách sản phẩm
+            const productCommon = Array.isArray(sanPham?.data)
+              ? sanPham.data.find((sp) => sp._id === item.sanPhamId)
+              : null;
+            const giaChungHienThi = productCommon
+              ? `${formatCurrency(productCommon.donGiaChung)} đ`
+              : "—";
 
-              return (
-                <Box
-                  key={item.sanPhamId}
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "2fr 1fr 1fr 1fr", // Đồng bộ 4 cột với Header
-                    alignItems: "center",
-                    p: 2,
-                    borderTop: "1px solid #e2e8f0",
-                    "&:hover": { bgcolor: "#f8fafc" },
-                  }}
-                >
-                  {/* TÊN */}
-                  <Box>
-                    <Typography sx={{ fontWeight: 600 }}>
-                      {item.tenSanPham}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {item.nhomSanPham}
-                    </Typography>
-                  </Box>
-
-                  {/* ĐỊNH DẠNG GIÁ CHUNG CHỈ HIỂN THỊ */}
-                  <Box
-                    textAlign="right"
-                    sx={{ pr: 2, fontWeight: 500, color: "text.primary" }}
-                  >
-                    {giaChungHienThi}
-                  </Box>
-
-                  {/* GIÁ RIÊNG - ĐÃ ĐỊNH DẠNG DẤU CHẤM KHI GÕ */}
-                  <Box display="flex" justifyContent="center">
-                    <TextField
-                      size="small"
-                      type="text" // Chuyển thành text để hiển thị dấu chấm phân cách hàng nghìn
-                      value={inputValues[item.sanPhamId] || ""}
-                      onChange={(e) =>
-                        handleInputChange(item.sanPhamId, e.target.value)
-                      }
-                      onBlur={() => {
-                        const rawString = inputValues[item.sanPhamId] || "";
-                        const numericValue = parseCurrencyToNumber(rawString);
-
-                        // ❌ tránh gửi rác
-                        if (!numericValue || numericValue < 0) return;
-
-                        dispatch(
-                          upsertBangGia({
-                            nhaKhoaId: nhaKhoaData._id,
-                            sanPhamId: item.sanPhamId,
-                            donGia: numericValue, // Gửi lên Redux số nguyên thuần túy (VD: 100000)
-                          })
-                        );
-                      }}
-                      sx={{
-                        width: "140px",
-                        "& input": {
-                          textAlign: "right",
-                          color: item.laGiaRieng ? "#dc2626" : "#111827",
-                          fontWeight: item.laGiaRieng ? 700 : 500,
-                        },
-                      }}
-                    />
-                  </Box>
-
-                  {/* ACTION */}
-                  <Box textAlign="center">
-                    {item.laGiaRieng && (
-                      <Tooltip title="Reset về giá chung">
-                        <IconButton
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                "Bạn có chắc muốn xóa đơn giá riêng này?"
-                              )
-                            ) {
-                              dispatch(deleteBangGia(item.bangGiaId));
-                              handleClose();
-                            }
-                          }}
-                          color="error"
-                        >
-                          <IconButton
-                            component="div"
-                            sx={{ p: 0, color: "inherit" }}
-                          >
-                            <Trash2 size={16} />
-                          </IconButton>
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </Box>
+            return (
+              <Box
+                key={item.sanPhamId}
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "2fr 1fr 1fr 1fr", // Đồng bộ 4 cột với Header
+                  alignItems: "center",
+                  p: 2,
+                  borderTop: "1px solid #e2e8f0",
+                  "&:hover": { bgcolor: "#f8fafc" },
+                }}
+              >
+                {/* TÊN */}
+                <Box>
+                  <Typography sx={{ fontWeight: 600 }}>
+                    {item.tenSanPham}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {item.nhomSanPham}
+                  </Typography>
                 </Box>
-              );
-            })}
+
+                {/* ĐỊNH DẠNG GIÁ CHUNG CHỈ HIỂN THỊ */}
+                <Box
+                  textAlign="right"
+                  sx={{ pr: 2, fontWeight: 500, color: "text.primary" }}
+                >
+                  {giaChungHienThi}
+                </Box>
+
+                {/* GIÁ RIÊNG - ĐÃ ĐỊNH DẠNG DẤU CHẤM KHI GÕ */}
+                <Box display="flex" justifyContent="center">
+                  <TextField
+                    size="small"
+                    type="text" // Chuyển thành text để hiển thị dấu chấm phân cách hàng nghìn
+                    value={inputValues[item.sanPhamId] || ""}
+                    onChange={(e) =>
+                      handleInputChange(item.sanPhamId, e.target.value)
+                    }
+                    onBlur={() => {
+                      const rawString = inputValues[item.sanPhamId] || "";
+                      const numericValue = parseCurrencyToNumber(rawString);
+
+                      // ❌ tránh gửi rác
+                      if (!numericValue || numericValue < 0) return;
+
+                      dispatch(
+                        upsertBangGia({
+                          nhaKhoaId: nhaKhoaData._id,
+                          sanPhamId: item.sanPhamId,
+                          donGia: numericValue, // Gửi lên Redux số nguyên thuần túy (VD: 100000)
+                        })
+                      );
+                    }}
+                    sx={{
+                      width: "140px",
+                      "& input": {
+                        textAlign: "right",
+                        color: item.laGiaRieng ? "#dc2626" : "#111827",
+                        fontWeight: item.laGiaRieng ? 700 : 500,
+                      },
+                    }}
+                  />
+                </Box>
+
+                {/* ACTION */}
+                <Box textAlign="center">
+                  {item.laGiaRieng && (
+                    <Tooltip title="Reset về giá chung">
+                      <IconButton
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              "Bạn có chắc muốn xóa đơn giá riêng này?"
+                            )
+                          ) {
+                            dispatch(deleteBangGia(item.bangGiaId));
+                            handleClose();
+                          }
+                        }}
+                        color="error"
+                      >
+                        <IconButton
+                          component="div"
+                          sx={{ p: 0, color: "inherit" }}
+                        >
+                          <Trash2 size={16} />
+                        </IconButton>
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
+              </Box>
+            );
+          })}
         </Box>
       )}
 

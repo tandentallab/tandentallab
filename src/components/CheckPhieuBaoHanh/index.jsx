@@ -1,1 +1,1 @@
-export { default } from './CheckPhieuBaoHanhPage';
+export { default } from './CheckPhieuBaoHanhCuPage';

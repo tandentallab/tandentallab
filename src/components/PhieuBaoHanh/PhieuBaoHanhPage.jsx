@@ -27,6 +27,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import CloseIcon from "@mui/icons-material/Close";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+import PrintIcon from "@mui/icons-material/Print";
 import { api } from "../../config/api";
 import { toast } from "sonner";
 import FullScreenLoader from "../Loader/FullScreenLoader";
@@ -35,6 +36,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import ExportDateSelector from "../common/ExportDateSelector";
 import { toISODateRange } from "../../utils/exportDatePresets";
+import WarrantyCardPrint from "../DonHang/WarrantyCardPrint";
 
 // Helper functions (Giữ nguyên logic gốc)
 const addYearsToDate = (dateValue, years) => {
@@ -75,6 +77,7 @@ const PhieuBaoHanhPage = () => {
     ghiChu: "",
     danhSachBaoHanh: [],
   });
+  const [printPhieu, setPrintPhieu] = useState(null);
 
   const navigate = useNavigate();
 
@@ -100,7 +103,7 @@ const PhieuBaoHanhPage = () => {
     try {
       setLoading(true);
       const dateRange = toISODateRange(dateFilter);
-      
+
       const res = await api.get("/phieu-bao-hanh", {
         params: {
           page: page + 1,
@@ -134,6 +137,8 @@ const PhieuBaoHanhPage = () => {
     setPage(0);
   };
 
+  console.log("Danh sách phiếu bảo hành đã tải:", phieuList);
+
   // Mở modal edit (Giữ nguyên)
   const handleOpenEdit = (phieu) => {
     setEditingPhieu(phieu);
@@ -147,8 +152,11 @@ const PhieuBaoHanhPage = () => {
       const actualEndStr = new Date(item.baoHanhDen).toISOString().slice(0, 10);
       const isExactYears = expectedEnd === actualEndStr;
 
+      const defaultName = item.sanPham?.tenSanPham || (typeof item.sanPham === 'string' ? item.sanPham : item.sanPham?.ten || "");
+
       return {
         ...item,
+        tenSanPhamBaoHanh: item.tenSanPhamBaoHanh || defaultName || "",
         selectedYears: isExactYears ? yearsDiff : "",
         customEndDate: isExactYears ? "" : actualEndStr,
       };
@@ -174,7 +182,7 @@ const PhieuBaoHanhPage = () => {
       const res = await api.get(`/donhang/${orderId}`);
       if (res.data?.success) {
         const latestOrder = res.data.data;
-        
+
         // Hàm format vị trí răng
         const formatViTri = (viTriArr) => {
           if (!viTriArr || viTriArr.length === 0) return "";
@@ -187,15 +195,33 @@ const PhieuBaoHanhPage = () => {
             .join("; ");
         };
 
-        // Chuẩn hóa danh sách sản phẩm từ đơn hàng mới nhất
-        const orderProducts = (latestOrder.danhSachSanPham || []).map((sp) => ({
-          sanPhamId: sp.sanPham?._id || sp.sanPham,
-          tenSanPham: sp.sanPham?.tenSanPham || sp.sanPham?.ten || "Sản phẩm",
-          viTriRang: formatViTri(sp.viTri),
-          soLuong: Number(sp.soLuong) || 1,
-          mau: sp.mau || "",
-          baoHanhMacDinh: sp.sanPham?.baoHanhMacDinh || 0,
-        }));
+        const nhaKhoaId = latestOrder.nhaKhoa?._id || latestOrder.nhaKhoa;
+        // Fetch bảng giá nha khoa
+        const bangGiaRes = await api.get(`/bang-gia/nha-khoa/${nhaKhoaId}`).catch(() => null);
+        const mapGia = {};
+        if (bangGiaRes?.data) {
+          bangGiaRes.data.forEach((item) => {
+            if (item.sanPhamId) {
+              mapGia[item.sanPhamId.toString()] = item.donGia || 0;
+            }
+          });
+        }
+
+        // Chuẩn hóa danh sách sản phẩm từ đơn hàng mới nhất và có giá > 0
+        const orderProducts = (latestOrder.danhSachSanPham || [])
+          .filter((sp) => {
+            const spId = sp.sanPham?._id || sp.sanPham;
+            const donGia = mapGia[spId] ?? sp.sanPham?.donGiaChung ?? 0;
+            return sp.loaiDon === "Mới" && donGia > 0;
+          })
+          .map((sp) => ({
+            sanPhamId: sp.sanPham?._id || sp.sanPham,
+            tenSanPham: sp.sanPham?.tenSanPham || sp.sanPham?.ten || "Sản phẩm",
+            viTriRang: formatViTri(sp.viTri),
+            soLuong: Number(sp.soLuong) || 1,
+            mau: sp.mau || "",
+            baoHanhMacDinh: sp.sanPham?.baoHanhMacDinh || 0,
+          }));
 
         // Chuẩn hóa danh sách sản phẩm hiện tại của phiếu bảo hành
         const currentWarrantyProducts = (editForm.danhSachBaoHanh || []).map((w) => ({
@@ -221,9 +247,9 @@ const PhieuBaoHanhPage = () => {
           sortedOrder.every((op, idx) => {
             const cwp = sortedCurrent[idx];
             return op.sanPhamId === cwp.sanPhamId &&
-                   op.viTriRang === cwp.viTriRang &&
-                   op.soLuong === cwp.soLuong &&
-                   op.mau === cwp.mau;
+              op.viTriRang === cwp.viTriRang &&
+              op.soLuong === cwp.soLuong &&
+              op.mau === cwp.mau;
           });
 
         if (isSame) {
@@ -241,6 +267,7 @@ const PhieuBaoHanhPage = () => {
                 ...existingMatch,
                 soLuong: op.soLuong,
                 mau: op.mau,
+                tenSanPhamBaoHanh: existingMatch.tenSanPhamBaoHanh || op.tenSanPham || "",
               };
             }
 
@@ -258,6 +285,7 @@ const PhieuBaoHanhPage = () => {
               viTriRang: op.viTriRang,
               soLuong: op.soLuong,
               mau: op.mau,
+              tenSanPhamBaoHanh: op.tenSanPham || "",
               baoHanhTu: newBaoHanhTu,
               baoHanhDen: newBaoHanhDen,
               selectedYears: defaultYears > 0 ? defaultYears : "",
@@ -542,10 +570,19 @@ const PhieuBaoHanhPage = () => {
                               className="text-teal-600 hover:bg-teal-50"
                               onClick={() => {
                                 const qrCode = phieu.maQR || phieu.maBaoHanh || "";
-                                window.open(`${window.location.origin}/warranty/?qrcode=${qrCode}`, "_blank");
+                                window.open(`${window.location.origin}/tra-cuu-bao-hanh/?qrcode=${qrCode}`, "_blank");
                               }}
                             >
                               <QrCodeScannerIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="In thẻ bảo hành">
+                            <IconButton
+                              size="small"
+                              className="text-purple-600 hover:bg-purple-50"
+                              onClick={() => setPrintPhieu(phieu)}
+                            >
+                              <PrintIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Chỉnh sửa">
@@ -625,10 +662,17 @@ const PhieuBaoHanhPage = () => {
                       className="text-teal-600"
                       onClick={() => {
                         const qrCode = phieu.maQR || phieu.maBaoHanh || "";
-                        window.open(`${window.location.origin}/warranty/?qrcode=${qrCode}`, "_blank");
+                        window.open(`${window.location.origin}/tra-cuu-bao-hanh/?qrcode=${qrCode}`, "_blank");
                       }}
                     >
                       <QrCodeScannerIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      className="text-purple-600"
+                      onClick={() => setPrintPhieu(phieu)}
+                    >
+                      <PrintIcon fontSize="small" />
                     </IconButton>
                     <IconButton
                       size="small"
@@ -705,7 +749,7 @@ const PhieuBaoHanhPage = () => {
                       >
                         <div className="font-bold text-slate-800">
                           {idx + 1}.{" "}
-                          {item.sanPham?.tenSanPham || item.sanPham || "---"}
+                          {item.tenSanPhamBaoHanh || item.sanPham?.tenSanPham || item.sanPham || "---"}
                         </div>
                         <div className="text-slate-500 mt-1 flex flex-wrap gap-2">
                           {item.viTriRang && (
@@ -850,6 +894,33 @@ const PhieuBaoHanhPage = () => {
                             )}
                           </span>
                         </div>
+                      </div>
+
+                      {/* Tên sản phẩm bảo hành */}
+                      <div className="mb-4">
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                          Tên sản phẩm bảo hành:
+                        </label>
+                        <TextField
+                          placeholder="Nhập tên sản phẩm bảo hành..."
+                          value={item.tenSanPhamBaoHanh || ""}
+                          onChange={(e) => {
+                            const newDanhSach = [...editForm.danhSachBaoHanh];
+                            newDanhSach[idx] = {
+                              ...newDanhSach[idx],
+                              tenSanPhamBaoHanh: e.target.value,
+                            };
+                            setEditForm({
+                              ...editForm,
+                              danhSachBaoHanh: newDanhSach,
+                            });
+                          }}
+                          fullWidth
+                          size="small"
+                          InputProps={{
+                            className: "rounded-lg text-sm bg-white",
+                          }}
+                        />
                       </div>
 
                       {/* Các input thay đổi ngày (Giữ nguyên logic gốc) */}
@@ -1002,6 +1073,15 @@ const PhieuBaoHanhPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog in thẻ bảo hành */}
+      {printPhieu && (
+        <WarrantyCardPrint
+          open={!!printPhieu}
+          onClose={() => setPrintPhieu(null)}
+          warranty={printPhieu}
+        />
+      )}
     </div>
   );
 };

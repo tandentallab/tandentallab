@@ -151,9 +151,9 @@ const MauTheBaoHanhPage = () => {
       if (newConfigs[field.loaiTruong]) {
         newConfigs[field.loaiTruong] = {
           enabled: true,
-          leTren: field.leTren || 10,
-          leTrai: field.leTrai || field.leTraI || 10,
-          coChu: field.coChu || 12,
+          leTren: field.leTren ?? 10,
+          leTrai: (field.leTrai ?? field.leTraI) ?? 10,
+          coChu: field.coChu ?? 12,
           doDam: field.doDam || false,
           nghieng: field.nghieng || false,
           gachChan: field.gachChan || false,
@@ -277,8 +277,8 @@ const MauTheBaoHanhPage = () => {
               font-family: sans-serif;
             }
             .card-container {
-              width: 86mm;
-              height: 54mm;
+              width: 85mm;
+              height: 53mm;
               position: relative;
               border: 1px dashed #ccc; 
             }
@@ -623,7 +623,7 @@ const MauTheBaoHanhPage = () => {
               <div className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider flex items-center justify-between">
                 <span>Khung hiển thị trực quan</span>
                 <span className="text-sky-600 bg-sky-50 font-semibold px-2 py-0.5 rounded-md border border-sky-100">
-                  Kích thước chuẩn: 86x54mm
+                  Kích thước chuẩn: 85x53mm
                 </span>
               </div>
 
@@ -644,8 +644,8 @@ const MauTheBaoHanhPage = () => {
                 <div
                   ref={printRef}
                   style={{
-                    width: "86mm",
-                    height: "54mm",
+                    width: "85mm",
+                    height: "53mm",
                     backgroundColor: "white",
                     position: "relative",
                     borderRadius: "4px",
@@ -668,7 +668,7 @@ const MauTheBaoHanhPage = () => {
                           }}
                         >
                           <QRCodeSVG
-                            value={`${window.location.origin}/warranty/?qrcode=12345`}
+                            value={`${window.location.origin}/tra-cuu-bao-hanh/?qrcode=12345`}
                             size={conf.coChu * 4 || 60}
                             level="L"
                           />

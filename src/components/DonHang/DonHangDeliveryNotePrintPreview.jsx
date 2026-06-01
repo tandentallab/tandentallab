@@ -42,21 +42,70 @@ const DonHangDeliveryNotePrintPreview = () => {
     });
   };
 
+  const formatDate = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   const nhaKhoaTen =
     donHang.nhaKhoa?.tenGiaoDich || donHang.nhaKhoa?.hoVaTen || "";
   const bacSi = donHang.bacSi?.hoVaTen || "";
   const benhNhan = donHang.benhNhan?.hoVaTen || "";
 
+  const buildTeethTextWithR = (viTri = []) => {
+    if (!Array.isArray(viTri)) return "";
+    const parts = viTri
+      .map((v) => {
+        if (!Array.isArray(v.soRang) || v.soRang.length === 0) return "";
+        if (v.soRang.length === 1) return `R${v.soRang[0]}`;
+        return `R${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+      })
+      .filter(Boolean);
+    return parts.join("; ");
+  };
+
   const sanPhamList = donHang.danhSachSanPham || [];
   const sanPhamText = sanPhamList
     .map((sp) => {
+      // 1. Xác định Loại đơn hàng (Mới, Sửa, Làm lại, Bảo hành)
+      let loaiPrefix = "";
+      const loai = sp.loaiDon || "";
+      if (loai === "Hàng sửa" || loai === "Sửa") {
+        loaiPrefix = "Sửa ";
+      } else if (loai === "Hàng làm lại" || loai === "Làm lại") {
+        loaiPrefix = "Làm lại ";
+      } else if (loai === "Hàng bảo hành" || loai === "Bảo hành" || loai === "Bảo hảnh") {
+        loaiPrefix = "Bảo hành ";
+      }
+
+      // 2. Số lượng
       const soLuong = sp.soLuong || 1;
+
+      // 3. Tên sản phẩm
       const ten = sp.sanPham?.tenSanPham || "";
-      const mau = sp.mau ? ` (${sp.mau})` : "";
-      return `${soLuong} ${ten}${mau}`.trim();
+
+      // 4. Vị trí răng (thêm chữ R vào trước)
+      const viTriText = buildTeethTextWithR(sp.viTri || sp.viTriRang);
+
+      // 5. Màu sắc (đặt trong dấu ngoặc tròn)
+      const mau = sp.mau ? `(${sp.mau})` : "";
+
+      const parts = [
+        loaiPrefix ? loaiPrefix.trim() : "",
+        soLuong,
+        ten,
+        viTriText,
+        mau
+      ].filter(Boolean);
+
+      return parts.join(" ");
     })
     .filter(Boolean)
-    .join(", ");
+    .join("\n");
 
   const phuKienList = donHang.danhSachPhuKien || [];
   const phuKienText = phuKienList
@@ -78,27 +127,25 @@ const DonHangDeliveryNotePrintPreview = () => {
 
       <div className="flex flex-col items-center print:items-start py-6 px-4 print:p-0">
         <div
-          className="print-area bg-white w-full max-w-[300px] shadow-lg border border-gray-400 p-6 print:p-0 text-sm"
-          style={{ fontFamily: "'Cambria', Georgia, serif" }}
+          className="print-area bg-white w-full max-w-[300px] shadow-lg border border-gray-400 p-6 print:p-0"
+          style={{ fontFamily: "Cambria, Georgia, serif", fontSize: "13px" }}
         >
           <div className="text-center">
-            <div className="font-bold text-lg">CÔNG TY TNHH TẤN DENTAL</div>
-            <div>Điện thoại: 0842312828</div>
-            <div className="text-base mt-2">PHIẾU GIAO HÀNG</div>
+            <div className="font-bold text-base">CÔNG TY TNHH TẤN DENTAL</div>
+            <div className="text-xs">Điện thoại: 0842312828</div>
+            <div className="text-sm font-bold mt-2">PHIẾU GIAO HÀNG</div>
             <div className="border-b border-dashed border-gray-500 mt-2" />
           </div>
 
-          <div className="mt-3 grid grid-cols-[90px_1fr] gap-y-1">
+          <div className="mt-3 grid grid-cols-[78px_1fr] gap-y-1">
             <span>Nha khoa:</span>
             <span className="font-bold">{nhaKhoaTen || "---"}</span>
             <span>Bác sĩ:</span>
             <span className="font-bold">{bacSi || "---"}</span>
-            <span> Bệnh nhân:</span>
+            <span>Bệnh nhân:</span>
             <span className="font-bold">{benhNhan || "---"}</span>
-            <span> Sản phẩm:</span>
-            <span className="font-bold">{sanPhamText || "---"}</span>
-            <span>Giờ giao:</span>
-            <span className="font-bold">{formatDateTime(donHang.henGiao)}</span>
+            <span>Sản phẩm:</span>
+            <span className="font-bold" style={{ whiteSpace: "pre-line" }}>{sanPhamText || "---"}</span>
           </div>
 
           <div className="border-b border-gray-300 mt-3" />
@@ -116,34 +163,37 @@ const DonHangDeliveryNotePrintPreview = () => {
             onClick={() => window.print()}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
           >
-            In trang nay (Ctrl+P)
+            In trang này (Ctrl+P)
           </button>
           <button
             onClick={() => navigate(-1)}
             className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition"
           >
-            Quay lai
+            Quay lại
           </button>
         </div>
       </div>
 
       <style>{`
-        @page {
-          margin: 12mm 15mm;
-        }
         @media print {
-          body {
-            background: white;
+          html, body {
+            background: white !important;
           }
           .print-area {
-            box-shadow: none;
-            border: none;
+            box-shadow: none !important;
+            border: none !important;
+            width: 72mm !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: auto !important;
+            padding: 4mm 0 !important;
+            box-sizing: border-box !important;
           }
           button {
-            display: none;
+            display: none !important;
           }
           .h-10, .mt-4 {
-            display: none;
+            display: none !important;
           }
         }
       `}</style>

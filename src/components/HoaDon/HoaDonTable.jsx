@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import {
   Table,
   TableBody,
@@ -17,16 +17,11 @@ import {
   Button,
   Chip,
   Modal,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   CircularProgress,
 } from "@mui/material";
-import { updateHoaDon } from "../../redux/slices/hoaDonSlice";
 import { useNavigate } from "react-router-dom";
 
-// ================= FORMATTERS (module-level, khởi tạo 1 lần) =================
+// ================= FORMATTERS =================
 const vndFormatter = new Intl.NumberFormat("vi-VN");
 const dateFormatter = new Intl.DateTimeFormat("vi-VN");
 
@@ -47,6 +42,7 @@ const STATUS_CLASS = {
   "Chưa thanh toán": "bg-[#f44336] text-white",
   "Thanh toán một phần": "bg-[#ff9800] text-white",
   "Đã thanh toán": "bg-[#4CAF50] text-white",
+  "Lưu tạm": "bg-blue-500 text-white",
 };
 
 // ================= RESIZABLE HEADER CELL =================
@@ -86,8 +82,9 @@ const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => (
     <TableCell sx={cellStyles.chiPhiKhac}>{fmtVND(hd.chiPhiKhac)}</TableCell>
     <TableCell sx={cellStyles.trangThai}>
       <span
-        className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide ${STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"
-          }`}
+        className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide ${
+          STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"
+        }`}
       >
         {hd.trangThai || "—"}
       </span>
@@ -98,27 +95,28 @@ const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => (
 ));
 
 // ================= COMPONENT CHÍNH =================
-const HoaDonTable = ({ danhSachHoaDon, loading }) => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+// Cấu hình Virtual Scroll
+const ROW_HEIGHT = 45;
+const VISIBLE_ROWS = 25;
+const OVERSCAN = 10;
 
+const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
+  const navigate = useNavigate();
   const [selectedHD, setSelectedHD] = useState(null);
   const [openDetail, setOpenDetail] = useState(false);
-  const [openUpdate, setOpenUpdate] = useState(false);
-  const [statusUpdate, setStatusUpdate] = useState("");
 
   // ── Resizable columns ──
   const [columnWidths, setColumnWidths] = useState({
-    ngayXuat: 120,
-    soHoaDon: 140,
-    nhaKhoa: 220,
+    ngayXuat: 110,
+    soHoaDon: 120,
+    nhaKhoa: 160,
     tongCong: 130,
-    giamGia: 110,
-    giaTriThanhToan: 160,
-    daThanhToan: 140,
+    giamGia: 90,
+    giaTriThanhToan: 140,
+    daThanhToan: 120,
     conLai: 120,
     chiPhiKhac: 120,
-    trangThai: 140,
+    trangThai: 180,
     ghiChu: 200,
     ngayDenHan: 130,
   });
@@ -133,65 +131,59 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
     [columnWidths]
   );
 
-  // 🔥 ── Lọc / Sắp xếp Ngày Xuất ── 🔥
-  const [sortOrder, setSortOrder] = useState("desc"); // "desc" = Trễ nhất (mới nhất), "asc" = Sớm nhất (cũ nhất)
-
-  const handleToggleSort = () => {
+  // 🔥 ── Sắp xếp ── 🔥
+  const [sortOrder, setSortOrder] = useState("desc");
+  const handleToggleSort = () =>
     setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
-  };
 
   const sortedDanhSachHoaDon = useMemo(() => {
     if (!danhSachHoaDon) return [];
-    const copy = [...danhSachHoaDon];
-
-    copy.sort((a, b) => {
-      // 1. Lấy Tiêu chí chính: Ngày xuất hóa đơn
+    return [...danhSachHoaDon].sort((a, b) => {
       const timeA = new Date(a.ngayXuatHoaDon || a.createdAt || 0).getTime();
       const timeB = new Date(b.ngayXuatHoaDon || b.createdAt || 0).getTime();
-
-      // Nếu Ngày xuất khác nhau -> Cứ thế mà xếp
-      if (timeA !== timeB) {
+      if (timeA !== timeB)
         return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
-      }
 
-      // 🔥 2. TIÊU CHÍ PHỤ (Tie-breaker): Nếu Ngày xuất giống hệt nhau
-      // Chuyển sang so sánh mili-giây tạo thực tế (createdAt)
       const createdA = new Date(a.createdAt || 0).getTime();
       const createdB = new Date(b.createdAt || 0).getTime();
-
       return sortOrder === "asc" ? createdA - createdB : createdB - createdA;
     });
-
-    return copy;
   }, [danhSachHoaDon, sortOrder]);
 
-  // ── Virtual scroll ──
-  const [visibleCount, setVisibleCount] = useState(30);
-  const containerRef = useRef(null);
-  const sentinelRef = useRef(null);
+  // 🔥 ── THUẬT TOÁN VIRTUAL SCROLLING & INFINITE SCROLLING ── 🔥
+  const [scrollTop, setScrollTop] = useState(0);
+  const loadingRef = useRef(false);
 
-  // Cập nhật lại list mỗi khi đổi filter hoặc đổi data
-  useEffect(() => { setVisibleCount(30); }, [sortedDanhSachHoaDon]);
-
+  // Đồng bộ trạng thái loading vào Ref để tránh closure scope issue
   useEffect(() => {
-    const container = containerRef.current;
-    const sentinel = sentinelRef.current;
-    if (!container || !sentinel) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting)
-          setVisibleCount((prev) => Math.min(prev + 30, sortedDanhSachHoaDon.length));
-      },
-      { root: container, threshold: 0.1 }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [sortedDanhSachHoaDon.length]);
+    loadingRef.current = loading;
+  }, [loading]);
 
-  const visibleRows = useMemo(
-    () => sortedDanhSachHoaDon.slice(0, visibleCount),
-    [sortedDanhSachHoaDon, visibleCount]
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+
+    // 1. Phục vụ UI mượt
+    requestAnimationFrame(() => setScrollTop(scrollTop));
+
+    // 2. Cảm biến chạm đáy (Cách đáy 200px thì gọi)
+    if (scrollHeight - scrollTop - clientHeight < 200) {
+      if (onLoadMore && !loadingRef.current) {
+        loadingRef.current = true; // Khóa lại ngay lập tức chống spam
+        onLoadMore();
+      }
+    }
+  };
+
+  const totalRows = sortedDanhSachHoaDon.length;
+  const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+  const endIndex = Math.min(
+    totalRows,
+    Math.floor(scrollTop / ROW_HEIGHT) + VISIBLE_ROWS + OVERSCAN
   );
+  const visibleRows = sortedDanhSachHoaDon.slice(startIndex, endIndex);
+
+  const paddingTop = startIndex * ROW_HEIGHT;
+  const paddingBottom = Math.max(0, (totalRows - endIndex) * ROW_HEIGHT);
 
   // ── RAF throttle resize ──
   const handleResize = useCallback((columnKey, e) => {
@@ -223,7 +215,6 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
     document.addEventListener("mouseup", onMouseUp);
   }, []);
 
-  // ── Precompute tất cả cell styles 1 lần ──
   const cellStyles = useMemo(() => {
     const base = (key) => ({
       width: columnWidths[key],
@@ -273,26 +264,17 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
       row[k] = base(k);
       hdr[k] = baseHeader(k);
     });
-
     return { row, hdr };
   }, [columnWidths]);
 
   const onNavigate = useCallback((path) => navigate(path), [navigate]);
 
-  const handleConfirmUpdate = async () => {
-    await dispatch(
-      updateHoaDon({ id: selectedHD._id, data: { trangThai: statusUpdate } })
-    );
-    setOpenUpdate(false);
-  };
-
-  // ================= RENDER =================
   return (
     <>
       <TableContainer
-        ref={containerRef}
         component={Paper}
         elevation={0}
+        onScroll={handleScroll}
         sx={{
           borderRadius: 0,
           flex: 1,
@@ -310,7 +292,13 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
           "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "#94a3b8" },
         }}
       >
-        <Table sx={{ tableLayout: "fixed", width: totalTableWidth, minWidth: totalTableWidth }}>
+        <Table
+          sx={{
+            tableLayout: "fixed",
+            width: totalTableWidth,
+            minWidth: totalTableWidth,
+          }}
+        >
           <TableHead>
             <TableRow>
               <ResizableHeaderCell
@@ -318,15 +306,23 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
                   <div
                     className="flex items-center gap-1 cursor-pointer hover:text-[#00796b] transition-colors"
                     onClick={handleToggleSort}
-                    title={sortOrder === "desc" ? "Đang xếp: Mới nhất -> Cũ nhất (Bấm để xem Sớm nhất)" : "Đang xếp: Cũ nhất -> Mới nhất (Bấm để xem Trễ nhất)"}
                   >
                     Ngày xuất
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className={`w-4 h-4 transition-transform duration-300 ${sortOrder === "desc" ? "rotate-180" : ""}`}
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                      className={`w-4 h-4 transition-transform duration-300 ${
+                        sortOrder === "desc" ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 15l7-7 7 7"
+                      />
                     </svg>
                   </div>
                 }
@@ -334,50 +330,77 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
                 style={cellStyles.hdr.ngayXuat}
                 onResize={handleResize}
               />
-              <ResizableHeaderCell label="Số" columnKey="soHoaDon" style={cellStyles.hdr.soHoaDon} onResize={handleResize} />
-              <ResizableHeaderCell label="Nha khoa" columnKey="nhaKhoa" style={cellStyles.hdr.nhaKhoa} onResize={handleResize} />
-              <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" style={cellStyles.hdr.tongCong} onResize={handleResize} />
-              <ResizableHeaderCell label="Giảm giá" columnKey="giamGia" style={cellStyles.hdr.giamGia} onResize={handleResize} />
-              <ResizableHeaderCell label="Giá trị thanh toán" columnKey="giaTriThanhToan" style={cellStyles.hdr.giaTriThanhToan} onResize={handleResize} />
-              <ResizableHeaderCell label="Đã thanh toán" columnKey="daThanhToan" style={cellStyles.hdr.daThanhToan} onResize={handleResize} />
-              <ResizableHeaderCell label="Còn lại" columnKey="conLai" style={cellStyles.hdr.conLai} onResize={handleResize} />
-              <ResizableHeaderCell label="Chi phí khác" columnKey="chiPhiKhac" style={cellStyles.hdr.chiPhiKhac} onResize={handleResize} />
-              <ResizableHeaderCell label="Trạng thái" columnKey="trangThai" style={cellStyles.hdr.trangThai} onResize={handleResize} />
-              <ResizableHeaderCell label="Ghi chú cho khách hàng" columnKey="ghiChu" style={cellStyles.hdr.ghiChu} onResize={handleResize} />
-              <ResizableHeaderCell label="Ngày đến hạn" columnKey="ngayDenHan" style={cellStyles.hdr.ngayDenHan} onResize={handleResize} />
-            </TableRow >
-          </TableHead >
+              <ResizableHeaderCell
+                label="Số"
+                columnKey="soHoaDon"
+                style={cellStyles.hdr.soHoaDon}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Nha khoa"
+                columnKey="nhaKhoa"
+                style={cellStyles.hdr.nhaKhoa}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Tổng cộng"
+                columnKey="tongCong"
+                style={cellStyles.hdr.tongCong}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Giảm giá"
+                columnKey="giamGia"
+                style={cellStyles.hdr.giamGia}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Giá trị TT"
+                columnKey="giaTriThanhToan"
+                style={cellStyles.hdr.giaTriThanhToan}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Đã thanh toán"
+                columnKey="daThanhToan"
+                style={cellStyles.hdr.daThanhToan}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Còn lại"
+                columnKey="conLai"
+                style={cellStyles.hdr.conLai}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Chi phí khác"
+                columnKey="chiPhiKhac"
+                style={cellStyles.hdr.chiPhiKhac}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Trạng thái"
+                columnKey="trangThai"
+                style={cellStyles.hdr.trangThai}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Ghi chú"
+                columnKey="ghiChu"
+                style={cellStyles.hdr.ghiChu}
+                onResize={handleResize}
+              />
+              <ResizableHeaderCell
+                label="Đến hạn"
+                columnKey="ngayDenHan"
+                style={cellStyles.hdr.ngayDenHan}
+                onResize={handleResize}
+              />
+            </TableRow>
+          </TableHead>
 
           <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={12} align="center">
-                  <CircularProgress size={30} className="my-10" />
-                </TableCell>
-              </TableRow>
-            ) : visibleRows.length > 0 ? (
-              <>
-                {visibleRows.map((hd) => (
-                  <RowComponent
-                    key={hd._id}
-                    hd={hd}
-                    cellStyles={cellStyles.row}
-                    onNavigate={onNavigate}
-                  />
-                ))}
-                {visibleCount < (danhSachHoaDon?.length ?? 0) && (
-                  <TableRow ref={sentinelRef}>
-                    <TableCell
-                      colSpan={12}
-                      align="center"
-                      sx={{ py: 2, borderBottom: "none" }}
-                    >
-                      <CircularProgress size={18} sx={{ color: "#26a69a" }} />
-                    </TableCell>
-                  </TableRow>
-                )}
-              </>
-            ) : (
+            {totalRows === 0 && !loading ? (
               <TableRow>
                 <TableCell
                   colSpan={12}
@@ -387,13 +410,58 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
                   Không tìm thấy dữ liệu hóa đơn nào.
                 </TableCell>
               </TableRow>
+            ) : (
+              <>
+                {/* 1. KHỐI KHÔNG KHÍ Ở TRÊN */}
+                {paddingTop > 0 && (
+                  <TableRow style={{ height: paddingTop }}>
+                    <TableCell
+                      colSpan={12}
+                      style={{ padding: 0, border: "none" }}
+                    />
+                  </TableRow>
+                )}
+
+                {/* 2. CÁC DÒNG DATA THỰC TẾ (25 dòng) */}
+                {visibleRows.map((hd) => (
+                  <RowComponent
+                    key={hd._id}
+                    hd={hd}
+                    cellStyles={cellStyles.row}
+                    onNavigate={onNavigate}
+                  />
+                ))}
+
+                {/* 3. KHỐI KHÔNG KHÍ Ở DƯỚI */}
+                {paddingBottom > 0 && (
+                  <TableRow style={{ height: paddingBottom }}>
+                    <TableCell
+                      colSpan={12}
+                      style={{ padding: 0, border: "none" }}
+                    />
+                  </TableRow>
+                )}
+
+                {/* 4. VÒNG TRÒN LOADING NỐI Ở ĐÁY BẢNG KHI ĐANG TẢI THÊM */}
+                {loading && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={12}
+                      align="center"
+                      sx={{ py: 3, border: "none" }}
+                    >
+                      <CircularProgress size={26} sx={{ color: "#26a69a" }} />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
             )}
           </TableBody>
-        </Table >
-      </TableContainer >
+        </Table>
+      </TableContainer>
 
       {/* MODAL CHI TIẾT */}
-      < Modal open={openDetail} onClose={() => setOpenDetail(false)}>
+      <Modal open={openDetail} onClose={() => setOpenDetail(false)}>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[96%] md:w-[90%] max-w-[1000px] max-h-[90vh] overflow-auto bg-white shadow-2xl p-8 rounded-lg outline-none">
           <h3 className="text-lg font-bold mb-4 text-blue-700">
             Chi Tiết Hóa Đơn: {selectedHD?.soHoaDon}
@@ -460,37 +528,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading }) => {
             </Button>
           </div>
         </div>
-      </Modal >
-
-      {/* MODAL CẬP NHẬT TRẠNG THÁI */}
-      < Modal open={openUpdate} onClose={() => setOpenUpdate(false)}>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[96%] max-w-[450px] bg-white shadow-2xl p-6 rounded-lg outline-none">
-          <h3 className="text-lg font-bold mb-6 text-center text-gray-800">
-            Cập Nhật Trạng Thái
-          </h3>
-          <FormControl fullWidth className="mb-6">
-            <InputLabel>Trạng thái</InputLabel>
-            <Select
-              value={statusUpdate}
-              label="Trạng thái"
-              onChange={(e) => setStatusUpdate(e.target.value)}
-            >
-              <MenuItem value="Chưa thanh toán">Chưa thanh toán</MenuItem>
-              <MenuItem value="Đã thanh toán">Đã thanh toán</MenuItem>
-            </Select>
-          </FormControl>
-          <div className="flex justify-end gap-3">
-            <Button onClick={() => setOpenUpdate(false)}>Hủy</Button>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleConfirmUpdate}
-            >
-              Lưu thay đổi
-            </Button>
-          </div>
-        </div>
-      </Modal >
+      </Modal>
     </>
   );
 };

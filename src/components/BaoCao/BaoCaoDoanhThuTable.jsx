@@ -2,10 +2,8 @@ import React, { useState, useCallback, useMemo, memo } from 'react';
 import {
     Box, Paper, Typography,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Tooltip, IconButton,
     Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button,
 } from '@mui/material';
-import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
@@ -21,6 +19,7 @@ const FONT = "'Cambria', 'serif'";
 const headerSx = { backgroundColor: '#1a237e', color: '#fff', fontWeight: 700, fontSize: '0.76rem', fontFamily: FONT, letterSpacing: '0.04em', whiteSpace: 'nowrap', py: 1.4, border: '1px solid #283593', textTransform: 'uppercase' };
 const sumRowSx = { backgroundColor: '#e8eaf6', fontWeight: 700, fontFamily: FONT };
 const cellSx = { fontSize: '0.82rem', fontFamily: FONT, py: 1, px: 1.5, border: '1px solid #eeeeee' };
+const totalCellSx = { ...cellSx, fontWeight: 900, fontSize: "sm" };
 
 const SORT_COLS = [
     { label: 'Nợ Đầu Kỳ', key: 'noDauKy' },
@@ -30,46 +29,33 @@ const SORT_COLS = [
 ];
 
 // ─── Memoized Row ────────────────────────────────────────────────────────────
-const MemoizedTableRow = memo(function MemoizedTableRow({ row, i, isHovered, rowNote, onMouseEnter, onMouseLeave, onOpenNote }) {
+const MemoizedTableRow = memo(function MemoizedTableRow({ row, i, rowNote, onOpenNote }) {
     const hasDebt = row.conNo > 0;
     return (
         <TableRow
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
             sx={{ bgcolor: hasDebt ? '#fff8e1' : i % 2 === 0 ? '#fff' : '#f8f9fc', '&:hover': { bgcolor: '#e8eaf6' }, transition: 'background 0.15s' }}
         >
             <TableCell align="center" sx={{ ...cellSx, color: '#9e9e9e', width: 44 }}>{row.stt}</TableCell>
 
-            <TableCell sx={{ ...cellSx, fontWeight: 600, minWidth: 360, width: 360, color: '#212121', position: 'relative' }}>
-                <Tooltip
-                    open={isHovered && !!rowNote}
-                    title={rowNote ? `Ghi chú: ${rowNote}` : ''}
-                    placement="bottom-start"
-                    arrow
-                    componentsProps={{
-                        tooltip: { sx: { bgcolor: '#fffae6', color: '#5d4037', boxShadow: '0px 4px 14px rgba(0,0,0,0.2)', fontSize: '0.85rem', fontFamily: FONT, border: '1px solid #ffe082', padding: '8px 14px', maxWidth: 350, zIndex: 9999 } },
-                        arrow: { sx: { color: '#fffae6', '&::before': { border: '1px solid #ffe082' } } },
-                    }}
-                >
-                    <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', cursor: rowNote ? 'help' : 'default', pr: 3.5, overflow: 'hidden' }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.tenNhaKhoa}</span>
-                    </Box>
-                </Tooltip>
-                <Tooltip title={rowNote ? 'Sửa ghi chú' : 'Thêm ghi chú'}>
-                    <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); onOpenNote(row); }}
-                        sx={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', p: 0.3, color: rowNote ? '#5c6bc0' : '#9e9e9e', opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s', pointerEvents: isHovered ? 'auto' : 'none' }}
-                    >
-                        <AddCircleOutlinedIcon fontSize="small" />
-                    </IconButton>
-                </Tooltip>
+            <TableCell sx={{ ...cellSx, fontWeight: 600, minWidth: 220, color: '#212121' }}>
+                {row.tenNhaKhoa}
             </TableCell>
 
-            <TableCell align="right" sx={{ ...cellSx, minWidth: 110, color: row.noDauKy < 0 ? '#c62828' : '#455a64' }}>{fmtStrict(row.noDauKy)}</TableCell>
-            <TableCell align="right" sx={{ ...cellSx, minWidth: 110, color: '#2e7d32', fontWeight: 500 }}>{fmt(row.phatSinh)}</TableCell>
-            <TableCell align="right" sx={{ ...cellSx, minWidth: 110, color: '#6a1b9a' }}>{fmt(row.thanhToan)}</TableCell>
-            <TableCell align="right" sx={{ ...cellSx, minWidth: 110, fontWeight: hasDebt ? 700 : 400, color: hasDebt ? '#c62828' : row.conNo < 0 ? '#1565c0' : '#546e7a' }}>{fmtStrict(row.conNo)}</TableCell>
+            <TableCell align="right" sx={{ ...cellSx, minWidth: 110, fontWeight: 600, fontSize: '0.85rem', color: row.noDauKy < 0 ? '#c62828' : '#455a64' }}>{fmtStrict(row.noDauKy)}</TableCell>
+            <TableCell align="right" sx={{ ...cellSx, minWidth: 110, fontWeight: 600, fontSize: '0.85rem', color: '#2e7d32' }}>{fmt(row.phatSinh)}</TableCell>
+            <TableCell align="right" sx={{ ...cellSx, minWidth: 110, fontWeight: 600, fontSize: '0.85rem', color: '#6a1b9a' }}>{fmt(row.thanhToan)}</TableCell>
+            <TableCell align="right" sx={{ ...cellSx, minWidth: 110, fontWeight: hasDebt ? 800 : 600, fontSize: '0.85rem', color: hasDebt ? '#c62828' : row.conNo < 0 ? '#1565c0' : '#546e7a' }}>{fmtStrict(row.conNo)}</TableCell>
+
+            {/* 🔥 CỘT GHI CHÚ MỚI LÀM LẠI: Click là sửa, không tooltip gì nữa */}
+            <TableCell
+                onClick={() => onOpenNote(row)}
+                title={rowNote || 'Nhấn để thêm ghi chú'} // Dùng title gốc của HTML để hiện full chữ khi hover lâu
+                sx={{ ...cellSx, minWidth: 180, maxWidth: 260, cursor: 'pointer', transition: 'background 0.2s', '&:hover': { bgcolor: '#e3f2fd' } }}
+            >
+                <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: rowNote ? '#455a64' : '#b0bec5', fontStyle: rowNote ? 'normal' : 'italic' }}>
+                    {rowNote || ''}
+                </span>
+            </TableCell>
         </TableRow>
     );
 });
@@ -78,7 +64,6 @@ const MemoizedTableRow = memo(function MemoizedTableRow({ row, i, isHovered, row
 export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam }) {
     const dispatch = useDispatch();
 
-    const [hoveredRow, setHoveredRow] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: null, dir: null });
     const [noteModal, setNoteModal] = useState(null);
     const [noteInput, setNoteInput] = useState('');
@@ -163,6 +148,8 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam 
                                         </TableCell>
                                     );
                                 })}
+                                {/* 🔥 THÊM HEADER CHO CỘT GHI CHÚ */}
+                                <TableCell align="left" sx={{ ...headerSx, minWidth: 180 }}>Ghi Chú</TableCell>
                             </TableRow>
                         </TableHead>
 
@@ -172,20 +159,19 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam 
                                     key={row.nhaKhoaId}
                                     row={row}
                                     i={i}
-                                    isHovered={hoveredRow === row.nhaKhoaId}
                                     rowNote={notes[row.nhaKhoaId]}
-                                    onMouseEnter={() => setHoveredRow(row.nhaKhoaId)}
-                                    onMouseLeave={() => setHoveredRow(null)}
                                     onOpenNote={handleOpenNote}
                                 />
                             ))}
 
                             <TableRow sx={sumRowSx}>
-                                <TableCell colSpan={2} align="center" sx={{ ...cellSx, fontWeight: 800, color: '#1a237e', letterSpacing: '0.05em' }}>TỔNG CỘNG</TableCell>
-                                <TableCell align="right" sx={{ ...cellSx, color: '#1565c0', fontWeight: 700 }}>{fmtStrict(data.tongHop.noDauKy)}</TableCell>
-                                <TableCell align="right" sx={{ ...cellSx, color: '#2e7d32', fontWeight: 700 }}>{fmtStrict(data.tongHop.phatSinh)}</TableCell>
-                                <TableCell align="right" sx={{ ...cellSx, color: '#6a1b9a', fontWeight: 700 }}>{fmtStrict(data.tongHop.thanhToan)}</TableCell>
-                                <TableCell align="right" sx={{ ...cellSx, color: '#c62828', fontWeight: 700 }}>{fmtStrict(data.tongHop.conNo)}</TableCell>
+                                <TableCell colSpan={2} align="center" sx={{ ...totalCellSx, color: "#1a237e", letterSpacing: "0.05em" }}>TỔNG CỘNG</TableCell>
+                                <TableCell align="right" sx={{ ...totalCellSx, color: "#1565c0" }}>{fmtStrict(data.tongHop.noDauKy)}</TableCell>
+                                <TableCell align="right" sx={{ ...totalCellSx, color: "#2e7d32" }}>{fmtStrict(data.tongHop.phatSinh)}</TableCell>
+                                <TableCell align="right" sx={{ ...totalCellSx, color: "#6a1b9a" }}>{fmtStrict(data.tongHop.thanhToan)}</TableCell>
+                                <TableCell align="right" sx={{ ...totalCellSx, color: "#c62828" }}>{fmtStrict(data.tongHop.conNo)}</TableCell>
+                                {/* 🔥 Thêm ô trống cho dòng tổng cộng để cân bảng */}
+                                <TableCell sx={{ ...totalCellSx }}></TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>

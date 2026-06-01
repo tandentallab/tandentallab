@@ -31,6 +31,8 @@ import {
   FiPrinter,
 } from "react-icons/fi";
 import DonHangDetailPanel from "../DonHang/DonHangDetailPanel";
+import CustomDateRangePicker from "../common/CustomDateRangePicker";
+import { Chip } from "@mui/material";
 
 const ROWS_PER_PAGE = 20;
 
@@ -47,6 +49,7 @@ const KeHoachGiaoHangTable = () => {
   // const [toDate, setToDate] = useState("");
   // const [searchText, setSearchText] = useState("");
   const [showFilterBar, setShowFilterBar] = useState(false);
+  const [datePickerAnchorEl, setDatePickerAnchorEl] = useState(null);
 
   const [page, setPage] = useState(1);
   const [loadingAll, setLoadingAll] = useState(false);
@@ -285,7 +288,14 @@ const KeHoachGiaoHangTable = () => {
             {/* Giao hôm nay */}
             <div
               className="flex-1 cursor-pointer bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative"
-              onClick={() => dispatch(setFilter({ filterType: filterType === "today" ? "all" : "today", filterStatus: "all" }))}
+              onClick={() =>
+                dispatch(
+                  setFilter({
+                    filterType: filterType === "today" ? "all" : "today",
+                    filterStatus: "Chờ xử lý",
+                  })
+                )
+              }
             >
               <div>
                 <div className="text-3xl font-extrabold leading-none transition-transform duration-200 group-hover:scale-110">
@@ -300,7 +310,14 @@ const KeHoachGiaoHangTable = () => {
             {/* Trễ hạn */}
             <div
               className="flex-1 cursor-pointer bg-red-600 hover:bg-red-500 active:bg-red-700 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative"
-              onClick={() => dispatch(setFilter({ filterType: filterType === "overdue" ? "all" : "overdue", filterStatus: "all" }))}
+              onClick={() =>
+                dispatch(
+                  setFilter({
+                    filterType: filterType === "overdue" ? "all" : "overdue",
+                    filterStatus: "Chờ xử lý",
+                  })
+                )
+              }
             >
               <div>
                 <div className="text-3xl font-extrabold leading-none">
@@ -314,8 +331,17 @@ const KeHoachGiaoHangTable = () => {
 
             {/* Gởi thử */}
             <div
-              className={`flex-1 cursor-pointer bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${filterType === "sent" ? "ring-2 ring-inset ring-white/50" : ""}`}
-              onClick={() => dispatch(setFilter({ filterType: filterType === "sent" ? "all" : "sent", filterStatus: "all" }))}
+              className={`flex-1 cursor-pointer bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${
+                filterType === "sent" ? "ring-2 ring-inset ring-white/50" : ""
+              }`}
+              onClick={() =>
+                dispatch(
+                  setFilter({
+                    filterType: filterType === "sent" ? "all" : "sent",
+                    filterStatus: "all",
+                  })
+                )
+              }
             >
               <div>
                 <div className="text-3xl font-extrabold leading-none">
@@ -332,14 +358,37 @@ const KeHoachGiaoHangTable = () => {
         {/* ================= TOOLBAR ================= */}
         <div className="flex items-center gap-2 mb-2 px-1 print:hidden">
           {/* Filter icon toggle */}
-          <button
-            onClick={() => setShowFilterBar((v) => !v)}
-            className={`p-2 rounded hover:bg-gray-200 transition ${showFilterBar ? "text-blue-600" : "text-gray-500"
+          <div>
+            <button
+              onClick={() => setShowFilterBar((v) => !v)}
+              className={`p-2 rounded hover:bg-gray-200 transition ${
+                showFilterBar ? "text-blue-600" : "text-gray-500"
               }`}
-            title="Lọc"
-          >
-            <FiFilter size={18} />
-          </button>
+              title="Lọc"
+            >
+              <FiFilter size={18} />
+            </button>
+            <div className="inline-flex items-center gap-1 ml-2 text-sm text-gray-700">
+              {filterStatus !== "all" && (
+                <Chip color="primary" variant="outlined" label={filterStatus} />
+              )}
+              {filterType !== "all" && (
+                <Chip
+                  color="primary"
+                  variant="outlined"
+                  label={
+                    filterType === "today"
+                      ? "Giao hôm nay"
+                      : filterType === "overdue"
+                      ? "Trễ hẹn"
+                      : filterType !== "sent"
+                      ? "Khoảng ngày"
+                      : "Đang thử"
+                  }
+                />
+              )}
+            </div>
+          </div>
 
           <div className="flex-1" />
 
@@ -419,29 +468,43 @@ const KeHoachGiaoHangTable = () => {
 
             {filterType === "range" && (
               <>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) =>
-                    dispatch(
-                      setFilter({
-                        fromDate: e.target.value,
-                      })
-                    )
-                  }
-                  className="border px-2 py-1.5 rounded text-sm"
-                />
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) =>
-                    dispatch(
-                      setFilter({
-                        toDate: e.target.value,
-                      })
-                    )
-                  }
-                  className="border px-2 py-1.5 rounded text-sm"
+                <button
+                  onClick={(e) => setDatePickerAnchorEl(e.currentTarget)}
+                  className="border px-3 py-1.5 rounded text-sm bg-white hover:bg-gray-50 transition flex items-center gap-1.5 text-gray-700"
+                >
+                  <span>
+                    {fromDate && toDate
+                      ? `${fromDate.split("-").reverse().join("/")} – ${toDate
+                          .split("-")
+                          .reverse()
+                          .join("/")}`
+                      : fromDate
+                      ? `Từ ${fromDate.split("-").reverse().join("/")}`
+                      : "Chọn khoảng ngày"}
+                  </span>
+                  {(fromDate || toDate) && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dispatch(setFilter({ fromDate: "", toDate: "" }));
+                      }}
+                      className="ml-1 text-gray-400 hover:text-red-500 leading-none"
+                      title="Xóa ngày"
+                    >
+                      ✕
+                    </span>
+                  )}
+                </button>
+
+                <CustomDateRangePicker
+                  open={Boolean(datePickerAnchorEl)}
+                  anchorEl={datePickerAnchorEl}
+                  onClose={() => setDatePickerAnchorEl(null)}
+                  initialDates={{ start: fromDate, end: toDate }}
+                  onApply={({ start, end }) => {
+                    dispatch(setFilter({ fromDate: start, toDate: end }));
+                    setDatePickerAnchorEl(null);
+                  }}
                 />
               </>
             )}
@@ -520,10 +583,11 @@ const KeHoachGiaoHangTable = () => {
                     <tr
                       key={`${order._id}_${spIdx}`}
                       onClick={() => setSelectedDonHang(order)}
-                      className={`border-b cursor-pointer transition-colors ${selectedDonHang?._id === order._id
-                        ? "bg-sky-100 border-sky-200"
-                        : "hover:bg-gray-50"
-                        }`}
+                      className={`border-b cursor-pointer transition-colors ${
+                        selectedDonHang?._id === order._id
+                          ? "bg-sky-100 border-sky-200"
+                          : "hover:bg-gray-50"
+                      }`}
                     >
                       {/* NHẬN LÚC */}
                       <td className="px-3 py-2.5 whitespace-nowrap text-xs text-gray-600">
@@ -539,12 +603,13 @@ const KeHoachGiaoHangTable = () => {
                             e.stopPropagation();
                             navigate(`/donhang/${order._id}/edit`);
                           }}
-                          className={`font-medium text-sm hover:underline ${overdue
-                            ? "text-red-500"
-                            : today
+                          className={`font-medium text-sm hover:underline ${
+                            overdue
+                              ? "text-red-500"
+                              : today
                               ? "text-blue-600"
                               : "text-gray-700"
-                            }`}
+                          }`}
                         >
                           {maDon}
                         </button>
@@ -552,8 +617,9 @@ const KeHoachGiaoHangTable = () => {
 
                       {/* HẸN GIAO */}
                       <td
-                        className={`px-3 py-2.5 whitespace-nowrap text-sm font-medium ${overdue ? "text-red-500" : "text-gray-700"
-                          }`}
+                        className={`px-3 py-2.5 whitespace-nowrap text-sm font-medium ${
+                          overdue ? "text-red-500" : "text-gray-700"
+                        }`}
                       >
                         {format(date, "HH:mm dd/MM/yyyy")}
                       </td>
@@ -781,15 +847,14 @@ const KeHoachGiaoHangTable = () => {
 const TrangThaiBadge = ({ value }) => {
   const map = {
     "Chờ xử lý": "bg-yellow-100 text-yellow-800",
-    "Đang sản xuất": "bg-blue-100 text-blue-800",
     "Đang thử": "bg-purple-100 text-purple-800",
     "Hoàn thành": "bg-green-100 text-green-800",
-    "Đã giao": "bg-gray-100 text-gray-700",
   };
   return (
     <span
-      className={`px-2 py-1 rounded font-medium text-xs ${map[value] || "bg-gray-100 text-gray-600"
-        }`}
+      className={`px-2 py-1 rounded font-medium text-xs ${
+        map[value] || "bg-gray-100 text-gray-600"
+      }`}
     >
       {value || "Chờ xử lý"}
     </span>

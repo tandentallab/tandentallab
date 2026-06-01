@@ -284,13 +284,14 @@ const HoaDonPrintPreview = () => {
               </tbody>
             </table>
 
-            <div className="mt-4 text-left leading-normal" style={{ fontSize: "10.5pt" }}>
-              <div className="mt-1 whitespace-pre-wrap text-gray-800">
-                *Ghi chú:
-              </div>
-              <div className="mt-1 whitespace-pre-wrap text-gray-800 font-bold">
+            <div
+              className="mt-4 text-left leading-normal text-gray-800"
+              style={{ fontSize: "10.5pt" }}
+            >
+              <span>*Ghi chú: </span>
+              <span>
                 {hoaDon.ghiChuChoKhachHang || ""}
-              </div>
+              </span>
             </div>
 
           </div>

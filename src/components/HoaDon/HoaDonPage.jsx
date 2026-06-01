@@ -174,13 +174,22 @@ const HoaDonPage = () => {
   // =====================================================================
   // KHAI BÁO STATE TỪ SESSION STORAGE (GIỮ BỘ LỌC CỨNG KHI CHUYỂN TRANG)
   // =====================================================================
-  const [page, setPage] = useState(() => Number(sessionStorage.getItem("hd_page")) || 0);
-  const [rowsPerPage, setRowsPerPage] = useState(() => Number(sessionStorage.getItem("hd_rowsPerPage")) || 10);
+  const [page, setPage] = useState(
+    () => Number(sessionStorage.getItem("hd_page")) || 0
+  );
+  const [rowsPerPage, setRowsPerPage] = useState(50);
 
   const [appliedNgayXuat, setAppliedNgayXuat] = useState(() => {
     const saved = sessionStorage.getItem("hd_appliedNgayXuat");
     return saved ? JSON.parse(saved) : EMPTY_DATE;
   });
+
+  // 🔥 Kéo chạm đáy thì tăng giới hạn lên lấy thêm 50 dòng nữa
+  const handleLoadMore = () => {
+    if (!loading && danhSachHoaDon.length < (pagination?.total || 0)) {
+      setRowsPerPage((prev) => prev + 50);
+    }
+  };
 
   const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(() => {
     const saved = sessionStorage.getItem("hd_appliedNhaKhoa");
@@ -192,16 +201,33 @@ const HoaDonPage = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("hd_searchTerm") || "");
+  const [searchTerm, setSearchTerm] = useState(
+    () => sessionStorage.getItem("hd_searchTerm") || ""
+  );
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
 
   // 🔥 LƯU TRẠNG THÁI VÀO SESSION KHI CÓ THAY ĐỔI
-  useEffect(() => { sessionStorage.setItem("hd_page", page.toString()); }, [page]);
-  useEffect(() => { sessionStorage.setItem("hd_rowsPerPage", rowsPerPage.toString()); }, [rowsPerPage]);
-  useEffect(() => { sessionStorage.setItem("hd_appliedNgayXuat", JSON.stringify(appliedNgayXuat)); }, [appliedNgayXuat]);
-  useEffect(() => { sessionStorage.setItem("hd_appliedNhaKhoa", JSON.stringify(appliedNhaKhoa)); }, [appliedNhaKhoa]);
-  useEffect(() => { sessionStorage.setItem("hd_appliedTrangThai", JSON.stringify(appliedTrangThai)); }, [appliedTrangThai]);
-  useEffect(() => { sessionStorage.setItem("hd_searchTerm", searchTerm); }, [searchTerm]);
+  useEffect(() => {
+    sessionStorage.setItem("hd_page", page.toString());
+  }, [page]);
+  useEffect(() => {
+    sessionStorage.setItem(
+      "hd_appliedNgayXuat",
+      JSON.stringify(appliedNgayXuat)
+    );
+  }, [appliedNgayXuat]);
+  useEffect(() => {
+    sessionStorage.setItem("hd_appliedNhaKhoa", JSON.stringify(appliedNhaKhoa));
+  }, [appliedNhaKhoa]);
+  useEffect(() => {
+    sessionStorage.setItem(
+      "hd_appliedTrangThai",
+      JSON.stringify(appliedTrangThai)
+    );
+  }, [appliedTrangThai]);
+  useEffect(() => {
+    sessionStorage.setItem("hd_searchTerm", searchTerm);
+  }, [searchTerm]);
   // =====================================================================
   const [openFilter, setOpenFilter] = useState(false);
   const filterContainerRef = useRef(null);
@@ -376,58 +402,157 @@ const HoaDonPage = () => {
 
       {/* DÒNG 1: THỐNG KÊ */}
       <div className="shrink-0">
-        <ThongKeCongNo />
+        <ThongKeCongNo
+          onCardClick={(type) => {
+            // Nếu bấm vào ô "Còn nợ" (màu xanh lá bên trái)
+            if (type === "conNo") {
+              // Cập nhật state bộ lọc bằng đúng 2 trạng thái nợ trong DB
+              setAppliedTrangThai(["Chưa thanh toán", "Thanh toán một phần"]);
+              setPage(0); // Reset về trang 1
+            }
+
+            // (Tùy chọn) Sau này nếu sếp thích bấm ô "Quá hạn" hay "Chưa đến hạn"
+            // thì bạn có thể code thêm logic lọc ngày ở đây rất dễ dàng
+          }}
+        />
       </div>
 
-      {/* DÒNG 2: TOOLBAR */}
-      <div className=" shrink-0 rounded-t-lg bg-white shadow-sm relative z-30">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-2 border-b border-gray-100">
-          <div className="relative" ref={filterContainerRef}>
-            <Tooltip title="Bộ lọc">
-              <IconButton
-                onClick={() => setOpenFilter(!openFilter)}
-                size="small"
-                className={`transition-colors ${openFilter ? "bg-blue-50" : ""
+      {/* DÒNG 2: TOOLBAR & BỘ LỌC (HIỂN THỊ NGANG TRÊN 1 DÒNG) */}
+      <div className="shrink-0 rounded-t-lg bg-white shadow-sm relative z-30 border-b border-gray-100">
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 px-4 py-2 min-h-[56px]">
+          {/* BÊN TRÁI: NÚT LỌC VÀ CÁC THẺ LỌC GOM NHÓM */}
+          <div className="flex flex-wrap items-center gap-3 flex-1 w-full xl:w-auto">
+            <div className="relative" ref={filterContainerRef}>
+              <Tooltip title="Bộ lọc">
+                <IconButton
+                  onClick={() => setOpenFilter(!openFilter)}
+                  size="small"
+                  className={`transition-colors ${
+                    openFilter ? "bg-blue-50" : ""
                   }`}
-                sx={{
-                  color: isFiltered ? "#1976d2" : "#555",
-                  p: "8px",
-                  position: "relative",
-                }}
-              >
-                <FilterListIcon fontSize="small" />
-                {isFiltered && (
-                  <span
-                    className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-blue-500 border border-white"
-                    style={{ pointerEvents: "none" }}
-                  />
-                )}
-              </IconButton>
-            </Tooltip>
+                  sx={{
+                    color: isFiltered ? "#1976d2" : "#555",
+                    p: "8px",
+                    position: "relative",
+                  }}
+                >
+                  <FilterListIcon fontSize="small" />
+                  {isFiltered && (
+                    <span
+                      className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-blue-500 border border-white"
+                      style={{ pointerEvents: "none" }}
+                    />
+                  )}
+                </IconButton>
+              </Tooltip>
 
-            <HoaDonFilterDrawer
-              open={openFilter}
-              onClose={() => setOpenFilter(false)}
-              appliedNgayXuat={appliedNgayXuat}
-              appliedNhaKhoa={appliedNhaKhoa}
-              appliedTrangThai={appliedTrangThai}
-              nhaKhoaList={Array.isArray(nhaKhoa?.data) ? nhaKhoa.data : []}
-              onApply={(ngayXuat, nhaKhoa, trangThai) => {
-                setAppliedNgayXuat(ngayXuat);
-                setAppliedNhaKhoa(nhaKhoa);
-                setAppliedTrangThai(trangThai);
-                setPage(0);
-              }}
-              onReset={() => {
-                setAppliedNgayXuat(EMPTY_DATE);
-                setAppliedNhaKhoa(null);
-                setAppliedTrangThai([]);
-                setPage(0);
-              }}
-            />
+              <HoaDonFilterDrawer
+                open={openFilter}
+                onClose={() => setOpenFilter(false)}
+                appliedNgayXuat={appliedNgayXuat}
+                appliedNhaKhoa={appliedNhaKhoa}
+                appliedTrangThai={appliedTrangThai}
+                nhaKhoaList={Array.isArray(nhaKhoa?.data) ? nhaKhoa.data : []}
+                onApply={(ngayXuat, nhaKhoa, trangThai) => {
+                  setAppliedNgayXuat(ngayXuat);
+                  setAppliedNhaKhoa(nhaKhoa);
+                  setAppliedTrangThai(trangThai);
+                  setPage(0);
+                }}
+                onReset={() => {
+                  setAppliedNgayXuat(EMPTY_DATE);
+                  setAppliedNhaKhoa(null);
+                  setAppliedTrangThai([]);
+                  setPage(0);
+                }}
+              />
+            </div>
+
+            {/* HIỂN THỊ CÁC BỘ LỌC ĐÃ CHỌN (NẰM NGANG VÀ GOM NHÓM) */}
+            {isFiltered && (
+              <div className="flex flex-wrap items-center gap-3 border-l-2 border-gray-100 pl-3">
+                {/* 1. NHÓM LỌC: THỜI GIAN */}
+                {appliedNgayXuat.preset && (
+                  <div className="flex items-center bg-blue-50 border border-blue-200 rounded-lg pl-3 pr-1 py-1 gap-2 shadow-sm">
+                    <div className="flex items-center gap-1.5 text-[13px] font-semibold text-blue-800">
+                      <CalendarTodayIcon sx={{ fontSize: 16 }} />
+                      {appliedNgayXuat.preset === "custom"
+                        ? `${appliedNgayXuat.customFrom || "?"} → ${
+                            appliedNgayXuat.customTo || "?"
+                          }`
+                        : DATE_PRESETS.find(
+                            (p) => p.key === appliedNgayXuat.preset
+                          )?.label || appliedNgayXuat.preset}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setAppliedNgayXuat(EMPTY_DATE);
+                        setPage(0);
+                      }}
+                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-blue-200 text-blue-500 hover:text-red-600 transition-colors"
+                      title="Xóa bộ lọc ngày"
+                    >
+                      <CloseIcon sx={{ fontSize: 16 }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* 2. NHÓM LỌC: NHA KHOA */}
+                {appliedNhaKhoa && (
+                  <div className="flex items-center bg-indigo-50 border border-indigo-200 rounded-lg pl-3 pr-1 py-1 gap-2 shadow-sm">
+                    <div className="flex items-center gap-1.5 text-[13px] font-semibold text-indigo-800">
+                      <StoreIcon sx={{ fontSize: 16 }} />
+                      {appliedNhaKhoa.name}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setAppliedNhaKhoa(null);
+                        setPage(0);
+                      }}
+                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-indigo-200 text-indigo-500 hover:text-red-600 transition-colors"
+                      title="Xóa bộ lọc nha khoa"
+                    >
+                      <CloseIcon sx={{ fontSize: 16 }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* 3. NHÓM LỌC: TRẠNG THÁI (Gom các trạng thái vào 1 div) */}
+                {appliedTrangThai.length > 0 && (
+                  <div className="flex items-center bg-emerald-50 border border-emerald-200 rounded-lg pl-3 pr-1 py-1 gap-2 shadow-sm">
+                    <span className="text-[13px] font-semibold text-emerald-800 mr-1">
+                      Trạng thái:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {appliedTrangThai.map((tt) => (
+                        <span
+                          key={tt}
+                          className="flex items-center bg-white border border-emerald-200 rounded-md pl-2.5 text-[12px] font-medium text-emerald-700 shadow-sm overflow-hidden"
+                        >
+                          {tt}
+                          <button
+                            onClick={() => {
+                              setAppliedTrangThai((prev) =>
+                                prev.filter((x) => x !== tt)
+                              );
+                              setPage(0);
+                            }}
+                            className="w-6 h-6 ml-2 flex items-center justify-center bg-emerald-50 hover:bg-red-100 hover:text-red-600 text-emerald-600 transition-colors border-l border-emerald-100"
+                            title={`Bỏ chọn ${tt}`}
+                          >
+                            <CloseIcon sx={{ fontSize: 14 }} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          {/* BÊN PHẢI: TÌM KIẾM & CÁC NÚT ACTION */}
+          <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
             <TextField
               size="small"
               placeholder="Tìm kiếm..."
@@ -484,61 +609,6 @@ const HoaDonPage = () => {
             </IconButton>
           </div>
         </div>
-        {isFiltered && (
-          <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-            {appliedNgayXuat.preset && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
-                <CalendarTodayIcon sx={{ fontSize: 12 }} />
-                {appliedNgayXuat.preset === "custom"
-                  ? `${appliedNgayXuat.customFrom || "?"} → ${appliedNgayXuat.customTo || "?"
-                  }`
-                  : DATE_PRESETS.find((p) => p.key === appliedNgayXuat.preset)
-                    ?.label || appliedNgayXuat.preset}
-                <button
-                  onClick={() => {
-                    setAppliedNgayXuat(EMPTY_DATE);
-                    setPage(0);
-                  }}
-                  className="ml-1 hover:text-blue-900 font-bold"
-                >
-                  ×
-                </button>
-              </span>
-            )}
-            {appliedNhaKhoa && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
-                <StoreIcon sx={{ fontSize: 12 }} />
-                {appliedNhaKhoa.name}
-                <button
-                  onClick={() => {
-                    setAppliedNhaKhoa(null);
-                    setPage(0);
-                  }}
-                  className="ml-1 hover:text-blue-900 font-bold"
-                >
-                  ×
-                </button>
-              </span>
-            )}
-            {appliedTrangThai.map((tt) => (
-              <span
-                key={tt}
-                className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700"
-              >
-                {tt}
-                <button
-                  onClick={() => {
-                    setAppliedTrangThai((prev) => prev.filter((x) => x !== tt));
-                    setPage(0);
-                  }}
-                  className="ml-1 hover:text-blue-900 font-bold"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* DÒNG 3: BẢNG DỮ LIỆU & PHÂN TRANG */}
@@ -546,21 +616,36 @@ const HoaDonPage = () => {
       <div className="flex-1 min-h-0 bg-white rounded-b-lg shadow-sm border border-gray-100 flex flex-col overflow-hidden custom-scrollbar table-wrapper">
         {/* Khu vực bảng dữ liệu: Sẽ tự động lấy hết khoảng trống bên trong và cuộn */}
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          <HoaDonTable danhSachHoaDon={danhSachHoaDon} loading={loading} />
+          <HoaDonTable
+            danhSachHoaDon={danhSachHoaDon}
+            loading={loading}
+            onLoadMore={handleLoadMore}
+          />
         </div>
 
-        {/* Khu vực phân trang: Đóng đinh cứng ở dưới đáy */}
-        <div className="border-t border-gray-100 bg-white shrink-0 z-10 relative">
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50]}
-            component="div"
-            count={pagination?.total || 0}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            labelRowsPerPage="Số hàng mỗi trang"
-          />
+        {/* Khu vực trạng thái dòng: Đóng đinh cứng ở dưới đáy */}
+        <div className="border-t border-gray-200 bg-gray-50/80 backdrop-blur-sm shrink-0 z-10 relative px-5 py-2.5 flex items-center justify-end text-[13px] text-gray-600">
+          <div>
+            {danhSachHoaDon.length < (pagination?.total || 0) ? (
+              <span>
+                Số dòng:{" "}
+                <span className="font-bold text-gray-900">
+                  {danhSachHoaDon.length}
+                </span>{" "}
+                / {pagination?.total}
+                <span className=" text-gray-500 ml-1.5">
+                  (cuộn để tải thêm)
+                </span>
+              </span>
+            ) : (
+              <span>
+                Số dòng:{" "}
+                <span className="font-bold text-gray-900">
+                  {danhSachHoaDon.length}
+                </span>
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

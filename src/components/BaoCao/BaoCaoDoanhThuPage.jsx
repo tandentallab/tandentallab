@@ -78,21 +78,25 @@ async function exportToExcel(data, notes, thang, nam) {
     ws.getRow(3).height = 24;
 
     data.chiTiet.forEach((row, i) => {
-        const isOdd = i % 2 === 0;
-        const hasDebt = row.conNo > 0;
-        const bgArgb = hasDebt ? 'FFFFF3E0' : isOdd ? 'FFFFFFFF' : 'FFF5F5F5';
         const rowNote = notes[row.nhaKhoaId] || row.ghiChu || '';
+
+        // 🔥 Đã fix: 
+        // 1. Mặc định nền trắng (FFFFFFFF)
+        // 2. Nếu conNo == 0 (hết nợ) thì tô nền xanh nhạt (FFE8F5E9) để highlight dễ check
+        const isHetNo = row.conNo === 0;
+        const bgArgb = isHetNo ? 'FFE8F5E9' : 'FFFFFFFF';
 
         const dataRow = ws.addRow([
             row.stt, row.tenNhaKhoa,
             row.noDauKy ?? 0, row.phatSinh ?? 0, row.thanhToan ?? 0, row.conNo ?? 0,
             rowNote,
         ]);
+
         dataRow.eachCell({ includeEmpty: true }, (cell, col) => {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
             cell.border = { top: { style: 'hair' }, bottom: { style: 'hair' }, left: { style: 'thin' }, right: { style: 'thin' } };
             cell.alignment = { vertical: 'middle', horizontal: col === 2 || col === 7 ? 'left' : col === 1 ? 'center' : 'right', wrapText: col === 7 };
-            cell.font = { size: 10, bold: col === 6 && hasDebt };
+            cell.font = { size: 10, bold: isHetNo }; // In đậm luôn cho các dòng hết nợ
             if (col >= 3 && col <= 6) cell.numFmt = numFmt;
         });
         ws.getRow(3 + i + 1).height = 20;

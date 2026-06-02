@@ -137,8 +137,6 @@ const PhieuBaoHanhPage = () => {
     setPage(0);
   };
 
-  console.log("Danh sách phiếu bảo hành đã tải:", phieuList);
-
   // Mở modal edit (Giữ nguyên)
   const handleOpenEdit = (phieu) => {
     setEditingPhieu(phieu);

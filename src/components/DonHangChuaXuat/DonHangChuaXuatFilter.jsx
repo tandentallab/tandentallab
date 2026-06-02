@@ -23,9 +23,6 @@ export default function DonHangChuaXuatFilter({
     loading: loadingHoaDon,
   } = useSelector((state) => state.hoaDon);
 
-  useEffect(() => {
-    console.log("Ngày xuất hóa đơn cuối: ", ngayXuatHoaDonGanNhatAll);
-  }, [ngayXuatHoaDonGanNhatAll]);
   // Gộp trạng thái loading của cả 2 luồng dữ liệu
   const isGlobalLoading = loadingNhaKhoa || loadingHoaDon;
 

@@ -358,7 +358,6 @@ const DonHangForm = () => {
           const warranty = res.data?.data || res.data;
           // Convert single warranty to array
           const warrantyArray = warranty ? (Array.isArray(warranty) ? warranty : [warranty]) : [];
-          console.log("Warranty fetched:", warrantyArray, "Length:", warrantyArray.length);
           setPhieuBaoHanhList(warrantyArray);
         })
         .catch((err) => {

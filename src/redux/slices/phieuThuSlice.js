@@ -167,8 +167,6 @@ const phieuThuSlice = createSlice({
                 fetchPhieuThuByHoaDon.fulfilled,
                 (state, action) => {
                     state.loadingPhieuThuHoaDon = false;
-                    console.log("Phiếu thu theo hóa đơn: ", action.payload.data)
-
                     state.phieuThuTheoHoaDon =
                         action.payload.data || [];
                 }

@@ -106,10 +106,7 @@ export const fetchHoaDonById = createAsyncThunk(
   "hoaDon/fetchById",
 
   async (id) => {
-    console.log("FETCH ID:", id);
-
     const url = `/hoa-don/${id}`;
-    console.log("URL:", url);
 
     const res = await api.get(url);
 
@@ -304,16 +301,16 @@ const slice = createSlice({
       state.chiTietHoaDon = null;
     },
 
-     setHoaDonFilter: (state, action) => {
-        state.filters = {
-          ...state.filters,
-          ...action.payload,
-        };
-      },
+    setHoaDonFilter: (state, action) => {
+      state.filters = {
+        ...state.filters,
+        ...action.payload,
+      };
+    },
 
-      resetHoaDonFilter: (state) => {
-        state.filters = initialHoaDonFilter;
-      },
+    resetHoaDonFilter: (state) => {
+      state.filters = initialHoaDonFilter;
+    },
   },
 
   extraReducers: (builder) => {

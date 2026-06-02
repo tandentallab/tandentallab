@@ -54,12 +54,11 @@ export default function CongTyPage() {
     try {
       setSaving(true);
       const response = await api.put("/cong-ty", company);
-      console.log("✅ Lưu thành công:", response.data);
       setCompany(response.data.data);
-      
+
       // Đóng tất cả edit mode
       Object.keys(editMode).forEach(key => setEditMode(prev => ({ ...prev, [key]: false })));
-      
+
       toast.success("Cập nhật thông tin công ty thành công!");
     } catch (error) {
       console.error("❌ Lỗi lưu:", error);

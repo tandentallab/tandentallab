@@ -36,9 +36,6 @@ const DonHangPrintPreview = () => {
     fetchData();
   }, [id]);
 
-  console.log(donHang);
-
-
   if (loading) return <div className="p-4">Đang tải...</div>;
   if (!donHang) return <div className="p-4">Không tìm thấy đơn hàng</div>;
 

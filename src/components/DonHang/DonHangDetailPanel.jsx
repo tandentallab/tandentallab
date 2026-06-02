@@ -105,11 +105,9 @@ const DonHangDetailPanel = (props) => {
       api
         .get(`/phieu-bao-hanh/don-hang/${donHang._id}`)
         .then((res) => {
-          console.log("Warranty Response:", res.data);
           setWarranty(res.data.data || res.data);
         })
         .catch((err) => {
-          console.log("Warranty Fetch Error:", err.message);
           setWarranty(null);
         });
     }

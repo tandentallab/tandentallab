@@ -152,11 +152,6 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   };
 
   const handleSubmit = async () => {
-    console.log("Dữ liệu gửi lên:", {
-      donHang: fullDonHang._id,
-      mauTheId: selectedMauTheId, // Kiểm tra kỹ chỗ này
-      ghiChu
-    });
     try {
 
       // Kiểm tra nếu chưa chọn sản phẩm

@@ -29,10 +29,6 @@ const StaffProfile = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
-    console.log("Nhân viên: ", staff);
-  }, [staff]);
-
-  useEffect(() => {
     if (user) {
       setStaff({
         MSNV: user.MSNV || "",

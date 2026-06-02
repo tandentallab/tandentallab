@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { fetchHoaDonById, updateHoaDon, deleteHoaDon } from "../../redux/slices/hoaDonSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import { fetchPhieuThuByHoaDon } from "../../redux/slices/phieuThuSlice";
@@ -8,17 +8,16 @@ import { X, Printer, FileDown, Save, Upload, Trash2 } from "lucide-react";
 import { exportHoaDonToExcel } from "../../utils/exportToExcel";
 import HoaDonDetailTable from "./HoaDonDetailTable";
 import PhieuThuModal from "../PhieuThu/PhieuThuModal";
-import { toast } from "sonner"; // Đảm bảo đã import thư viện thông báo
+import { toast } from "sonner";
 import dayjs from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-
+import DonHangChuaXuatModal from "../DonHangChuaXuat/DonHangChuaXuatModal";
 
 const fmtVND = (v) =>
   new Intl.NumberFormat("vi-VN").format(Math.round(v || 0));
 
-// Format số tiền cho input (hiển thị dấu chấm phân cách nghìn)
 const fmtMoneyInput = (v) =>
   v ? new Intl.NumberFormat("vi-VN").format(Math.round(Number(v) || 0)) : "";
 const parseMoneyInput = (s) => parseInt(String(s).replace(/\D/g, ""), 10) || 0;
@@ -36,6 +35,7 @@ const toLocalDateInput = (d) => {
 };
 
 const TRANG_THAI_COLOR = {
+  "Lưu tạm": "bg-blue-500 text-white",
   "Chưa thanh toán": "bg-orange-500 text-white",
   "Thanh toán một phần": "bg-yellow-500 text-white",
   "Đã thanh toán": "bg-green-500 text-white",
@@ -53,6 +53,12 @@ const HoaDonDetail = () => {
   const [ptOpen, setPtOpen] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showXacNhanConfirm, setShowXacNhanConfirm] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // 🔥 State ghi nhớ ID gốc để không gửi thừa cho API
+  const [initialDonHangIds, setInitialDonHangIds] = useState("");
+
   const [formState, setFormState] = useState({
     chinhSachThanhToan: "Thanh toán cuối tháng",
     ghiChuChoKhachHang: "",
@@ -87,6 +93,10 @@ const HoaDonDetail = () => {
         };
 
         setHoaDon(mappedData);
+
+        // 🔥 LƯU MỐC ID ĐƠN HÀNG LÚC MỚI TẢI TRANG
+        const ids = [...new Set((mappedData.danhSachSanPham || []).map(sp => sp.donHang?._id || sp.donHang))].sort().join(',');
+        setInitialDonHangIds(ids);
 
         const tongCongLoaded = mappedData.tongCong || 0;
         const chietKhauPhanTram =
@@ -128,26 +138,6 @@ const HoaDonDetail = () => {
     load();
   }, [id, dispatch]);
 
-  const reloadData = async () => {
-    try {
-      const res = await dispatch(fetchHoaDonById(id)).unwrap();
-      const data = res.data;
-      if (data.danhSachSanPham) {
-        data.danhSachSanPham = data.danhSachSanPham.map((sp) => ({
-          ...sp,
-          giamGiaPhanTram: sp.thanhTien
-            ? Math.round(((sp.giamGia || 0) / sp.thanhTien) * 100)
-            : 0,
-        }));
-      }
-      setHoaDon(data);
-      const ptRes = await dispatch(fetchPhieuThuByHoaDon(id)).unwrap();
-      setPhieuThuList(ptRes?.data || ptRes || []);
-    } catch (err) {
-      console.error("Lỗi khi tải lại dữ liệu:", err);
-    }
-  };
-
   const setField = (key, val) => {
     setFormState((p) => ({ ...p, [key]: val }));
     setIsDirty(true);
@@ -186,7 +176,6 @@ const HoaDonDetail = () => {
     setIsDirty(true);
   };
 
-  // ================= 1. RÀNG BUỘC TÌM NGÀY NHẬN MỚI NHẤT =================
   const minNgayXuatStr = useMemo(() => {
     if (!hoaDon?.danhSachSanPham) return "";
     let maxTime = 0;
@@ -201,34 +190,24 @@ const HoaDonDetail = () => {
     return maxTime > 0 ? toLocalDateInput(maxTime) : "";
   }, [hoaDon]);
 
-  // ================= 2. HÀM KIỂM TRA KHI THAY ĐỔI NGÀY XUẤT HÓA ĐƠN =================
   const handleNgayXuatChange = (e) => {
     const val = e.target.value;
+    if (!val) { setField("ngayXuatHoaDon", val); return; }
 
-    if (!val) {
-      setField("ngayXuatHoaDon", val);
-      return;
-    }
-
-    // 1. Chặn lịch chọn lùi
     if (minNgayXuatStr && val < minNgayXuatStr) {
       const [y, m, d] = minNgayXuatStr.split("-");
       toast.error(`Ngày xuất hóa đơn không được nhỏ hơn ngày nhận mới nhất (${d}/${m}/${y})`);
       return;
     }
-
-    // 2. Chặn tương lai (Bằng cách lấy ngày hôm nay từ hàm helper)
     const todayStr = toLocalDateInput();
     if (val > todayStr) {
       const [y, m, d] = todayStr.split("-");
       toast.error(`Ngày xuất hóa đơn không được vượt quá ngày hôm nay (${d}/${m}/${y})`);
       return;
     }
-
     setField("ngayXuatHoaDon", val);
   };
 
-  // ================= FINANCIAL SUMMARY =================
   const fin = useMemo(() => {
     if (!hoaDon) return {
       tongCong: 0, chietKhauTien: 0, chietKhauPhanTram: 0,
@@ -255,11 +234,9 @@ const HoaDonDetail = () => {
       ? (sauCK > 0 ? parseFloat((thueTien / sauCK * 100).toFixed(2)) : 0)
       : formState.thuePhanTram;
 
-    // 🔥 LOGIC MỚI: Chỉ lấy thuần phát sinh kỳ này
     const phatSinhKyNay = sauCK + thueTien + Number(formState.chiPhiKhac || 0);
     const giaTriThanhToan = phatSinhKyNay;
 
-    // Lấy con số nợ đầu kỳ động từ API Backend trả về (chỉ để hiển thị tham khảo)
     const noDauKy = Number(hoaDon.noDauKy || 0);
 
     const tongDaThanhToan = phieuThuList.reduce((sum, pt) => {
@@ -279,34 +256,41 @@ const HoaDonDetail = () => {
     };
   }, [hoaDon, formState, phieuThuList, id]);
 
-  // ================= SAVE =================
-  const handleUpdate = async () => {
+
+  // ================= XÁC NHẬN =================
+  const executeXacNhan = async () => {
     try {
       const sauCK = fin.tongCong - fin.chietKhauTien;
       const thueChinhXac = formState.thueMode === "tienMat" && sauCK > 0
         ? (fin.thueTien / sauCK) * 100
         : fin.thuePhanTram;
 
-      // Lấy kết quả (res) trả về từ Backend
+      // 👉 1. TẠO CỤC DATA (Có cờ xacNhanHoaDon: true)
+      const updateData = {
+        ngayXuatHoaDon: formState.ngayXuatHoaDon,
+        chietKhau: Math.round(fin.chietKhauTien),
+        thue: thueChinhXac,
+        chiPhiKhac: Number(formState.chiPhiKhac),
+        chinhSachThanhToan: formState.chinhSachThanhToan,
+        ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
+        ghiChuNoiBo: formState.ghiChuNoiBo,
+        danhSachSanPham: hoaDon.danhSachSanPham,
+        xacNhanHoaDon: true, // CỜ CHỐT HÓA ĐƠN
+      };
+
+      if ((hoaDon.daThanhToan || 0) === 0) {
+        updateData.danhSachDonHangIds = [...new Set(hoaDon.danhSachSanPham.map(sp => sp.donHang?._id || sp.donHang))];
+      }
+
       const res = await dispatch(
         updateHoaDon({
           id,
-          data: {
-            ngayXuatHoaDon: formState.ngayXuatHoaDon,
-            chietKhau: Math.round(fin.chietKhauTien),
-            thue: thueChinhXac,
-            chiPhiKhac: Number(formState.chiPhiKhac),
-            chinhSachThanhToan: formState.chinhSachThanhToan,
-            ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
-            ghiChuNoiBo: formState.ghiChuNoiBo,
-            danhSachSanPham: hoaDon.danhSachSanPham,
-          },
+          data: updateData, // Gửi payload đã được vá lỗi
         })
       ).unwrap();
 
-      // 🔥 ĐẮP DATA MỚI VÀO MÀN HÌNH (Hiển thị Real-time không cần F5)
       setHoaDon({
-        ...res.data, // Dữ liệu này giờ đã có sẵn công nợ mới nhất
+        ...res.data,
         danhSachSanPham: (res.data.danhSachSanPham || []).map((sp) => ({
           ...sp,
           giamGiaPhanTram: sp.thanhTien
@@ -315,18 +299,123 @@ const HoaDonDetail = () => {
         })),
       });
 
+      // Cập nhật lại mốc ID
+      const newInitialIds = [...new Set((res.data.danhSachSanPham || []).map(sp => sp.donHang?._id || sp.donHang))].sort().join(',');
+      setInitialDonHangIds(newInitialIds);
+
+      setIsDirty(false);
+      setShowXacNhanConfirm(false);
+      toast.success("Hóa đơn đã được XÁC NHẬN thành công!");
+    } catch (err) {
+      toast.error("Lỗi: " + (err.message || err));
+    }
+  };
+
+
+  // ================= LƯU =================
+  const handleUpdate = async () => {
+    try {
+      const sauCK = fin.tongCong - fin.chietKhauTien;
+      const thueChinhXac = formState.thueMode === "tienMat" && sauCK > 0
+        ? (fin.thueTien / sauCK) * 100
+        : fin.thuePhanTram;
+
+      // 1. CHUẨN BỊ PAYLOAD CƠ BẢN
+      const updateData = {
+        ngayXuatHoaDon: formState.ngayXuatHoaDon,
+        chietKhau: Math.round(fin.chietKhauTien),
+        thue: thueChinhXac,
+        chiPhiKhac: Number(formState.chiPhiKhac),
+        chinhSachThanhToan: formState.chinhSachThanhToan,
+        ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
+        ghiChuNoiBo: formState.ghiChuNoiBo,
+        danhSachSanPham: hoaDon.danhSachSanPham,
+      };
+
+      if ((hoaDon.daThanhToan || 0) === 0) {
+        updateData.danhSachDonHangIds = [...new Set(hoaDon.danhSachSanPham.map(sp => sp.donHang?._id || sp.donHang))];
+      }
+
+      const res = await dispatch(
+        updateHoaDon({
+          id,
+          data: updateData,
+        })
+      ).unwrap();
+
+      setHoaDon({
+        ...res.data,
+        danhSachSanPham: (res.data.danhSachSanPham || []).map((sp) => ({
+          ...sp,
+          giamGiaPhanTram: sp.thanhTien
+            ? parseFloat(((sp.giamGia || 0) / sp.thanhTien * 100).toFixed(2))
+            : 0,
+        })),
+      });
+
+      // Reset mốc ID
+      const newInitialIds = [...new Set((res.data.danhSachSanPham || []).map(sp => sp.donHang?._id || sp.donHang))].sort().join(',');
+      setInitialDonHangIds(newInitialIds);
+
       setIsDirty(false);
       toast.success("Đã lưu hóa đơn thành công!");
     } catch (err) {
       toast.error("Lỗi: " + (err.message || err));
     }
   };
+
   const handleClose = () => {
     if (isDirty) {
       setShowExitConfirm(true);
     } else {
       navigate(-1);
     }
+  };
+
+  // ================= XÓA DÒNG =================
+  const handleRemoveDonHang = (donHangId) => {
+    const newDanhSach = hoaDon.danhSachSanPham.filter(
+      sp => (sp.donHang?._id || sp.donHang) !== donHangId
+    );
+    setHoaDon({ ...hoaDon, danhSachSanPham: newDanhSach });
+    setIsDirty(true);
+  };
+
+  const handleAddRowClick = () => {
+    setIsAddModalOpen(true);
+  };
+
+  // 🔥 NHẬN DATA XỊN TỪ MODAL (CÓ SẴN TÊN VÀ GIÁ)
+  const handleAddOrders = (selectedOrders, enrichedProducts) => {
+    const currentIds = new Set(hoaDon.danhSachSanPham.map(sp => sp.donHang?._id || sp.donHang));
+    const ordersToAdd = selectedOrders.filter(o => !currentIds.has(o._id));
+
+    if (ordersToAdd.length === 0) return;
+
+    const newProducts = enrichedProducts
+      .filter(row => ordersToAdd.some(o => o._id === row.orderId))
+      .map(row => ({
+        donHang: row.rawOrder,
+        sanPhamDonHangId: row.sanPhamDonHangId,
+        sanPham: { _id: row.sanPhamId, tenSanPham: row.sanPham },
+        tenSanPham: row.sanPham,
+        loaiDon: row.loai,
+        viTri: row.viTri,
+        soLuong: row.soLuong,
+        donGia: row.donGia,
+        thanhTien: row.tongCong,
+        giamGia: 0,
+        giamGiaPhanTram: 0,
+        loaiGiamGia: "phanTram",
+        tongCongSanPham: row.tongCong,
+        ghiChu: row.ghiChuTaiChinh || ""
+      }));
+
+    setHoaDon(prev => ({
+      ...prev,
+      danhSachSanPham: [...prev.danhSachSanPham, ...newProducts]
+    }));
+    setIsDirty(true);
   };
 
   const handleSaveAndExit = async () => {
@@ -336,33 +425,31 @@ const HoaDonDetail = () => {
         ? (fin.thueTien / sauCK) * 100
         : fin.thuePhanTram;
 
+      const updateData = {
+        ngayXuatHoaDon: formState.ngayXuatHoaDon,
+        chietKhau: Math.round(fin.chietKhauTien),
+        thue: thueChinhXac,
+        chiPhiKhac: Number(formState.chiPhiKhac),
+        chinhSachThanhToan: formState.chinhSachThanhToan,
+        ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
+        ghiChuNoiBo: formState.ghiChuNoiBo,
+        danhSachSanPham: hoaDon.danhSachSanPham,
+      };
+
+      if ((hoaDon.daThanhToan || 0) === 0) {
+        updateData.danhSachDonHangIds = [...new Set(hoaDon.danhSachSanPham.map(sp => sp.donHang?._id || sp.donHang))];
+      }
+
       await dispatch(
         updateHoaDon({
           id,
-          data: {
-            ngayXuatHoaDon: formState.ngayXuatHoaDon,
-            chietKhau: Math.round(fin.chietKhauTien),
-            thue: thueChinhXac,
-            chiPhiKhac: Number(formState.chiPhiKhac),
-            chinhSachThanhToan: formState.chinhSachThanhToan,
-            ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
-            ghiChuNoiBo: formState.ghiChuNoiBo,
-            danhSachSanPham: hoaDon.danhSachSanPham,
-          },
+          data: updateData,
         })
       ).unwrap();
 
-      // REFRESH LẠI DATA TỪ SERVER
-      await dispatch(fetchHoaDonById(id));
-
       setIsDirty(false);
-
       toast.success("Đã lưu hóa đơn thành công!");
-
-      // 2. Chuyển về trang trước
       navigate(-1);
-
-
     } catch (err) {
       toast.error("Lỗi khi lưu: " + (err.message || err));
     }
@@ -373,13 +460,12 @@ const HoaDonDetail = () => {
   };
 
   const handleDeleteClick = () => {
-    if (hoaDon.trangThai !== "Chưa thanh toán") {
+    if ((hoaDon.daThanhToan || 0) > 0) {
       toast.error("Không thể xóa hóa đơn đã có giao dịch thanh toán!");
       return;
     }
     setShowDeleteConfirm(true);
   };
-
   const executeDelete = async () => {
     try {
       await dispatch(deleteHoaDon(id)).unwrap();
@@ -397,6 +483,7 @@ const HoaDonDetail = () => {
 
   const initials = hoaDon.nhaKhoa?.hoVaTen?.slice(0, 2).toUpperCase() || "NK";
   const isLocked = (hoaDon.daThanhToan || 0) > 0;
+
   const renderFinancialBlock = () => (
     <div className="space-y-4">
       <div className="flex items-start justify-between">
@@ -404,7 +491,6 @@ const HoaDonDetail = () => {
         <span className="font-bold text-gray-900 text-[15px]">{fmtVND(fin.tongCong)}</span>
       </div>
 
-      {/* ── Chiết khấu ── */}
       <div className="flex items-center justify-between">
         <span className="text-gray-800 text-sm shrink-0">Chiết khấu</span>
         <div className="flex items-center flex-1 justify-end ml-4">
@@ -434,7 +520,6 @@ const HoaDonDetail = () => {
         </div>
       </div>
 
-      {/* ── Thuế ── */}
       <div className="flex items-center justify-between">
         <span className="text-gray-800 text-sm shrink-0">Thuế</span>
         <div className="flex items-center flex-1 justify-end ml-4">
@@ -464,7 +549,6 @@ const HoaDonDetail = () => {
         </div>
       </div>
 
-      {/* ── Chi phí khác ── */}
       <div className="flex items-center justify-between">
         <span className="text-gray-800 text-sm shrink-0">Chi phí khác</span>
         <div className="flex items-center flex-1 justify-end ml-4">
@@ -535,7 +619,6 @@ const HoaDonDetail = () => {
         .no-spinner { -moz-appearance: textfield; }
       `}</style>
 
-      {/* ===== EXIT CONFIRM MODAL ===== */}
       {showExitConfirm && (
         <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm mx-4">
@@ -561,7 +644,6 @@ const HoaDonDetail = () => {
         </div>
       )}
 
-      {/* ===== DELETE CONFIRM MODAL ===== */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm mx-4">
@@ -592,7 +674,31 @@ const HoaDonDetail = () => {
         </div>
       )}
 
-      {/* ===== HEADER ===== */}
+      {showXacNhanConfirm && (
+        <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm mx-4">
+            <p className="text-gray-900 font-bold text-lg mb-2">Xác nhận chốt hóa đơn?</p>
+            <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+              Hóa đơn sẽ chuyển sang trạng thái <b>Chưa thanh toán</b>.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowXacNhanConfirm(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={executeXacNhan}
+                className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition-colors shadow-sm"
+              >
+                Đồng ý
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="h-12 bg-[#00a8df] flex items-center justify-between px-5 shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-white text-base">
@@ -607,10 +713,7 @@ const HoaDonDetail = () => {
         </button>
       </header>
 
-      {/* ===== INFO ROW ===== */}
       <div className="bg-white px-4 lg:px-6 py-4 flex flex-col lg:flex-row items-stretch gap-3 lg:gap-4 shrink-0">
-
-        {/* Khối giá trị thanh toán Mobile */}
         <div className="order-1 lg:hidden px-1">
           <p className="text-[11px] text-gray-400 font-medium">Giá trị thanh toán</p>
           <p className="text-3xl font-black text-gray-900 leading-tight mt-1 mb-3">
@@ -620,34 +723,21 @@ const HoaDonDetail = () => {
           <div className="flex items-center mt-0.5">
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
+                disabled={isLocked}
                 format="DD/MM/YYYY"
-                // 1. Chuyển đổi min/max sang chuẩn của MUI Pickers
                 minDate={minNgayXuatStr ? dayjs(minNgayXuatStr) : undefined}
-                maxDate={dayjs()} // Nếu toLocalDateInput() có logic riêng, bạn dùng: dayjs(toLocalDateInput())
-
-                // 2. Chuyển đổi value
+                maxDate={dayjs()}
                 value={formState.ngayXuatHoaDon ? dayjs(formState.ngayXuatHoaDon) : null}
-
-                // 3. Xử lý onChange: Giả lập một event (e) để không làm "vỡ" hàm handleNgayXuatChange cũ của bạn
                 onChange={(val) => {
-                  handleNgayXuatChange({
-                    target: { value: val ? val.format("YYYY-MM-DD") : "" }
-                  });
+                  handleNgayXuatChange({ target: { value: val ? val.format("YYYY-MM-DD") : "" } });
                 }}
-
-                // 4. Bơm CSS y hệt như cũ (w-36, border-b, text-sm)
                 slotProps={{
                   textField: {
-                    variant: "standard", // Xóa khung viền, chỉ để lại gạch dưới
+                    variant: "standard",
                     sx: {
-                      width: 144, // Tương đương class w-36
-                      "& input": {
-                        fontSize: "0.875rem", // Tương đương text-sm
-                        color: "#1f2937",     // text-gray-800
-                      },
-                      "& .MuiInput-underline:before": {
-                        borderBottomColor: "#d1d5db", // border-gray-300
-                      }
+                      width: 144,
+                      "& input": { fontSize: "0.875rem", color: "#1f2937" },
+                      "& .MuiInput-underline:before": { borderBottomColor: "#d1d5db" }
                     }
                   }
                 }}
@@ -672,7 +762,6 @@ const HoaDonDetail = () => {
           <p><span className="text-gray-500 inline-block w-20">Địa chỉ:</span><span className="font-medium">{hoaDon.nhaKhoa?.diaChiCuThe || ""}</span></p>
           <p><span className="text-gray-500 inline-block w-20">Điện thoại:</span><span className="font-medium">{hoaDon.nhaKhoa?.soDienThoai || ""}</span></p>
           <p><span className="text-gray-500 inline-block w-20">Mô tả:</span><span className="font-medium">{hoaDon.nhaKhoa?.moTa || ""}</span></p>
-
           <div className="pt-3 mt-1.5 border-t border-[#00a8df]/30 flex items-center justify-between">
             <span className="text-gray-700 font-bold uppercase text-[11px] tracking-wide">
               Công nợ:
@@ -686,6 +775,7 @@ const HoaDonDetail = () => {
         <div className="order-5 lg:hidden px-1">
           <p className="text-[11px] text-gray-400 font-medium">Chính sách thanh toán</p>
           <select
+            disabled={isLocked}
             value={formState.chinhSachThanhToan}
             onChange={(e) => setField("chinhSachThanhToan", e.target.value)}
             className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent pr-4 py-0.5 mt-0.5 w-full"
@@ -696,7 +786,6 @@ const HoaDonDetail = () => {
           </select>
         </div>
 
-        {/* Desktop View Nha Khoa & Payment Policy */}
         <div className="hidden lg:flex lg:order-1 lg:w-[30%] pr-4 flex-col gap-6 ">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-white font-bold text-base shrink-0">
@@ -712,6 +801,7 @@ const HoaDonDetail = () => {
           <div className="-mt-2">
             <p className="text-[11px] text-gray-400 font-medium">Chính sách thanh toán</p>
             <select
+              disabled={isLocked}
               value={formState.chinhSachThanhToan}
               onChange={(e) => setField("chinhSachThanhToan", e.target.value)}
               className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent pr-4 py-0.5 mt-0.5 w-4/5"
@@ -723,7 +813,6 @@ const HoaDonDetail = () => {
           </div>
         </div>
 
-        {/* Khối giá trị thanh toán Desktop */}
         <div className="hidden lg:flex lg:order-3 lg:w-[30%] pl-8 flex-col justify-center ">
           <p className="text-[11px] text-gray-400 font-medium">Giá trị thanh toán</p>
           <p className="text-3xl font-black text-gray-900 leading-tight mt-1 mb-3">
@@ -734,34 +823,21 @@ const HoaDonDetail = () => {
             <div className="flex items-center">
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
+                  disabled={isLocked}
                   format="DD/MM/YYYY"
-                  // 1. Chuyển đổi min/max sang chuẩn của MUI Pickers
                   minDate={minNgayXuatStr ? dayjs(minNgayXuatStr) : undefined}
-                  maxDate={dayjs()} // Nếu toLocalDateInput() có logic riêng, bạn dùng: dayjs(toLocalDateInput())
-
-                  // 2. Chuyển đổi value
+                  maxDate={dayjs()}
                   value={formState.ngayXuatHoaDon ? dayjs(formState.ngayXuatHoaDon) : null}
-
-                  // 3. Xử lý onChange: Giả lập một event (e) để không làm "vỡ" hàm handleNgayXuatChange cũ của bạn
                   onChange={(val) => {
-                    handleNgayXuatChange({
-                      target: { value: val ? val.format("YYYY-MM-DD") : "" }
-                    });
+                    handleNgayXuatChange({ target: { value: val ? val.format("YYYY-MM-DD") : "" } });
                   }}
-
-                  // 4. Bơm CSS y hệt như cũ (w-36, border-b, text-sm)
                   slotProps={{
                     textField: {
-                      variant: "standard", // Xóa khung viền, chỉ để lại gạch dưới
+                      variant: "standard",
                       sx: {
-                        width: 144, // Tương đương class w-36
-                        "& input": {
-                          fontSize: "0.875rem", // Tương đương text-sm
-                          color: "#1f2937",     // text-gray-800
-                        },
-                        "& .MuiInput-underline:before": {
-                          borderBottomColor: "#d1d5db", // border-gray-300
-                        }
+                        width: 144,
+                        "& input": { fontSize: "0.875rem", color: "#1f2937" },
+                        "& .MuiInput-underline:before": { borderBottomColor: "#d1d5db" }
                       }
                     }
                   }}
@@ -770,10 +846,8 @@ const HoaDonDetail = () => {
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* ===== CONTENT AREA ===== */}
       <div className="flex-1 bg-white flex flex-col">
         <HoaDonDetailTable
           rows={hoaDon.danhSachSanPham || []}
@@ -781,6 +855,9 @@ const HoaDonDetail = () => {
           handleGhiChuChange={handleGhiChuChange}
           handleGiamGiaChange={handleGiamGiaChange}
           isLocked={isLocked}
+          canEditItems={!isLocked}
+          onRemoveDonHang={handleRemoveDonHang}
+          onAddRowClick={handleAddRowClick}
         />
 
         <div className="flex flex-col md:flex-row mt-6 bg-gray-50/30 shrink-0 items-stretch">
@@ -826,10 +903,8 @@ const HoaDonDetail = () => {
         </div>
       </div>
 
-      {/* ===== FOOTER ===== */}
       <footer className="fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-gray-200 flex items-center justify-between px-4 md:px-6 z-[1310] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="flex items-center gap-4">
-          <span className="text-gray-400">⋮</span>
           <span className="hidden sm:block text-xs text-gray-400 font-medium">
             Kế Toán Tạo lúc {fmtDateTime(hoaDon.createdAt)}
             {hoaDon.updatedAt && hoaDon.updatedAt !== hoaDon.createdAt && (
@@ -841,48 +916,57 @@ const HoaDonDetail = () => {
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
-          {hoaDon.trangThai === "Chưa thanh toán" && (
+          {(!isLocked && (hoaDon.trangThai === "Lưu tạm" || hoaDon.trangThai === "Chưa thanh toán")) && (
             <button
               onClick={handleDeleteClick}
-              className="flex items-center gap-1.5 px-3 md:px-4 py-2 border border-red-200 bg-red-50 text-red-600 rounded-md text-[13px] font-bold hover:bg-red-100 hover:border-red-300 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3 md:px-4 py-2 border border-red-200 bg-red-500 text-white rounded-2xl text-[13px] font-bold hover:bg-red-600 hover:border-red-300 transition-colors shadow-sm"
             >
               <Trash2 className="w-4 h-4" />
               <span className="hidden sm:inline">Xóa</span>
             </button>
           )}
-          <button onClick={handlePrint} className="hidden md:flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-md text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors">
+          <button onClick={handlePrint} className="hidden md:flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-2xl text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors">
             <Printer className="w-4 h-4" /> In hóa đơn
           </button>
           <button
             onClick={() => exportHoaDonToExcel(hoaDon)}
-            className="hidden md:flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-md text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+            className="hidden md:flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-2xl text-[13px] font-bold text-gray-600 hover:bg-gray-50 transition-colors"
           >
             <FileDown className="w-4 h-4" /> Xuất excel
           </button>
 
-          <button onClick={handlePrint} className="flex md:hidden items-center justify-center w-9 h-9 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 transition-colors">
+          <button onClick={handlePrint} className="flex md:hidden items-center justify-center w-9 h-9 border border-gray-300 rounded-2xl text-gray-600 hover:bg-gray-50 transition-colors">
             <Printer className="w-4 h-4" />
           </button>
           <button
             onClick={() => exportHoaDonToExcel(hoaDon)}
-            className="flex md:hidden items-center justify-center w-9 h-9 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex md:hidden items-center justify-center w-9 h-9 border border-gray-300 rounded-2xl text-gray-600 hover:bg-gray-50 transition-colors"
           >
             <FileDown className="w-4 h-4" />
           </button>
 
-          {fin.conLai > 0 && (
+          {hoaDon.trangThai === "Lưu tạm" ? (
             <button
-              onClick={() => setPtOpen(true)}
-              className="px-3 md:px-5 py-2 bg-[#4CAF50] text-white rounded-md text-[13px] font-bold hover:bg-green-600 transition-colors shadow-sm"
+              onClick={() => setShowXacNhanConfirm(true)}
+              className="px-3 md:px-5 py-2 bg-green-600 text-white rounded-2xl text-[13px] font-bold hover:bg-green-700 transition-colors shadow-sm"
             >
-              <span className="hidden sm:inline">Lập phiếu thu</span>
-              <span className="sm:hidden">Phiếu thu</span>
+              Xác nhận
             </button>
+          ) : (
+            fin.conLai > 0 && (
+              <button
+                onClick={() => setPtOpen(true)}
+                className="px-3 md:px-5 py-2 bg-[#4CAF50] text-white rounded-2xl text-[13px] font-bold hover:bg-green-600 transition-colors shadow-sm"
+              >
+                <span className="hidden sm:inline">Lập phiếu thu</span>
+                <span className="sm:hidden">Phiếu thu</span>
+              </button>
+            )
           )}
           <button
             onClick={handleUpdate}
             disabled={!isDirty}
-            className={`flex items-center gap-1.5 px-4 md:px-6 py-2 rounded-md text-[13px] font-bold transition-all shadow-sm ${isDirty
+            className={`flex items-center gap-1.5 px-4 md:px-6 py-2 rounded-2xl text-[13px] font-bold transition-all shadow-sm ${isDirty
               ? "bg-[#00a8df] text-white hover:bg-sky-600 hover:shadow-md"
               : "bg-gray-100 text-gray-400 cursor-not-allowed"
               }`}
@@ -904,6 +988,12 @@ const HoaDonDetail = () => {
         initialHoaDonId={hoaDon?._id}
       />
 
+      <DonHangChuaXuatModal
+        open={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        selectedClinic={hoaDon.nhaKhoa?._id}
+        onAddOrders={handleAddOrders}
+      />
     </div>
   );
 };

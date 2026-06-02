@@ -118,6 +118,7 @@ const DonHangDetailPanel = (props) => {
   const trangThaiColor = {
     "Chờ xử lý": "bg-yellow-200 text-yellow-900",
     "Đang sản xuất": "bg-blue-200 text-blue-900",
+    "Đang thử": "bg-purple-200 text-purple-900",
     "Hoàn thành": "bg-green-200 text-green-900",
     "Đã giao": "bg-gray-200 text-gray-800",
   };
@@ -388,7 +389,7 @@ const DonHangDetailPanel = (props) => {
     "Chờ sản xuất": "text-cyan-600 font-medium",
   };
 
-  const panelTop = props.fullscreen ? 0 : 70;
+  const panelTop = isVerySmall ? 0 : 70;
   const panelWidth = isVerySmall ? "100%" : "530px";
   const panelHeight = `calc(100vh - ${panelTop}px)`;
 
@@ -445,7 +446,7 @@ const DonHangDetailPanel = (props) => {
       {/* Slide-out panel */}
       <div
         className={`fixed right-0 flex flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
-        style={{ zIndex: props.fullscreen ? 2999 : (isVerySmall ? 1500 : 1300), top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight }}
+        style={{ zIndex: props.fullscreen ? 2999 : (isVerySmall ? 1500 : 1300), top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight, paddingBottom: isMobile ? "40px" : "0" }}
       >
         {/* Header */}
         <div className="bg-[#4fc3f7] border-b px-4 py-3 flex items-center justify-between shrink-0">
@@ -550,15 +551,17 @@ const DonHangDetailPanel = (props) => {
                 {donHang.danhSachSanPham?.length > 0 ? (
                   donHang.danhSachSanPham.map((sp, idx) => (
                     <div key={idx} className="mb-1 last:mb-0">
-                      <div className="flex">
-                        <div className="font-medium text-sm">{sp.sanPham?.tenSanPham || "N/A"}</div>
-                        {sp.loaiDon != "Mới" && <div className="text-sm ml-2">[{sp.loaiDon}]</div>}
+                      <div className="flex gap-1 items-center font-medium ">
+                        <div className="text-sm">{{ "Hàng sửa": "Sửa", "Hàng làm lại": "Làm lại", "Hàng bảo hành": "Bảo hành" }[sp.loaiDon] ?? sp.loaiDon}</div>
+                        -
+                        <div className="text-sm">{sp.soLuong}</div>
+                        <div className="text-sm">{sp.sanPham?.tenSanPham || "N/A"}</div>
                       </div>
                       {sp.viTri?.length > 0 && (
-                        <div className="text-sm text-gray-700 mt-0.5">• {sp.soLuong} răng: {renderViTriText(sp.viTri)}</div>
+                        <div className="text-sm text-gray-700">• Vị trí: {renderViTriText(sp.viTri)}</div>
                       )}
-                      {sp.mau && <div className="text-sm text-gray-700 mt-0.5">• Màu: {sp.mau}</div>}
-                      {sp.ghiChu && <div className="text-sm text-gray-700 italic mt-0.5">{sp.ghiChu}</div>}
+                      {sp.mau && <div className="text-sm text-gray-700">• Màu: {sp.mau}</div>}
+                      {sp.ghiChu && <div className="text-sm text-gray-700">• {sp.ghiChu}</div>}
                     </div>
                   ))
                 ) : (

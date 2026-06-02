@@ -105,7 +105,7 @@ const DonHangPrintPreview = () => {
       <div className="flex justify-center py-6 px-4">
         <div
           className="print-area bg-white shadow-xl"
-          style={{ width: "148mm", minHeight: "210mm", padding: "5mm", paddingTop: "20mm", fontFamily: "Segoe UI, serif", fontSize: "11pt", color: "#000", boxSizing: "border-box" }}
+          style={{ width: "148mm", minHeight: "210mm", padding: "5mm", paddingTop: "20mm", fontFamily: "Segoe UI, serif", fontSize: "9pt", color: "#000", boxSizing: "border-box" }}
         >
           {/* Header: 3 cột */}
           <div style={{ display: "grid", gridTemplateColumns: "auto 50px auto", gap: "8px", marginBottom: "8px" }}>

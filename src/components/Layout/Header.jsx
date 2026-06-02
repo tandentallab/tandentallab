@@ -318,7 +318,8 @@ const Header = ({ onToggleSidebar }) => {
                                 onClick={() => {
                                   setIsDropdownOpen(false);
                                   setSearchOpen(false);
-                                  navigate(`/donhang/${dh._id}`);
+                                  // 🔥 ĐÃ FIX: Thêm /edit vào đường dẫn điều hướng
+                                  navigate(`/donhang/${dh._id}/edit`);
                                 }}
                               >
                                 <ListItemText

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import dayjs from "dayjs";
+import CustomDateRangePicker from "../common/CustomDateRangePicker";
 
 const DATE_PRESETS = [
     { key: "custom", label: "Chọn trên Lịch", isCalendar: true },
@@ -9,9 +11,6 @@ const DATE_PRESETS = [
     { key: "this_week", label: "Tuần này" },
     { key: "this_month", label: "Tháng này" },
     { key: "this_year", label: "Năm nay" },
-    { key: "last_week", label: "Tuần trước" },
-    { key: "last_month", label: "Tháng trước" },
-    { key: "last_year", label: "Năm trước" },
     { key: "last_7", label: "Trong vòng 7 ngày" },
     { key: "last_10", label: "Trong vòng 10 ngày" },
     { key: "last_30", label: "Trong vòng 30 ngày" },
@@ -37,6 +36,8 @@ const HoaDonFilterDrawer = ({
     const [openDateModal, setOpenDateModal] = useState(null);
     const [openPickerModal, setOpenPickerModal] = useState(null);
     const [nhaKhoaSearch, setNhaKhoaSearch] = useState("");
+
+    const [anchorElCustomDate, setAnchorElCustomDate] = useState(null);
 
     useEffect(() => {
         if (open) {
@@ -67,33 +68,65 @@ const HoaDonFilterDrawer = ({
             {DATE_PRESETS.map((p) => (
                 <div key={p.key}>
                     <button
-                        onClick={() => {
+                        onClick={(e) => {
                             setDraftNgayXuat((prev) => ({ ...prev, preset: prev.preset === p.key ? null : p.key }));
-                            if (!p.isCalendar) setOpenDateModal(null);
+
+                            if (!p.isCalendar) {
+                                setOpenDateModal(null);
+                            } else {
+                                if (draftNgayXuat.preset !== p.key) {
+                                    setAnchorElCustomDate(e.currentTarget);
+                                }
+                            }
                         }}
                         className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${draftNgayXuat.preset === p.key ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
                     >
                         {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
                         {p.label}
                     </button>
+
                     {p.isCalendar && draftNgayXuat.preset === "custom" && (
-                        <div className="px-4 py-3 space-y-2 bg-blue-50/30 border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 w-8 shrink-0">Từ</span>
-                                <input type="date" value={draftNgayXuat.customFrom}
-                                    onChange={(e) => setDraftNgayXuat((prev) => ({ ...prev, customFrom: e.target.value }))}
-                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400" />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 w-8 shrink-0">Đến</span>
-                                <input type="date" value={draftNgayXuat.customTo}
-                                    onChange={(e) => setDraftNgayXuat((prev) => ({ ...prev, customTo: e.target.value }))}
-                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400" />
-                            </div>
+                        <div className="px-4 py-3 bg-blue-50/30 border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                onClick={(e) => setAnchorElCustomDate(e.currentTarget)}
+                                className="w-full h-9 px-2 flex items-center justify-center gap-2 text-xs font-semibold text-blue-700 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors shadow-sm"
+                            >
+                                {draftNgayXuat.customFrom && draftNgayXuat.customTo
+                                    ? `${dayjs(draftNgayXuat.customFrom).format('DD/MM/YYYY')} - ${dayjs(draftNgayXuat.customTo).format('DD/MM/YYYY')}`
+                                    : "📅 Bấm để chọn ngày..."}
+                            </button>
                         </div>
                     )}
                 </div>
             ))}
+
+            {/* POP-UP LỊCH */}
+            <CustomDateRangePicker
+                open={Boolean(anchorElCustomDate)}
+                anchorEl={anchorElCustomDate}
+                onClose={() => setAnchorElCustomDate(null)}
+                initialDates={{
+                    start: draftNgayXuat.customFrom,
+                    end: draftNgayXuat.customTo,
+                }}
+                onApply={(dates) => {
+                    const newNgayXuat = {
+                        preset: "custom",
+                        customFrom: dates.start,
+                        customTo: dates.end,
+                    };
+
+                    // 1. Dọn dẹp UI: Xóa mỏ neo để tắt lịch
+                    setAnchorElCustomDate(null);
+                    setDraftNgayXuat(newNgayXuat); // Update state phụ đề phòng
+
+                    // 🔥 2. BÙM! GỌI LỌC NGAY VÀ LUÔN KHÔNG CẦN BẤM LƯU 🔥
+                    onApply(newNgayXuat, draftNhaKhoa, draftTrangThai);
+
+                    // 3. Đóng sạch sẽ toàn bộ menu lọc
+                    onClose();
+                }}
+            />
         </div>
     );
 

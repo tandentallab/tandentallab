@@ -208,11 +208,10 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                   <div className="space-y-3">
                     {danhSachHoaDon.map((item, idx) => {
                       const hd = item.hoaDon || {};
-                      const soTienThanhToan = item.soTienThanhToan ?? (idx === 0 ? phieuThu?.soTienThu : 0);
-                      const daTTruocLanNay = item.daTTruocLanNay || 0;
-                      const giaTriHoaDon = item.giaTriHoaDon || hd.giaTriThanhToan || 0;
-                      const tongCong = daTTruocLanNay + (soTienThanhToan || 0);
-                      const conLai = giaTriHoaDon - tongCong;
+                      const soTienThanhToan = item.soTienThanhToan || 0;
+                      const daThanhToan = Math.max(0, (hd.daThanhToan || 0) - soTienThanhToan);
+                      const giaTriHoaDon = hd.giaTriThanhToan || 0;
+                      const conLai = (hd.conLai || 0) + soTienThanhToan;
 
                       return (
                         <div key={hd._id || idx} className={`${idx > 0 ? "border-t pt-3" : ""}`}>
@@ -245,21 +244,16 @@ export default function PhieuThuDetailPanel({ phieuThu, onClose, onUpdated }) {
                             <InfoRow label="Giá trị hóa đơn:" value={formatNumber(giaTriHoaDon)} />
                             <InfoRow
                               label="Đã thanh toán:"
-                              value={formatNumber(daTTruocLanNay)}
+                              value={formatNumber(daThanhToan)}
                             />
                             <InfoRow
-                              label="Thanh toán lần này:"
-                              value={formatNumber(soTienThanhToan)}
+                              label="Số tiền còn lại:"
+                              value={formatNumber(conLai)}
                               valueClass="text-blue-600 font-bold"
                             />
                             <InfoRow
-                              label="Tổng cộng:"
-                              value={formatNumber(tongCong)}
-                              valueClass="font-bold"
-                            />
-                            <InfoRow
-                              label="Còn lại:"
-                              value={formatNumber(conLai)}
+                              label="Số tiền thanh toán:"
+                              value={formatNumber(soTienThanhToan)}
                               valueClass={conLai > 0 ? "text-orange-500" : "text-green-600"}
                             />
                           </div>

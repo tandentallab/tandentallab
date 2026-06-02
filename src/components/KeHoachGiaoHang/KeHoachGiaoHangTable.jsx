@@ -10,76 +10,205 @@ import { api } from "../../config/api";
 import {
   fetchDonHang,
   fetchMoreDonHang,
-  setFilter,
+  fetchThongKe,
+  setDonHangPageFilter,
+  resetDonHangPageFilter,
 } from "../../redux/slices/donHangSlice";
-import {
-  format,
-  isToday,
-  isBefore,
-  startOfDay,
-  endOfDay,
-  parseISO,
-} from "date-fns";
-import ThongKeKeHoachGiaoHang from "./ThongKeKeHoachGiaoHang";
+import { format, isToday, isBefore, startOfDay, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { exportKeHoachGiaoHangToExcel } from "../../utils/exportToExcel";
-import {
-  FiFilter,
-  FiSearch,
-  FiRefreshCw,
-  FiDownload,
-  FiPrinter,
-} from "react-icons/fi";
+import { FiSearch, FiRefreshCw, FiDownload, FiPrinter } from "react-icons/fi";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import StoreIcon from "@mui/icons-material/Store";
+import CloseIcon from "@mui/icons-material/Close";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import DonHangDetailPanel from "../DonHang/DonHangDetailPanel";
+import { useSelector as useReduxSelector } from "react-redux";
+import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 
 const ROWS_PER_PAGE = 20;
+const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Đang thử", "Hoàn thành"];
+
+const DATE_PRESETS = [
+  { key: "custom", label: "Chọn trên Lịch", isCalendar: true },
+  { key: "today", label: "Hôm nay" },
+  { key: "yesterday", label: "Hôm qua" },
+  { key: "this_week", label: "Tuần này" },
+  { key: "this_month", label: "Tháng này" },
+  { key: "this_year", label: "Năm nay" },
+  { key: "last_week", label: "Tuần trước" },
+  { key: "last_month", label: "Tháng trước" },
+  { key: "last_7", label: "Trong vòng 7 ngày" },
+  { key: "last_10", label: "Trong vòng 10 ngày" },
+  { key: "last_30", label: "Trong vòng 30 ngày" },
+];
+
+const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
+
+const getDateRange = (preset) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() + 1
+  );
+  switch (preset) {
+    case "today":
+      return { from: today, to: tomorrow };
+    case "yesterday": {
+      const f = new Date(today);
+      f.setDate(f.getDate() - 1);
+      return { from: f, to: today };
+    }
+    case "this_week": {
+      const d = today.getDay();
+      const f = new Date(today);
+      f.setDate(today.getDate() - (d === 0 ? 6 : d - 1));
+      return { from: f, to: tomorrow };
+    }
+    case "this_month":
+      return {
+        from: new Date(today.getFullYear(), today.getMonth(), 1),
+        to: tomorrow,
+      };
+    case "this_year":
+      return { from: new Date(today.getFullYear(), 0, 1), to: tomorrow };
+    case "last_week": {
+      const d = today.getDay();
+      const f = new Date(today);
+      f.setDate(today.getDate() - (d === 0 ? 6 : d - 1) - 7);
+      const t = new Date(f);
+      t.setDate(f.getDate() + 7);
+      return { from: f, to: t };
+    }
+    case "last_month":
+      return {
+        from: new Date(today.getFullYear(), today.getMonth() - 1, 1),
+        to: new Date(today.getFullYear(), today.getMonth(), 1),
+      };
+    case "last_7": {
+      const f = new Date(today);
+      f.setDate(f.getDate() - 7);
+      return { from: f, to: tomorrow };
+    }
+    case "last_10": {
+      const f = new Date(today);
+      f.setDate(f.getDate() - 10);
+      return { from: f, to: tomorrow };
+    }
+    case "last_30": {
+      const f = new Date(today);
+      f.setDate(f.getDate() - 30);
+      return { from: f, to: tomorrow };
+    }
+    default:
+      return { from: null, to: null };
+  }
+};
+
+const isDateInRange = (dateValue, filter) => {
+  if (!filter || !filter.preset) return true;
+  if (!dateValue) return false;
+  const d = new Date(dateValue);
+  let from, to;
+  if (filter.preset === "custom") {
+    from = filter.customFrom ? new Date(filter.customFrom) : null;
+    to = filter.customTo ? new Date(filter.customTo + "T23:59:59") : null;
+  } else {
+    const range = getDateRange(filter.preset);
+    from = range.from;
+    to = range.to;
+  }
+  if (from && d < from) return false;
+  if (to && d >= to) return false;
+  return true;
+};
+
+// =====================================================================
+
+const DEFAULT_COL_WIDTHS = [140, 110, 140, 180, 110, 130, 200, 110, 150];
+// Nhận lúc | Số | Hẹn giao | Khách hàng | Bác sĩ | Bệnh nhân | Răng | Trạng thái | Ghi chú
 
 const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { data, loading, loadingMore, pagination } = useSelector(
     (state) => state.donHang
   );
+  const { thongKe, loadingThongKe, donHangPageFilter } = useSelector(
+    (state) => state.donHang
+  );
+  const nhaKhoaState = useSelector((state) => state.nhaKhoa);
 
-  // const [showUrgentOnly, setShowUrgentOnly] = useState(false);
-  // const [filterType, setFilterType] = useState("all");
-  // const [filterStatus, setFilterStatus] = useState("Chờ xử lý");
-  // const [fromDate, setFromDate] = useState("");
-  // const [toDate, setToDate] = useState("");
-  // const [searchText, setSearchText] = useState("");
-  const [showFilterBar, setShowFilterBar] = useState(false);
+  const { giaoHomNay = 0, treHenGiao = 0, guiThu = 0 } = thongKe || {};
 
+  // Applied filters (từ Redux)
+  const appliedHenGiao = donHangPageFilter?.appliedHenGiao ?? EMPTY_DATE;
+  const appliedNgayNhan = donHangPageFilter?.appliedNgayNhan ?? EMPTY_DATE;
+  const appliedNhaKhoa = donHangPageFilter?.appliedNhaKhoa ?? null;
+  const appliedTrangThai = donHangPageFilter?.appliedTrangThai ?? [];
+
+  // Draft filters (local state)
+  const [draftHenGiao, setDraftHenGiao] = useState(EMPTY_DATE);
+  const [draftNgayNhan, setDraftNgayNhan] = useState(EMPTY_DATE);
+  const [draftNhaKhoa, setDraftNhaKhoa] = useState(null);
+  const [draftTrangThai, setDraftTrangThai] = useState([]);
+
+  // UI state
+  const [showFilter, setShowFilter] = useState(false);
+  const [openDateModal, setOpenDateModal] = useState(null);
+  const [openPickerModal, setOpenPickerModal] = useState(null);
+  const [nhaKhoaSearch, setNhaKhoaSearch] = useState("");
+  const filterRef = useRef(null);
+
+  // Search
+  const [searchText, setSearchText] = useState("");
+
+  // Pagination & misc
   const [page, setPage] = useState(1);
   const [loadingAll, setLoadingAll] = useState(false);
   const [printOrders, setPrintOrders] = useState(null);
-
-  // State quản lý việc mở panel chi tiết đơn hàng
   const [selectedDonHang, setSelectedDonHang] = useState(null);
-
   const sentinelRef = useRef(null);
-
   const todayStart = startOfDay(new Date());
 
-  const navigate = useNavigate();
+  // Resizable columns
+  const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
 
-  const filters = useSelector((state) => state.donHang.filters);
+  const handleResizeMouseDown = (e, colIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = colWidths[colIndex];
+    const onMouseMove = (moveEvent) => {
+      const newWidth = Math.max(60, startWidth + moveEvent.clientX - startX);
+      setColWidths((prev) => {
+        const next = [...prev];
+        next[colIndex] = newWidth;
+        return next;
+      });
+    };
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
 
-  const {
-    showUrgentOnly,
-    filterType,
-    filterStatus,
-    fromDate,
-    toDate,
-    searchText,
-  } = filters;
+  // ===================== INIT =====================
+  useEffect(() => {
+    dispatch(fetchThongKe());
+    dispatch(fetchNhaKhoa());
+  }, [dispatch]);
 
-  // Build params và dispatch load
+  // ===================== LOAD DATA =====================
   const loadData = useCallback(() => {
     const params = { page, limit: ROWS_PER_PAGE };
-    if (page === 1) {
-      dispatch(fetchDonHang(params));
-    } else {
-      dispatch(fetchMoreDonHang(params));
-    }
+    if (page === 1) dispatch(fetchDonHang(params));
+    else dispatch(fetchMoreDonHang(params));
   }, [dispatch, page]);
 
   useEffect(() => {
@@ -89,9 +218,15 @@ const KeHoachGiaoHangTable = () => {
   // Reset page khi filter thay đổi
   useEffect(() => {
     setPage(1);
-  }, [filterType, fromDate, toDate, showUrgentOnly, filterStatus, searchText]);
+  }, [
+    appliedHenGiao,
+    appliedNgayNhan,
+    appliedNhaKhoa,
+    appliedTrangThai,
+    searchText,
+  ]);
 
-  // Infinite scroll: khi sentinel vào viewport thì tải trang tiếp theo
+  // Infinite scroll
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
@@ -112,78 +247,226 @@ const KeHoachGiaoHangTable = () => {
     return () => observer.disconnect();
   }, [page, pagination?.totalPages, loadingMore, loading]);
 
-  // ================= FILTER LOGIC =================
-  const applyFilters = useCallback((sourceData) => {
-    let result = [...sourceData];
+  // Close filter panel on outside click
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (filterRef.current && !filterRef.current.contains(e.target)) {
+        if (
+          e.target.closest?.(".MuiPopover-root, .MuiMenu-root, .MuiModal-root")
+        )
+          return;
+        setShowFilter(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
-    result = result.filter((order) => {
-      const henGiaoDate = parseISO(order.henGiao);
-      const overdue =
-        isBefore(henGiaoDate, todayStart) && order.trangThai !== "Hoàn thành";
-      const dueToday = isToday(henGiaoDate);
-      const from = fromDate ? startOfDay(new Date(fromDate)) : null;
-      const to = toDate ? endOfDay(new Date(toDate)) : null;
-      const inRange = from && to && henGiaoDate >= from && henGiaoDate <= to;
+  // ===================== NHA KHOA OPTIONS =====================
+  const nhaKhoaOptions = useMemo(() => {
+    const d = nhaKhoaState?.data || [];
+    return Array.isArray(d)
+      ? d
+          .map((nk) => ({
+            _id: nk._id,
+            name: nk.tenGiaoDich || nk.hoVaTen || "",
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      : [];
+  }, [nhaKhoaState?.data]);
 
-      if (filterType === "today") return dueToday;
-      if (filterType === "overdue") return overdue;
-      if (filterType === "range") return inRange;
-      return true;
-    });
+  const filteredNhaKhoaOpts = useMemo(() => {
+    if (!nhaKhoaSearch.trim()) return nhaKhoaOptions;
+    const s = nhaKhoaSearch.toLowerCase();
+    return nhaKhoaOptions.filter((nk) => nk.name.toLowerCase().includes(s));
+  }, [nhaKhoaOptions, nhaKhoaSearch]);
 
-    if (filterStatus !== "all") {
-      result = result.filter((order) => order.trangThai === filterStatus);
-    }
+  // ===================== FILTER HANDLERS =====================
+  const handleOpenFilter = () => {
+    setDraftHenGiao(appliedHenGiao);
+    setDraftNgayNhan(appliedNgayNhan);
+    setDraftNhaKhoa(appliedNhaKhoa);
+    setDraftTrangThai([...appliedTrangThai]);
+    setShowFilter(true);
+  };
 
-    if (showUrgentOnly) {
-      result = result.filter((order) => {
-        const henGiaoDate = parseISO(order.henGiao);
-        return (
-          isToday(henGiaoDate) ||
-          (isBefore(henGiaoDate, todayStart) &&
-            order.trangThai !== "Hoàn thành")
+  const handleApplyFilters = () => {
+    dispatch(
+      setDonHangPageFilter({
+        appliedHenGiao: draftHenGiao,
+        appliedNgayNhan: draftNgayNhan,
+        appliedNhaKhoa: draftNhaKhoa,
+        appliedTrangThai: draftTrangThai,
+      })
+    );
+    setPage(1);
+    setOpenDateModal(null);
+    setOpenPickerModal(null);
+    setShowFilter(false);
+  };
+
+  const handleResetDraft = () => {
+    setDraftHenGiao(EMPTY_DATE);
+    setDraftNgayNhan(EMPTY_DATE);
+    setDraftNhaKhoa(null);
+    setDraftTrangThai([]);
+  };
+
+  const handleRefresh = () => {
+    setSearchText("");
+    dispatch(resetDonHangPageFilter());
+    setPage(1);
+  };
+
+  const toggleDraftTrangThai = (status) => {
+    setDraftTrangThai((prev) =>
+      prev.includes(status)
+        ? prev.filter((s) => s !== status)
+        : [...prev, status]
+    );
+  };
+
+  const getDateLabel = (f) =>
+    DATE_PRESETS.find((p) => p.key === f?.preset)?.label || "";
+
+  const isFiltered = !!(
+    appliedHenGiao?.preset ||
+    appliedNgayNhan?.preset ||
+    appliedNhaKhoa ||
+    appliedTrangThai.length > 0
+  );
+
+  // ===================== DATE DROPDOWN RENDERER =====================
+  const renderDateDropdown = (cf, scf) => (
+    <div className="absolute left-5 top-full z-[100] w-[80%] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+      {DATE_PRESETS.map((p) => (
+        <div key={p.key}>
+          <button
+            onClick={() => {
+              scf((prev) => ({
+                ...prev,
+                preset: prev.preset === p.key ? null : p.key,
+              }));
+              if (!p.isCalendar) setOpenDateModal(null);
+            }}
+            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${
+              cf.preset === p.key
+                ? "bg-blue-50 text-blue-700 font-semibold"
+                : "text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
+            {p.label}
+          </button>
+          {p.isCalendar && cf.preset === "custom" && (
+            <div
+              className="px-4 py-3 space-y-2 bg-blue-50/30 border-b border-gray-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 w-8 shrink-0">Từ</span>
+                <input
+                  type="date"
+                  value={cf.customFrom}
+                  onChange={(e) =>
+                    scf((prev) => ({ ...prev, customFrom: e.target.value }))
+                  }
+                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 w-8 shrink-0">Đến</span>
+                <input
+                  type="date"
+                  value={cf.customTo}
+                  onChange={(e) =>
+                    scf((prev) => ({ ...prev, customTo: e.target.value }))
+                  }
+                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  // ===================== FILTER LOGIC =====================
+  const applyFilters = useCallback(
+    (sourceData) => {
+      let result = [...sourceData];
+
+      // Lọc theo hẹn giao
+      if (appliedHenGiao?.preset) {
+        result = result.filter((o) => isDateInRange(o.henGiao, appliedHenGiao));
+      }
+
+      // Lọc theo ngày nhận
+      if (appliedNgayNhan?.preset) {
+        result = result.filter((o) =>
+          isDateInRange(o.ngayNhan, appliedNgayNhan)
         );
-      });
-    }
+      }
 
-    if (searchText.trim()) {
-      const q = searchText.toLowerCase();
-      result = result.filter(
-        (o) =>
-          (o.maDonHang && o.maDonHang.toLowerCase().includes(q)) ||
-          (o.nhaKhoa?.hoVaTen && o.nhaKhoa.hoVaTen.toLowerCase().includes(q)) ||
-          (o.bacSi?.hoVaTen && o.bacSi.hoVaTen.toLowerCase().includes(q)) ||
-          (o.benhNhan?.hoVaTen && o.benhNhan.hoVaTen.toLowerCase().includes(q))
-      );
-    }
+      // Lọc theo nha khoa
+      if (appliedNhaKhoa) {
+        result = result.filter((o) => o.nhaKhoa?._id === appliedNhaKhoa._id);
+      }
 
-    result.sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
-    return result;
-  }, [filterType, filterStatus, fromDate, toDate, showUrgentOnly, searchText, todayStart]);
+      // Lọc theo trạng thái (multi)
+      if (appliedTrangThai.length > 0) {
+        result = result.filter((o) => appliedTrangThai.includes(o.trangThai));
+      }
 
-  const filteredOrders = useMemo(() => applyFilters(data), [data, applyFilters]);
+      // Tìm kiếm text
+      if (searchText.trim()) {
+        const q = searchText.toLowerCase();
+        result = result.filter(
+          (o) =>
+            (o.maDonHang && o.maDonHang.toLowerCase().includes(q)) ||
+            (o.nhaKhoa?.hoVaTen &&
+              o.nhaKhoa.hoVaTen.toLowerCase().includes(q)) ||
+            (o.nhaKhoa?.tenGiaoDich &&
+              o.nhaKhoa.tenGiaoDich.toLowerCase().includes(q)) ||
+            (o.bacSi?.hoVaTen && o.bacSi.hoVaTen.toLowerCase().includes(q)) ||
+            (o.benhNhan?.hoVaTen &&
+              o.benhNhan.hoVaTen.toLowerCase().includes(q))
+        );
+      }
 
-  // Lấy toàn bộ dữ liệu (không phân trang) rồi áp filter
+      result.sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
+      return result;
+    },
+    [
+      appliedHenGiao,
+      appliedNgayNhan,
+      appliedNhaKhoa,
+      appliedTrangThai,
+      searchText,
+      todayStart,
+    ]
+  );
+
+  const filteredOrders = useMemo(
+    () => applyFilters(data),
+    [data, applyFilters]
+  );
+
+  // Lấy toàn bộ dữ liệu cho print
   const fetchAllFiltered = useCallback(async () => {
     setLoadingAll(true);
     try {
-      const res = await api.get("/donhang", { params: { page: 1, limit: 9999 } });
-      const allData = res.data.data || [];
-      return applyFilters(allData);
+      const res = await api.get("/donhang", {
+        params: { page: 1, limit: 9999 },
+      });
+      return applyFilters(res.data.data || []);
     } finally {
       setLoadingAll(false);
     }
   }, [applyFilters]);
 
-  // ================= COUNT =================
-  const countToday = data.filter((o) => isToday(parseISO(o.henGiao))).length;
-  const countOverdue = data.filter(
-    (o) =>
-      isBefore(parseISO(o.henGiao), todayStart) && o.trangThai !== "Hoàn thành"
-  ).length;
-  const countDone = data.filter((o) => o.trangThai === "Hoàn thành").length;
-
-  // Hàm format vị trí răng
+  // ===================== FORMAT HELPERS =====================
   const formatViTri = (viTriArr) => {
     if (!viTriArr || viTriArr.length === 0) return "";
     return viTriArr
@@ -195,7 +478,6 @@ const KeHoachGiaoHangTable = () => {
       .join("; ");
   };
 
-  // Hàm format 1 sản phẩm duy nhất
   const formatSingleSanPham = (item) => {
     if (!item) return "";
     const loaiDonMap = {
@@ -216,7 +498,6 @@ const KeHoachGiaoHangTable = () => {
       .trim();
   };
 
-  // Mỗi đơn hàng nhiều sản phẩm được tách ra thành nhiều dòng
   const expandedRows = useMemo(() => {
     return filteredOrders.flatMap((order) => {
       const dssp = order.danhSachSanPham || [];
@@ -225,6 +506,7 @@ const KeHoachGiaoHangTable = () => {
     });
   }, [filteredOrders]);
 
+  // ===================== ACTIONS =====================
   const handleExportExcel = async () => {
     await exportKeHoachGiaoHangToExcel(filteredOrders, formatSingleSanPham);
   };
@@ -232,11 +514,9 @@ const KeHoachGiaoHangTable = () => {
   const handlePrint = async () => {
     const allFiltered = await fetchAllFiltered();
     setPrintOrders(allFiltered);
-    // Đợi React render xong rồi mới in
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         window.print();
-        // Dọn dẹp sau khi in xong
         const cleanup = () => {
           setPrintOrders(null);
           window.removeEventListener("afterprint", cleanup);
@@ -249,29 +529,421 @@ const KeHoachGiaoHangTable = () => {
   if (loading && page === 1)
     return <div className="p-6 text-center text-gray-500">Đang tải...</div>;
 
+  // ===================== RENDER =====================
   return (
     <div className="p-4 bg-gray-100 min-h-screen relative">
       <div className="max-w-full mx-auto">
         {/* ================= HEADER STATS ================= */}
         <div className="print:hidden">
-          <ThongKeKeHoachGiaoHang
-            countToday={countToday}
-            countOverdue={countOverdue}
-            countDone={countDone}
-          />
+          <div className="flex w-full mb-4 rounded-lg overflow-hidden shadow-md">
+            {/* Giao hôm nay */}
+            <div
+              className={`flex-1 cursor-pointer bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${
+                appliedHenGiao?.preset === "today"
+                  ? "ring-2 ring-inset ring-white/50"
+                  : ""
+              }`}
+              onClick={() => {
+                dispatch(
+                  setDonHangPageFilter({
+                    appliedHenGiao:
+                      appliedHenGiao?.preset === "today"
+                        ? EMPTY_DATE
+                        : { preset: "today", customFrom: "", customTo: "" },
+                    appliedTrangThai:
+                      appliedHenGiao?.preset === "today" ? [] : ["Chờ xử lý"],
+                  })
+                );
+                setPage(1);
+              }}
+            >
+              <div>
+                <div className="text-3xl font-extrabold leading-none">
+                  {loadingThongKe ? "..." : giaoHomNay}
+                </div>
+                <div className="text-sm font-semibold mt-0.5 opacity-90">
+                  Giao hôm nay
+                </div>
+              </div>
+            </div>
+
+            {/* Trễ hạn */}
+            <div
+              className="flex-1 cursor-pointer bg-red-600 hover:bg-red-500 active:bg-red-700 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative"
+              onClick={() => {
+                // Lọc trễ hạn: henGiao < hôm nay và chưa hoàn thành
+                // Dùng preset yesterday + lọc manual (client-side đã có)
+                // Ta set preset = null nhưng customTo = hôm nay
+                const todayStr = new Date().toISOString().split("T")[0];
+                const alreadyFiltering =
+                  appliedHenGiao?.customTo === todayStr &&
+                  appliedTrangThai.length === 1 &&
+                  appliedTrangThai[0] === "Chờ xử lý";
+                dispatch(
+                  setDonHangPageFilter({
+                    appliedHenGiao: alreadyFiltering
+                      ? EMPTY_DATE
+                      : {
+                          preset: "custom",
+                          customFrom: "",
+                          customTo: todayStr,
+                        },
+                    appliedTrangThai: alreadyFiltering ? [] : ["Chờ xử lý"],
+                  })
+                );
+                setPage(1);
+              }}
+            >
+              <div>
+                <div className="text-3xl font-extrabold leading-none">
+                  {loadingThongKe ? "..." : treHenGiao}
+                </div>
+                <div className="text-sm font-semibold mt-0.5 opacity-90">
+                  Trễ
+                </div>
+              </div>
+            </div>
+
+            {/* Đang thử */}
+            <div
+              className={`flex-1 cursor-pointer bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${
+                appliedTrangThai.length === 1 &&
+                appliedTrangThai[0] === "Đang thử"
+                  ? "ring-2 ring-inset ring-white/50"
+                  : ""
+              }`}
+              onClick={() => {
+                const isActive =
+                  appliedTrangThai.length === 1 &&
+                  appliedTrangThai[0] === "Đang thử";
+                dispatch(
+                  setDonHangPageFilter({
+                    appliedTrangThai: isActive ? [] : ["Đang thử"],
+                    appliedHenGiao: EMPTY_DATE,
+                  })
+                );
+                setPage(1);
+              }}
+            >
+              <div>
+                <div className="text-3xl font-extrabold leading-none">
+                  {loadingThongKe ? "..." : guiThu}
+                </div>
+                <div className="text-sm font-semibold mt-0.5 opacity-90">
+                  Đang thử
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ================= TOOLBAR ================= */}
         <div className="flex items-center gap-2 mb-2 px-1 print:hidden">
-          {/* Filter icon toggle */}
-          <button
-            onClick={() => setShowFilterBar((v) => !v)}
-            className={`p-2 rounded hover:bg-gray-200 transition ${showFilterBar ? "text-blue-600" : "text-gray-500"
+          {/* Filter button + panel */}
+          <div className="relative" ref={filterRef}>
+            <button
+              onClick={handleOpenFilter}
+              title="Bộ lọc"
+              className={`relative p-1.5 rounded transition ${
+                isFiltered
+                  ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                  : "text-gray-500 hover:bg-gray-100"
               }`}
-            title="Lọc"
-          >
-            <FiFilter size={18} />
-          </button>
+            >
+              <FilterAltIcon sx={{ fontSize: 20 }} />
+              {isFiltered && (
+                <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-blue-500 rounded-full" />
+              )}
+            </button>
+
+            {showFilter && (
+              <div
+                className="absolute left-0 top-full mt-1 z-50 w-64 bg-white rounded-xl shadow-2xl border border-gray-200"
+                onClick={() => {
+                  setOpenDateModal(null);
+                  setOpenPickerModal(null);
+                }}
+              >
+                {/* Hẹn giao */}
+                <div
+                  className="relative border-b border-gray-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
+                    onClick={() => {
+                      setOpenPickerModal(null);
+                      setOpenDateModal(
+                        openDateModal === "henGiao" ? null : "henGiao"
+                      );
+                    }}
+                  >
+                    <span
+                      className={
+                        draftHenGiao.preset
+                          ? "text-blue-600 font-medium"
+                          : "text-gray-600"
+                      }
+                    >
+                      {draftHenGiao.preset
+                        ? getDateLabel(draftHenGiao)
+                        : "Hẹn giao"}
+                    </span>
+                    <CalendarTodayIcon
+                      sx={{ fontSize: 16, color: "#9ca3af" }}
+                    />
+                  </button>
+                  {openDateModal === "henGiao" &&
+                    renderDateDropdown(draftHenGiao, setDraftHenGiao)}
+                </div>
+
+                {/* Ngày nhận */}
+                <div
+                  className="relative border-b border-gray-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
+                    onClick={() => {
+                      setOpenPickerModal(null);
+                      setOpenDateModal(
+                        openDateModal === "ngayNhan" ? null : "ngayNhan"
+                      );
+                    }}
+                  >
+                    <span
+                      className={
+                        draftNgayNhan.preset
+                          ? "text-blue-600 font-medium"
+                          : "text-gray-600"
+                      }
+                    >
+                      {draftNgayNhan.preset
+                        ? getDateLabel(draftNgayNhan)
+                        : "Ngày nhận"}
+                    </span>
+                    <CalendarTodayIcon
+                      sx={{ fontSize: 16, color: "#9ca3af" }}
+                    />
+                  </button>
+                  {openDateModal === "ngayNhan" &&
+                    renderDateDropdown(draftNgayNhan, setDraftNgayNhan)}
+                </div>
+
+                {/* Nha khoa */}
+                <div
+                  className="relative border-b border-gray-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {openPickerModal === "nhaKhoa" ? (
+                    <div className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={nhaKhoaSearch}
+                        onChange={(e) => setNhaKhoaSearch(e.target.value)}
+                        placeholder="Tìm nha khoa..."
+                        autoFocus
+                        className="w-full border-b border-blue-400 px-3 py-1.5 text-sm focus:outline-none"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      className="w-full flex items-start px-4 py-3 hover:bg-gray-50 transition text-sm"
+                      onClick={() => {
+                        setOpenDateModal(null);
+                        setNhaKhoaSearch("");
+                        setOpenPickerModal("nhaKhoa");
+                      }}
+                    >
+                      <span
+                        className={
+                          draftNhaKhoa
+                            ? "text-blue-600 font-medium truncate"
+                            : "text-gray-400"
+                        }
+                      >
+                        {draftNhaKhoa ? draftNhaKhoa.name : "Nha khoa"}
+                      </span>
+                    </button>
+                  )}
+                  {openPickerModal === "nhaKhoa" && (
+                    <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded shadow-xl border border-t-0 border-gray-200 max-h-56 overflow-y-auto">
+                      {draftNhaKhoa && (
+                        <button
+                          onClick={() => {
+                            setDraftNhaKhoa(null);
+                            setOpenPickerModal(null);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 border-b border-gray-100 transition"
+                        >
+                          Bỏ chọn
+                        </button>
+                      )}
+                      {filteredNhaKhoaOpts.map((item) => (
+                        <button
+                          key={item._id}
+                          onClick={() => {
+                            setDraftNhaKhoa(item);
+                            setOpenPickerModal(null);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
+                            draftNhaKhoa?._id === item._id
+                              ? "bg-blue-50 text-blue-700 font-semibold"
+                              : "text-gray-700 hover:bg-gray-50"
+                          }`}
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                      {filteredNhaKhoaOpts.length === 0 && (
+                        <p className="text-center text-xs text-gray-400 py-4">
+                          Không tìm thấy
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Trạng thái multi-select */}
+                <div
+                  className="border-b border-gray-100 px-3 py-2.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <p className="text-xs text-gray-400 mb-1.5">Trạng thái</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TRANG_THAI_OPTIONS.map((status) => {
+                      const isActive = draftTrangThai.includes(status);
+                      const colorMap = {
+                        "Chờ xử lý": isActive
+                          ? "bg-yellow-400 text-yellow-900 border-yellow-400"
+                          : "bg-white text-yellow-700 border-yellow-300 hover:bg-yellow-50",
+                        "Đang thử": isActive
+                          ? "bg-purple-500 text-white border-purple-500"
+                          : "bg-white text-purple-700 border-purple-300 hover:bg-purple-50",
+                        "Hoàn thành": isActive
+                          ? "bg-green-500 text-white border-green-500"
+                          : "bg-white text-green-700 border-green-300 hover:bg-green-50",
+                      };
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => toggleDraftTrangThai(status)}
+                          className={`px-2.5 py-1 rounded-full border text-xs font-medium transition-all ${colorMap[status]}`}
+                        >
+                          {status}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Bottom buttons */}
+                <div className="flex items-center justify-between px-4 py-3">
+                  <button
+                    onClick={handleResetDraft}
+                    className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 transition"
+                    title="Reset lọc"
+                  >
+                    <RefreshIcon sx={{ fontSize: 20 }} />
+                  </button>
+                  <button
+                    onClick={handleApplyFilters}
+                    className="flex items-center gap-1 px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition shadow-sm"
+                  >
+                    ✓ Lưu
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Active filter chips */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {appliedHenGiao?.preset && (
+              <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                <CalendarTodayIcon sx={{ fontSize: 11 }} />
+                Hẹn giao: {getDateLabel(appliedHenGiao)}
+                {appliedHenGiao.preset === "custom" &&
+                  appliedHenGiao.customFrom &&
+                  ` ${appliedHenGiao.customFrom}`}
+                {appliedHenGiao.preset === "custom" &&
+                  appliedHenGiao.customTo &&
+                  ` → ${appliedHenGiao.customTo}`}
+                <button
+                  onClick={() => {
+                    dispatch(
+                      setDonHangPageFilter({ appliedHenGiao: EMPTY_DATE })
+                    );
+                    setPage(1);
+                  }}
+                  className="ml-0.5 hover:text-blue-900 flex items-center"
+                >
+                  <CloseIcon sx={{ fontSize: 12 }} />
+                </button>
+              </span>
+            )}
+            {appliedNgayNhan?.preset && (
+              <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                <CalendarTodayIcon sx={{ fontSize: 11 }} />
+                Nhận: {getDateLabel(appliedNgayNhan)}
+                {appliedNgayNhan.preset === "custom" &&
+                  appliedNgayNhan.customFrom &&
+                  ` ${appliedNgayNhan.customFrom}`}
+                {appliedNgayNhan.preset === "custom" &&
+                  appliedNgayNhan.customTo &&
+                  ` → ${appliedNgayNhan.customTo}`}
+                <button
+                  onClick={() => {
+                    dispatch(
+                      setDonHangPageFilter({ appliedNgayNhan: EMPTY_DATE })
+                    );
+                    setPage(1);
+                  }}
+                  className="ml-0.5 hover:text-blue-900 flex items-center"
+                >
+                  <CloseIcon sx={{ fontSize: 12 }} />
+                </button>
+              </span>
+            )}
+            {appliedNhaKhoa && (
+              <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                <StoreIcon sx={{ fontSize: 11 }} />
+                {appliedNhaKhoa.name}
+                <button
+                  onClick={() => {
+                    dispatch(setDonHangPageFilter({ appliedNhaKhoa: null }));
+                    setPage(1);
+                  }}
+                  className="ml-0.5 hover:text-blue-900 flex items-center"
+                >
+                  <CloseIcon sx={{ fontSize: 12 }} />
+                </button>
+              </span>
+            )}
+            {appliedTrangThai.map((status) => (
+              <span
+                key={status}
+                className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full"
+              >
+                {status}
+                <button
+                  onClick={() => {
+                    dispatch(
+                      setDonHangPageFilter({
+                        appliedTrangThai: appliedTrangThai.filter(
+                          (s) => s !== status
+                        ),
+                      })
+                    );
+                    setPage(1);
+                  }}
+                  className="ml-0.5 hover:text-blue-900 flex items-center"
+                >
+                  <CloseIcon sx={{ fontSize: 12 }} />
+                </button>
+              </span>
+            ))}
+          </div>
 
           <div className="flex-1" />
 
@@ -285,15 +957,17 @@ const KeHoachGiaoHangTable = () => {
               type="text"
               placeholder="Tìm kiếm..."
               value={searchText}
-              onChange={(e) =>
-                dispatch(
-                  setFilter({
-                    searchText: e.target.value,
-                  })
-                )
-              }
+              onChange={(e) => setSearchText(e.target.value)}
               className="pl-8 pr-3 py-1.5 border rounded-full text-sm bg-white w-52 focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
+            {searchText && (
+              <button
+                onClick={() => setSearchText("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <CloseIcon sx={{ fontSize: 15 }} />
+              </button>
+            )}
           </div>
 
           {/* Actions */}
@@ -310,13 +984,14 @@ const KeHoachGiaoHangTable = () => {
             className="p-2 rounded hover:bg-gray-200 text-gray-500 transition disabled:opacity-50"
             title="In danh sách"
           >
-            {loadingAll ? <FiRefreshCw size={17} className="animate-spin" /> : <FiPrinter size={17} />}
+            {loadingAll ? (
+              <FiRefreshCw size={17} className="animate-spin" />
+            ) : (
+              <FiPrinter size={17} />
+            )}
           </button>
           <button
-            onClick={() => {
-              if (page === 1) loadData();
-              else setPage(1);
-            }}
+            onClick={handleRefresh}
             className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
             title="Làm mới"
           >
@@ -324,111 +999,129 @@ const KeHoachGiaoHangTable = () => {
           </button>
         </div>
 
-        {/* ================= FILTER BAR ================= */}
-        {showFilterBar && (
-          <div className="flex flex-wrap gap-2 mb-3 px-1 py-2 bg-white rounded border text-sm print:hidden">
-            {/* Loại lọc ngày */}
-            <select
-              value={filterType}
-              onChange={(e) =>
-                dispatch(
-                  setFilter({
-                    filterType: e.target.value,
-                  })
-                )
-              }
-              className="border px-2 py-1.5 rounded text-sm"
-            >
-              <option value="all">Tất cả ngày</option>
-              <option value="today">Giao hôm nay</option>
-              <option value="overdue">Trễ hẹn</option>
-              <option value="range">Khoảng ngày</option>
-            </select>
-
-            {filterType === "range" && (
-              <>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) =>
-                    dispatch(
-                      setFilter({
-                        fromDate: e.target.value,
-                      })
-                    )
-                  }
-                  className="border px-2 py-1.5 rounded text-sm"
-                />
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) =>
-                    dispatch(
-                      setFilter({
-                        toDate: e.target.value,
-                      })
-                    )
-                  }
-                  className="border px-2 py-1.5 rounded text-sm"
-                />
-              </>
-            )}
-
-            {/* Lọc trạng thái */}
-            <select
-              value={filterStatus}
-              onChange={(e) =>
-                dispatch(
-                  setFilter({
-                    filterStatus: e.target.value,
-                  })
-                )
-              }
-              className="border px-2 py-1.5 rounded text-sm"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="Chờ xử lý">Chờ xử lý</option>
-              <option value="Hoàn thành">Hoàn thành</option>
-            </select>
-          </div>
-        )}
-
         {/* ================= TABLE ================= */}
         <div className="bg-white rounded shadow-sm overflow-hidden border print:hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-sm text-left">
+          {/* ── MOBILE: Card list (hidden sm+) ── */}
+          <div className="sm:hidden divide-y divide-gray-100">
+            {filteredOrders.length === 0 && !loading ? (
+              <p className="text-center py-8 text-gray-500 text-sm">
+                Không có dữ liệu
+              </p>
+            ) : (
+              filteredOrders.map((order) => {
+                const date = parseISO(order.henGiao);
+                const overdue =
+                  isBefore(date, todayStart) &&
+                  order.trangThai !== "Hoàn thành";
+                const maDon =
+                  order.maDonHang ||
+                  `TAN${order._id
+                    .substring(order._id.length - 8)
+                    .toUpperCase()}`;
+                return (
+                  <div
+                    key={order._id}
+                    onClick={() => setSelectedDonHang(order)}
+                    className={`px-4 py-3 cursor-pointer transition-colors ${
+                      selectedDonHang?._id === order._id
+                        ? "bg-sky-100"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/donhang/${order._id}/edit`);
+                        }}
+                        className={`font-semibold text-sm hover:underline ${
+                          overdue ? "text-red-500" : "text-blue-700"
+                        }`}
+                      >
+                        {maDon}
+                      </button>
+                      <TrangThaiBadge value={order.trangThai} />
+                    </div>
+                    <p className="text-sm text-gray-800 font-medium truncate">
+                      {order.nhaKhoa?.tenGiaoDich ||
+                        order.nhaKhoa?.hoVaTen ||
+                        "—"}
+                    </p>
+                    {(order.bacSi?.hoVaTen || order.benhNhan?.hoVaTen) && (
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">
+                        {[
+                          order.bacSi?.hoVaTen && `BS: ${order.bacSi.hoVaTen}`,
+                          order.benhNhan?.hoVaTen &&
+                            `BN: ${order.benhNhan.hoVaTen}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                      {order.ngayNhan && (
+                        <span>
+                          Nhận: {format(parseISO(order.ngayNhan), "dd/MM/yyyy")}
+                        </span>
+                      )}
+                      <span
+                        className={overdue ? "text-red-500 font-medium" : ""}
+                      >
+                        Hẹn giao: {format(date, "dd/MM/yyyy HH:mm")}
+                      </span>
+                    </div>
+                    {order.ghiChuChung && (
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">
+                        {order.ghiChuChung}
+                      </p>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* ── DESKTOP: Resizable table (hidden on mobile) ── */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table
+              className="text-sm text-left"
+              style={{
+                tableLayout: "fixed",
+                width: colWidths.reduce((a, b) => a + b, 0),
+                minWidth: "100%",
+              }}
+            >
+              <colgroup>
+                {colWidths.map((w, i) => (
+                  <col key={i} style={{ width: w }} />
+                ))}
+              </colgroup>
               <thead className="text-sky-500 font-medium border-b sticky top-0 bg-white z-10">
                 <tr>
-                  <th className="px-3 py-3 select-none whitespace-nowrap">
-                    Nhận lúc
-                  </th>
-                  <th className="px-3 py-3 select-none whitespace-nowrap">
-                    Số
-                  </th>
-                  <th className="px-3 py-3 select-none whitespace-nowrap">
-                    Hẹn giao
-                  </th>
-                  <th className="px-3 py-3 select-none whitespace-nowrap">
-                    Khách hàng
-                  </th>
-                  <th className="px-3 py-3 select-none whitespace-nowrap">
-                    Bác sĩ
-                  </th>
-                  <th className="px-3 py-3 select-none whitespace-nowrap">
-                    Bệnh nhân
-                  </th>
-                  <th className="px-3 py-3 select-none whitespace-nowrap">
-                    Răng
-                  </th>
-                  <th className="px-3 py-3 select-none whitespace-nowrap">
-                    Trạng thái
-                  </th>
-                  <th className="px-3 py-3 select-none whitespace-nowrap">
-                    Ghi chú
-                  </th>
+                  {[
+                    "Nhận lúc",
+                    "Số",
+                    "Hẹn giao",
+                    "Khách hàng",
+                    "Bác sĩ",
+                    "Bệnh nhân",
+                    "Răng",
+                    "Trạng thái",
+                    "Ghi chú",
+                  ].map((label, i) => (
+                    <th
+                      key={i}
+                      className="px-3 py-3 select-none relative group overflow-hidden"
+                    >
+                      {label}
+                      <div
+                        onMouseDown={(e) => handleResizeMouseDown(e, i)}
+                        className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize group-hover:bg-blue-300 hover:bg-blue-400 active:bg-blue-500 z-20 transition-colors"
+                      />
+                    </th>
+                  ))}
                 </tr>
               </thead>
-
               <tbody>
                 {expandedRows.map(({ order, sp, spIdx }) => {
                   const date = parseISO(order.henGiao);
@@ -436,7 +1129,6 @@ const KeHoachGiaoHangTable = () => {
                     isBefore(date, todayStart) &&
                     order.trangThai !== "Hoàn thành";
                   const today = isToday(date);
-
                   const maDon =
                     order.maDonHang ||
                     `TAN${order._id
@@ -447,72 +1139,58 @@ const KeHoachGiaoHangTable = () => {
                     <tr
                       key={`${order._id}_${spIdx}`}
                       onClick={() => setSelectedDonHang(order)}
-                      className={`border-b cursor-pointer transition-colors ${selectedDonHang?._id === order._id
-                        ? "bg-sky-100 border-sky-200"
-                        : "hover:bg-gray-50"
-                        }`}
+                      className={`border-b cursor-pointer transition-colors ${
+                        selectedDonHang?._id === order._id
+                          ? "bg-sky-100 border-sky-200"
+                          : "hover:bg-gray-50"
+                      }`}
                     >
-                      {/* NHẬN LÚC */}
-                      <td className="px-3 py-2.5 whitespace-nowrap text-xs text-gray-600">
+                      <td className="px-3 py-2.5 truncate text-xs text-gray-600">
                         {order.ngayNhan
                           ? format(parseISO(order.ngayNhan), "HH:mm dd/MM/yyyy")
                           : "—"}
                       </td>
-
-                      {/* SỐ ĐƠN */}
-                      <td className="px-3 py-2.5 whitespace-nowrap">
+                      <td className="px-3 py-2.5 truncate">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/donhang/${order._id}/edit`);
                           }}
-                          className={`font-medium text-sm hover:underline ${overdue
-                            ? "text-red-500"
-                            : today
+                          className={`font-medium text-sm hover:underline ${
+                            overdue
+                              ? "text-red-500"
+                              : today
                               ? "text-blue-600"
                               : "text-gray-700"
-                            }`}
+                          }`}
                         >
                           {maDon}
                         </button>
                       </td>
-
-                      {/* HẸN GIAO */}
                       <td
-                        className={`px-3 py-2.5 whitespace-nowrap text-sm font-medium ${overdue ? "text-red-500" : "text-gray-700"
-                          }`}
+                        className={`px-3 py-2.5 truncate text-sm font-medium ${
+                          overdue ? "text-red-500" : "text-gray-700"
+                        }`}
                       >
                         {format(date, "HH:mm dd/MM/yyyy")}
                       </td>
-
-                      {/* KHÁCH HÀNG */}
-                      <td className="px-3 py-2.5 text-sm text-gray-800 truncate max-w-[180px]">
-                        {order.nhaKhoa?.hoVaTen}
+                      <td className="px-3 py-2.5 truncate text-sm text-gray-800">
+                        {order.nhaKhoa?.tenGiaoDich || order.nhaKhoa?.hoVaTen}
                       </td>
-
-                      {/* BÁC SĨ */}
-                      <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[120px]">
+                      <td className="px-3 py-2.5 truncate text-sm text-gray-700">
                         {order.bacSi?.hoVaTen}
                       </td>
-
-                      {/* BỆNH NHÂN */}
-                      <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[140px]">
+                      <td className="px-3 py-2.5 truncate text-sm text-gray-700">
                         {order.benhNhan?.hoVaTen}
                       </td>
-
-                      {/* RĂNG */}
-                      <td className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[200px]">
+                      <td className="px-3 py-2.5 truncate text-sm text-gray-700">
                         {formatSingleSanPham(sp)}
                       </td>
-
-                      {/* TRẠNG THÁI */}
-                      <td className="px-3 py-2.5 whitespace-nowrap">
+                      <td className="px-3 py-2.5 truncate">
                         <TrangThaiBadge value={order.trangThai} />
                       </td>
-
-                      {/* GHI CHÚ */}
                       <td
-                        className="px-3 py-2.5 text-sm text-gray-700 truncate max-w-[160px]"
+                        className="px-3 py-2.5 truncate text-sm text-gray-700"
                         title={order.ghiChuChung || ""}
                       >
                         {order.ghiChuChung}
@@ -533,80 +1211,39 @@ const KeHoachGiaoHangTable = () => {
                 )}
               </tbody>
             </table>
-
-            {/* ================= INFINITE SCROLL SENTINEL ================= */}
-            <div ref={sentinelRef} className="h-4" />
-            {loadingMore && (
-              <div className="text-center py-3 text-gray-400 text-sm">Đang tải thêm...</div>
-            )}
           </div>
         </div>
+
+        {/* Infinite scroll sentinel (shared) */}
+        <div ref={sentinelRef} className="h-4" />
+        {loadingMore && (
+          <div className="text-center py-3 text-gray-400 text-sm print:hidden">
+            Đang tải thêm...
+          </div>
+        )}
 
         {/* ================= PRINT VIEW ================= */}
         <div id="print-section" className="hidden print:block w-full">
           <style>{`
             @media print {
-              @page { 
-                size: A4 landscape; 
-                margin: 8mm; 
-              }
-              
-              /* Triệt tiêu các thuộc tính căn chỉnh flex, margin, padding của các thẻ cha (Dashboard/Header/Sidebar) khi in */
+              @page { size: A4 landscape; margin: 8mm; }
               html, body, #root, #root > div, main, .bg-gray-100, .max-w-full {
-                position: static !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                min-width: 0 !important;
-                display: block !important;
-                box-shadow: none !important;
-                background: white !important;
+                position: static !important; margin: 0 !important; padding: 0 !important;
+                width: 100% !important; max-width: 100% !important; min-width: 0 !important;
+                display: block !important; box-shadow: none !important; background: white !important;
               }
-              
               body * { visibility: hidden; }
               #print-section, #print-section * { visibility: visible; }
               #print-section {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                background-color: white !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                box-shadow: none !important;
-                overflow: visible !important;
-                display: block !important;
+                position: absolute !important; left: 0 !important; top: 0 !important;
+                width: 100% !important; max-width: 100% !important; background-color: white !important;
+                padding: 0 !important; margin: 0 !important; box-shadow: none !important;
+                overflow: visible !important; display: block !important;
               }
-              #print-section h2 {
-                margin: 0 0 16px 0 !important;
-                padding: 0 !important;
-                text-align: center !important;
-                font-size: 20px !important;
-                font-weight: bold !important;
-                text-transform: uppercase !important;
-              }
-              #print-section table {
-                width: 100% !important;
-                border-collapse: collapse !important;
-                margin: 0 !important;
-                padding: 0 !important;
-              }
-              #print-section table td,
-              #print-section table th {
-                border: 1px solid black !important;
-                padding: 8px 10px !important;
-                font-size: 13px !important;
-                line-height: 1.4 !important;
-                vertical-align: middle !important;
-              }
-              #print-section table th {
-                background-color: #f3f4f6 !important;
-                font-weight: bold !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
+              #print-section h2 { margin: 0 0 16px 0 !important; padding: 0 !important; text-align: center !important; font-size: 20px !important; font-weight: bold !important; text-transform: uppercase !important; }
+              #print-section table { width: 100% !important; border-collapse: collapse !important; margin: 0 !important; padding: 0 !important; }
+              #print-section table td, #print-section table th { border: 1px solid black !important; padding: 8px 10px !important; font-size: 13px !important; line-height: 1.4 !important; vertical-align: middle !important; }
+              #print-section table th { background-color: #f3f4f6 !important; font-weight: bold !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             }
           `}</style>
           <h2 className="text-xl font-bold text-center mb-4 uppercase">
@@ -639,45 +1276,44 @@ const KeHoachGiaoHangTable = () => {
               </tr>
             </thead>
             <tbody>
-              {
-                filteredOrders.flatMap((order) => {
-                  const dssp = order.danhSachSanPham || [];
-                  const products = dssp.length > 0 ? dssp : [null];
-                  const maDon =
-                    order.maDonHang ||
-                    `TAN${order._id
-                      .substring(order._id.length - 8)
-                      .toUpperCase()}`;
-                  return products.map((sp, spIdx) => (
-                    <tr key={`${order._id}_${spIdx}`}>
-                      <td className="border border-black px-2 py-1 text-center">
-                        {order.ngayNhan
-                          ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
-                          : "—"}
-                      </td>
-                      <td className="border border-black px-2 py-1 text-center font-semibold">
-                        {maDon}
-                      </td>
-                      <td className="border border-black px-2 py-1">
-                        {order.nhaKhoa?.hoVaTen}
-                      </td>
-                      <td className="border border-black px-2 py-1">
-                        {order.benhNhan?.hoVaTen}
-                      </td>
-                      <td className="border border-black px-2 py-1">
-                        {formatSingleSanPham(sp)}
-                      </td>
-                      <td className="border border-black px-2 py-1 text-center">
-                        {order.henGiao
-                          ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm")
-                          : "—"}
-                      </td>
-                      <td className="border border-black px-2 py-1">
-                        {order.ghiChuChung}
-                      </td>
-                    </tr>
-                  ));
-                })}
+              {(printOrders ?? filteredOrders).flatMap((order) => {
+                const dssp = order.danhSachSanPham || [];
+                const products = dssp.length > 0 ? dssp : [null];
+                const maDon =
+                  order.maDonHang ||
+                  `TAN${order._id
+                    .substring(order._id.length - 8)
+                    .toUpperCase()}`;
+                return products.map((sp, spIdx) => (
+                  <tr key={`${order._id}_${spIdx}`}>
+                    <td className="border border-black px-2 py-1 text-center">
+                      {order.ngayNhan
+                        ? format(parseISO(order.ngayNhan), "dd/MM/yyyy HH:mm")
+                        : "—"}
+                    </td>
+                    <td className="border border-black px-2 py-1 text-center font-semibold">
+                      {maDon}
+                    </td>
+                    <td className="border border-black px-2 py-1">
+                      {order.nhaKhoa?.tenGiaoDich || order.nhaKhoa?.hoVaTen}
+                    </td>
+                    <td className="border border-black px-2 py-1">
+                      {order.benhNhan?.hoVaTen}
+                    </td>
+                    <td className="border border-black px-2 py-1">
+                      {formatSingleSanPham(sp)}
+                    </td>
+                    <td className="border border-black px-2 py-1 text-center">
+                      {order.henGiao
+                        ? format(parseISO(order.henGiao), "dd/MM/yyyy HH:mm")
+                        : "—"}
+                    </td>
+                    <td className="border border-black px-2 py-1">
+                      {order.ghiChuChung}
+                    </td>
+                  </tr>
+                ));
+              })}
               {(printOrders ?? filteredOrders).length === 0 && (
                 <tr>
                   <td
@@ -689,34 +1325,31 @@ const KeHoachGiaoHangTable = () => {
                 </tr>
               )}
             </tbody>
-          </table >
-        </div >
-      </div >
+          </table>
+        </div>
+      </div>
 
-      {/* Hiển thị Panel Chi Tiết Đơn Hàng nếu đang chọn 1 đơn hàng */}
-      {
-        selectedDonHang && (
-          <DonHangDetailPanel
-            donHang={selectedDonHang}
-            onClose={() => setSelectedDonHang(null)}
-          />
-        )
-      }
-    </div >
+      {selectedDonHang && (
+        <DonHangDetailPanel
+          donHang={selectedDonHang}
+          onClose={() => setSelectedDonHang(null)}
+        />
+      )}
+    </div>
   );
 };
 
 const TrangThaiBadge = ({ value }) => {
   const map = {
     "Chờ xử lý": "bg-yellow-100 text-yellow-800",
-    "Đang sản xuất": "bg-blue-100 text-blue-800",
+    "Đang thử": "bg-purple-100 text-purple-800",
     "Hoàn thành": "bg-green-100 text-green-800",
-    "Đã giao": "bg-gray-100 text-gray-700",
   };
   return (
     <span
-      className={`px-2 py-1 rounded font-medium text-xs ${map[value] || "bg-gray-100 text-gray-600"
-        }`}
+      className={`px-2 py-1 rounded font-medium text-xs ${
+        map[value] || "bg-gray-100 text-gray-600"
+      }`}
     >
       {value || "Chờ xử lý"}
     </span>

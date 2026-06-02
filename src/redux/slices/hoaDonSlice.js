@@ -69,6 +69,7 @@ export const fetchAllHoaDonAdmin = createAsyncThunk(
       trangThai,
       fromDate,
       toDate,
+      loaiHan, // 🔥 1. Đón lấy loaiHan từ component gửi sang
     } = {}
   ) => {
     const res = await api.get(`/hoa-don/all`, {
@@ -80,6 +81,7 @@ export const fetchAllHoaDonAdmin = createAsyncThunk(
         trangThai,
         fromDate,
         toDate,
+        loaiHan, // 🔥 2. Gắn vào URL params ném xuống cho Backend
       },
     });
 

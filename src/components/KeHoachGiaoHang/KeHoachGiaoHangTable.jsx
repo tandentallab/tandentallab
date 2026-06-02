@@ -158,6 +158,8 @@ const KeHoachGiaoHangTable = () => {
   const [printOrders, setPrintOrders] = useState(null);
   const [selectedDonHang, setSelectedDonHang] = useState(null);
   const sentinelRef = useRef(null);
+  // Đảm bảo không fetch dữ liệu trước khi filter mặc định được set
+  const filterReadyRef = useRef(false);
 
   const todayStart = useMemo(() => startOfDay(new Date()), []);
 
@@ -249,6 +251,7 @@ const KeHoachGiaoHangTable = () => {
   ]);
 
   useEffect(() => {
+    if (!filterReadyRef.current) return;
     loadData();
   }, [loadData]);
 
@@ -555,6 +558,7 @@ const KeHoachGiaoHangTable = () => {
         appliedTrangThai: ["Chờ xử lý"],
       })
     );
+    filterReadyRef.current = true;
   }, []);
 
   // 🔥 ĐÃ BỎ ĐOẠN CHẶN "LOADING CẢ PAGE" Ở ĐÂY ĐỂ TRÁNH GIẬT/CHỚP GIAO DIỆN

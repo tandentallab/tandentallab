@@ -140,7 +140,7 @@ export const fetchThongKe = createAsyncThunk(
 const initialFilterState = {
     showUrgentOnly: false,
     filterType: "all",
-    filterStatus: "all",
+    filterStatus: "Chờ xử lý",
     fromDate: "",
     toDate: "",
     searchText: "",

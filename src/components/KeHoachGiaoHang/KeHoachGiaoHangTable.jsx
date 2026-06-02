@@ -24,7 +24,6 @@ import StoreIcon from "@mui/icons-material/Store";
 import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import DonHangDetailPanel from "../DonHang/DonHangDetailPanel";
-import { useSelector as useReduxSelector } from "react-redux";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 
 const ROWS_PER_PAGE = 20;
@@ -46,6 +45,7 @@ const DATE_PRESETS = [
 
 const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
 
+// ── Helper: convert preset → ISO date range params (giống DonHangPage) ──
 const getDateRange = (preset) => {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -108,32 +108,12 @@ const getDateRange = (preset) => {
   }
 };
 
-const isDateInRange = (dateValue, filter) => {
-  if (!filter || !filter.preset) return true;
-  if (!dateValue) return false;
-  const d = new Date(dateValue);
-  let from, to;
-  if (filter.preset === "custom") {
-    from = filter.customFrom ? new Date(filter.customFrom) : null;
-    to = filter.customTo ? new Date(filter.customTo + "T23:59:59") : null;
-  } else {
-    const range = getDateRange(filter.preset);
-    from = range.from;
-    to = range.to;
-  }
-  if (from && d < from) return false;
-  if (to && d >= to) return false;
-  return true;
-};
-
-// =====================================================================
-
 const DEFAULT_COL_WIDTHS = [140, 110, 140, 180, 110, 130, 200, 110, 150];
-// Nhận lúc | Số | Hẹn giao | Khách hàng | Bác sĩ | Bệnh nhân | Răng | Trạng thái | Ghi chú
 
 const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const { data, loading, loadingMore, pagination } = useSelector(
     (state) => state.donHang
   );
@@ -144,35 +124,38 @@ const KeHoachGiaoHangTable = () => {
 
   const { giaoHomNay = 0, treHenGiao = 0, guiThu = 0 } = thongKe || {};
 
-  // Applied filters (từ Redux)
+  // ── Applied filters (từ Redux) ──
   const appliedHenGiao = donHangPageFilter?.appliedHenGiao ?? EMPTY_DATE;
   const appliedNgayNhan = donHangPageFilter?.appliedNgayNhan ?? EMPTY_DATE;
   const appliedNhaKhoa = donHangPageFilter?.appliedNhaKhoa ?? null;
   const appliedTrangThai = donHangPageFilter?.appliedTrangThai ?? [];
 
-  // Draft filters (local state)
+  // ── Draft filters (local state) ──
   const [draftHenGiao, setDraftHenGiao] = useState(EMPTY_DATE);
   const [draftNgayNhan, setDraftNgayNhan] = useState(EMPTY_DATE);
   const [draftNhaKhoa, setDraftNhaKhoa] = useState(null);
   const [draftTrangThai, setDraftTrangThai] = useState([]);
 
-  // UI state
+  // ── Search với debounce (giống DonHangPage) ──
+  const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // ── UI state ──
   const [showFilter, setShowFilter] = useState(false);
   const [openDateModal, setOpenDateModal] = useState(null);
   const [openPickerModal, setOpenPickerModal] = useState(null);
   const [nhaKhoaSearch, setNhaKhoaSearch] = useState("");
   const filterRef = useRef(null);
 
-  // Search
-  const [searchText, setSearchText] = useState("");
-
-  // Pagination & misc
+  // ── Pagination & misc ──
   const [page, setPage] = useState(1);
   const [loadingAll, setLoadingAll] = useState(false);
   const [printOrders, setPrintOrders] = useState(null);
   const [selectedDonHang, setSelectedDonHang] = useState(null);
   const sentinelRef = useRef(null);
-  const todayStart = startOfDay(new Date());
+
+  // ── todayStart stable (không tạo object mới mỗi render) ──
+  const todayStart = useMemo(() => startOfDay(new Date()), []);
 
   // Resizable columns
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
@@ -204,29 +187,75 @@ const KeHoachGiaoHangTable = () => {
     dispatch(fetchNhaKhoa());
   }, [dispatch]);
 
-  // ===================== LOAD DATA =====================
+  // ── Debounce search (giống DonHangPage) ──
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchText);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [searchText]);
+
+  // ── Reset page khi filter thay đổi ──
+  useEffect(() => {
+    setPage(1);
+  }, [appliedHenGiao, appliedNgayNhan, appliedNhaKhoa, appliedTrangThai]);
+
+  // ===================== SERVER-SIDE FILTER (theo pattern DonHangPage) =====================
+  // Helper chuyển filter preset → ISO params
+  const getFilterParams = useCallback((filter, fromKey, toKey) => {
+    if (!filter?.preset) return {};
+    let from, to;
+    if (filter.preset === "custom") {
+      from = filter.customFrom ? new Date(filter.customFrom) : null;
+      to = filter.customTo ? new Date(filter.customTo + "T23:59:59.999") : null;
+    } else {
+      const range = getDateRange(filter.preset);
+      from = range.from;
+      to = range.to;
+    }
+    const result = {};
+    if (from) result[fromKey] = from.toISOString();
+    if (to) result[toKey] = to.toISOString();
+    return result;
+  }, []);
+
   const loadData = useCallback(() => {
     const params = { page, limit: ROWS_PER_PAGE };
+
+    // ✅ Truyền filter lên server thay vì lọc client-side
+    if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+    if (appliedNhaKhoa) params.nhaKhoa = appliedNhaKhoa._id;
+    if (appliedTrangThai.length > 0)
+      params.trangThai = appliedTrangThai.join(",");
+
+    Object.assign(
+      params,
+      getFilterParams(appliedHenGiao, "henGiaoFrom", "henGiaoTo")
+    );
+    Object.assign(
+      params,
+      getFilterParams(appliedNgayNhan, "ngayNhanFrom", "ngayNhanTo")
+    );
+
     if (page === 1) dispatch(fetchDonHang(params));
     else dispatch(fetchMoreDonHang(params));
-  }, [dispatch, page]);
+  }, [
+    dispatch,
+    page,
+    debouncedSearch,
+    appliedNhaKhoa,
+    appliedTrangThai,
+    appliedHenGiao,
+    appliedNgayNhan,
+    getFilterParams,
+  ]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Reset page khi filter thay đổi
-  useEffect(() => {
-    setPage(1);
-  }, [
-    appliedHenGiao,
-    appliedNgayNhan,
-    appliedNhaKhoa,
-    appliedTrangThai,
-    searchText,
-  ]);
-
-  // Infinite scroll
+  // ── Infinite scroll ──
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
@@ -247,7 +276,7 @@ const KeHoachGiaoHangTable = () => {
     return () => observer.disconnect();
   }, [page, pagination?.totalPages, loadingMore, loading]);
 
-  // Close filter panel on outside click
+  // ── Close filter panel on outside click ──
   useEffect(() => {
     const handleClick = (e) => {
       if (filterRef.current && !filterRef.current.contains(e.target)) {
@@ -392,80 +421,6 @@ const KeHoachGiaoHangTable = () => {
     </div>
   );
 
-  // ===================== FILTER LOGIC =====================
-  const applyFilters = useCallback(
-    (sourceData) => {
-      let result = [...sourceData];
-
-      // Lọc theo hẹn giao
-      if (appliedHenGiao?.preset) {
-        result = result.filter((o) => isDateInRange(o.henGiao, appliedHenGiao));
-      }
-
-      // Lọc theo ngày nhận
-      if (appliedNgayNhan?.preset) {
-        result = result.filter((o) =>
-          isDateInRange(o.ngayNhan, appliedNgayNhan)
-        );
-      }
-
-      // Lọc theo nha khoa
-      if (appliedNhaKhoa) {
-        result = result.filter((o) => o.nhaKhoa?._id === appliedNhaKhoa._id);
-      }
-
-      // Lọc theo trạng thái (multi)
-      if (appliedTrangThai.length > 0) {
-        result = result.filter((o) => appliedTrangThai.includes(o.trangThai));
-      }
-
-      // Tìm kiếm text
-      if (searchText.trim()) {
-        const q = searchText.toLowerCase();
-        result = result.filter(
-          (o) =>
-            (o.maDonHang && o.maDonHang.toLowerCase().includes(q)) ||
-            (o.nhaKhoa?.hoVaTen &&
-              o.nhaKhoa.hoVaTen.toLowerCase().includes(q)) ||
-            (o.nhaKhoa?.tenGiaoDich &&
-              o.nhaKhoa.tenGiaoDich.toLowerCase().includes(q)) ||
-            (o.bacSi?.hoVaTen && o.bacSi.hoVaTen.toLowerCase().includes(q)) ||
-            (o.benhNhan?.hoVaTen &&
-              o.benhNhan.hoVaTen.toLowerCase().includes(q))
-        );
-      }
-
-      result.sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
-      return result;
-    },
-    [
-      appliedHenGiao,
-      appliedNgayNhan,
-      appliedNhaKhoa,
-      appliedTrangThai,
-      searchText,
-      todayStart,
-    ]
-  );
-
-  const filteredOrders = useMemo(
-    () => applyFilters(data),
-    [data, applyFilters]
-  );
-
-  // Lấy toàn bộ dữ liệu cho print
-  const fetchAllFiltered = useCallback(async () => {
-    setLoadingAll(true);
-    try {
-      const res = await api.get("/donhang", {
-        params: { page: 1, limit: 9999 },
-      });
-      return applyFilters(res.data.data || []);
-    } finally {
-      setLoadingAll(false);
-    }
-  }, [applyFilters]);
-
   // ===================== FORMAT HELPERS =====================
   const formatViTri = (viTriArr) => {
     if (!viTriArr || viTriArr.length === 0) return "";
@@ -498,6 +453,13 @@ const KeHoachGiaoHangTable = () => {
       .trim();
   };
 
+  // ===================== DATA (server đã filter, chỉ sort client) =====================
+  // ✅ Không còn applyFilters client-side nặng — server đã xử lý
+  const filteredOrders = useMemo(
+    () => [...data].sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao)),
+    [data]
+  );
+
   const expandedRows = useMemo(() => {
     return filteredOrders.flatMap((order) => {
       const dssp = order.danhSachSanPham || [];
@@ -510,6 +472,39 @@ const KeHoachGiaoHangTable = () => {
   const handleExportExcel = async () => {
     await exportKeHoachGiaoHangToExcel(filteredOrders, formatSingleSanPham);
   };
+
+  // Lấy toàn bộ dữ liệu cho print (với đúng filter params)
+  const fetchAllFiltered = useCallback(async () => {
+    setLoadingAll(true);
+    try {
+      const params = { page: 1, limit: 9999 };
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+      if (appliedNhaKhoa) params.nhaKhoa = appliedNhaKhoa._id;
+      if (appliedTrangThai.length > 0)
+        params.trangThai = appliedTrangThai.join(",");
+      Object.assign(
+        params,
+        getFilterParams(appliedHenGiao, "henGiaoFrom", "henGiaoTo")
+      );
+      Object.assign(
+        params,
+        getFilterParams(appliedNgayNhan, "ngayNhanFrom", "ngayNhanTo")
+      );
+
+      const res = await api.get("/donhang", { params });
+      const all = res.data.data || [];
+      return [...all].sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
+    } finally {
+      setLoadingAll(false);
+    }
+  }, [
+    debouncedSearch,
+    appliedNhaKhoa,
+    appliedTrangThai,
+    appliedHenGiao,
+    appliedNgayNhan,
+    getFilterParams,
+  ]);
 
   const handlePrint = async () => {
     const allFiltered = await fetchAllFiltered();
@@ -525,6 +520,14 @@ const KeHoachGiaoHangTable = () => {
       });
     });
   };
+
+  useEffect(() => {
+    dispatch(
+      setDonHangPageFilter({
+        appliedTrangThai: ["Chờ xử lý"],
+      })
+    );
+  }, []);
 
   if (loading && page === 1)
     return <div className="p-6 text-center text-gray-500">Đang tải...</div>;
@@ -571,9 +574,6 @@ const KeHoachGiaoHangTable = () => {
             <div
               className="flex-1 cursor-pointer bg-red-600 hover:bg-red-500 active:bg-red-700 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative"
               onClick={() => {
-                // Lọc trễ hạn: henGiao < hôm nay và chưa hoàn thành
-                // Dùng preset yesterday + lọc manual (client-side đã có)
-                // Ta set preset = null nhưng customTo = hôm nay
                 const todayStr = new Date().toISOString().split("T")[0];
                 const alreadyFiltering =
                   appliedHenGiao?.customTo === todayStr &&
@@ -1001,7 +1001,7 @@ const KeHoachGiaoHangTable = () => {
 
         {/* ================= TABLE ================= */}
         <div className="bg-white rounded shadow-sm overflow-hidden border print:hidden">
-          {/* ── MOBILE: Card list (hidden sm+) ── */}
+          {/* ── MOBILE: Card list ── */}
           <div className="sm:hidden divide-y divide-gray-100">
             {filteredOrders.length === 0 && !loading ? (
               <p className="text-center py-8 text-gray-500 text-sm">
@@ -1081,7 +1081,7 @@ const KeHoachGiaoHangTable = () => {
             )}
           </div>
 
-          {/* ── DESKTOP: Resizable table (hidden on mobile) ── */}
+          {/* ── DESKTOP: Resizable table ── */}
           <div className="hidden sm:block overflow-x-auto">
             <table
               className="text-sm text-left"
@@ -1134,7 +1134,6 @@ const KeHoachGiaoHangTable = () => {
                     `TAN${order._id
                       .substring(order._id.length - 8)
                       .toUpperCase()}`;
-
                   return (
                     <tr
                       key={`${order._id}_${spIdx}`}
@@ -1214,7 +1213,7 @@ const KeHoachGiaoHangTable = () => {
           </div>
         </div>
 
-        {/* Infinite scroll sentinel (shared) */}
+        {/* Infinite scroll sentinel */}
         <div ref={sentinelRef} className="h-4" />
         {loadingMore && (
           <div className="text-center py-3 text-gray-400 text-sm print:hidden">
@@ -1252,27 +1251,22 @@ const KeHoachGiaoHangTable = () => {
           <table className="w-full border-collapse border border-black">
             <thead>
               <tr>
-                <th className="border border-black px-2 py-1 text-center font-semibold">
-                  Nhận lúc
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">
-                  Số
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">
-                  Khách hàng
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">
-                  Bệnh nhân
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold w-1/4">
-                  Răng
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">
-                  Hẹn giao
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold w-1/6">
-                  Ghi chú
-                </th>
+                {[
+                  "Nhận lúc",
+                  "Số",
+                  "Khách hàng",
+                  "Bệnh nhân",
+                  "Răng",
+                  "Hẹn giao",
+                  "Ghi chú",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="border border-black px-2 py-1 text-center font-semibold"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>

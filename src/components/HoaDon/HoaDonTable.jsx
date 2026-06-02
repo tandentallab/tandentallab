@@ -49,7 +49,6 @@ const ResizableHeaderCell = React.memo(({ label, style, columnKey, onResize }) =
 
 // ================= ROW COMPONENT =================
 const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => {
-  // 1. Tính toán ngày đến hạn (Ngày xuất + 20 ngày)
   const baseDate = hd.ngayXuatHoaDon || hd.createdAt;
   let textDenHan = "";
   let isTreHan = false;
@@ -58,7 +57,6 @@ const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => {
     const ngayDenHan = dayjs(baseDate).add(20, 'day').endOf('day');
     textDenHan = ngayDenHan.format('DD/MM/YYYY');
 
-    // 2. Chỉ báo đỏ khi: Đã qua hạn VÀ khách vẫn còn nợ tiền
     if (dayjs().isAfter(ngayDenHan) && Number(hd.conLai || 0) > 0) {
       isTreHan = true;
     }
@@ -80,28 +78,27 @@ const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => {
       <TableCell sx={cellStyles.conLai}>{fmtVND(hd.conLai)}</TableCell>
       <TableCell sx={cellStyles.chiPhiKhac}>{fmtVND(hd.chiPhiKhac)}</TableCell>
       <TableCell sx={cellStyles.trangThai}>
-        {/* Tiện tay bo góc (rounded) cái label trạng thái cho đẹp UI sếp nhé */}
         <span className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide rounded-md ${STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"}`}>
           {hd.trangThai || ""}
         </span>
       </TableCell>
       <TableCell sx={cellStyles.ghiChu}>{hd.ghiChuChoKhachHang || ""}</TableCell>
-
-      {/* 3. Render cột Đến Hạn với UI tuỳ biến màu sắc */}
       <TableCell
         sx={{
           ...cellStyles.ngayDenHan,
-          color: isTreHan ? '#ef4444' : '#6b7280', // Đỏ báo động nếu trễ, xám nếu an toàn
+          color: isTreHan ? '#ef4444' : '#6b7280',
           fontWeight: isTreHan ? 600 : 400
         }}
       >
         {textDenHan}
       </TableCell>
+      {/* CỘT ẢO DÀNH CHO DÒNG DỮ LIỆU */}
+      <TableCell sx={{ padding: 0, borderBottom: "1px solid #d1d5db", width: "auto", minWidth: 0 }} />
     </TableRow>
   );
 });
+
 // ================= COMPONENT CHÍNH =================
-// Cấu hình Virtual Scroll
 const ROW_HEIGHT = 45;
 const VISIBLE_ROWS = 25;
 const OVERSCAN = 10;
@@ -115,7 +112,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
   const [columnWidths, setColumnWidths] = useState({
     ngayXuat: 110, soHoaDon: 120, nhaKhoa: 160, tongCong: 130, giamGia: 90,
     giaTriThanhToan: 140, daThanhToan: 120, conLai: 120, chiPhiKhac: 120,
-    trangThai: 180, ghiChu: 200, ngayDenHan: 130,
+    trangThai: 160, ghiChu: 200, ngayDenHan: 130,
   });
 
   const columnWidthsRef = useRef(columnWidths);
@@ -143,23 +140,19 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
     });
   }, [danhSachHoaDon, sortOrder]);
 
-  // 🔥 ── THUẬT TOÁN VIRTUAL SCROLLING & INFINITE SCROLLING ── 🔥
+  // 🔥 ── VIRTUAL SCROLLING ── 🔥
   const [scrollTop, setScrollTop] = useState(0);
   const loadingRef = useRef(false);
 
-  // Đồng bộ trạng thái loading vào Ref để tránh closure scope issue
   useEffect(() => { loadingRef.current = loading; }, [loading]);
 
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-
-    // 1. Phục vụ UI mượt
     requestAnimationFrame(() => setScrollTop(scrollTop));
 
-    // 2. Cảm biến chạm đáy (Cách đáy 200px thì gọi)
     if (scrollHeight - scrollTop - clientHeight < 200) {
       if (onLoadMore && !loadingRef.current) {
-        loadingRef.current = true; // Khóa lại ngay lập tức chống spam
+        loadingRef.current = true;
         onLoadMore();
       }
     }
@@ -173,7 +166,6 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
   const paddingTop = startIndex * ROW_HEIGHT;
   const paddingBottom = Math.max(0, (totalRows - endIndex) * ROW_HEIGHT);
 
-  // ── RAF throttle resize ──
   const handleResize = useCallback((columnKey, e) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -274,26 +266,28 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
               <ResizableHeaderCell label="Trạng thái" columnKey="trangThai" style={cellStyles.hdr.trangThai} onResize={handleResize} />
               <ResizableHeaderCell label="Ghi chú" columnKey="ghiChu" style={cellStyles.hdr.ghiChu} onResize={handleResize} />
               <ResizableHeaderCell label="Đến hạn" columnKey="ngayDenHan" style={cellStyles.hdr.ngayDenHan} onResize={handleResize} />
+
+              {/* 🔥 CỘT ẢO DÀNH CHO HEADER CHỐNG TRÙNG LẶP */}
+              <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "2px solid #cbd5e1", bgcolor: "#fff" }} />
             </TableRow>
           </TableHead>
 
           <TableBody>
             {totalRows === 0 && !loading ? (
               <TableRow>
-                <TableCell colSpan={12} align="center" className="py-20 text-gray-500">
+                {/* Đổi colSpan từ 12 thành 13 để đếm luôn cả cột ảo */}
+                <TableCell colSpan={13} align="center" className="py-20 text-gray-500">
                   Không tìm thấy dữ liệu hóa đơn nào.
                 </TableCell>
               </TableRow>
             ) : (
               <>
-                {/* 1. KHỐI KHÔNG KHÍ Ở TRÊN */}
                 {paddingTop > 0 && (
                   <TableRow style={{ height: paddingTop }}>
-                    <TableCell colSpan={12} style={{ padding: 0, border: 'none' }} />
+                    <TableCell colSpan={13} style={{ padding: 0, border: 'none' }} />
                   </TableRow>
                 )}
 
-                {/* 2. CÁC DÒNG DATA THỰC TẾ (25 dòng) */}
                 {visibleRows.map((hd) => (
                   <RowComponent
                     key={hd._id}
@@ -303,17 +297,15 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
                   />
                 ))}
 
-                {/* 3. KHỐI KHÔNG KHÍ Ở DƯỚI */}
                 {paddingBottom > 0 && (
                   <TableRow style={{ height: paddingBottom }}>
-                    <TableCell colSpan={12} style={{ padding: 0, border: 'none' }} />
+                    <TableCell colSpan={13} style={{ padding: 0, border: 'none' }} />
                   </TableRow>
                 )}
 
-                {/* 4. VÒNG TRÒN LOADING NỐI Ở ĐÁY BẢNG KHI ĐANG TẢI THÊM */}
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={12} align="center" sx={{ py: 3, border: 'none' }}>
+                    <TableCell colSpan={13} align="center" sx={{ py: 3, border: 'none' }}>
                       <CircularProgress size={26} sx={{ color: "#26a69a" }} />
                     </TableCell>
                   </TableRow>
@@ -324,7 +316,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
         </Table>
       </TableContainer>
 
-      {/* MODAL CHI TIẾT */}
+      {/* MODAL CHI TIẾT (Giữ nguyên ko cần đổi) */}
       <Modal open={openDetail} onClose={() => setOpenDetail(false)}>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[96%] md:w-[90%] max-w-[1000px] max-h-[90vh] overflow-auto bg-white shadow-2xl p-8 rounded-lg outline-none">
           <h3 className="text-lg font-bold mb-4 text-blue-700">

@@ -136,19 +136,37 @@ export const fetchThongKe = createAsyncThunk(
     }
 );
 
-//Khởi tạo filter kế hoạch giao hàng
-const initialFilterState = {
-    showUrgentOnly: false,
-    filterType: "all",
-    filterStatus: "Chờ xử lý",
-    fromDate: "",
-    toDate: "",
-    searchText: "",
-};
 
 //Khởi tạo filter đơn hàng page
 
 const initialDonHangPageFilter = {
+    searchTerm: "",
+
+    appliedNgayNhan: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedYcHoanThanh: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedHenGiao: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedNhaKhoa: null,
+    appliedBenhNhan: null,
+    appliedTrangThai: [],
+};
+
+// Khởi tạo filter kế hoạch giao hàng
+const initialKeHoachGiaoHangPageFilter = {
     searchTerm: "",
 
     appliedNgayNhan: {
@@ -183,8 +201,8 @@ const donHangSlice = createSlice({
     initialState: {
         data: [],
         allData: [], // dùng cho KeHoachGiaoHang (không phân trang)
-        filters: initialFilterState,
         donHangPageFilter: initialDonHangPageFilter,
+        keHoachGiaoHangPageFilter: initialKeHoachGiaoHangPageFilter,
         loading: false,
         loadingMore: false,
         error: null,
@@ -198,15 +216,15 @@ const donHangSlice = createSlice({
     },
 
     reducers: {
-        setFilter(state, action) {
-            state.filters = {
-                ...state.filters,
+        setKeHoachGiaoHangPageFilter(state, action) {
+            state.keHoachGiaoHangPageFilter = {
+                ...state.keHoachGiaoHangPageFilter,
                 ...action.payload,
             };
         },
 
-        resetFilter(state) {
-            state.filters = initialFilterState;
+        resetKeHoachGiaoHangPageFilter(state) {
+            state.keHoachGiaoHangPageFilter = initialKeHoachGiaoHangPageFilter;
         },
 
         setDonHangPageFilter(state, action) {
@@ -336,6 +354,6 @@ export const {
     resetDonHangPageFilter,
 } = donHangSlice.actions;
 
-export const { setFilter, resetFilter } = donHangSlice.actions;
+export const { setKeHoachGiaoHangPageFilter, resetKeHoachGiaoHangPageFilter } = donHangSlice.actions;
 
 export default donHangSlice.reducer;

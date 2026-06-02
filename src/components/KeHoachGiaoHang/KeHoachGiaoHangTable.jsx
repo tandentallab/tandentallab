@@ -11,8 +11,8 @@ import {
   fetchDonHang,
   fetchMoreDonHang,
   fetchThongKe,
-  setDonHangPageFilter,
-  resetDonHangPageFilter,
+  setKeHoachGiaoHangPageFilter,
+  resetKeHoachGiaoHangPageFilter,
 } from "../../redux/slices/donHangSlice";
 import { format, isToday, isBefore, startOfDay, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -122,17 +122,19 @@ const KeHoachGiaoHangTable = () => {
   const { data, loading, loadingMore, pagination } = useSelector(
     (state) => state.donHang
   );
-  const { thongKe, loadingThongKe, donHangPageFilter } = useSelector(
+  const { thongKe, loadingThongKe, keHoachGiaoHangPageFilter } = useSelector(
     (state) => state.donHang
   );
   const nhaKhoaState = useSelector((state) => state.nhaKhoa);
 
   const { giaoHomNay = 0, treHenGiao = 0, guiThu = 0 } = thongKe || {};
 
-  const appliedHenGiao = donHangPageFilter?.appliedHenGiao ?? EMPTY_DATE;
-  const appliedNgayNhan = donHangPageFilter?.appliedNgayNhan ?? EMPTY_DATE;
-  const appliedNhaKhoa = donHangPageFilter?.appliedNhaKhoa ?? null;
-  const appliedTrangThai = donHangPageFilter?.appliedTrangThai ?? [];
+  const appliedHenGiao =
+    keHoachGiaoHangPageFilter?.appliedHenGiao ?? EMPTY_DATE;
+  const appliedNgayNhan =
+    keHoachGiaoHangPageFilter?.appliedNgayNhan ?? EMPTY_DATE;
+  const appliedNhaKhoa = keHoachGiaoHangPageFilter?.appliedNhaKhoa ?? null;
+  const appliedTrangThai = keHoachGiaoHangPageFilter?.appliedTrangThai ?? [];
 
   const [draftHenGiao, setDraftHenGiao] = useState(EMPTY_DATE);
   const [draftNgayNhan, setDraftNgayNhan] = useState(EMPTY_DATE);
@@ -202,7 +204,7 @@ const KeHoachGiaoHangTable = () => {
   const getFilterParams = useCallback((filter, fromKey, toKey) => {
     if (!filter?.preset) return {};
     let from, to;
-    if (filter.preset === "custom") {
+    if (filter.preset === "custom" || filter.preset === "overdue") {
       from = filter.customFrom ? new Date(filter.customFrom) : null;
       to = filter.customTo ? new Date(filter.customTo + "T23:59:59.999") : null;
     } else {
@@ -288,11 +290,11 @@ const KeHoachGiaoHangTable = () => {
     const d = nhaKhoaState?.data || [];
     return Array.isArray(d)
       ? d
-        .map((nk) => ({
-          _id: nk._id,
-          name: nk.tenGiaoDich || nk.hoVaTen || "",
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name))
+          .map((nk) => ({
+            _id: nk._id,
+            name: nk.tenGiaoDich || nk.hoVaTen || "",
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }, [nhaKhoaState?.data]);
 
@@ -312,7 +314,7 @@ const KeHoachGiaoHangTable = () => {
 
   const handleApplyFilters = () => {
     dispatch(
-      setDonHangPageFilter({
+      setKeHoachGiaoHangPageFilter({
         appliedHenGiao: draftHenGiao,
         appliedNgayNhan: draftNgayNhan,
         appliedNhaKhoa: draftNhaKhoa,
@@ -334,7 +336,7 @@ const KeHoachGiaoHangTable = () => {
 
   const handleRefresh = () => {
     setSearchText("");
-    dispatch(resetDonHangPageFilter());
+    dispatch(resetKeHoachGiaoHangPageFilter());
     setPage(1);
   };
 
@@ -376,10 +378,11 @@ const KeHoachGiaoHangTable = () => {
                 }
               }
             }}
-            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${cf.preset === p.key
-              ? "bg-blue-50 text-blue-700 font-semibold"
-              : "text-gray-700 hover:bg-gray-50"
-              }`}
+            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${
+              cf.preset === p.key
+                ? "bg-blue-50 text-blue-700 font-semibold"
+                : "text-gray-700 hover:bg-gray-50"
+            }`}
           >
             {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
             {p.label}
@@ -399,8 +402,8 @@ const KeHoachGiaoHangTable = () => {
               >
                 {cf.customFrom && cf.customTo
                   ? `${dayjs(cf.customFrom).format("DD/MM/YYYY")} - ${dayjs(
-                    cf.customTo
-                  ).format("DD/MM/YYYY")}`
+                      cf.customTo
+                    ).format("DD/MM/YYYY")}`
                   : "📅 Bấm để chọn ngày..."}
               </button>
             </div>
@@ -432,9 +435,11 @@ const KeHoachGiaoHangTable = () => {
             scf(newNgay);
 
             dispatch(
-              setDonHangPageFilter({
-                appliedHenGiao: filterKey === "henGiao" ? newNgay : draftHenGiao,
-                appliedNgayNhan: filterKey === "ngayNhan" ? newNgay : draftNgayNhan,
+              setKeHoachGiaoHangPageFilter({
+                appliedHenGiao:
+                  filterKey === "henGiao" ? newNgay : draftHenGiao,
+                appliedNgayNhan:
+                  filterKey === "ngayNhan" ? newNgay : draftNgayNhan,
                 appliedNhaKhoa: draftNhaKhoa,
                 appliedTrangThai: draftTrangThai,
               })
@@ -546,7 +551,7 @@ const KeHoachGiaoHangTable = () => {
 
   useEffect(() => {
     dispatch(
-      setDonHangPageFilter({
+      setKeHoachGiaoHangPageFilter({
         appliedTrangThai: ["Chờ xử lý"],
       })
     );
@@ -560,13 +565,14 @@ const KeHoachGiaoHangTable = () => {
         <div className="print:hidden">
           <div className="flex w-full mb-4 rounded-lg overflow-hidden shadow-md">
             <div
-              className={`flex-1 cursor-pointer bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${appliedHenGiao?.preset === "today"
-                ? "ring-2 ring-inset ring-white/50"
-                : ""
-                }`}
+              className={`flex-1 cursor-pointer bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${
+                appliedHenGiao?.preset === "today"
+                  ? "ring-2 ring-inset ring-white/50"
+                  : ""
+              }`}
               onClick={() => {
                 dispatch(
-                  setDonHangPageFilter({
+                  setKeHoachGiaoHangPageFilter({
                     appliedHenGiao:
                       appliedHenGiao?.preset === "today"
                         ? EMPTY_DATE
@@ -589,22 +595,34 @@ const KeHoachGiaoHangTable = () => {
             </div>
 
             <div
-              className="flex-1 cursor-pointer bg-red-600 hover:bg-red-500 active:bg-red-700 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative"
+              className={`flex-1 cursor-pointer bg-red-600 hover:bg-red-500 active:bg-red-700 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${
+                appliedHenGiao?.preset === "overdue"
+                  ? "ring-2 ring-inset ring-white/50"
+                  : ""
+              }`}
               onClick={() => {
-                const todayStr = new Date().toISOString().split("T")[0];
+                // "Trễ" = henGiao < hôm nay (không bao gồm hôm nay) + chưa hoàn thành
+                // Dùng preset riêng "overdue" để nhận biết trạng thái đang filter
                 const alreadyFiltering =
-                  appliedHenGiao?.customTo === todayStr &&
-                  appliedTrangThai.length === 1 &&
-                  appliedTrangThai[0] === "Chờ xử lý";
+                  appliedHenGiao?.preset === "overdue" &&
+                  appliedTrangThai.length === 2 &&
+                  appliedTrangThai.includes("Chờ xử lý") &&
+                  appliedTrangThai.includes("Đang thử");
+
+                // customTo = ngày hôm qua (henGiao <= hôm qua, tức < hôm nay)
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split("T")[0];
+
                 dispatch(
-                  setDonHangPageFilter({
+                  setKeHoachGiaoHangPageFilter({
                     appliedHenGiao: alreadyFiltering
                       ? EMPTY_DATE
                       : {
-                        preset: "custom",
-                        customFrom: "",
-                        customTo: todayStr,
-                      },
+                          preset: "overdue",
+                          customFrom: "",
+                          customTo: yesterdayStr,
+                        },
                     appliedTrangThai: alreadyFiltering ? [] : ["Chờ xử lý"],
                   })
                 );
@@ -622,17 +640,18 @@ const KeHoachGiaoHangTable = () => {
             </div>
 
             <div
-              className={`flex-1 cursor-pointer bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${appliedTrangThai.length === 1 &&
+              className={`flex-1 cursor-pointer bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${
+                appliedTrangThai.length === 1 &&
                 appliedTrangThai[0] === "Đang thử"
-                ? "ring-2 ring-inset ring-white/50"
-                : ""
-                }`}
+                  ? "ring-2 ring-inset ring-white/50"
+                  : ""
+              }`}
               onClick={() => {
                 const isActive =
                   appliedTrangThai.length === 1 &&
                   appliedTrangThai[0] === "Đang thử";
                 dispatch(
-                  setDonHangPageFilter({
+                  setKeHoachGiaoHangPageFilter({
                     appliedTrangThai: isActive ? [] : ["Đang thử"],
                     appliedHenGiao: EMPTY_DATE,
                   })
@@ -657,10 +676,11 @@ const KeHoachGiaoHangTable = () => {
             <button
               onClick={handleOpenFilter}
               title="Bộ lọc"
-              className={`relative p-1.5 rounded transition ${isFiltered
-                ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
-                : "text-gray-500 hover:bg-gray-100"
-                }`}
+              className={`relative p-1.5 rounded transition ${
+                isFiltered
+                  ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                  : "text-gray-500 hover:bg-gray-100"
+              }`}
             >
               <FilterAltIcon sx={{ fontSize: 20 }} />
               {isFiltered && (
@@ -705,7 +725,11 @@ const KeHoachGiaoHangTable = () => {
                     />
                   </button>
                   {openDateModal === "henGiao" &&
-                    renderDateDropdown(draftHenGiao, setDraftHenGiao, "henGiao")}
+                    renderDateDropdown(
+                      draftHenGiao,
+                      setDraftHenGiao,
+                      "henGiao"
+                    )}
                 </div>
 
                 <div
@@ -737,7 +761,11 @@ const KeHoachGiaoHangTable = () => {
                     />
                   </button>
                   {openDateModal === "ngayNhan" &&
-                    renderDateDropdown(draftNgayNhan, setDraftNgayNhan, "ngayNhan")}
+                    renderDateDropdown(
+                      draftNgayNhan,
+                      setDraftNgayNhan,
+                      "ngayNhan"
+                    )}
                 </div>
 
                 <div
@@ -795,10 +823,11 @@ const KeHoachGiaoHangTable = () => {
                             setDraftNhaKhoa(item);
                             setOpenPickerModal(null);
                           }}
-                          className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftNhaKhoa?._id === item._id
-                            ? "bg-blue-50 text-blue-700 font-semibold"
-                            : "text-gray-700 hover:bg-gray-50"
-                            }`}
+                          className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
+                            draftNhaKhoa?._id === item._id
+                              ? "bg-blue-50 text-blue-700 font-semibold"
+                              : "text-gray-700 hover:bg-gray-50"
+                          }`}
                         >
                           {item.name}
                         </button>
@@ -870,14 +899,16 @@ const KeHoachGiaoHangTable = () => {
                 Hẹn giao: {getDateLabel(appliedHenGiao)}
                 {appliedHenGiao.preset === "custom" &&
                   appliedHenGiao.customFrom &&
-                  ` ${dayjs(appliedHenGiao.customFrom).format('DD/MM/YYYY')}`}
+                  ` ${dayjs(appliedHenGiao.customFrom).format("DD/MM/YYYY")}`}
                 {appliedHenGiao.preset === "custom" &&
                   appliedHenGiao.customTo &&
-                  ` → ${dayjs(appliedHenGiao.customTo).format('DD/MM/YYYY')}`}
+                  ` → ${dayjs(appliedHenGiao.customTo).format("DD/MM/YYYY")}`}
                 <button
                   onClick={() => {
                     dispatch(
-                      setDonHangPageFilter({ appliedHenGiao: EMPTY_DATE })
+                      setKeHoachGiaoHangPageFilter({
+                        appliedHenGiao: EMPTY_DATE,
+                      })
                     );
                     setPage(1);
                   }}
@@ -893,14 +924,16 @@ const KeHoachGiaoHangTable = () => {
                 Nhận: {getDateLabel(appliedNgayNhan)}
                 {appliedNgayNhan.preset === "custom" &&
                   appliedNgayNhan.customFrom &&
-                  ` ${dayjs(appliedNgayNhan.customFrom).format('DD/MM/YYYY')}`}
+                  ` ${dayjs(appliedNgayNhan.customFrom).format("DD/MM/YYYY")}`}
                 {appliedNgayNhan.preset === "custom" &&
                   appliedNgayNhan.customTo &&
-                  ` → ${dayjs(appliedNgayNhan.customTo).format('DD/MM/YYYY')}`}
+                  ` → ${dayjs(appliedNgayNhan.customTo).format("DD/MM/YYYY")}`}
                 <button
                   onClick={() => {
                     dispatch(
-                      setDonHangPageFilter({ appliedNgayNhan: EMPTY_DATE })
+                      setKeHoachGiaoHangPageFilter({
+                        appliedNgayNhan: EMPTY_DATE,
+                      })
                     );
                     setPage(1);
                   }}
@@ -916,7 +949,9 @@ const KeHoachGiaoHangTable = () => {
                 {appliedNhaKhoa.name}
                 <button
                   onClick={() => {
-                    dispatch(setDonHangPageFilter({ appliedNhaKhoa: null }));
+                    dispatch(
+                      setKeHoachGiaoHangPageFilter({ appliedNhaKhoa: null })
+                    );
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -934,7 +969,7 @@ const KeHoachGiaoHangTable = () => {
                 <button
                   onClick={() => {
                     dispatch(
-                      setDonHangPageFilter({
+                      setKeHoachGiaoHangPageFilter({
                         appliedTrangThai: appliedTrangThai.filter(
                           (s) => s !== status
                         ),
@@ -1028,10 +1063,11 @@ const KeHoachGiaoHangTable = () => {
                   <div
                     key={order._id}
                     onClick={() => setSelectedDonHang(order)}
-                    className={`px-4 py-3 cursor-pointer transition-colors ${selectedDonHang?._id === order._id
-                      ? "bg-sky-100"
-                      : "hover:bg-gray-50"
-                      }`}
+                    className={`px-4 py-3 cursor-pointer transition-colors ${
+                      selectedDonHang?._id === order._id
+                        ? "bg-sky-100"
+                        : "hover:bg-gray-50"
+                    }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <button
@@ -1039,8 +1075,9 @@ const KeHoachGiaoHangTable = () => {
                           e.stopPropagation();
                           navigate(`/donhang/${order._id}/edit`);
                         }}
-                        className={`font-semibold text-sm hover:underline ${overdue ? "text-red-500" : "text-blue-700"
-                          }`}
+                        className={`font-semibold text-sm hover:underline ${
+                          overdue ? "text-red-500" : "text-blue-700"
+                        }`}
                       >
                         {maDon}
                       </button>
@@ -1056,7 +1093,7 @@ const KeHoachGiaoHangTable = () => {
                         {[
                           order.bacSi?.hoVaTen && `BS: ${order.bacSi.hoVaTen}`,
                           order.benhNhan?.hoVaTen &&
-                          `BN: ${order.benhNhan.hoVaTen}`,
+                            `BN: ${order.benhNhan.hoVaTen}`,
                         ]
                           .filter(Boolean)
                           .join(" · ")}
@@ -1150,14 +1187,18 @@ const KeHoachGiaoHangTable = () => {
                         <tr
                           key={`${order._id}_${spIdx}`}
                           onClick={() => setSelectedDonHang(order)}
-                          className={`border-b cursor-pointer transition-colors ${selectedDonHang?._id === order._id
-                            ? "bg-sky-100 border-sky-200"
-                            : "hover:bg-gray-50"
-                            }`}
+                          className={`border-b cursor-pointer transition-colors ${
+                            selectedDonHang?._id === order._id
+                              ? "bg-sky-100 border-sky-200"
+                              : "hover:bg-gray-50"
+                          }`}
                         >
                           <td className="px-3 py-2.5 truncate text-xs text-gray-600">
                             {order.ngayNhan
-                              ? format(parseISO(order.ngayNhan), "HH:mm dd/MM/yyyy")
+                              ? format(
+                                  parseISO(order.ngayNhan),
+                                  "HH:mm dd/MM/yyyy"
+                                )
                               : "—"}
                           </td>
                           <td className="px-3 py-2.5 truncate">
@@ -1166,24 +1207,27 @@ const KeHoachGiaoHangTable = () => {
                                 e.stopPropagation();
                                 navigate(`/donhang/${order._id}/edit`);
                               }}
-                              className={`font-medium text-sm hover:underline ${overdue
-                                ? "text-red-500"
-                                : today
+                              className={`font-medium text-sm hover:underline ${
+                                overdue
+                                  ? "text-red-500"
+                                  : today
                                   ? "text-blue-600"
                                   : "text-gray-700"
-                                }`}
+                              }`}
                             >
                               {maDon}
                             </button>
                           </td>
                           <td
-                            className={`px-3 py-2.5 truncate text-sm font-medium ${overdue ? "text-red-500" : "text-gray-700"
-                              }`}
+                            className={`px-3 py-2.5 truncate text-sm font-medium ${
+                              overdue ? "text-red-500" : "text-gray-700"
+                            }`}
                           >
                             {format(date, "HH:mm dd/MM/yyyy")}
                           </td>
                           <td className="px-3 py-2.5 truncate text-sm text-gray-800">
-                            {order.nhaKhoa?.tenGiaoDich || order.nhaKhoa?.hoVaTen}
+                            {order.nhaKhoa?.tenGiaoDich ||
+                              order.nhaKhoa?.hoVaTen}
                           </td>
                           <td className="px-3 py-2.5 truncate text-sm text-gray-700">
                             {order.bacSi?.hoVaTen}
@@ -1350,8 +1394,9 @@ const TrangThaiBadge = ({ value }) => {
   };
   return (
     <span
-      className={`px-2 py-1 rounded font-medium text-xs ${map[value] || "bg-gray-100 text-gray-600"
-        }`}
+      className={`px-2 py-1 rounded font-medium text-xs ${
+        map[value] || "bg-gray-100 text-gray-600"
+      }`}
     >
       {value || "Chờ xử lý"}
     </span>

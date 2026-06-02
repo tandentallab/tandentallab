@@ -144,8 +144,13 @@ const KeHoachGiaoHangTable = () => {
         return true;
       });
 
-      if (filterStatus !== "all") {
-        result = result.filter((order) => order.trangThai === filterStatus);
+      const statusList = Array.isArray(filterStatus)
+        ? filterStatus
+        : filterStatus && filterStatus !== "all"
+        ? [filterStatus]
+        : [];
+      if (statusList.length > 0) {
+        result = result.filter((order) => statusList.includes(order.trangThai));
       }
 
       if (showUrgentOnly) {
@@ -369,9 +374,16 @@ const KeHoachGiaoHangTable = () => {
               <FiFilter size={18} />
             </button>
             <div className="inline-flex items-center gap-1 ml-2 text-sm text-gray-700">
-              {filterStatus !== "all" && (
-                <Chip color="primary" variant="outlined" label={filterStatus} />
-              )}
+              {(() => {
+                const statusList = Array.isArray(filterStatus)
+                  ? filterStatus
+                  : filterStatus && filterStatus !== "all"
+                  ? [filterStatus]
+                  : [];
+                return statusList.map((s) => (
+                  <Chip key={s} color="primary" variant="outlined" label={s} />
+                ));
+              })()}
               {filterType !== "all" && (
                 <Chip
                   color="primary"
@@ -509,23 +521,70 @@ const KeHoachGiaoHangTable = () => {
               </>
             )}
 
-            {/* Lọc trạng thái */}
-            <select
-              value={filterStatus}
-              onChange={(e) =>
+            {/* Lọc trạng thái – multi-select toggle buttons */}
+            {(() => {
+              const ALL_STATUSES = ["Chờ xử lý", "Đang thử", "Hoàn thành"];
+              const statusList = Array.isArray(filterStatus)
+                ? filterStatus
+                : filterStatus && filterStatus !== "all"
+                ? [filterStatus]
+                : [];
+              const toggle = (s) => {
+                const next = statusList.includes(s)
+                  ? statusList.filter((x) => x !== s)
+                  : [...statusList, s];
                 dispatch(
-                  setFilter({
-                    filterStatus: e.target.value,
-                  })
-                )
-              }
-              className="border px-2 py-1.5 rounded text-sm"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="Chờ xử lý">Chờ xử lý</option>
-              <option value="Đang thử">Đang thử</option>
-              <option value="Hoàn thành">Hoàn thành</option>
-            </select>
+                  setFilter({ filterStatus: next.length > 0 ? next : [] })
+                );
+              };
+              const colorMap = {
+                "Chờ xử lý": {
+                  active: "bg-yellow-400 text-yellow-900 border-yellow-400",
+                  inactive:
+                    "bg-white text-yellow-700 border-yellow-300 hover:bg-yellow-50",
+                },
+                "Đang thử": {
+                  active: "bg-purple-500 text-white border-purple-500",
+                  inactive:
+                    "bg-white text-purple-700 border-purple-300 hover:bg-purple-50",
+                },
+                "Hoàn thành": {
+                  active: "bg-green-500 text-white border-green-500",
+                  inactive:
+                    "bg-white text-green-700 border-green-300 hover:bg-green-50",
+                },
+              };
+              return (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-gray-500 text-xs mr-0.5">
+                    Trạng thái:
+                  </span>
+                  {ALL_STATUSES.map((s) => {
+                    const isActive = statusList.includes(s);
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => toggle(s)}
+                        className={`px-2.5 py-1 rounded-full border text-xs font-medium transition-all ${
+                          colorMap[s][isActive ? "active" : "inactive"]
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
+                  {statusList.length > 0 && (
+                    <button
+                      onClick={() => dispatch(setFilter({ filterStatus: [] }))}
+                      className="ml-1 text-gray-400 hover:text-red-500 text-xs transition"
+                      title="Xóa lọc trạng thái"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
 

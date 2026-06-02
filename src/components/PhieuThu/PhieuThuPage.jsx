@@ -12,6 +12,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import StoreIcon from "@mui/icons-material/Store";
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import DownloadIcon from "@mui/icons-material/Download";
+import PrintIcon from "@mui/icons-material/Print";
 import { api } from "../../config/api";
 import { exportPhieuThuToExcel } from "../../utils/exportToExcel";
 import ExportDateSelector from "../common/ExportDateSelector";
@@ -19,8 +20,7 @@ import CustomDateRangePicker from "../common/CustomDateRangePicker"; // 🔥 IMP
 import dayjs from "dayjs"; // 🔥 IMPORT DAYJS
 import {
     EMPTY_EXPORT_DATE_FILTER,
-    toISODateRange,
-    isValidExportDateFilter
+    toISODateRange
 } from "../../utils/exportDatePresets";
 import { toast } from "sonner";
 
@@ -103,7 +103,31 @@ export default function PhieuThuPage() {
     // 🔥 STATE ĐỂ NEO TỜ LỊCH CUSTOM TRONG MENU LỌC BẢNG
     const [anchorElCustomDate, setAnchorElCustomDate] = useState(null);
 
-    useEffect(() => { dispatch(fetchNhaKhoa()); }, [dispatch]);
+    const [isPrintingBlank, setIsPrintingBlank] = useState(false);
+    const [congTy, setCongTy] = useState(null);
+
+    const handlePrintBlank = () => {
+        setIsPrintingBlank(true);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                window.print();
+                const cleanup = () => {
+                    setIsPrintingBlank(false);
+                    window.removeEventListener("afterprint", cleanup);
+                };
+                window.addEventListener("afterprint", cleanup);
+            });
+        });
+    };
+
+    useEffect(() => {
+        dispatch(fetchNhaKhoa());
+        api.get("/cong-ty")
+            .then((res) => {
+                setCongTy(res.data?.data || res.data);
+            })
+            .catch((err) => console.error("Lỗi fetch thông tin công ty:", err));
+    }, [dispatch]);
 
     useEffect(() => {
         const t = setTimeout(() => { setDebouncedSearch(searchTerm); setPage(1); }, 500);
@@ -429,6 +453,13 @@ export default function PhieuThuPage() {
                         >
                             <DownloadIcon sx={{ fontSize: 20 }} />
                         </button>
+                        <button
+                            onClick={handlePrintBlank}
+                            title="In phiếu thu mẫu"
+                            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
+                        >
+                            <PrintIcon sx={{ fontSize: 20 }} />
+                        </button>
                         <button onClick={handleRefresh} title="Tải lại" className="text-gray-600 hover:bg-gray-100 p-1.5 rounded">
                             <RefreshIcon sx={{ fontSize: 20 }} />
                         </button>
@@ -624,6 +655,111 @@ export default function PhieuThuPage() {
                                     {exporting ? "Đang xuất..." : "Tải xuống"}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {isPrintingBlank && (
+                <div id="print-blank-receipt" className="hidden print:block w-full">
+                    <style>{`
+                        @media print {
+                            @page { size: A5 landscape; margin: 0; }
+                            html, body {
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                overflow: hidden !important;
+                            }
+                            body * { visibility: hidden; }
+                            #print-blank-receipt, #print-blank-receipt * { visibility: visible; }
+                            #print-blank-receipt {
+                                position: fixed !important;
+                                top: 0 !important;
+                                left: 0 !important;
+                                width: 210mm !important;
+                                height: 148mm !important;
+                                padding: 6mm 10mm 8mm 10mm !important;
+                                box-shadow: none !important;
+                                border: none !important;
+                                background: white !important;
+                                display: flex !important;
+                                flex-direction: column !important;
+                            }
+                        }
+                    `}</style>
+                    <div style={{ fontFamily: "Cambria", display: "flex", flexDirection: "column", height: "100%" }}>
+                        {/* Header */}
+                        <div style={{ marginBottom: "6mm" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "3mm" }}>
+                                <div style={{ flex: 2 }}>
+                                    <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>{congTy?.Ten || "CÔNG TY TNHH TẤN DENTAL"}</p>
+                                    <p style={{ fontSize: "9pt", margin: "1mm 0 0 0" }}>{congTy?.DiaChi || "Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ"}</p>
+                                </div>
+                                <div style={{ marginTop: "1mm", flex: 1, textAlign: "right", fontSize: "9pt" }}>
+                                    <div>QĐ số 15/2006/QĐ-BTC</div>
+                                    <div>ngày 20/03/2006 của BTC</div>
+                                </div>
+                            </div>
+                            <div style={{ borderTop: "1px solid #ccc", paddingTop: "3mm", textAlign: "center" }}>
+                                <h1 style={{ margin: "0 0", fontSize: "15pt", fontWeight: "bold", textTransform: "uppercase" }}>PHIẾU THU</h1>
+                                <div style={{ fontSize: "9pt", marginTop: "1mm" }}>............................................</div>
+                                <div style={{ fontSize: "9pt", marginTop: "0.5mm" }}>........................ , ....... / ....... /..........</div>
+                            </div>
+                        </div>
+
+                        {/* Thông tin người nộp */}
+                        <div style={{ marginBottom: "3mm", fontSize: "11pt", lineHeight: "2.2" }}>
+                            <div style={{ display: "flex", gap: "4px", overflow: "hidden", whiteSpace: "nowrap" }}>
+                                <span style={{ minWidth: "115px" }}>Người nộp tiền:</span>
+                                <span style={{ flex: 1, overflow: "hidden" }}>................................................................................................................................................................................................................</span>
+                            </div>
+                            <div style={{ display: "flex", gap: "4px", overflow: "hidden", whiteSpace: "nowrap" }}>
+                                <span style={{ minWidth: "115px" }}>Địa chỉ:</span>
+                                <span style={{ flex: 1, overflow: "hidden" }}>................................................................................................................................................................................................................</span>
+                            </div>
+                            <div style={{ display: "flex", gap: "4px", overflow: "hidden", whiteSpace: "nowrap" }}>
+                                <span style={{ minWidth: "115px" }}>Nội dung thu:</span>
+                                <span style={{ flex: 1, overflow: "hidden" }}>.................................................................................................................................................................................................................</span>
+                            </div>
+                            <div style={{ display: "flex", gap: "4px", overflow: "hidden", whiteSpace: "nowrap", alignItems: "baseline" }}>
+                                <span style={{ minWidth: "115px" }}>Số tiền thu:</span>
+                                <span style={{ width: "3cm", flexShrink: 0, overflow: "hidden" }}>..................................................</span>
+                                <span style={{ flexShrink: 0 }}>Bằng chữ:</span>
+                                <span style={{ flex: 1, overflow: "hidden" }}>................................................................................................................................................................</span>
+                            </div>
+                        </div>
+
+                        {/* Bảng hóa đơn */}
+                        <div style={{ marginBottom: "4mm" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11pt" }}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center", padding: "2mm" }}>Hóa đơn</th>
+                                        <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center", padding: "2mm" }}>Số tiền ban đầu</th>
+                                        <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center", padding: "2mm" }}>Đã thanh toán</th>
+                                        <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center", padding: "2mm" }}>Số tiền còn lại</th>
+                                        <th style={{ border: "1px solid #999", fontWeight: "normal", textAlign: "center", padding: "2mm" }}>Thanh toán</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style={{ border: "1px solid #999", padding: "2.5mm 2mm" }}>&nbsp;</td>
+                                        <td style={{ border: "1px solid #999", padding: "2.5mm 2mm" }}>&nbsp;</td>
+                                        <td style={{ border: "1px solid #999", padding: "2.5mm 2mm" }}>&nbsp;</td>
+                                        <td style={{ border: "1px solid #999", padding: "2.5mm 2mm" }}>&nbsp;</td>
+                                        <td style={{ border: "1px solid #999", padding: "2.5mm 2mm" }}>&nbsp;</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Chữ ký */}
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11pt", marginTop: "auto", paddingTop: "6mm", minHeight: "32mm", alignItems: "flex-start" }}>
+                            {[["Người lập phiếu"], ["Người nộp tiền"], ["Thủ quỹ"], ["Kế toán"], ["Thủ trưởng đơn vị"]].map(([label]) => (
+                                <div key={label} style={{ textAlign: "center", width: "20%" }}>
+                                    <div style={{ fontWeight: "bold" }}>{label}</div>
+                                    <div style={{ fontStyle: "italic", fontSize: "10pt" }}>(Ký, họ tên)</div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

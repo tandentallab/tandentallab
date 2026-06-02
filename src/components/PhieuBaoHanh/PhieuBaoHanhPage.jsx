@@ -358,47 +358,45 @@ const PhieuBaoHanhPage = () => {
   return (
     <div className="w-full p-4 md:p-8 max-w-7xl mx-auto bg-slate-50 min-h-screen">
       {/* Header Section */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <CalendarMonthIcon className="text-blue-600" /> Quản lý Phiếu Bảo
-            Hành
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Theo dõi, cập nhật và xử lý thông tin bảo hành của bệnh nhân
-          </p>
-        </div>
-        <Button
-          variant="contained"
-          color="primary"
-          disableElevation
-          startIcon={<RefreshIcon />}
-          onClick={loadPhieuList}
-          className="bg-blue-600 hover:bg-blue-700 font-medium px-5 py-2.5 rounded-xl normal-case transition-all"
-        >
-          Làm mới dữ liệu
-        </Button>
+      <div className="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <CalendarMonthIcon className="text-blue-600" /> Quản lý Phiếu Bảo Hành
+        </h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Theo dõi, cập nhật và xử lý thông tin bảo hành của bệnh nhân
+        </p>
       </div>
 
       {/* Filters & Search Bar */}
       <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-start">
-        <TextField
-          placeholder="Tìm kiếm nhanh theo mã phiếu, mã đơn hàng, tên bệnh nhân..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          fullWidth
-          size="small"
-          variant="outlined"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon className="text-slate-400" />
-              </InputAdornment>
-            ),
-            className: "bg-slate-50/50 rounded-lg text-sm",
-          }}
-          className="flex-1"
-        />
+        <div className="flex items-center gap-3 w-full flex-1">
+          <TextField
+            placeholder="Tìm kiếm nhanh theo mã phiếu, mã đơn hàng, tên bệnh nhân..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            fullWidth
+            size="small"
+            variant="outlined"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon className="text-slate-400" />
+                </InputAdornment>
+              ),
+              className: "bg-slate-50/50 rounded-lg text-sm",
+            }}
+            className="flex-1"
+          />
+          <IconButton
+            onClick={loadPhieuList}
+            disabled={loading}
+            title="Làm mới dữ liệu"
+            className="border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition-all shadow-sm shrink-0"
+            sx={{ width: 40, height: 40, borderRadius: "10px" }}
+          >
+            <RefreshIcon />
+          </IconButton>
+        </div>
         <div className="flex gap-4 w-full md:w-auto shrink-0 items-start">
           <ExportDateSelector
             placeholder="Chọn ngày tạo"

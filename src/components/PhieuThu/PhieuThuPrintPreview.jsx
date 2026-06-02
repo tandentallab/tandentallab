@@ -125,15 +125,11 @@ const PhieuThuPrintPreview = () => {
               <span style={{ minWidth: "105px" }}>Nội dung thu:</span>
               <strong>{phieuThu.noiDung || "---"}</strong>
             </div>
-            <div style={{ display: "flex", gap: "4px", alignItems: "baseline", justifyContent: "space-between" }}>
-              <div>
-                <span style={{ display: "inline-block", minWidth: "105px" }}>Số tiền thu:</span>
-                <strong style={{ fontSize: "11pt" }}>{formatCurrency(phieuThu.soTienThu)} đ</strong>
-              </div>
-              <div>
-                <span>Bằng chữ:</span>
-                <strong style={{ marginLeft: "4px", fontSize: "11pt" }}>{soTienText}</strong>
-              </div>
+            <div style={{ display: "flex", gap: "4px", alignItems: "baseline" }}>
+              <span style={{ minWidth: "105px" }}>Số tiền thu:</span>
+              <strong style={{ fontSize: "11pt", width: "3cm", display: "inline-block" }}>{formatCurrency(phieuThu.soTienThu)} đ</strong>
+              <span style={{ marginLeft: "20px" }}>Bằng chữ:</span>
+              <strong style={{ fontSize: "11pt", flex: 1 }}>{soTienText}</strong>
             </div>
           </div>
 

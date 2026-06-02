@@ -14,9 +14,8 @@ import { fetchDonHangChuaHoaDon } from "../../redux/slices/hoaDonSlice";
 import { fetchBangGiaByNhaKhoa } from "../../redux/slices/bangGiaSlice";
 import { buildProductNameMap } from "../../utils/hoaDonUtils";
 import dayjs from "dayjs";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import CustomDateRangePicker from "../common/CustomDateRangePicker"; // 🔥 IMPORT LỊCH XỊN
 
 const vndFormatter = new Intl.NumberFormat("vi-VN");
 const fmtVND = (v) => vndFormatter.format(Math.round(v || 0));
@@ -71,6 +70,9 @@ export default function DonHangChuaXuatModal({ open, onClose, selectedClinic, on
   const today = new Date().toISOString().split("T")[0];
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
+
+  // 🔥 STATE NEO LỊCH
+  const [anchorElCustomDate, setAnchorElCustomDate] = useState(null);
 
   useEffect(() => {
     if (open) {
@@ -149,7 +151,6 @@ export default function DonHangChuaXuatModal({ open, onClose, selectedClinic, on
     return { start, end };
   }, [dateFilter, fromDate, toDate]);
 
-  // 🔥 CHỈ LẤY ĐÚNG ĐƠN HÀNG CỦA NHA KHOA NÀY (Bảo mật data)
   const filteredDonHangs = useMemo(() => {
     const clinicOrders = donHangs.filter(o => o.nhaKhoa === selectedClinic || o.nhaKhoa?._id === selectedClinic);
     return clinicOrders.filter((o) => isWithinInterval(new Date(o.ngayNhan), { start: activeDateRange.start, end: activeDateRange.end }));
@@ -180,12 +181,9 @@ export default function DonHangChuaXuatModal({ open, onClose, selectedClinic, on
           ngayNhan: order.ngayNhan,
           bacSi: order.bacSi?.hoVaTen,
           benhNhan: order.benhNhan?.hoVaTen,
-
-          // 🔥 3 DÒNG DỮ LIỆU ĐỂ TRUYỀN RA NGOÀI ĐẮP TABLE
           sanPhamId: spId,
           sanPhamDonHangId: sp._id,
           ghiChu: sp.ghiChu,
-
           sanPham: mapTen[spId] || "SP",
           viTri: sp.viTri,
           loai: sp.loaiDon || "Mới",
@@ -261,12 +259,32 @@ export default function DonHangChuaXuatModal({ open, onClose, selectedClinic, on
               </Select>
             </FormControl>
 
+            {/* 🔥 THAY ĐỔI Ở ĐÂY: GỌI LỊCH CUSTOM THAY VÌ DATEPICKER MUI */}
             {dateFilter === "custom" && (
-              <div className="flex items-center gap-2">
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DatePicker format="DD/MM/YYYY" value={fromDate ? dayjs(fromDate) : null} onChange={(val) => setFromDate(val ? val.format("YYYY-MM-DD") : "")} slotProps={{ textField: { size: "small", sx: { width: 140 } } }} />
-                  <DatePicker format="DD/MM/YYYY" value={toDate ? dayjs(toDate) : null} onChange={(val) => setToDate(val ? val.format("YYYY-MM-DD") : "")} slotProps={{ textField: { size: "small", sx: { width: 140 } } }} />
-                </LocalizationProvider>
+              <div className="flex items-center gap-2 relative">
+                <button
+                  onClick={(e) => setAnchorElCustomDate(e.currentTarget)}
+                  className="h-10 px-3 flex items-center justify-center gap-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors shadow-sm min-w-[220px]"
+                >
+                  <CalendarTodayIcon sx={{ fontSize: 18 }} />
+                  {fromDate && toDate
+                    ? `${dayjs(fromDate).format('DD/MM/YYYY')} - ${dayjs(toDate).format('DD/MM/YYYY')}`
+                    : "Chọn khoảng ngày..."}
+                </button>
+                <CustomDateRangePicker
+                  open={Boolean(anchorElCustomDate)}
+                  anchorEl={anchorElCustomDate}
+                  onClose={() => setAnchorElCustomDate(null)}
+                  initialDates={{
+                    start: fromDate,
+                    end: toDate,
+                  }}
+                  onApply={(dates) => {
+                    setFromDate(dates.start);
+                    setToDate(dates.end);
+                    setAnchorElCustomDate(null);
+                  }}
+                />
               </div>
             )}
 
@@ -330,7 +348,6 @@ export default function DonHangChuaXuatModal({ open, onClose, selectedClinic, on
           variant="contained"
           sx={{ bgcolor: "#00a8df", "&:hover": { bgcolor: "#0288d1" }, fontWeight: "bold", px: 4 }}
           onClick={() => {
-            // 🔥 TRUYỀN CẢ DATA XỊN RA NGOÀI (CÓ TÊN VÀ GIÁ THẬT)
             const enrichedProducts = flattenedData.filter(row => selectedSet.has(row.orderId));
             onAddOrders(selectedOrders, enrichedProducts);
             onClose();

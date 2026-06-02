@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import {
   Table,
@@ -20,22 +14,19 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 
 // ================= FORMATTERS =================
 const vndFormatter = new Intl.NumberFormat("vi-VN");
 const dateFormatter = new Intl.DateTimeFormat("vi-VN");
 
 const fmtVND = (v) => vndFormatter.format(v || 0);
-const fmtDate = (d) => (d ? dateFormatter.format(new Date(d)) : "—");
+const fmtDate = (d) => d ? dateFormatter.format(new Date(d)) : "";
 
 // ================= CONSTANTS =================
 const NUMERIC_KEYS = new Set([
-  "tongCong",
-  "giamGia",
-  "giaTriThanhToan",
-  "daThanhToan",
-  "conLai",
-  "chiPhiKhac",
+  "tongCong", "giamGia", "giaTriThanhToan",
+  "daThanhToan", "conLai", "chiPhiKhac",
 ]);
 
 const STATUS_CLASS = {
@@ -46,54 +37,69 @@ const STATUS_CLASS = {
 };
 
 // ================= RESIZABLE HEADER CELL =================
-const ResizableHeaderCell = React.memo(
-  ({ label, style, columnKey, onResize }) => (
-    <TableCell sx={style}>
-      {label}
-      <div
-        onMouseDown={(e) => onResize(columnKey, e)}
-        className="absolute top-0 right-0 w-3 h-full cursor-col-resize z-10 flex items-center justify-center transition-all hover:bg-gray-100 after:content-[''] after:absolute after:w-[2px] after:h-3/5 after:bg-gray-300 after:rounded"
-      />
-    </TableCell>
-  )
-);
-
-// ================= ROW COMPONENT =================
-const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => (
-  <TableRow
-    hover
-    className="cursor-pointer transition-colors duration-200 hover:bg-slate-50"
-    onClick={() => onNavigate(`/hoa-don/${hd._id}/edit`)}
-  >
-    <TableCell sx={cellStyles.ngayXuat}>
-      {fmtDate(hd.ngayXuatHoaDon || hd.createdAt)}
-    </TableCell>
-    <TableCell sx={cellStyles.soHoaDon}>{hd.soHoaDon}</TableCell>
-    <TableCell sx={cellStyles.nhaKhoa}>
-      {hd.nhaKhoa?.hoVaTen || hd.nhaKhoa?.tenNhaKhoa || "—"}
-    </TableCell>
-    <TableCell sx={cellStyles.tongCong}>{fmtVND(hd.tongCong)}</TableCell>
-    <TableCell sx={cellStyles.giamGia}>{fmtVND(hd.chietKhau)}</TableCell>
-    <TableCell sx={cellStyles.giaTriThanhToan}>
-      {fmtVND(hd.giaTriThanhToan)}
-    </TableCell>
-    <TableCell sx={cellStyles.daThanhToan}>{fmtVND(hd.daThanhToan)}</TableCell>
-    <TableCell sx={cellStyles.conLai}>{fmtVND(hd.conLai)}</TableCell>
-    <TableCell sx={cellStyles.chiPhiKhac}>{fmtVND(hd.chiPhiKhac)}</TableCell>
-    <TableCell sx={cellStyles.trangThai}>
-      <span
-        className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide ${
-          STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"
-        }`}
-      >
-        {hd.trangThai || "—"}
-      </span>
-    </TableCell>
-    <TableCell sx={cellStyles.ghiChu}>{hd.ghiChuChoKhachHang || "—"}</TableCell>
-    <TableCell sx={cellStyles.ngayDenHan}>{fmtDate(hd.ngayDenHan)}</TableCell>
-  </TableRow>
+const ResizableHeaderCell = React.memo(({ label, style, columnKey, onResize }) => (
+  <TableCell sx={style}>
+    {label}
+    <div
+      onMouseDown={(e) => onResize(columnKey, e)}
+      className="absolute top-0 right-0 w-3 h-full cursor-col-resize z-10 flex items-center justify-center transition-all hover:bg-gray-100 after:content-[''] after:absolute after:w-[2px] after:h-3/5 after:bg-gray-300 after:rounded"
+    />
+  </TableCell>
 ));
 
+// ================= ROW COMPONENT =================
+const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => {
+  // 1. Tính toán ngày đến hạn (Ngày xuất + 20 ngày)
+  const baseDate = hd.ngayXuatHoaDon || hd.createdAt;
+  let textDenHan = "";
+  let isTreHan = false;
+
+  if (baseDate) {
+    const ngayDenHan = dayjs(baseDate).add(20, 'day').endOf('day');
+    textDenHan = ngayDenHan.format('DD/MM/YYYY');
+
+    // 2. Chỉ báo đỏ khi: Đã qua hạn VÀ khách vẫn còn nợ tiền
+    if (dayjs().isAfter(ngayDenHan) && Number(hd.conLai || 0) > 0) {
+      isTreHan = true;
+    }
+  }
+
+  return (
+    <TableRow
+      hover
+      className="cursor-pointer transition-colors duration-200 hover:bg-slate-50"
+      onClick={() => onNavigate(`/hoa-don/${hd._id}/edit`)}
+    >
+      <TableCell sx={cellStyles.ngayXuat}>{fmtDate(hd.ngayXuatHoaDon || hd.createdAt)}</TableCell>
+      <TableCell sx={cellStyles.soHoaDon}>{hd.soHoaDon}</TableCell>
+      <TableCell sx={cellStyles.nhaKhoa}>{hd.nhaKhoa?.hoVaTen || hd.nhaKhoa?.tenNhaKhoa || ""}</TableCell>
+      <TableCell sx={cellStyles.tongCong}>{fmtVND(hd.tongCong)}</TableCell>
+      <TableCell sx={cellStyles.giamGia}>{fmtVND(hd.chietKhau)}</TableCell>
+      <TableCell sx={cellStyles.giaTriThanhToan}>{fmtVND(hd.giaTriThanhToan)}</TableCell>
+      <TableCell sx={cellStyles.daThanhToan}>{fmtVND(hd.daThanhToan)}</TableCell>
+      <TableCell sx={cellStyles.conLai}>{fmtVND(hd.conLai)}</TableCell>
+      <TableCell sx={cellStyles.chiPhiKhac}>{fmtVND(hd.chiPhiKhac)}</TableCell>
+      <TableCell sx={cellStyles.trangThai}>
+        {/* Tiện tay bo góc (rounded) cái label trạng thái cho đẹp UI sếp nhé */}
+        <span className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide rounded-md ${STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"}`}>
+          {hd.trangThai || ""}
+        </span>
+      </TableCell>
+      <TableCell sx={cellStyles.ghiChu}>{hd.ghiChuChoKhachHang || ""}</TableCell>
+
+      {/* 3. Render cột Đến Hạn với UI tuỳ biến màu sắc */}
+      <TableCell
+        sx={{
+          ...cellStyles.ngayDenHan,
+          color: isTreHan ? '#ef4444' : '#6b7280', // Đỏ báo động nếu trễ, xám nếu an toàn
+          fontWeight: isTreHan ? 600 : 400
+        }}
+      >
+        {textDenHan}
+      </TableCell>
+    </TableRow>
+  );
+});
 // ================= COMPONENT CHÍNH =================
 // Cấu hình Virtual Scroll
 const ROW_HEIGHT = 45;
@@ -122,9 +128,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
   });
 
   const columnWidthsRef = useRef(columnWidths);
-  useEffect(() => {
-    columnWidthsRef.current = columnWidths;
-  }, [columnWidths]);
+  useEffect(() => { columnWidthsRef.current = columnWidths; }, [columnWidths]);
 
   const totalTableWidth = useMemo(
     () => Object.values(columnWidths).reduce((a, b) => a + b, 0),
@@ -245,25 +249,12 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
       borderBottom: "2px solid #cbd5e1",
     });
 
-    const row = {};
-    const hdr = {};
-    [
-      "ngayXuat",
-      "soHoaDon",
-      "nhaKhoa",
-      "tongCong",
-      "giamGia",
-      "giaTriThanhToan",
-      "daThanhToan",
-      "conLai",
-      "chiPhiKhac",
-      "trangThai",
-      "ghiChu",
-      "ngayDenHan",
-    ].forEach((k) => {
-      row[k] = base(k);
-      hdr[k] = baseHeader(k);
-    });
+    const row = {}; const hdr = {};
+    ["ngayXuat", "soHoaDon", "nhaKhoa", "tongCong", "giamGia",
+      "giaTriThanhToan", "daThanhToan", "conLai", "chiPhiKhac",
+      "trangThai", "ghiChu", "ngayDenHan"].forEach((k) => {
+        row[k] = base(k); hdr[k] = baseHeader(k);
+      });
     return { row, hdr };
   }, [columnWidths]);
 
@@ -284,11 +275,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
           WebkitOverflowScrolling: "touch",
           "&::-webkit-scrollbar": { height: 14, width: 14 },
           "&::-webkit-scrollbar-track": { background: "transparent" },
-          "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "#cbd5e1",
-            borderRadius: 10,
-            border: "3px solid #ffffff",
-          },
+          "&::-webkit-scrollbar-thumb": { backgroundColor: "#cbd5e1", borderRadius: 10, border: "3px solid #ffffff" },
           "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "#94a3b8" },
         }}
       >
@@ -310,9 +297,8 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
                     Ngày xuất
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className={`w-4 h-4 transition-transform duration-300 ${
-                        sortOrder === "desc" ? "rotate-180" : ""
-                      }`}
+                      className={`w-4 h-4 transition-transform duration-300 ${sortOrder === "desc" ? "rotate-180" : ""
+                        }`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -396,6 +382,17 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
                 style={cellStyles.hdr.ngayDenHan}
                 onResize={handleResize}
               />
+              <ResizableHeaderCell label="Số" columnKey="soHoaDon" style={cellStyles.hdr.soHoaDon} onResize={handleResize} />
+              <ResizableHeaderCell label="Nha khoa" columnKey="nhaKhoa" style={cellStyles.hdr.nhaKhoa} onResize={handleResize} />
+              <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" style={cellStyles.hdr.tongCong} onResize={handleResize} />
+              <ResizableHeaderCell label="Giảm giá" columnKey="giamGia" style={cellStyles.hdr.giamGia} onResize={handleResize} />
+              <ResizableHeaderCell label="Giá trị TT" columnKey="giaTriThanhToan" style={cellStyles.hdr.giaTriThanhToan} onResize={handleResize} />
+              <ResizableHeaderCell label="Đã thanh toán" columnKey="daThanhToan" style={cellStyles.hdr.daThanhToan} onResize={handleResize} />
+              <ResizableHeaderCell label="Còn lại" columnKey="conLai" style={cellStyles.hdr.conLai} onResize={handleResize} />
+              <ResizableHeaderCell label="Chi phí khác" columnKey="chiPhiKhac" style={cellStyles.hdr.chiPhiKhac} onResize={handleResize} />
+              <ResizableHeaderCell label="Trạng thái" columnKey="trangThai" style={cellStyles.hdr.trangThai} onResize={handleResize} />
+              <ResizableHeaderCell label="Ghi chú" columnKey="ghiChu" style={cellStyles.hdr.ghiChu} onResize={handleResize} />
+              <ResizableHeaderCell label="Đến hạn" columnKey="ngayDenHan" style={cellStyles.hdr.ngayDenHan} onResize={handleResize} />
             </TableRow>
           </TableHead>
 
@@ -470,62 +467,40 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
               <span className="text-xs text-gray-400 block">Nha khoa</span>
-              <span className="font-medium text-gray-800">
-                {selectedHD?.nhaKhoa?.hoVaTen ||
-                  selectedHD?.nhaKhoa?.tenNhaKhoa}
-              </span>
+              <span className="font-medium text-gray-800">{selectedHD?.nhaKhoa?.hoVaTen || selectedHD?.nhaKhoa?.tenNhaKhoa}</span>
             </div>
             <div>
               <span className="text-xs text-gray-400 block">Trạng thái</span>
               <Chip label={selectedHD?.trangThai} size="small" color="info" />
             </div>
             <div>
-              <span className="text-xs text-gray-400 block">
-                Tổng tiền chưa CK
-              </span>
-              <span className="font-medium">
-                {fmtVND(selectedHD?.tongCong)}đ
-              </span>
+              <span className="text-xs text-gray-400 block">Tổng tiền chưa CK</span>
+              <span className="font-medium">{fmtVND(selectedHD?.tongCong)}đ</span>
             </div>
             <div>
-              <span className="text-xs text-red-400 block">
-                Thực thu (Sau CK)
-              </span>
-              <span className="text-lg font-bold text-red-600">
-                {fmtVND(selectedHD?.giaTriThanhToan)}đ
-              </span>
+              <span className="text-xs text-red-400 block">Thực thu (Sau CK)</span>
+              <span className="text-lg font-bold text-red-600">{fmtVND(selectedHD?.giaTriThanhToan)}đ</span>
             </div>
           </div>
 
-          <p className="font-semibold mb-2 text-sm uppercase text-gray-500">
-            Danh sách sản phẩm
-          </p>
+          <p className="font-semibold mb-2 text-sm uppercase text-gray-500">Danh sách sản phẩm</p>
           <div className="max-h-60 overflow-y-auto bg-gray-50 rounded border p-3 flex flex-col gap-3">
             {selectedHD?.danhSachSanPham?.map((item, idx) => (
-              <div
-                key={idx}
-                className="pb-3 border-b border-gray-200 last:border-0 flex justify-between items-center"
-              >
+              <div key={idx} className="pb-3 border-b border-gray-200 last:border-0 flex justify-between items-center">
                 <div>
-                  <div className="font-semibold text-blue-700">
-                    {item.tenSanPham || item.sanPham?.tenSanPham || "Sản phẩm"}
-                  </div>
+                  <div className="font-semibold text-blue-700">{item.tenSanPham || item.sanPham?.tenSanPham || "Sản phẩm"}</div>
                   <div className="text-xs text-gray-500 mt-1">
                     SL: {item.soLuong} | Đơn giá: {fmtVND(item.donGia)}đ
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="font-bold text-gray-800">
-                    {fmtVND(item.tongCongSanPham)}đ
-                  </span>
+                  <span className="font-bold text-gray-800">{fmtVND(item.tongCongSanPham)}đ</span>
                 </div>
               </div>
             ))}
           </div>
           <div className="flex justify-end mt-6">
-            <Button onClick={() => setOpenDetail(false)} variant="outlined">
-              Đóng
-            </Button>
+            <Button onClick={() => setOpenDetail(false)} variant="outlined">Đóng</Button>
           </div>
         </div>
       </Modal>

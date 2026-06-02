@@ -15,6 +15,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { api } from "../../config/api";
 import { exportPhieuThuToExcel } from "../../utils/exportToExcel";
 import ExportDateSelector from "../common/ExportDateSelector";
+import CustomDateRangePicker from "../common/CustomDateRangePicker"; // 🔥 IMPORT LỊCH XỊN
+import dayjs from "dayjs"; // 🔥 IMPORT DAYJS
 import {
     EMPTY_EXPORT_DATE_FILTER,
     toISODateRange,
@@ -35,6 +37,7 @@ const formatDateTime = (d) => {
     });
 };
 
+// 🔥 ĐÃ DỌN DẸP PRESETS THỪA
 const DATE_PRESETS = [
     { key: "custom", label: "Chọn trên Lịch", isCalendar: true },
     { key: "today", label: "Hôm nay" },
@@ -42,9 +45,6 @@ const DATE_PRESETS = [
     { key: "this_week", label: "Tuần này" },
     { key: "this_month", label: "Tháng này" },
     { key: "this_year", label: "Năm nay" },
-    { key: "last_week", label: "Tuần trước" },
-    { key: "last_month", label: "Tháng trước" },
-    { key: "last_year", label: "Năm trước" },
     { key: "last_7", label: "Trong vòng 7 ngày" },
     { key: "last_10", label: "Trong vòng 10 ngày" },
     { key: "last_30", label: "Trong vòng 30 ngày" },
@@ -60,9 +60,6 @@ const getDateRange = (preset) => {
         case "this_week": { const d = today.getDay(); const f = new Date(today); f.setDate(today.getDate() - (d === 0 ? 6 : d - 1)); return { from: f, to: tomorrow }; }
         case "this_month": return { from: new Date(today.getFullYear(), today.getMonth(), 1), to: tomorrow };
         case "this_year": return { from: new Date(today.getFullYear(), 0, 1), to: tomorrow };
-        case "last_week": { const d = today.getDay(); const f = new Date(today); f.setDate(today.getDate() - (d === 0 ? 6 : d - 1) - 7); const t = new Date(f); t.setDate(f.getDate() + 7); return { from: f, to: t }; }
-        case "last_month": return { from: new Date(today.getFullYear(), today.getMonth() - 1, 1), to: new Date(today.getFullYear(), today.getMonth(), 1) };
-        case "last_year": return { from: new Date(today.getFullYear() - 1, 0, 1), to: new Date(today.getFullYear(), 0, 1) };
         case "last_7": { const f = new Date(today); f.setDate(f.getDate() - 7); return { from: f, to: tomorrow }; }
         case "last_10": { const f = new Date(today); f.setDate(f.getDate() - 10); return { from: f, to: tomorrow }; }
         case "last_30": { const f = new Date(today); f.setDate(f.getDate() - 30); return { from: f, to: tomorrow }; }
@@ -96,10 +93,15 @@ export default function PhieuThuPage() {
     const [openPickerModal, setOpenPickerModal] = useState(null);
     const [nhaKhoaSearch, setNhaKhoaSearch] = useState("");
     const filterRef = useRef(null);
+
+    // Export UI
     const [openExport, setOpenExport] = useState(false);
     const [exportDateFilter, setExportDateFilter] = useState(EMPTY_EXPORT_DATE_FILTER);
     const [exportNhaKhoa, setExportNhaKhoa] = useState("");
     const [exporting, setExporting] = useState(false);
+
+    // 🔥 STATE ĐỂ NEO TỜ LỊCH CUSTOM TRONG MENU LỌC BẢNG
+    const [anchorElCustomDate, setAnchorElCustomDate] = useState(null);
 
     useEffect(() => { dispatch(fetchNhaKhoa()); }, [dispatch]);
 
@@ -178,14 +180,26 @@ export default function PhieuThuPage() {
     };
 
     const handleExportExcel = async () => {
-        if (!isValidExportDateFilter(exportDateFilter)) {
-            toast.error("Vui lòng chọn thời gian bằng preset hoặc Chọn trên lịch.");
+        const isPreset = exportDateFilter?.preset && exportDateFilter.preset !== "custom";
+        const isCustom = exportDateFilter?.preset === "custom" && exportDateFilter?.startDate && exportDateFilter?.endDate;
+
+        if (!isPreset && !isCustom) {
+            toast.error("Vui lòng chọn khoảng thời gian xuất Excel.");
             return;
         }
 
         try {
             setExporting(true);
-            const { fromISO, toISO } = toISODateRange(exportDateFilter);
+
+            let fromISO, toISO;
+            if (isCustom) {
+                fromISO = new Date(exportDateFilter.startDate).toISOString();
+                toISO = new Date(`${exportDateFilter.endDate}T23:59:59`).toISOString();
+            } else {
+                const dateRange = toISODateRange(exportDateFilter);
+                fromISO = dateRange.fromISO;
+                toISO = dateRange.toISO;
+            }
 
             const res = await api.get("/phieu-thu", {
                 params: {
@@ -223,14 +237,21 @@ export default function PhieuThuPage() {
     const isFiltered = !!appliedNgayThu.preset || !!appliedNhaKhoa;
     const totalPages = pagination.totalPages || 1;
 
+    // 🔥 GIAO DIỆN LỌC NGÀY ĐÃ ĐƯỢC CẬP NHẬT GIỐNG HOÁ ĐƠN
     const renderDateDropdown = (cf, scf) => (
         <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             {DATE_PRESETS.map((p) => (
                 <div key={p.key}>
                     <button
-                        onClick={() => {
+                        onClick={(e) => {
                             scf((prev) => ({ ...prev, preset: prev.preset === p.key ? null : p.key }));
-                            if (!p.isCalendar) setOpenDateModal(null);
+                            if (!p.isCalendar) {
+                                setOpenDateModal(null);
+                            } else {
+                                if (cf.preset !== p.key) {
+                                    setAnchorElCustomDate(e.currentTarget);
+                                }
+                            }
                         }}
                         className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${cf.preset === p.key ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
                     >
@@ -238,21 +259,49 @@ export default function PhieuThuPage() {
                         {p.label}
                     </button>
                     {p.isCalendar && cf.preset === "custom" && (
-                        <div className="px-4 py-3 space-y-2 bg-blue-50/30 border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 w-8 shrink-0">Từ</span>
-                                <input type="date" value={cf.customFrom} onChange={(e) => scf((prev) => ({ ...prev, customFrom: e.target.value }))}
-                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400" />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 w-8 shrink-0">Đến</span>
-                                <input type="date" value={cf.customTo} onChange={(e) => scf((prev) => ({ ...prev, customTo: e.target.value }))}
-                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400" />
-                            </div>
+                        <div className="px-4 py-3 bg-blue-50/30 border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                onClick={(e) => setAnchorElCustomDate(e.currentTarget)}
+                                className="w-full h-9 px-2 flex items-center justify-center gap-2 text-xs font-semibold text-blue-700 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors shadow-sm"
+                            >
+                                {cf.customFrom && cf.customTo
+                                    ? `${dayjs(cf.customFrom).format('DD/MM/YYYY')} - ${dayjs(cf.customTo).format('DD/MM/YYYY')}`
+                                    : "📅 Bấm để chọn ngày..."}
+                            </button>
                         </div>
                     )}
                 </div>
             ))}
+
+            {/* LẮP POP-UP LỊCH VÀ BẬT LOGIC "BẤM PHÁT ĂN LUÔN" */}
+            <CustomDateRangePicker
+                open={Boolean(anchorElCustomDate)}
+                anchorEl={anchorElCustomDate}
+                onClose={() => setAnchorElCustomDate(null)}
+                initialDates={{
+                    start: cf.customFrom,
+                    end: cf.customTo,
+                }}
+                onApply={(dates) => {
+                    const newNgayThu = {
+                        preset: "custom",
+                        customFrom: dates.start,
+                        customTo: dates.end,
+                    };
+
+                    // Cập nhật State đóng lịch
+                    setAnchorElCustomDate(null);
+                    scf(newNgayThu);
+
+                    // 🔥 BÙM! Lọc bảng & Tắt menu ngay lập tức
+                    setAppliedNgayThu(newNgayThu);
+                    setAppliedNhaKhoa(draftNhaKhoa);
+                    setPage(1);
+                    setOpenDateModal(null);
+                    setOpenPickerModal(null);
+                    setShowFilter(false);
+                }}
+            />
         </div>
     );
 
@@ -393,8 +442,8 @@ export default function PhieuThuPage() {
                             <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
                                 <CalendarTodayIcon sx={{ fontSize: 11 }} />
                                 {getDateLabel(appliedNgayThu)}
-                                {appliedNgayThu.preset === "custom" && appliedNgayThu.customFrom && ` ${appliedNgayThu.customFrom}`}
-                                {appliedNgayThu.preset === "custom" && appliedNgayThu.customTo && ` → ${appliedNgayThu.customTo}`}
+                                {appliedNgayThu.preset === "custom" && appliedNgayThu.customFrom && ` ${dayjs(appliedNgayThu.customFrom).format('DD/MM/YYYY')}`}
+                                {appliedNgayThu.preset === "custom" && appliedNgayThu.customTo && ` → ${dayjs(appliedNgayThu.customTo).format('DD/MM/YYYY')}`}
                                 <button
                                     onClick={() => { setAppliedNgayThu(EMPTY_DATE); setPage(1); }}
                                     className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -543,7 +592,7 @@ export default function PhieuThuPage() {
                             <div className="grid grid-cols-1 gap-6 mb-6">
                                 <div>
                                     <ExportDateSelector
-                                        title="Khoảng thời gian"
+                                        title="Chọn ngày xuất"
                                         value={exportDateFilter}
                                         onChange={setExportDateFilter}
                                     />

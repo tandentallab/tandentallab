@@ -17,6 +17,7 @@ import {
   deleteDonHang,
   updateDonHang,
   updateCongDoanTrangThai,
+  advanceTrangThai,
 } from "../../redux/slices/donHangSlice";
 import { toast } from "sonner";
 import { api } from "../../config/api";
@@ -29,6 +30,7 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import PrintIcon from '@mui/icons-material/Print';
 import CheckIcon from '@mui/icons-material/Check';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 // Helpers for warranty edit
 const addYearsToDate = (dateValue, years) => {
@@ -151,27 +153,89 @@ const DonHangDetailPanel = (props) => {
     }
   };
 
-  const handleMarkComplete = () => {
-    const payload = {
-      ...donHang,
-      trangThai: "Hoàn thành",
-      nhaKhoa: donHang.nhaKhoa?._id || donHang.nhaKhoa,
-      bacSi: donHang.bacSi?._id || donHang.bacSi,
-      benhNhan: donHang.benhNhan?._id || donHang.benhNhan,
-      danhSachSanPham: donHang.danhSachSanPham?.map((sp) => ({
-        ...sp,
-        sanPham: sp.sanPham?._id || sp.sanPham,
-        donHangCu: sp.donHangCu?._id || sp.donHangCu || undefined,
-      })),
-    };
+  // --- Luồng trạng thái theo yêu cầu thử ---
+  const getOrderedTrials = (danhSachSanPham) =>
+    (danhSachSanPham || []).flatMap((sp) => sp.yeuCauThu || []);
+
+  const getFlowButton = (dh) => {
+    if (!dh) return null;
+    const trials = getOrderedTrials(dh.danhSachSanPham);
+    const { trangThai, buocThuHienTai } = dh;
+    if (trangThai === "Hoàn thành" || trangThai === "Đã giao") return { type: "done" };
+    if (trials.length === 0) return { type: "hoan_thanh" };
+    if (trangThai === "Đang thử") return { type: "san_xuat_tiep" };
+    // "Chờ xử lý" hoặc "Đang sản xuất"
+    const nextIndex = buocThuHienTai == null ? 0 : buocThuHienTai + 1;
+    if (nextIndex < trials.length) {
+      return { type: "thu", congDoan: trials[nextIndex].congDoan, index: nextIndex };
+    }
+    return { type: "hoan_thanh" };
+  };
+
+  const handleAdvanceStatus = (flowBtn) => {
+    if (!flowBtn || flowBtn.type === "done") return;
+    let newTrangThai;
+    let newBuocThuHienTai = undefined;
+    if (flowBtn.type === "thu") {
+      newTrangThai = "Đang thử";
+      newBuocThuHienTai = flowBtn.index;
+    } else if (flowBtn.type === "san_xuat_tiep") {
+      newTrangThai = "Đang sản xuất";
+      newBuocThuHienTai = donHang.buocThuHienTai == null ? 0 : donHang.buocThuHienTai;
+    } else if (flowBtn.type === "hoan_thanh") {
+      newTrangThai = "Hoàn thành";
+    }
     const promise = dispatch(
-      updateDonHang({ id: donHang._id, data: payload })
+      advanceTrangThai({ id: donHang._id, trangThai: newTrangThai, buocThuHienTai: newBuocThuHienTai })
     ).unwrap();
     toast.promise(promise, {
       loading: "Đang cập nhật...",
-      success: `Đơn hàng ${maDonHang} đã hoàn thành!`,
+      success: `Đơn hàng ${maDonHang}: ${newTrangThai}`,
       error: (err) => err || "Cập nhật trạng thái thất bại",
     });
+  };
+
+  const renderFlowButton = () => {
+    const flowBtn = getFlowButton(donHang);
+    if (!flowBtn) return null;
+    if (flowBtn.type === "done") {
+      return (
+        <button disabled className="flex-1 py-2 rounded-lg font-medium text-sm bg-green-100 text-green-700 border border-green-200 cursor-default flex items-center justify-center gap-1.5">
+          <CheckIcon sx={{ fontSize: 18 }} /> Đã hoàn thành
+        </button>
+      );
+    }
+    if (flowBtn.type === "hoan_thanh") {
+      return (
+        <button
+          onClick={() => handleAdvanceStatus(flowBtn)}
+          className="flex-1 py-2 rounded-lg font-medium text-sm bg-green-500 hover:bg-green-600 text-white transition flex items-center justify-center gap-1.5"
+        >
+          <CheckIcon sx={{ fontSize: 18 }} /> Hoàn thành
+        </button>
+      );
+    }
+    if (flowBtn.type === "san_xuat_tiep") {
+      return (
+        <button
+          onClick={() => handleAdvanceStatus(flowBtn)}
+          className="flex-1 py-2 rounded-lg font-medium text-sm bg-blue-500 hover:bg-blue-600 text-white transition flex items-center justify-center gap-1.5"
+        >
+          <PlayArrowIcon sx={{ fontSize: 18 }} /> Sản xuất tiếp
+        </button>
+      );
+    }
+    if (flowBtn.type === "thu") {
+      return (
+        <button
+          onClick={() => handleAdvanceStatus(flowBtn)}
+          className="flex-1 py-2 rounded-lg font-medium text-sm bg-purple-500 hover:bg-purple-600 text-white transition flex items-center justify-center gap-1.5"
+        >
+          {flowBtn.congDoan}
+        </button>
+      );
+    }
+    return null;
   };
 
   const renderViTriText = (viTriArr) => {
@@ -713,14 +777,7 @@ const DonHangDetailPanel = (props) => {
         {/* Bottom bar */}
         {!props.fullscreen && (
           <div className="border-t bg-white px-3 py-2.5 flex gap-2 shrink-0">
-            <button
-              onClick={handleMarkComplete}
-              disabled={donHang?.trangThai === "Hoàn thành"}
-              className={`flex-1 py-2 rounded-lg font-medium text-sm transition flex items-center justify-center gap-1.5 ${donHang?.trangThai === "Hoàn thành" ? "bg-green-100 text-green-700 border border-green-200 cursor-default" : "bg-green-500 hover:bg-green-600 text-white"}`}
-            >
-              <CheckIcon />
-              {donHang?.trangThai === "Hoàn thành" ? "Đã hoàn thành" : "Hoàn thành"}
-            </button>
+            {renderFlowButton()}
             <button
               onClick={() => navigate(`/donhang/${donHang._id}/print`)}
               className="flex-1 py-2 rounded-lg font-medium text-sm bg-blue-500 hover:bg-blue-600 text-white transition flex items-center justify-center gap-1.5"

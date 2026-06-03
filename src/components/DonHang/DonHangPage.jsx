@@ -47,6 +47,8 @@ import {
   toISODateRange,
   isValidExportDateFilter,
 } from "../../utils/exportDatePresets";
+import dayjs from "dayjs";
+import CustomDateRangePicker from "../common/CustomDateRangePicker";
 
 const DATE_PRESETS = [
   { key: "custom", label: "Chọn trên Lịch", isCalendar: true },
@@ -63,7 +65,7 @@ const DATE_PRESETS = [
   { key: "last_30", label: "Trong vòng 30 ngày" },
 ];
 
-const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Đang thử", "Hoàn thành"];
+const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Đang sản xuất", "Đang thử", "Hoàn thành"];
 const ROWS_PER_PAGE = 20;
 
 const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
@@ -189,6 +191,7 @@ const DonHangPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [selectedDonHangId, setSelectedDonHangId] = useState(null);
   const sentinelRef = useRef(null);
 
@@ -224,6 +227,7 @@ const DonHangPage = () => {
   const filterRef = useRef(null);
   const [openDateModal, setOpenDateModal] = useState(null); // 'ngayNhan' | 'ycHoanThanh' | 'henGiao'
   const [openPickerModal, setOpenPickerModal] = useState(null); // 'nhaKhoa' | 'benhNhan'
+  const [datePickerAnchor, setDatePickerAnchor] = useState({ ngayNhan: null, ycHoanThanh: null, henGiao: null });
 
   // Export state
   const [openExport, setOpenExport] = useState(false);
@@ -308,6 +312,7 @@ const DonHangPage = () => {
     appliedYcHoanThanh,
     appliedHenGiao,
     getFilterParams,
+    refreshKey,
   ]);
 
   useEffect(() => {
@@ -432,6 +437,7 @@ const DonHangPage = () => {
     setSearchTerm("");
     dispatch(resetDonHangPageFilter());
     setPage(1);
+    setRefreshKey((k) => k + 1);
   };
 
   const handleOpenAdd = () => navigate("/donhang/create");
@@ -609,7 +615,7 @@ const DonHangPage = () => {
   const getDateLabel = (f) =>
     DATE_PRESETS.find((p) => p.key === f.preset)?.label || "";
 
-  const renderDateDropdown = (cf, scf) => (
+  const renderDateDropdown = (cf, scf, dateKey) => (
     <div className="absolute left-5 top-full z-[100] w-[80%] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
       {DATE_PRESETS.map((p) => (
         <div key={p.key}>
@@ -631,31 +637,32 @@ const DonHangPage = () => {
           </button>
           {p.isCalendar && cf.preset === "custom" && (
             <div
-              className="px-4 py-3 space-y-2 bg-blue-50/30 border-b border-gray-100"
+              className="px-4 py-3 bg-blue-50/30 border-b border-gray-100"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 w-8 shrink-0">Từ</span>
-                <input
-                  type="date"
-                  value={cf.customFrom}
-                  onChange={(e) =>
-                    scf((prev) => ({ ...prev, customFrom: e.target.value }))
-                  }
-                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 w-8 shrink-0">Đến</span>
-                <input
-                  type="date"
-                  value={cf.customTo}
-                  onChange={(e) =>
-                    scf((prev) => ({ ...prev, customTo: e.target.value }))
-                  }
-                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
-                />
-              </div>
+              <button
+                onClick={(e) => setDatePickerAnchor((prev) => ({ ...prev, [dateKey]: e.currentTarget }))}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-blue-200 bg-white text-xs text-gray-700 hover:bg-blue-50 transition"
+              >
+                <span>
+                  {cf.customFrom && cf.customTo
+                    ? `${dayjs(cf.customFrom).format('DD/MM/YYYY')} – ${dayjs(cf.customTo).format('DD/MM/YYYY')}`
+                    : cf.customFrom
+                      ? `Từ ${dayjs(cf.customFrom).format('DD/MM/YYYY')}`
+                      : "Chọn khoảng ngày..."}
+                </span>
+                <CalendarTodayIcon sx={{ fontSize: 13 }} />
+              </button>
+              <CustomDateRangePicker
+                open={Boolean(datePickerAnchor[dateKey])}
+                anchorEl={datePickerAnchor[dateKey]}
+                onClose={() => setDatePickerAnchor((prev) => ({ ...prev, [dateKey]: null }))}
+                initialDates={{ start: cf.customFrom || "", end: cf.customTo || "" }}
+                onApply={(dates) => {
+                  scf((prev) => ({ ...prev, customFrom: dates.start, customTo: dates.end }));
+                  setDatePickerAnchor((prev) => ({ ...prev, [dateKey]: null }));
+                }}
+              />
             </div>
           )}
         </div>
@@ -722,7 +729,7 @@ const DonHangPage = () => {
                       />
                     </button>
                     {openDateModal === "ngayNhan" &&
-                      renderDateDropdown(draftNgayNhan, setDraftNgayNhan)}
+                      renderDateDropdown(draftNgayNhan, setDraftNgayNhan, "ngayNhan")}
                   </div>
                   {/* Y/c hoàn thành */}
                   <div
@@ -754,7 +761,7 @@ const DonHangPage = () => {
                       />
                     </button>
                     {openDateModal === "ycHoanThanh" &&
-                      renderDateDropdown(draftYcHoanThanh, setDraftYcHoanThanh)}
+                      renderDateDropdown(draftYcHoanThanh, setDraftYcHoanThanh, "ycHoanThanh")}
                   </div>
                   {/* Hẹn giao */}
                   <div
@@ -786,7 +793,7 @@ const DonHangPage = () => {
                       />
                     </button>
                     {openDateModal === "henGiao" &&
-                      renderDateDropdown(draftHenGiao, setDraftHenGiao)}
+                      renderDateDropdown(draftHenGiao, setDraftHenGiao, "henGiao")}
                   </div>
                   {/* Nha khoa */}
                   <div
@@ -1020,6 +1027,16 @@ const DonHangPage = () => {
               >
                 <p className="text-xl">{stats?.["Chờ xử lý"] || 0}</p>
                 <span className="hidden sm:inline text-sm">Chờ xử lý</span>
+              </div>
+              <div
+                className="flex-1 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white px-2 transition-colors"
+                onClick={() => {
+                  dispatch(setDonHangPageFilter({ appliedTrangThai: ["Đang sản xuất"], appliedHenGiao: { preset: null, customFrom: "", customTo: "" } }));
+                  setPage(1);
+                }}
+              >
+                <p className="text-xl">{stats?.["Đang sản xuất"] || 0}</p>
+                <span className="hidden sm:inline text-sm">Đang SX</span>
               </div>
               <div
                 className="flex-1 cursor-pointer bg-purple-600 hover:bg-purple-500 text-white px-2 transition-colors"

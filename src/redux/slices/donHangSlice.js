@@ -121,6 +121,21 @@ export const updateCongDoanTrangThai = createAsyncThunk(
     }
 );
 
+/* ================= ADVANCE TRANG THAI (flow buttons) ================= */
+export const advanceTrangThai = createAsyncThunk(
+    "donHang/advanceTrangThai",
+    async ({ id, trangThai, buocThuHienTai }, { rejectWithValue }) => {
+        try {
+            const res = await api.patch(`/donhang/${id}/trang-thai`, { trangThai, buocThuHienTai });
+            return res.data.data;
+        } catch (err) {
+            return rejectWithValue(
+                err.response?.data?.message || "Cập nhật trạng thái thất bại"
+            );
+        }
+    }
+);
+
 /* ================= GET THONG KE ================= */
 export const fetchThongKe = createAsyncThunk(
     "donHang/fetchThongKe",
@@ -304,6 +319,21 @@ const donHangSlice = createSlice({
                 );
                 if (index !== -1) {
                     state.data[index] = action.payload;
+                }
+            })
+
+            /* ===== ADVANCE TRANG THAI ===== */
+            .addCase(advanceTrangThai.fulfilled, (state, action) => {
+                const index = state.data.findIndex(
+                    (item) => item._id === action.payload._id
+                );
+                if (index !== -1) {
+                    state.data[index] = {
+                        ...state.data[index],
+                        trangThai: action.payload.trangThai,
+                        buocThuHienTai: action.payload.buocThuHienTai,
+                        nhatKyChinhSua: action.payload.nhatKyChinhSua,
+                    };
                 }
             })
 

@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import ReactDOM from "react-dom";
 import {
   Table,
   TableBody,
@@ -66,15 +67,36 @@ const BangLuongPage = () => {
   const [nam, setNam] = useState(new Date().getFullYear());
   const [salaryData, setSalaryData] = useState([]);
   const [openPrintModal, setOpenPrintModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+  // null | -1 (go back) | string path (navigate to)
+  const [pendingNavTarget, setPendingNavTarget] = useState(null);
 
   useEffect(() => {
     dispatch(fetchNhanVien());
     dispatch(fetchBangLuong({ thang, nam }));
+    setIsDirty(false); // reset dirty when period changes
   }, [dispatch, thang, nam]);
 
   useEffect(() => {
     if (Array.isArray(bangLuongData) && bangLuongData.length > 0) {
-      const rows = bangLuongData.map((item) => ({
+      // Dedup: nếu backend trả nhiều bản ghi cùng nhân viên, giữ bản mới nhất
+      const seen = new Map();
+      for (const item of bangLuongData) {
+        const key = item.nhanVien?._id ?? item.nhanVien;
+        const existing = seen.get(key);
+        if (!existing) {
+          seen.set(key, item);
+        } else {
+          const t1 = existing.updatedAt
+            ? new Date(existing.updatedAt).getTime()
+            : 0;
+          const t2 = item.updatedAt ? new Date(item.updatedAt).getTime() : 1;
+          if (t2 > t1) seen.set(key, item);
+        }
+      }
+      const rows = Array.from(seen.values()).map((item) => ({
         _id: item.nhanVien?._id,
         bangLuongId: item._id,
         hoVaTen: item.nhanVien?.hoVaTen,
@@ -90,6 +112,7 @@ const BangLuongPage = () => {
         thucNhan: item.thucNhan,
       }));
       setSalaryData(rows);
+      setIsDirty(false); // data came from server, not dirty
     } else if (nhanVienData?.length > 0) {
       const activeNhanVien = nhanVienData.filter(
         (nv) => nv?.trangThai?.trim() === "Đang làm"
@@ -132,16 +155,7 @@ const BangLuongPage = () => {
       return { ...newItem, ...result };
     });
     setSalaryData(updated);
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa bảng lương này?")) return;
-    try {
-      await dispatch(deleteBangLuong(id)).unwrap();
-      setSalaryData((prev) => prev.filter((item) => item.bangLuongId !== id));
-    } catch (err) {
-      console.error(err);
-    }
+    setIsDirty(true);
   };
 
   const handleDeleteAll = async () => {
@@ -159,6 +173,34 @@ const BangLuongPage = () => {
   const tongLuong = useMemo(
     () => salaryData.reduce((sum, item) => sum + Number(item.thucNhan || 0), 0),
     [salaryData]
+  );
+
+  const colTotals = useMemo(
+    () => ({
+      luongCanBan: salaryData.reduce(
+        (s, i) => s + Number(i.luongCanBan || 0),
+        0
+      ),
+      thanhTienCong: salaryData.reduce((s, i) => {
+        const { thanhTienCong } = tinhLuong({
+          luongCoBan: i.luongCanBan,
+          ngayCongThang: i.ngayCongThang,
+          soNgayCong: i.soNgayCong,
+          com: i.com,
+          dienThoai: i.dienThoai,
+          thuong: i.thuong,
+          phat: i.phat,
+          ungTruoc: i.ungTruoc,
+        });
+        return s + (thanhTienCong || 0);
+      }, 0),
+      com: salaryData.reduce((s, i) => s + Number(i.com || 0), 0),
+      dienThoai: salaryData.reduce((s, i) => s + Number(i.dienThoai || 0), 0),
+      thuong: salaryData.reduce((s, i) => s + Number(i.thuong || 0), 0),
+      ungTruoc: salaryData.reduce((s, i) => s + Number(i.ungTruoc || 0), 0),
+      thucNhan: tongLuong,
+    }),
+    [salaryData, tongLuong]
   );
 
   const chartData = salaryData.map((item) => ({
@@ -184,6 +226,7 @@ const BangLuongPage = () => {
         ).unwrap();
       }
       dispatch(fetchBangLuong({ thang, nam }));
+      setIsDirty(false);
     } catch (err) {
       console.error(err);
     }
@@ -203,6 +246,360 @@ const BangLuongPage = () => {
   const navigate = useNavigate();
   const hasData = bangLuongData?.length > 0;
 
+  // ── Guard navigation when dirty ──
+  const safeNavigate = useCallback(
+    (target) => {
+      if (isDirty) {
+        setPendingNavTarget(target);
+        setShowUnsavedWarning(true);
+      } else {
+        if (target === -1) navigate(-1);
+        else navigate(target);
+      }
+    },
+    [isDirty, navigate]
+  );
+
+  const handleConfirmLeave = () => {
+    setShowUnsavedWarning(false);
+    setIsDirty(false);
+    if (pendingNavTarget === -1) navigate(-1);
+    else navigate(pendingNavTarget);
+    setPendingNavTarget(null);
+  };
+
+  const handleCancelLeave = () => {
+    setShowUnsavedWarning(false);
+    setPendingNavTarget(null);
+  };
+
+  // Warn on browser tab close / refresh
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // ── Employee detail drawer rendered via portal so it escapes any stacking context ──
+  const drawerPortal =
+    selectedEmployee &&
+    (() => {
+      const emp = selectedEmployee;
+      const fmt = (n) =>
+        (Math.round((n || 0) / 1000) * 1000).toLocaleString("vi-VN") + " đ";
+      const { thanhTienCong, luongNgay, tongPhuCap } = tinhLuong({
+        luongCoBan: emp.luongCanBan,
+        ngayCongThang: emp.ngayCongThang,
+        soNgayCong: emp.soNgayCong,
+        com: emp.com,
+        dienThoai: emp.dienThoai,
+        thuong: emp.thuong,
+        phat: emp.phat,
+        ungTruoc: emp.ungTruoc,
+      });
+      const rows = [
+        {
+          label: "Lương căn bản",
+          value: fmt(emp.luongCanBan),
+          color: "#3b82f6",
+        },
+        {
+          label: "Ngày công / tháng",
+          value: `${emp.soNgayCong} / ${emp.ngayCongThang} ngày`,
+          color: "#64748b",
+        },
+        { label: "Lương / ngày", value: fmt(luongNgay), color: "#64748b" },
+        {
+          label: "Thành tiền công",
+          value: fmt(thanhTienCong),
+          color: "#1d4ed8",
+        },
+        { label: "Phụ cấp cơm", value: fmt(emp.com), color: "#0891b2" },
+        {
+          label: "Phụ cấp điện thoại",
+          value: fmt(emp.dienThoai),
+          color: "#0891b2",
+        },
+        { label: "Thưởng", value: fmt(emp.thuong), color: "#16a34a" },
+        { label: "Phạt", value: fmt(emp.phat), color: "#dc2626" },
+        { label: "Ứng trước", value: fmt(emp.ungTruoc), color: "#b91c1c" },
+        {
+          label: "Tổng phụ cấp",
+          value: fmt(
+            tongPhuCap ||
+              (emp.com || 0) +
+                (emp.dienThoai || 0) +
+                (emp.thuong || 0) -
+                (emp.phat || 0) -
+                (emp.ungTruoc || 0)
+          ),
+          color: "#7c3aed",
+        },
+      ];
+      return ReactDOM.createPortal(
+        <>
+          <style>{`@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+          {/* Backdrop */}
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9998,
+              background: "rgba(0,0,0,0.35)",
+            }}
+            onClick={() => setSelectedEmployee(null)}
+          />
+          {/* Drawer */}
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              right: 0,
+              height: "100%",
+              zIndex: 9999,
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 60px rgba(0,0,0,0.3)",
+              width: "min(400px, 100vw)",
+              background: "#fff",
+              animation: "slideInRight 0.25s ease",
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                background: "#0f172a",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "16px 20px",
+                flexShrink: 0,
+              }}
+            >
+              <div>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>
+                  {emp.hoVaTen}
+                </div>
+                <div style={{ color: "#94a3b8", fontSize: 11, marginTop: 2 }}>
+                  Bảng lương tháng {thang}/{nam}
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedEmployee(null)}
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  border: "none",
+                  color: "#94a3b8",
+                  cursor: "pointer",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  fontSize: 20,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#94a3b8")}
+              >
+                ×
+              </button>
+            </div>
+            {/* Body */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: 20,
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              {rows.map(({ label, value, color }) => (
+                <div
+                  key={label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    background: "#f8fafc",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: "#64748b",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {label}
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color }}>
+                    {value}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {/* Footer */}
+            <div
+              style={{
+                flexShrink: 0,
+                padding: "16px 20px",
+                borderTop: "1px solid #e2e8f0",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "#f0fdf4",
+                  borderRadius: 12,
+                  padding: "12px 16px",
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 13,
+                    color: "#065f46",
+                  }}
+                >
+                  THỰC NHẬN
+                </span>
+                <span
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 800,
+                    color: "#059669",
+                  }}
+                >
+                  {fmt(emp.thucNhan)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      );
+    })();
+
+  // ── Unsaved-changes warning modal rendered via portal ──
+  const unsavedWarningPortal =
+    showUnsavedWarning &&
+    ReactDOM.createPortal(
+      <>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            background: "rgba(0,0,0,0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              padding: "28px 28px 24px",
+              maxWidth: 400,
+              width: "100%",
+              boxShadow: "0 24px 60px rgba(0,0,0,0.25)",
+              animation: "slideInRight 0.2s ease",
+            }}
+          >
+            {/* Icon */}
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                background: "#fef3c7",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 24,
+                marginBottom: 16,
+              }}
+            >
+              ⚠️
+            </div>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: 16,
+                color: "#0f172a",
+                marginBottom: 8,
+              }}
+            >
+              Dữ liệu chưa được lưu
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: "#64748b",
+                lineHeight: 1.6,
+                marginBottom: 24,
+              }}
+            >
+              Bạn đã nhập dữ liệu bảng lương nhưng chưa nhấn{" "}
+              <strong style={{ color: "#2563eb" }}>
+                {hasData ? "Cập nhật" : "Tạo bảng lương"}
+              </strong>
+              . Nếu thoát, dữ liệu sẽ mất.
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={handleCancelLeave}
+                style={{
+                  flex: 1,
+                  padding: "10px 0",
+                  borderRadius: 10,
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  color: "#334155",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Ở lại
+              </button>
+              <button
+                onClick={handleConfirmLeave}
+                style={{
+                  flex: 1,
+                  padding: "10px 0",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#dc2626",
+                  color: "#fff",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Thoát không lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      </>,
+      document.body
+    );
+
   return (
     <div
       className="fixed h-full w-full inset-0 z-[1299] flex flex-col overflow-hidden"
@@ -221,7 +618,7 @@ const BangLuongPage = () => {
           <div className="flex items-center gap-3">
             <IconButton
               size="small"
-              onClick={() => navigate(-1)}
+              onClick={() => safeNavigate(-1)}
               sx={{
                 color: "#94a3b8",
                 "&:hover": {
@@ -253,15 +650,15 @@ const BangLuongPage = () => {
             style={
               hasData
                 ? {
-                  background: "#166534",
-                  color: "#86efac",
-                  border: "1px solid #166534",
-                }
+                    background: "#166534",
+                    color: "#86efac",
+                    border: "1px solid #166534",
+                  }
                 : {
-                  background: "#78350f",
-                  color: "#fde68a",
-                  border: "1px solid #78350f",
-                }
+                    background: "#78350f",
+                    color: "#fde68a",
+                    border: "1px solid #78350f",
+                  }
             }
           >
             {hasData ? "✓ Đã có bảng lương" : "⚠ Chưa tạo bảng lương"}
@@ -357,7 +754,7 @@ const BangLuongPage = () => {
 
             {/* Staff */}
             <button
-              onClick={() => navigate("/nhan-vien")}
+              onClick={() => safeNavigate("/nhan-vien")}
               className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all w-full sm:w-auto"
               style={{
                 background: "rgba(255,255,255,0.08)",
@@ -460,13 +857,19 @@ const BangLuongPage = () => {
             },
             {
               label: "Tổng quỹ lương",
-              value: `${(Math.round(tongLuong / 1000) * 1000).toLocaleString("vi-VN")}`,
+              value: `${(Math.round(tongLuong / 1000) * 1000).toLocaleString(
+                "vi-VN"
+              )}`,
               accent: "#10b981",
             },
             {
               label: "Lương TB/người",
               value: salaryData.length
-                ? `${(Math.round(Math.round(tongLuong / salaryData.length) / 1000) * 1000).toLocaleString("vi-VN")}`
+                ? `${(
+                    Math.round(
+                      Math.round(tongLuong / salaryData.length) / 1000
+                    ) * 1000
+                  ).toLocaleString("vi-VN")}`
                 : "—",
               accent: "#f59e0b",
             },
@@ -490,17 +893,128 @@ const BangLuongPage = () => {
         </div>
 
         {/* ── TABLE ── */}
+        {/* Mobile card view */}
+        <div className="block md:hidden space-y-3">
+          {salaryData.map((item, idx) => {
+            const fmt = (n) =>
+              (Math.round((n || 0) / 1000) * 1000).toLocaleString("vi-VN") +
+              " đ";
+            const { thanhTienCong, tongPhuCap } = tinhLuong({
+              luongCoBan: item.luongCanBan,
+              ngayCongThang: item.ngayCongThang,
+              soNgayCong: item.soNgayCong,
+              com: item.com,
+              dienThoai: item.dienThoai,
+              thuong: item.thuong,
+              phat: item.phat,
+              ungTruoc: item.ungTruoc,
+            });
+            return (
+              <div
+                key={item._id}
+                className="rounded-xl shadow p-4 cursor-pointer"
+                style={{ background: "#fff", borderLeft: "4px solid #3b82f6" }}
+                onClick={() => setSelectedEmployee(item)}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-bold text-slate-800 text-sm">
+                    {item.hoVaTen}
+                  </span>
+                  <span
+                    className="text-xs font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: "#dcfce7", color: "#166534" }}
+                  >
+                    {fmt(item.thucNhan)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+                  <div>
+                    <span className="font-medium text-slate-600">LCB:</span>{" "}
+                    {fmt(item.luongCanBan)}
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-600">Công:</span>{" "}
+                    {item.soNgayCong}/{item.ngayCongThang}
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-600">
+                      Thành tiền:
+                    </span>{" "}
+                    {fmt(thanhTienCong)}
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-600">Thưởng:</span>{" "}
+                    {fmt(item.thuong)}
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-600">Phạt:</span>{" "}
+                    {fmt(item.phat)}
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-600">
+                      Ứng trước:
+                    </span>{" "}
+                    {fmt(item.ungTruoc)}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {/* Mobile total card */}
+          {salaryData.length > 0 && (
+            <div
+              className="rounded-xl shadow p-4"
+              style={{ background: "#f0fdf4", borderLeft: "4px solid #10b981" }}
+            >
+              <div className="font-bold text-emerald-700 mb-2 text-sm">
+                Tổng ({salaryData.length} NV)
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="font-medium text-slate-600">Tổng LCB:</span>{" "}
+                  <span className="font-bold text-blue-700">
+                    {(
+                      Math.round((colTotals.luongCanBan || 0) / 1000) * 1000
+                    ).toLocaleString("vi-VN")}{" "}
+                    đ
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-slate-600">Thực nhận:</span>{" "}
+                  <span className="font-bold text-emerald-700">
+                    {(
+                      Math.round((colTotals.thucNhan || 0) / 1000) * 1000
+                    ).toLocaleString("vi-VN")}{" "}
+                    đ
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop table view */}
         <div
-          className="rounded-xl shadow overflow-hidden"
+          className="hidden md:block rounded-xl shadow overflow-hidden"
           style={{ background: "#fff" }}
         >
-          <div className="overflow-x-auto">
+          <div
+            className="overflow-x-auto"
+            style={{ maxHeight: "72vh", overflowY: "auto" }}
+          >
             <table
               className="w-full text-sm"
               style={{ borderCollapse: "collapse", minWidth: 1100 }}
             >
               <thead>
-                <tr style={{ background: "#0f172a" }}>
+                <tr
+                  style={{
+                    background: "#0f172a",
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 10,
+                  }}
+                >
                   {COLUMNS.map((col) => (
                     <th
                       key={col}
@@ -508,12 +1022,96 @@ const BangLuongPage = () => {
                       style={{
                         color: "#94a3b8",
                         borderBottom: "2px solid #1e293b",
+                        background: "#0f172a",
                       }}
                     >
                       {col}
                     </th>
                   ))}
                 </tr>
+                {/* Sticky Total Row — right below header */}
+                {salaryData.length > 0 &&
+                  (() => {
+                    const fmt = (n) =>
+                      (Math.round((n || 0) / 1000) * 1000).toLocaleString(
+                        "vi-VN"
+                      ) + " đ";
+                    return (
+                      <tr
+                        style={{
+                          background: "#f0fdf4",
+                          borderBottom: "2px solid #d1fae5",
+                          position: "sticky",
+                          top: 41,
+                          zIndex: 9,
+                        }}
+                      >
+                        {/* Nhân viên */}
+                        <td className="px-4 py-2 text-xs font-bold text-emerald-700 whitespace-nowrap">
+                          Tổng ({salaryData.length} NV)
+                        </td>
+                        {/* LCB */}
+                        <td
+                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                          style={{ color: "#1d4ed8" }}
+                        >
+                          {fmt(colTotals.luongCanBan)}
+                        </td>
+                        {/* Ngày công tháng */}
+                        <td className="px-4 py-2" />
+                        {/* Lương/ngày */}
+                        <td className="px-4 py-2" />
+                        {/* Công */}
+                        <td className="px-4 py-2" />
+                        {/* Thành tiền */}
+                        <td
+                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                          style={{ color: "#1d4ed8" }}
+                        >
+                          {fmt(colTotals.thanhTienCong)}
+                        </td>
+                        {/* Cơm */}
+                        <td
+                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                          style={{ color: "#1d4ed8" }}
+                        >
+                          {fmt(colTotals.com)}
+                        </td>
+                        {/* Điện thoại */}
+                        <td
+                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                          style={{ color: "#1d4ed8" }}
+                        >
+                          {fmt(colTotals.dienThoai)}
+                        </td>
+                        {/* Thưởng */}
+                        <td
+                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                          style={{ color: "#1d4ed8" }}
+                        >
+                          {fmt(colTotals.thuong)}
+                        </td>
+                        {/* Phạt */}
+                        <td className="px-4 py-2" />
+                        {/* Ứng trước */}
+                        <td
+                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                          style={{ color: "#b91c1c" }}
+                        >
+                          {fmt(colTotals.ungTruoc)}
+                        </td>
+                        {/* Tổng phụ cấp */}
+                        <td className="px-4 py-2" />
+                        {/* Thực nhận */}
+                        <td
+                          className="px-4 py-2 text-right text-sm font-extrabold whitespace-nowrap"
+                          style={{ color: "#059669" }}
+                        >
+                          {fmt(colTotals.thucNhan)}
+                        </td>
+                      </tr>
+                    );
+                  })()}
               </thead>
               <tbody>
                 {salaryData.map((item, idx) => (
@@ -522,33 +1120,16 @@ const BangLuongPage = () => {
                     item={item}
                     onChange={handleChange}
                     isEven={idx % 2 === 0}
+                    onRowClick={() => setSelectedEmployee(item)}
                   />
                 ))}
-
-                {/* Total row */}
-                <tr
-                  style={{
-                    background: "#f0fdf4",
-                    borderTop: "2px solid #d1fae5",
-                  }}
-                >
-                  <td
-                    colSpan={11}
-                    className="px-4 py-3 text-right text-sm font-bold text-gray-600"
-                  >
-                    Tổng quỹ lương
-                  </td>
-                  <td
-                    className="px-4 py-3 text-right text-base font-extrabold"
-                    style={{ color: "#059669" }}
-                  >
-                    {(Math.round(tongLuong / 1000) * 1000).toLocaleString("vi-VN")}
-                  </td>
-                </tr>
               </tbody>
             </table>
           </div>
         </div>
+
+        {/* ── EMPLOYEE DETAIL DRAWER (portal) ── */}
+        {drawerPortal}
 
         {/* ── CHART ── */}
         <div className="rounded-xl shadow p-5" style={{ background: "#fff" }}>
@@ -568,7 +1149,8 @@ const BangLuongPage = () => {
                 color: "#93c5fd",
               }}
             >
-              Tổng: {(Math.round(tongLuong / 1000) * 1000).toLocaleString("vi-VN")}
+              Tổng:{" "}
+              {(Math.round(tongLuong / 1000) * 1000).toLocaleString("vi-VN")}
             </span>
           </div>
 
@@ -616,6 +1198,9 @@ const BangLuongPage = () => {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* UNSAVED CHANGES WARNING (portal) */}
+      {unsavedWarningPortal}
 
       {/* MODAL IN BẢNG LƯƠNG */}
       <InBangLuongModal

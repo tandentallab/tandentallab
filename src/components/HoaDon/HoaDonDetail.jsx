@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { fetchHoaDonById, updateHoaDon, deleteHoaDon } from "../../redux/slices/hoaDonSlice";
@@ -33,6 +33,17 @@ const toLocalDateInput = (d) => {
   const pad = (n) => String(n).padStart(2, "0");
   return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
 };
+
+const CHINH_SACH_OPTIONS = [
+  "Thanh toán trước",
+  "Thanh toán ngay",
+  "Thanh toán trong 7 ngày",
+  "Thanh toán trong 10 ngày",
+  "Thanh toán trong 30 ngày",
+  "Thanh toán trong 60 ngày",
+  "Thanh toán trong 90 ngày",
+  "Thanh toán cuối tháng",
+];
 
 const TRANG_THAI_COLOR = {
   "Lưu tạm": "bg-blue-500 text-white",
@@ -73,15 +84,25 @@ const HoaDonDetail = () => {
     ngayXuatHoaDon: "",
   });
 
-  // ================= LOAD DATA =================
+  // ================= LOAD DATA (TỐC ĐỘ BÀN THỜ 🚀) =================
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        await dispatch(fetchNhaKhoa());
-        const res = await dispatch(fetchHoaDonById(id)).unwrap();
-        const data = res.data;
+        // 🔥 Bí quyết ở đây: Chạy 3 API cùng MỘT LÚC thay vì đợi nhau
+        const [nhaKhoaRes, hoaDonRes, ptRes] = await Promise.all([
+          dispatch(fetchNhaKhoa()),
+          dispatch(fetchHoaDonById(id)).unwrap(),
+          dispatch(fetchPhieuThuByHoaDon(id)).unwrap().catch((ptErr) => {
+            // Lỡ phiếu thu lỗi thì cũng không làm sập tiến trình tải Hóa đơn
+            console.error("Không tải được phiếu thu:", ptErr);
+            return [];
+          })
+        ]);
 
+        const data = hoaDonRes.data;
+
+        // Xử lý mapping dữ liệu Hóa Đơn
         const mappedData = {
           ...data,
           danhSachSanPham: (data.danhSachSanPham || []).map((sp) => ({
@@ -94,10 +115,11 @@ const HoaDonDetail = () => {
 
         setHoaDon(mappedData);
 
-        // 🔥 LƯU MỐC ID ĐƠN HÀNG LÚC MỚI TẢI TRANG
+        // Lưu mốc ID đơn hàng
         const ids = [...new Set((mappedData.danhSachSanPham || []).map(sp => sp.donHang?._id || sp.donHang))].sort().join(',');
         setInitialDonHangIds(ids);
 
+        // Tính toán các giá trị mặc định cho Form
         const tongCongLoaded = mappedData.tongCong || 0;
         const chietKhauPhanTram =
           tongCongLoaded > 0
@@ -123,18 +145,16 @@ const HoaDonDetail = () => {
             : "",
         });
 
-        try {
-          const ptRes = await dispatch(fetchPhieuThuByHoaDon(id)).unwrap();
-          setPhieuThuList(ptRes?.data || ptRes || []);
-        } catch (ptErr) {
-          console.error("Không tải được phiếu thu:", ptErr);
-        }
+        // Set danh sách Phiếu Thu từ kết quả của Promise.all
+        setPhieuThuList(ptRes?.data || ptRes || []);
+
       } catch (err) {
-        console.error(err);
+        console.error("Lỗi khi tải dữ liệu Hóa Đơn:", err);
       } finally {
         setLoading(false);
       }
     };
+
     load();
   }, [id, dispatch]);
 
@@ -143,7 +163,7 @@ const HoaDonDetail = () => {
     setIsDirty(true);
   };
 
-  const handleGiamGiaChange = (idx, val, loai) => {
+  const handleGiamGiaChange = useCallback((idx, val, loai) => {
     let value = Number(val) || 0;
     const newHoaDon = { ...hoaDon };
     newHoaDon.danhSachSanPham = [...newHoaDon.danhSachSanPham];
@@ -166,15 +186,15 @@ const HoaDonDetail = () => {
     newHoaDon.danhSachSanPham[idx] = sp;
     setHoaDon(newHoaDon);
     setIsDirty(true);
-  };
+  }, [hoaDon]);
 
-  const handleGhiChuChange = (idx, val) => {
+  const handleGhiChuChange = useCallback((idx, val) => {
     const newHoaDon = { ...hoaDon };
     newHoaDon.danhSachSanPham = [...newHoaDon.danhSachSanPham];
     newHoaDon.danhSachSanPham[idx] = { ...newHoaDon.danhSachSanPham[idx], ghiChu: val };
     setHoaDon(newHoaDon);
     setIsDirty(true);
-  };
+  }, [hoaDon]);
 
   const minNgayXuatStr = useMemo(() => {
     if (!hoaDon?.danhSachSanPham) return "";
@@ -257,70 +277,15 @@ const HoaDonDetail = () => {
   }, [hoaDon, formState, phieuThuList, id]);
 
 
-  // ================= XÁC NHẬN =================
-  const executeXacNhan = async () => {
+  // ================= LƯU VÀ XÁC NHẬN =================
+  const handleSave = async (isConfirm = false, exitAfter = false) => {
     try {
       const sauCK = fin.tongCong - fin.chietKhauTien;
       const thueChinhXac = formState.thueMode === "tienMat" && sauCK > 0
         ? (fin.thueTien / sauCK) * 100
         : fin.thuePhanTram;
 
-      // 👉 1. TẠO CỤC DATA (Có cờ xacNhanHoaDon: true)
-      const updateData = {
-        ngayXuatHoaDon: formState.ngayXuatHoaDon,
-        chietKhau: Math.round(fin.chietKhauTien),
-        thue: thueChinhXac,
-        chiPhiKhac: Number(formState.chiPhiKhac),
-        chinhSachThanhToan: formState.chinhSachThanhToan,
-        ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
-        ghiChuNoiBo: formState.ghiChuNoiBo,
-        danhSachSanPham: hoaDon.danhSachSanPham,
-        xacNhanHoaDon: true, // CỜ CHỐT HÓA ĐƠN
-      };
-
-      if ((hoaDon.daThanhToan || 0) === 0) {
-        updateData.danhSachDonHangIds = [...new Set(hoaDon.danhSachSanPham.map(sp => sp.donHang?._id || sp.donHang))];
-      }
-
-      const res = await dispatch(
-        updateHoaDon({
-          id,
-          data: updateData, // Gửi payload đã được vá lỗi
-        })
-      ).unwrap();
-
-      setHoaDon({
-        ...res.data,
-        danhSachSanPham: (res.data.danhSachSanPham || []).map((sp) => ({
-          ...sp,
-          giamGiaPhanTram: sp.thanhTien
-            ? parseFloat(((sp.giamGia || 0) / sp.thanhTien * 100).toFixed(2))
-            : 0,
-        })),
-      });
-
-      // Cập nhật lại mốc ID
-      const newInitialIds = [...new Set((res.data.danhSachSanPham || []).map(sp => sp.donHang?._id || sp.donHang))].sort().join(',');
-      setInitialDonHangIds(newInitialIds);
-
-      setIsDirty(false);
-      setShowXacNhanConfirm(false);
-      toast.success("Hóa đơn đã được XÁC NHẬN thành công!");
-    } catch (err) {
-      toast.error("Lỗi: " + (err.message || err));
-    }
-  };
-
-
-  // ================= LƯU =================
-  const handleUpdate = async () => {
-    try {
-      const sauCK = fin.tongCong - fin.chietKhauTien;
-      const thueChinhXac = formState.thueMode === "tienMat" && sauCK > 0
-        ? (fin.thueTien / sauCK) * 100
-        : fin.thuePhanTram;
-
-      // 1. CHUẨN BỊ PAYLOAD CƠ BẢN
+      // 1. GOM TOÀN BỘ DATA ĐANG NHẬP TRÊN FORM
       const updateData = {
         ngayXuatHoaDon: formState.ngayXuatHoaDon,
         chietKhau: Math.round(fin.chietKhauTien),
@@ -332,33 +297,42 @@ const HoaDonDetail = () => {
         danhSachSanPham: hoaDon.danhSachSanPham,
       };
 
+      // 2. NẾU LÀ LUỒNG XÁC NHẬN -> ĐÍNH KÈM CỜ
+      if (isConfirm) updateData.xacNhanHoaDon = true;
+
       if ((hoaDon.daThanhToan || 0) === 0) {
         updateData.danhSachDonHangIds = [...new Set(hoaDon.danhSachSanPham.map(sp => sp.donHang?._id || sp.donHang))];
       }
 
-      const res = await dispatch(
-        updateHoaDon({
-          id,
-          data: updateData,
-        })
-      ).unwrap();
+      // 3. GỌI API
+      const res = await dispatch(updateHoaDon({ id, data: updateData })).unwrap();
 
-      setHoaDon({
-        ...res.data,
-        danhSachSanPham: (res.data.danhSachSanPham || []).map((sp) => ({
-          ...sp,
-          giamGiaPhanTram: sp.thanhTien
-            ? parseFloat(((sp.giamGia || 0) / sp.thanhTien * 100).toFixed(2))
-            : 0,
-        })),
-      });
-
-      // Reset mốc ID
-      const newInitialIds = [...new Set((res.data.danhSachSanPham || []).map(sp => sp.donHang?._id || sp.donHang))].sort().join(',');
-      setInitialDonHangIds(newInitialIds);
+      // 4. CẬP NHẬT LẠI STATE GIAO DIỆN (chỉ khi không exit)
+      if (!exitAfter) {
+        setHoaDon({
+          ...res.data,
+          danhSachSanPham: (res.data.danhSachSanPham || []).map((sp) => ({
+            ...sp,
+            giamGiaPhanTram: sp.thanhTien
+              ? parseFloat(((sp.giamGia || 0) / sp.thanhTien * 100).toFixed(2))
+              : 0,
+          })),
+        });
+        const newInitialIds = [...new Set((res.data.danhSachSanPham || []).map(sp => sp.donHang?._id || sp.donHang))].sort().join(',');
+        setInitialDonHangIds(newInitialIds);
+      }
 
       setIsDirty(false);
-      toast.success("Đã lưu hóa đơn thành công!");
+
+      // 5. HIỂN THỊ THÔNG BÁO TƯƠNG ỨNG
+      if (isConfirm) {
+        setShowXacNhanConfirm(false);
+        toast.success("Hóa đơn đã được LƯU VÀ XÁC NHẬN thành công!");
+      } else {
+        toast.success("Đã lưu hóa đơn thành công!");
+      }
+
+      if (exitAfter) navigate(-1);
     } catch (err) {
       toast.error("Lỗi: " + (err.message || err));
     }
@@ -373,17 +347,17 @@ const HoaDonDetail = () => {
   };
 
   // ================= XÓA DÒNG =================
-  const handleRemoveDonHang = (donHangId) => {
+  const handleRemoveDonHang = useCallback((donHangId) => {
     const newDanhSach = hoaDon.danhSachSanPham.filter(
       sp => (sp.donHang?._id || sp.donHang) !== donHangId
     );
     setHoaDon({ ...hoaDon, danhSachSanPham: newDanhSach });
     setIsDirty(true);
-  };
+  }, [hoaDon]);
 
-  const handleAddRowClick = () => {
+  const handleAddRowClick = useCallback(() => {
     setIsAddModalOpen(true);
-  };
+  }, []);
 
   // 🔥 NHẬN DATA XỊN TỪ MODAL (CÓ SẴN TÊN VÀ GIÁ)
   const handleAddOrders = (selectedOrders, enrichedProducts) => {
@@ -416,43 +390,6 @@ const HoaDonDetail = () => {
       danhSachSanPham: [...prev.danhSachSanPham, ...newProducts]
     }));
     setIsDirty(true);
-  };
-
-  const handleSaveAndExit = async () => {
-    try {
-      const sauCK = fin.tongCong - fin.chietKhauTien;
-      const thueChinhXac = formState.thueMode === "tienMat" && sauCK > 0
-        ? (fin.thueTien / sauCK) * 100
-        : fin.thuePhanTram;
-
-      const updateData = {
-        ngayXuatHoaDon: formState.ngayXuatHoaDon,
-        chietKhau: Math.round(fin.chietKhauTien),
-        thue: thueChinhXac,
-        chiPhiKhac: Number(formState.chiPhiKhac),
-        chinhSachThanhToan: formState.chinhSachThanhToan,
-        ghiChuChoKhachHang: formState.ghiChuChoKhachHang,
-        ghiChuNoiBo: formState.ghiChuNoiBo,
-        danhSachSanPham: hoaDon.danhSachSanPham,
-      };
-
-      if ((hoaDon.daThanhToan || 0) === 0) {
-        updateData.danhSachDonHangIds = [...new Set(hoaDon.danhSachSanPham.map(sp => sp.donHang?._id || sp.donHang))];
-      }
-
-      await dispatch(
-        updateHoaDon({
-          id,
-          data: updateData,
-        })
-      ).unwrap();
-
-      setIsDirty(false);
-      toast.success("Đã lưu hóa đơn thành công!");
-      navigate(-1);
-    } catch (err) {
-      toast.error("Lỗi khi lưu: " + (err.message || err));
-    }
   };
 
   const handlePrint = () => {
@@ -613,11 +550,6 @@ const HoaDonDetail = () => {
 
   return (
     <div className="fixed inset-0 z-[1300] bg-white flex flex-col text-gray-800 overflow-hidden overflow-y-auto pb-20">
-      <style>{`
-        .no-spinner::-webkit-inner-spin-button,
-        .no-spinner::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        .no-spinner { -moz-appearance: textfield; }
-      `}</style>
 
       {showExitConfirm && (
         <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -634,7 +566,7 @@ const HoaDonDetail = () => {
                 Không lưu
               </button>
               <button
-                onClick={handleSaveAndExit}
+                onClick={() => handleSave(false, true)}
                 className="flex-1 px-4 py-2.5 bg-[#00a8df] text-white rounded-xl text-sm font-bold hover:bg-sky-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
               >
                 <Save className="w-4 h-4" /> Lưu
@@ -679,7 +611,7 @@ const HoaDonDetail = () => {
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm mx-4">
             <p className="text-gray-900 font-bold text-lg mb-2">Xác nhận chốt hóa đơn?</p>
             <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-              Hóa đơn sẽ chuyển sang trạng thái <b>Chưa thanh toán</b>.
+              Hóa đơn sẽ được <b>Lưu</b> và chuyển sang trạng thái <b>Chưa thanh toán</b>.
             </p>
             <div className="flex gap-3">
               <button
@@ -689,7 +621,7 @@ const HoaDonDetail = () => {
                 Hủy bỏ
               </button>
               <button
-                onClick={executeXacNhan}
+                onClick={() => handleSave(true)}
                 className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition-colors shadow-sm"
               >
                 Đồng ý
@@ -780,7 +712,7 @@ const HoaDonDetail = () => {
             onChange={(e) => setField("chinhSachThanhToan", e.target.value)}
             className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent pr-4 py-0.5 mt-0.5 w-full"
           >
-            {["Thanh toán trước", "Thanh toán ngay", "Thanh toán trong 7 ngày", "Thanh toán trong 10 ngày", "Thanh toán trong 30 ngày", "Thanh toán trong 60 ngày", "Thanh toán trong 90 ngày", "Thanh toán cuối tháng"].map((o) => (
+            {CHINH_SACH_OPTIONS.map((o) => (
               <option key={o}>{o}</option>
             ))}
           </select>
@@ -806,7 +738,7 @@ const HoaDonDetail = () => {
               onChange={(e) => setField("chinhSachThanhToan", e.target.value)}
               className="border-0 border-b border-gray-300 text-sm text-gray-800 outline-none bg-transparent pr-4 py-0.5 mt-0.5 w-4/5"
             >
-              {["Thanh toán trước", "Thanh toán ngay", "Thanh toán trong 7 ngày", "Thanh toán trong 10 ngày", "Thanh toán trong 30 ngày", "Thanh toán trong 60 ngày", "Thanh toán trong 90 ngày", "Thanh toán cuối tháng"].map((o) => (
+              {CHINH_SACH_OPTIONS.map((o) => (
                 <option key={o}>{o}</option>
               ))}
             </select>
@@ -964,7 +896,7 @@ const HoaDonDetail = () => {
             )
           )}
           <button
-            onClick={handleUpdate}
+            onClick={() => handleSave(false)}
             disabled={!isDirty}
             className={`flex items-center gap-1.5 px-4 md:px-6 py-2 rounded-2xl text-[13px] font-bold transition-all shadow-sm ${isDirty
               ? "bg-[#00a8df] text-white hover:bg-sky-600 hover:shadow-md"

@@ -156,7 +156,7 @@ const HoaDonPage = () => {
     const [activeTabThongKe, setActiveTabThongKe] = useState(() => sessionStorage.getItem("hd_activeTabThongKe") || "");
 
     const [appliedNgayXuat, setAppliedNgayXuat] = useState(() => {
-        const saved = sessionStorage.getItem("hd_appliedNgayXuat");
+        const saved = sessionStorage.getItem("hd_appliedNgayXuat_v2");
         return saved ? JSON.parse(saved) : EMPTY_DATE;
     });
     const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(() => {
@@ -164,8 +164,8 @@ const HoaDonPage = () => {
         return saved ? JSON.parse(saved) : null;
     });
     const [appliedTrangThai, setAppliedTrangThai] = useState(() => {
-        const saved = sessionStorage.getItem("hd_appliedTrangThai");
-        return saved ? JSON.parse(saved) : [];
+        const saved = sessionStorage.getItem("hd_appliedTrangThai_v2");
+        return saved ? JSON.parse(saved) : ["Lưu tạm", "Chưa thanh toán", "Thanh toán một phần"];
     });
     const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("hd_searchTerm") || "");
     const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
@@ -359,7 +359,7 @@ const HoaDonPage = () => {
                     position: sticky;
                     top: 0;
                     z-index: 20;
-                    background-color: #ffffff;
+                    background-color: #e6f7ff;
                 }
                 `}
             </style>
@@ -448,18 +448,13 @@ const HoaDonPage = () => {
                                 )}
 
                                 {appliedTrangThai.length > 0 && (
-                                    <div className="flex items-center bg-emerald-50 border border-emerald-200 rounded-lg pl-3 pr-1 py-1 gap-2 shadow-sm">
-                                        <span className="text-[13px] font-semibold text-emerald-800 mr-1">Trạng thái:</span>
-                                        <div className="flex items-center gap-1.5">
-                                            {appliedTrangThai.map((tt) => (
-                                                <span key={tt} className="flex items-center bg-white border border-emerald-200 rounded-md pl-2.5 text-[12px] font-medium text-emerald-700 shadow-sm overflow-hidden">
-                                                    {tt}
-                                                    <button onClick={() => { setAppliedTrangThai((prev) => prev.filter((x) => x !== tt)); setActiveTabThongKe(""); setPage(0); }} className="w-6 h-6 ml-2 flex items-center justify-center bg-emerald-50 hover:bg-red-100 hover:text-red-600 text-emerald-600 transition-colors border-l border-emerald-100" title={`Bỏ chọn ${tt}`}>
-                                                        <CloseIcon sx={{ fontSize: 14 }} />
-                                                    </button>
-                                                </span>
-                                            ))}
-                                        </div>
+                                    <div className="flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-full pl-3 pr-1 py-1 shadow-sm">
+                                        <span className="text-[13px] text-gray-700">
+                                            <span className="font-semibold">Trạng thái:</span> {appliedTrangThai.join(", ")}
+                                        </span>
+                                        <button onClick={() => { setAppliedTrangThai([]); setActiveTabThongKe(""); setPage(0); }} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-300 text-gray-500 hover:text-gray-700 transition-colors ml-1" title="Xóa bộ lọc trạng thái">
+                                            <CloseIcon sx={{ fontSize: 14 }} />
+                                        </button>
                                     </div>
                                 )}
                             </div>

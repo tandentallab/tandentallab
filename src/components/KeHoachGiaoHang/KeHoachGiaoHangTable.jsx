@@ -582,7 +582,9 @@ const KeHoachGiaoHangTable = () => {
                         ? EMPTY_DATE
                         : { preset: "today", customFrom: "", customTo: "" },
                     appliedTrangThai:
-                      appliedHenGiao?.preset === "today" ? [] : ["Chờ xử lý"],
+                      appliedHenGiao?.preset === "today"
+                        ? []
+                        : ["Chờ xử lý", "Đang thử"],
                   })
                 );
                 setPage(1);
@@ -627,7 +629,9 @@ const KeHoachGiaoHangTable = () => {
                           customFrom: "",
                           customTo: yesterdayStr,
                         },
-                    appliedTrangThai: alreadyFiltering ? [] : ["Chờ xử lý"],
+                    appliedTrangThai: alreadyFiltering
+                      ? []
+                      : ["Chờ xử lý", "Đang thử"],
                   })
                 );
                 setPage(1);

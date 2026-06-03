@@ -11,8 +11,8 @@ import {
   fetchDonHang,
   fetchMoreDonHang,
   fetchThongKe,
-  setDonHangPageFilter,
-  resetDonHangPageFilter,
+  setKeHoachGiaoHangPageFilter,
+  resetKeHoachGiaoHangPageFilter,
 } from "../../redux/slices/donHangSlice";
 import { format, isToday, isBefore, startOfDay, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -24,12 +24,17 @@ import StoreIcon from "@mui/icons-material/Store";
 import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import DonHangDetailPanel from "../DonHang/DonHangDetailPanel";
-import { useSelector as useReduxSelector } from "react-redux";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
+import { CircularProgress } from "@mui/material"; // 🔥 Import loading spinner
+
+// 🔥 Import Lịch xịn và dayjs
+import CustomDateRangePicker from "../common/CustomDateRangePicker";
+import dayjs from "dayjs";
 
 const ROWS_PER_PAGE = 20;
 const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Đang thử", "Hoàn thành"];
 
+// 🔥 Đã giữ lại Tuần trước và Tháng trước
 const DATE_PRESETS = [
   { key: "custom", label: "Chọn trên Lịch", isCalendar: true },
   { key: "today", label: "Hôm nay" },
@@ -108,73 +113,56 @@ const getDateRange = (preset) => {
   }
 };
 
-const isDateInRange = (dateValue, filter) => {
-  if (!filter || !filter.preset) return true;
-  if (!dateValue) return false;
-  const d = new Date(dateValue);
-  let from, to;
-  if (filter.preset === "custom") {
-    from = filter.customFrom ? new Date(filter.customFrom) : null;
-    to = filter.customTo ? new Date(filter.customTo + "T23:59:59") : null;
-  } else {
-    const range = getDateRange(filter.preset);
-    from = range.from;
-    to = range.to;
-  }
-  if (from && d < from) return false;
-  if (to && d >= to) return false;
-  return true;
-};
-
-// =====================================================================
-
 const DEFAULT_COL_WIDTHS = [140, 110, 140, 180, 110, 130, 200, 110, 150];
-// Nhận lúc | Số | Hẹn giao | Khách hàng | Bác sĩ | Bệnh nhân | Răng | Trạng thái | Ghi chú
 
 const KeHoachGiaoHangTable = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const { data, loading, loadingMore, pagination } = useSelector(
     (state) => state.donHang
   );
-  const { thongKe, loadingThongKe, donHangPageFilter } = useSelector(
+  const { thongKe, loadingThongKe, keHoachGiaoHangPageFilter } = useSelector(
     (state) => state.donHang
   );
   const nhaKhoaState = useSelector((state) => state.nhaKhoa);
 
   const { giaoHomNay = 0, treHenGiao = 0, guiThu = 0 } = thongKe || {};
 
-  // Applied filters (từ Redux)
-  const appliedHenGiao = donHangPageFilter?.appliedHenGiao ?? EMPTY_DATE;
-  const appliedNgayNhan = donHangPageFilter?.appliedNgayNhan ?? EMPTY_DATE;
-  const appliedNhaKhoa = donHangPageFilter?.appliedNhaKhoa ?? null;
-  const appliedTrangThai = donHangPageFilter?.appliedTrangThai ?? [];
+  const appliedHenGiao =
+    keHoachGiaoHangPageFilter?.appliedHenGiao ?? EMPTY_DATE;
+  const appliedNgayNhan =
+    keHoachGiaoHangPageFilter?.appliedNgayNhan ?? EMPTY_DATE;
+  const appliedNhaKhoa = keHoachGiaoHangPageFilter?.appliedNhaKhoa ?? null;
+  const appliedTrangThai = keHoachGiaoHangPageFilter?.appliedTrangThai ?? [];
 
-  // Draft filters (local state)
   const [draftHenGiao, setDraftHenGiao] = useState(EMPTY_DATE);
   const [draftNgayNhan, setDraftNgayNhan] = useState(EMPTY_DATE);
   const [draftNhaKhoa, setDraftNhaKhoa] = useState(null);
   const [draftTrangThai, setDraftTrangThai] = useState([]);
 
-  // UI state
+  const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
   const [showFilter, setShowFilter] = useState(false);
   const [openDateModal, setOpenDateModal] = useState(null);
   const [openPickerModal, setOpenPickerModal] = useState(null);
   const [nhaKhoaSearch, setNhaKhoaSearch] = useState("");
   const filterRef = useRef(null);
 
-  // Search
-  const [searchText, setSearchText] = useState("");
+  const [anchorElCustomDate, setAnchorElCustomDate] = useState(null);
+  const [activeDateType, setActiveDateType] = useState(null);
 
-  // Pagination & misc
   const [page, setPage] = useState(1);
   const [loadingAll, setLoadingAll] = useState(false);
   const [printOrders, setPrintOrders] = useState(null);
   const [selectedDonHang, setSelectedDonHang] = useState(null);
   const sentinelRef = useRef(null);
-  const todayStart = startOfDay(new Date());
+  // Đảm bảo không fetch dữ liệu trước khi filter mặc định được set
+  const filterReadyRef = useRef(false);
 
-  // Resizable columns
+  const todayStart = useMemo(() => startOfDay(new Date()), []);
+
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
 
   const handleResizeMouseDown = (e, colIndex) => {
@@ -198,35 +186,75 @@ const KeHoachGiaoHangTable = () => {
     document.addEventListener("mouseup", onMouseUp);
   };
 
-  // ===================== INIT =====================
   useEffect(() => {
     dispatch(fetchThongKe());
     dispatch(fetchNhaKhoa());
   }, [dispatch]);
 
-  // ===================== LOAD DATA =====================
-  const loadData = useCallback(() => {
-    const params = { page, limit: ROWS_PER_PAGE };
-    if (page === 1) dispatch(fetchDonHang(params));
-    else dispatch(fetchMoreDonHang(params));
-  }, [dispatch, page]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchText);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [searchText]);
 
   useEffect(() => {
+    setPage(1);
+  }, [appliedHenGiao, appliedNgayNhan, appliedNhaKhoa, appliedTrangThai]);
+
+  const getFilterParams = useCallback((filter, fromKey, toKey) => {
+    if (!filter?.preset) return {};
+    let from, to;
+    if (filter.preset === "custom" || filter.preset === "overdue") {
+      from = filter.customFrom ? new Date(filter.customFrom) : null;
+      to = filter.customTo ? new Date(filter.customTo + "T23:59:59.999") : null;
+    } else {
+      const range = getDateRange(filter.preset);
+      from = range.from;
+      to = range.to;
+    }
+    const result = {};
+    if (from) result[fromKey] = from.toISOString();
+    if (to) result[toKey] = to.toISOString();
+    return result;
+  }, []);
+
+  const loadData = useCallback(() => {
+    const params = { page, limit: ROWS_PER_PAGE };
+
+    if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+    if (appliedNhaKhoa) params.nhaKhoa = appliedNhaKhoa._id;
+    if (appliedTrangThai.length > 0)
+      params.trangThai = appliedTrangThai.join(",");
+
+    Object.assign(
+      params,
+      getFilterParams(appliedHenGiao, "henGiaoFrom", "henGiaoTo")
+    );
+    Object.assign(
+      params,
+      getFilterParams(appliedNgayNhan, "ngayNhanFrom", "ngayNhanTo")
+    );
+
+    if (page === 1) dispatch(fetchDonHang(params));
+    else dispatch(fetchMoreDonHang(params));
+  }, [
+    dispatch,
+    page,
+    debouncedSearch,
+    appliedNhaKhoa,
+    appliedTrangThai,
+    appliedHenGiao,
+    appliedNgayNhan,
+    getFilterParams,
+  ]);
+
+  useEffect(() => {
+    if (!filterReadyRef.current) return;
     loadData();
   }, [loadData]);
 
-  // Reset page khi filter thay đổi
-  useEffect(() => {
-    setPage(1);
-  }, [
-    appliedHenGiao,
-    appliedNgayNhan,
-    appliedNhaKhoa,
-    appliedTrangThai,
-    searchText,
-  ]);
-
-  // Infinite scroll
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
@@ -247,7 +275,6 @@ const KeHoachGiaoHangTable = () => {
     return () => observer.disconnect();
   }, [page, pagination?.totalPages, loadingMore, loading]);
 
-  // Close filter panel on outside click
   useEffect(() => {
     const handleClick = (e) => {
       if (filterRef.current && !filterRef.current.contains(e.target)) {
@@ -262,7 +289,6 @@ const KeHoachGiaoHangTable = () => {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // ===================== NHA KHOA OPTIONS =====================
   const nhaKhoaOptions = useMemo(() => {
     const d = nhaKhoaState?.data || [];
     return Array.isArray(d)
@@ -281,7 +307,6 @@ const KeHoachGiaoHangTable = () => {
     return nhaKhoaOptions.filter((nk) => nk.name.toLowerCase().includes(s));
   }, [nhaKhoaOptions, nhaKhoaSearch]);
 
-  // ===================== FILTER HANDLERS =====================
   const handleOpenFilter = () => {
     setDraftHenGiao(appliedHenGiao);
     setDraftNgayNhan(appliedNgayNhan);
@@ -292,7 +317,7 @@ const KeHoachGiaoHangTable = () => {
 
   const handleApplyFilters = () => {
     dispatch(
-      setDonHangPageFilter({
+      setKeHoachGiaoHangPageFilter({
         appliedHenGiao: draftHenGiao,
         appliedNgayNhan: draftNgayNhan,
         appliedNhaKhoa: draftNhaKhoa,
@@ -314,7 +339,7 @@ const KeHoachGiaoHangTable = () => {
 
   const handleRefresh = () => {
     setSearchText("");
-    dispatch(resetDonHangPageFilter());
+    dispatch(resetKeHoachGiaoHangPageFilter());
     setPage(1);
   };
 
@@ -336,18 +361,25 @@ const KeHoachGiaoHangTable = () => {
     appliedTrangThai.length > 0
   );
 
-  // ===================== DATE DROPDOWN RENDERER =====================
-  const renderDateDropdown = (cf, scf) => (
+  const renderDateDropdown = (cf, scf, filterKey) => (
     <div className="absolute left-5 top-full z-[100] w-[80%] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
       {DATE_PRESETS.map((p) => (
         <div key={p.key}>
           <button
-            onClick={() => {
+            onClick={(e) => {
               scf((prev) => ({
                 ...prev,
                 preset: prev.preset === p.key ? null : p.key,
               }));
-              if (!p.isCalendar) setOpenDateModal(null);
+
+              if (!p.isCalendar) {
+                setOpenDateModal(null);
+              } else {
+                if (cf.preset !== p.key) {
+                  setActiveDateType(filterKey);
+                  setAnchorElCustomDate(e.currentTarget);
+                }
+              }
             }}
             className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${
               cf.preset === p.key
@@ -358,115 +390,73 @@ const KeHoachGiaoHangTable = () => {
             {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
             {p.label}
           </button>
+
           {p.isCalendar && cf.preset === "custom" && (
             <div
-              className="px-4 py-3 space-y-2 bg-blue-50/30 border-b border-gray-100"
+              className="px-4 py-3 bg-blue-50/30 border-b border-gray-100"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 w-8 shrink-0">Từ</span>
-                <input
-                  type="date"
-                  value={cf.customFrom}
-                  onChange={(e) =>
-                    scf((prev) => ({ ...prev, customFrom: e.target.value }))
-                  }
-                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 w-8 shrink-0">Đến</span>
-                <input
-                  type="date"
-                  value={cf.customTo}
-                  onChange={(e) =>
-                    scf((prev) => ({ ...prev, customTo: e.target.value }))
-                  }
-                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
-                />
-              </div>
+              <button
+                onClick={(e) => {
+                  setActiveDateType(filterKey);
+                  setAnchorElCustomDate(e.currentTarget);
+                }}
+                className="w-full h-9 px-2 flex items-center justify-center gap-2 text-xs font-semibold text-blue-700 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors shadow-sm"
+              >
+                {cf.customFrom && cf.customTo
+                  ? `${dayjs(cf.customFrom).format("DD/MM/YYYY")} - ${dayjs(
+                      cf.customTo
+                    ).format("DD/MM/YYYY")}`
+                  : "📅 Bấm để chọn ngày..."}
+              </button>
             </div>
           )}
         </div>
       ))}
+
+      {activeDateType === filterKey && (
+        <CustomDateRangePicker
+          open={Boolean(anchorElCustomDate)}
+          anchorEl={anchorElCustomDate}
+          onClose={() => {
+            setAnchorElCustomDate(null);
+            setActiveDateType(null);
+          }}
+          initialDates={{
+            start: cf.customFrom,
+            end: cf.customTo,
+          }}
+          onApply={(dates) => {
+            const newNgay = {
+              preset: "custom",
+              customFrom: dates.start,
+              customTo: dates.end,
+            };
+
+            setAnchorElCustomDate(null);
+            setActiveDateType(null);
+            scf(newNgay);
+
+            dispatch(
+              setKeHoachGiaoHangPageFilter({
+                appliedHenGiao:
+                  filterKey === "henGiao" ? newNgay : draftHenGiao,
+                appliedNgayNhan:
+                  filterKey === "ngayNhan" ? newNgay : draftNgayNhan,
+                appliedNhaKhoa: draftNhaKhoa,
+                appliedTrangThai: draftTrangThai,
+              })
+            );
+            setPage(1);
+            setOpenDateModal(null);
+            setOpenPickerModal(null);
+            setShowFilter(false);
+          }}
+        />
+      )}
     </div>
   );
 
-  // ===================== FILTER LOGIC =====================
-  const applyFilters = useCallback(
-    (sourceData) => {
-      let result = [...sourceData];
-
-      // Lọc theo hẹn giao
-      if (appliedHenGiao?.preset) {
-        result = result.filter((o) => isDateInRange(o.henGiao, appliedHenGiao));
-      }
-
-      // Lọc theo ngày nhận
-      if (appliedNgayNhan?.preset) {
-        result = result.filter((o) =>
-          isDateInRange(o.ngayNhan, appliedNgayNhan)
-        );
-      }
-
-      // Lọc theo nha khoa
-      if (appliedNhaKhoa) {
-        result = result.filter((o) => o.nhaKhoa?._id === appliedNhaKhoa._id);
-      }
-
-      // Lọc theo trạng thái (multi)
-      if (appliedTrangThai.length > 0) {
-        result = result.filter((o) => appliedTrangThai.includes(o.trangThai));
-      }
-
-      // Tìm kiếm text
-      if (searchText.trim()) {
-        const q = searchText.toLowerCase();
-        result = result.filter(
-          (o) =>
-            (o.maDonHang && o.maDonHang.toLowerCase().includes(q)) ||
-            (o.nhaKhoa?.hoVaTen &&
-              o.nhaKhoa.hoVaTen.toLowerCase().includes(q)) ||
-            (o.nhaKhoa?.tenGiaoDich &&
-              o.nhaKhoa.tenGiaoDich.toLowerCase().includes(q)) ||
-            (o.bacSi?.hoVaTen && o.bacSi.hoVaTen.toLowerCase().includes(q)) ||
-            (o.benhNhan?.hoVaTen &&
-              o.benhNhan.hoVaTen.toLowerCase().includes(q))
-        );
-      }
-
-      result.sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
-      return result;
-    },
-    [
-      appliedHenGiao,
-      appliedNgayNhan,
-      appliedNhaKhoa,
-      appliedTrangThai,
-      searchText,
-      todayStart,
-    ]
-  );
-
-  const filteredOrders = useMemo(
-    () => applyFilters(data),
-    [data, applyFilters]
-  );
-
-  // Lấy toàn bộ dữ liệu cho print
-  const fetchAllFiltered = useCallback(async () => {
-    setLoadingAll(true);
-    try {
-      const res = await api.get("/donhang", {
-        params: { page: 1, limit: 9999 },
-      });
-      return applyFilters(res.data.data || []);
-    } finally {
-      setLoadingAll(false);
-    }
-  }, [applyFilters]);
-
-  // ===================== FORMAT HELPERS =====================
   const formatViTri = (viTriArr) => {
     if (!viTriArr || viTriArr.length === 0) return "";
     return viTriArr
@@ -498,6 +488,11 @@ const KeHoachGiaoHangTable = () => {
       .trim();
   };
 
+  const filteredOrders = useMemo(
+    () => [...data].sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao)),
+    [data]
+  );
+
   const expandedRows = useMemo(() => {
     return filteredOrders.flatMap((order) => {
       const dssp = order.danhSachSanPham || [];
@@ -506,10 +501,41 @@ const KeHoachGiaoHangTable = () => {
     });
   }, [filteredOrders]);
 
-  // ===================== ACTIONS =====================
   const handleExportExcel = async () => {
     await exportKeHoachGiaoHangToExcel(filteredOrders, formatSingleSanPham);
   };
+
+  const fetchAllFiltered = useCallback(async () => {
+    setLoadingAll(true);
+    try {
+      const params = { page: 1, limit: 9999 };
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+      if (appliedNhaKhoa) params.nhaKhoa = appliedNhaKhoa._id;
+      if (appliedTrangThai.length > 0)
+        params.trangThai = appliedTrangThai.join(",");
+      Object.assign(
+        params,
+        getFilterParams(appliedHenGiao, "henGiaoFrom", "henGiaoTo")
+      );
+      Object.assign(
+        params,
+        getFilterParams(appliedNgayNhan, "ngayNhanFrom", "ngayNhanTo")
+      );
+
+      const res = await api.get("/donhang", { params });
+      const all = res.data.data || [];
+      return [...all].sort((a, b) => parseISO(a.henGiao) - parseISO(b.henGiao));
+    } finally {
+      setLoadingAll(false);
+    }
+  }, [
+    debouncedSearch,
+    appliedNhaKhoa,
+    appliedTrangThai,
+    appliedHenGiao,
+    appliedNgayNhan,
+    getFilterParams,
+  ]);
 
   const handlePrint = async () => {
     const allFiltered = await fetchAllFiltered();
@@ -526,17 +552,22 @@ const KeHoachGiaoHangTable = () => {
     });
   };
 
-  if (loading && page === 1)
-    return <div className="p-6 text-center text-gray-500">Đang tải...</div>;
+  useEffect(() => {
+    dispatch(
+      setKeHoachGiaoHangPageFilter({
+        appliedTrangThai: ["Chờ xử lý"],
+      })
+    );
+    filterReadyRef.current = true;
+  }, []);
 
-  // ===================== RENDER =====================
+  // 🔥 ĐÃ BỎ ĐOẠN CHẶN "LOADING CẢ PAGE" Ở ĐÂY ĐỂ TRÁNH GIẬT/CHỚP GIAO DIỆN
+
   return (
     <div className="p-4 bg-gray-100 min-h-screen relative">
       <div className="max-w-full mx-auto">
-        {/* ================= HEADER STATS ================= */}
         <div className="print:hidden">
           <div className="flex w-full mb-4 rounded-lg overflow-hidden shadow-md">
-            {/* Giao hôm nay */}
             <div
               className={`flex-1 cursor-pointer bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${
                 appliedHenGiao?.preset === "today"
@@ -545,7 +576,7 @@ const KeHoachGiaoHangTable = () => {
               }`}
               onClick={() => {
                 dispatch(
-                  setDonHangPageFilter({
+                  setKeHoachGiaoHangPageFilter({
                     appliedHenGiao:
                       appliedHenGiao?.preset === "today"
                         ? EMPTY_DATE
@@ -567,26 +598,34 @@ const KeHoachGiaoHangTable = () => {
               </div>
             </div>
 
-            {/* Trễ hạn */}
             <div
-              className="flex-1 cursor-pointer bg-red-600 hover:bg-red-500 active:bg-red-700 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative"
+              className={`flex-1 cursor-pointer bg-red-600 hover:bg-red-500 active:bg-red-700 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${
+                appliedHenGiao?.preset === "overdue"
+                  ? "ring-2 ring-inset ring-white/50"
+                  : ""
+              }`}
               onClick={() => {
-                // Lọc trễ hạn: henGiao < hôm nay và chưa hoàn thành
-                // Dùng preset yesterday + lọc manual (client-side đã có)
-                // Ta set preset = null nhưng customTo = hôm nay
-                const todayStr = new Date().toISOString().split("T")[0];
+                // "Trễ" = henGiao < hôm nay (không bao gồm hôm nay) + chưa hoàn thành
+                // Dùng preset riêng "overdue" để nhận biết trạng thái đang filter
                 const alreadyFiltering =
-                  appliedHenGiao?.customTo === todayStr &&
-                  appliedTrangThai.length === 1 &&
-                  appliedTrangThai[0] === "Chờ xử lý";
+                  appliedHenGiao?.preset === "overdue" &&
+                  appliedTrangThai.length === 2 &&
+                  appliedTrangThai.includes("Chờ xử lý") &&
+                  appliedTrangThai.includes("Đang thử");
+
+                // customTo = ngày hôm qua (henGiao <= hôm qua, tức < hôm nay)
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split("T")[0];
+
                 dispatch(
-                  setDonHangPageFilter({
+                  setKeHoachGiaoHangPageFilter({
                     appliedHenGiao: alreadyFiltering
                       ? EMPTY_DATE
                       : {
-                          preset: "custom",
+                          preset: "overdue",
                           customFrom: "",
-                          customTo: todayStr,
+                          customTo: yesterdayStr,
                         },
                     appliedTrangThai: alreadyFiltering ? [] : ["Chờ xử lý"],
                   })
@@ -604,7 +643,6 @@ const KeHoachGiaoHangTable = () => {
               </div>
             </div>
 
-            {/* Đang thử */}
             <div
               className={`flex-1 cursor-pointer bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white px-5 py-3 flex items-center gap-3 transition-all duration-200 hover:shadow-inner hover:scale-[1.02] hover:z-10 relative ${
                 appliedTrangThai.length === 1 &&
@@ -617,7 +655,7 @@ const KeHoachGiaoHangTable = () => {
                   appliedTrangThai.length === 1 &&
                   appliedTrangThai[0] === "Đang thử";
                 dispatch(
-                  setDonHangPageFilter({
+                  setKeHoachGiaoHangPageFilter({
                     appliedTrangThai: isActive ? [] : ["Đang thử"],
                     appliedHenGiao: EMPTY_DATE,
                   })
@@ -637,9 +675,7 @@ const KeHoachGiaoHangTable = () => {
           </div>
         </div>
 
-        {/* ================= TOOLBAR ================= */}
         <div className="flex items-center gap-2 mb-2 px-1 print:hidden">
-          {/* Filter button + panel */}
           <div className="relative" ref={filterRef}>
             <button
               onClick={handleOpenFilter}
@@ -664,7 +700,6 @@ const KeHoachGiaoHangTable = () => {
                   setOpenPickerModal(null);
                 }}
               >
-                {/* Hẹn giao */}
                 <div
                   className="relative border-b border-gray-100"
                   onClick={(e) => e.stopPropagation()}
@@ -694,10 +729,13 @@ const KeHoachGiaoHangTable = () => {
                     />
                   </button>
                   {openDateModal === "henGiao" &&
-                    renderDateDropdown(draftHenGiao, setDraftHenGiao)}
+                    renderDateDropdown(
+                      draftHenGiao,
+                      setDraftHenGiao,
+                      "henGiao"
+                    )}
                 </div>
 
-                {/* Ngày nhận */}
                 <div
                   className="relative border-b border-gray-100"
                   onClick={(e) => e.stopPropagation()}
@@ -727,10 +765,13 @@ const KeHoachGiaoHangTable = () => {
                     />
                   </button>
                   {openDateModal === "ngayNhan" &&
-                    renderDateDropdown(draftNgayNhan, setDraftNgayNhan)}
+                    renderDateDropdown(
+                      draftNgayNhan,
+                      setDraftNgayNhan,
+                      "ngayNhan"
+                    )}
                 </div>
 
-                {/* Nha khoa */}
                 <div
                   className="relative border-b border-gray-100"
                   onClick={(e) => e.stopPropagation()}
@@ -804,7 +845,6 @@ const KeHoachGiaoHangTable = () => {
                   )}
                 </div>
 
-                {/* Trạng thái multi-select */}
                 <div
                   className="border-b border-gray-100 px-3 py-2.5"
                   onClick={(e) => e.stopPropagation()}
@@ -837,7 +877,6 @@ const KeHoachGiaoHangTable = () => {
                   </div>
                 </div>
 
-                {/* Bottom buttons */}
                 <div className="flex items-center justify-between px-4 py-3">
                   <button
                     onClick={handleResetDraft}
@@ -857,7 +896,6 @@ const KeHoachGiaoHangTable = () => {
             )}
           </div>
 
-          {/* Active filter chips */}
           <div className="flex items-center gap-1 flex-wrap">
             {appliedHenGiao?.preset && (
               <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
@@ -865,14 +903,16 @@ const KeHoachGiaoHangTable = () => {
                 Hẹn giao: {getDateLabel(appliedHenGiao)}
                 {appliedHenGiao.preset === "custom" &&
                   appliedHenGiao.customFrom &&
-                  ` ${appliedHenGiao.customFrom}`}
+                  ` ${dayjs(appliedHenGiao.customFrom).format("DD/MM/YYYY")}`}
                 {appliedHenGiao.preset === "custom" &&
                   appliedHenGiao.customTo &&
-                  ` → ${appliedHenGiao.customTo}`}
+                  ` → ${dayjs(appliedHenGiao.customTo).format("DD/MM/YYYY")}`}
                 <button
                   onClick={() => {
                     dispatch(
-                      setDonHangPageFilter({ appliedHenGiao: EMPTY_DATE })
+                      setKeHoachGiaoHangPageFilter({
+                        appliedHenGiao: EMPTY_DATE,
+                      })
                     );
                     setPage(1);
                   }}
@@ -888,14 +928,16 @@ const KeHoachGiaoHangTable = () => {
                 Nhận: {getDateLabel(appliedNgayNhan)}
                 {appliedNgayNhan.preset === "custom" &&
                   appliedNgayNhan.customFrom &&
-                  ` ${appliedNgayNhan.customFrom}`}
+                  ` ${dayjs(appliedNgayNhan.customFrom).format("DD/MM/YYYY")}`}
                 {appliedNgayNhan.preset === "custom" &&
                   appliedNgayNhan.customTo &&
-                  ` → ${appliedNgayNhan.customTo}`}
+                  ` → ${dayjs(appliedNgayNhan.customTo).format("DD/MM/YYYY")}`}
                 <button
                   onClick={() => {
                     dispatch(
-                      setDonHangPageFilter({ appliedNgayNhan: EMPTY_DATE })
+                      setKeHoachGiaoHangPageFilter({
+                        appliedNgayNhan: EMPTY_DATE,
+                      })
                     );
                     setPage(1);
                   }}
@@ -911,7 +953,9 @@ const KeHoachGiaoHangTable = () => {
                 {appliedNhaKhoa.name}
                 <button
                   onClick={() => {
-                    dispatch(setDonHangPageFilter({ appliedNhaKhoa: null }));
+                    dispatch(
+                      setKeHoachGiaoHangPageFilter({ appliedNhaKhoa: null })
+                    );
                     setPage(1);
                   }}
                   className="ml-0.5 hover:text-blue-900 flex items-center"
@@ -929,7 +973,7 @@ const KeHoachGiaoHangTable = () => {
                 <button
                   onClick={() => {
                     dispatch(
-                      setDonHangPageFilter({
+                      setKeHoachGiaoHangPageFilter({
                         appliedTrangThai: appliedTrangThai.filter(
                           (s) => s !== status
                         ),
@@ -947,7 +991,6 @@ const KeHoachGiaoHangTable = () => {
 
           <div className="flex-1" />
 
-          {/* Search */}
           <div className="relative">
             <FiSearch
               size={15}
@@ -970,7 +1013,6 @@ const KeHoachGiaoHangTable = () => {
             )}
           </div>
 
-          {/* Actions */}
           <button
             onClick={handleExportExcel}
             className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
@@ -999,11 +1041,14 @@ const KeHoachGiaoHangTable = () => {
           </button>
         </div>
 
-        {/* ================= TABLE ================= */}
         <div className="bg-white rounded shadow-sm overflow-hidden border print:hidden">
-          {/* ── MOBILE: Card list (hidden sm+) ── */}
           <div className="sm:hidden divide-y divide-gray-100">
-            {filteredOrders.length === 0 && !loading ? (
+            {/* 🔥 HIỆU ỨNG LOADING MƯỢT MÀ TRONG BẢNG MOBILE */}
+            {loading && page === 1 ? (
+              <div className="flex justify-center py-10">
+                <CircularProgress size={28} sx={{ color: "#26a69a" }} />
+              </div>
+            ) : filteredOrders.length === 0 ? (
               <p className="text-center py-8 text-gray-500 text-sm">
                 Không có dữ liệu
               </p>
@@ -1081,7 +1126,6 @@ const KeHoachGiaoHangTable = () => {
             )}
           </div>
 
-          {/* ── DESKTOP: Resizable table (hidden on mobile) ── */}
           <div className="hidden sm:block overflow-x-auto">
             <table
               className="text-sm text-left"
@@ -1123,98 +1167,111 @@ const KeHoachGiaoHangTable = () => {
                 </tr>
               </thead>
               <tbody>
-                {expandedRows.map(({ order, sp, spIdx }) => {
-                  const date = parseISO(order.henGiao);
-                  const overdue =
-                    isBefore(date, todayStart) &&
-                    order.trangThai !== "Hoàn thành";
-                  const today = isToday(date);
-                  const maDon =
-                    order.maDonHang ||
-                    `TAN${order._id
-                      .substring(order._id.length - 8)
-                      .toUpperCase()}`;
-
-                  return (
-                    <tr
-                      key={`${order._id}_${spIdx}`}
-                      onClick={() => setSelectedDonHang(order)}
-                      className={`border-b cursor-pointer transition-colors ${
-                        selectedDonHang?._id === order._id
-                          ? "bg-sky-100 border-sky-200"
-                          : "hover:bg-gray-50"
-                      }`}
-                    >
-                      <td className="px-3 py-2.5 truncate text-xs text-gray-600">
-                        {order.ngayNhan
-                          ? format(parseISO(order.ngayNhan), "HH:mm dd/MM/yyyy")
-                          : "—"}
-                      </td>
-                      <td className="px-3 py-2.5 truncate">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/donhang/${order._id}/edit`);
-                          }}
-                          className={`font-medium text-sm hover:underline ${
-                            overdue
-                              ? "text-red-500"
-                              : today
-                              ? "text-blue-600"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          {maDon}
-                        </button>
-                      </td>
-                      <td
-                        className={`px-3 py-2.5 truncate text-sm font-medium ${
-                          overdue ? "text-red-500" : "text-gray-700"
-                        }`}
-                      >
-                        {format(date, "HH:mm dd/MM/yyyy")}
-                      </td>
-                      <td className="px-3 py-2.5 truncate text-sm text-gray-800">
-                        {order.nhaKhoa?.tenGiaoDich || order.nhaKhoa?.hoVaTen}
-                      </td>
-                      <td className="px-3 py-2.5 truncate text-sm text-gray-700">
-                        {order.bacSi?.hoVaTen}
-                      </td>
-                      <td className="px-3 py-2.5 truncate text-sm text-gray-700">
-                        {order.benhNhan?.hoVaTen}
-                      </td>
-                      <td className="px-3 py-2.5 truncate text-sm text-gray-700">
-                        {formatSingleSanPham(sp)}
-                      </td>
-                      <td className="px-3 py-2.5 truncate">
-                        <TrangThaiBadge value={order.trangThai} />
-                      </td>
-                      <td
-                        className="px-3 py-2.5 truncate text-sm text-gray-700"
-                        title={order.ghiChuChung || ""}
-                      >
-                        {order.ghiChuChung}
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {filteredOrders.length === 0 && !loading && (
+                {/* 🔥 HIỆU ỨNG LOADING MƯỢT MÀ TRONG BẢNG DESKTOP */}
+                {loading && page === 1 ? (
                   <tr>
-                    <td
-                      colSpan="9"
-                      className="text-center py-10 text-gray-400 text-sm"
-                    >
-                      Không có dữ liệu
+                    <td colSpan="9" className="text-center py-10">
+                      <CircularProgress size={28} sx={{ color: "#26a69a" }} />
                     </td>
                   </tr>
+                ) : (
+                  <>
+                    {expandedRows.map(({ order, sp, spIdx }) => {
+                      const date = parseISO(order.henGiao);
+                      const overdue =
+                        isBefore(date, todayStart) &&
+                        order.trangThai !== "Hoàn thành";
+                      const today = isToday(date);
+                      const maDon =
+                        order.maDonHang ||
+                        `TAN${order._id
+                          .substring(order._id.length - 8)
+                          .toUpperCase()}`;
+                      return (
+                        <tr
+                          key={`${order._id}_${spIdx}`}
+                          onClick={() => setSelectedDonHang(order)}
+                          className={`border-b cursor-pointer transition-colors ${
+                            selectedDonHang?._id === order._id
+                              ? "bg-sky-100 border-sky-200"
+                              : "hover:bg-gray-50"
+                          }`}
+                        >
+                          <td className="px-3 py-2.5 truncate text-xs text-gray-600">
+                            {order.ngayNhan
+                              ? format(
+                                  parseISO(order.ngayNhan),
+                                  "HH:mm dd/MM/yyyy"
+                                )
+                              : "—"}
+                          </td>
+                          <td className="px-3 py-2.5 truncate">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/donhang/${order._id}/edit`);
+                              }}
+                              className={`font-medium text-sm hover:underline ${
+                                overdue
+                                  ? "text-red-500"
+                                  : today
+                                  ? "text-blue-600"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              {maDon}
+                            </button>
+                          </td>
+                          <td
+                            className={`px-3 py-2.5 truncate text-sm font-medium ${
+                              overdue ? "text-red-500" : "text-gray-700"
+                            }`}
+                          >
+                            {format(date, "HH:mm dd/MM/yyyy")}
+                          </td>
+                          <td className="px-3 py-2.5 truncate text-sm text-gray-800">
+                            {order.nhaKhoa?.tenGiaoDich ||
+                              order.nhaKhoa?.hoVaTen}
+                          </td>
+                          <td className="px-3 py-2.5 truncate text-sm text-gray-700">
+                            {order.bacSi?.hoVaTen}
+                          </td>
+                          <td className="px-3 py-2.5 truncate text-sm text-gray-700">
+                            {order.benhNhan?.hoVaTen}
+                          </td>
+                          <td className="px-3 py-2.5 truncate text-sm text-gray-700">
+                            {formatSingleSanPham(sp)}
+                          </td>
+                          <td className="px-3 py-2.5 truncate">
+                            <TrangThaiBadge value={order.trangThai} />
+                          </td>
+                          <td
+                            className="px-3 py-2.5 truncate text-sm text-gray-700"
+                            title={order.ghiChuChung || ""}
+                          >
+                            {order.ghiChuChung}
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {filteredOrders.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan="9"
+                          className="text-center py-10 text-gray-400 text-sm"
+                        >
+                          Không có dữ liệu
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Infinite scroll sentinel (shared) */}
         <div ref={sentinelRef} className="h-4" />
         {loadingMore && (
           <div className="text-center py-3 text-gray-400 text-sm print:hidden">
@@ -1222,7 +1279,6 @@ const KeHoachGiaoHangTable = () => {
           </div>
         )}
 
-        {/* ================= PRINT VIEW ================= */}
         <div id="print-section" className="hidden print:block w-full">
           <style>{`
             @media print {
@@ -1252,27 +1308,22 @@ const KeHoachGiaoHangTable = () => {
           <table className="w-full border-collapse border border-black">
             <thead>
               <tr>
-                <th className="border border-black px-2 py-1 text-center font-semibold">
-                  Nhận lúc
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">
-                  Số
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">
-                  Khách hàng
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">
-                  Bệnh nhân
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold w-1/4">
-                  Răng
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold">
-                  Hẹn giao
-                </th>
-                <th className="border border-black px-2 py-1 text-center font-semibold w-1/6">
-                  Ghi chú
-                </th>
+                {[
+                  "Nhận lúc",
+                  "Số",
+                  "Khách hàng",
+                  "Bệnh nhân",
+                  "Răng",
+                  "Hẹn giao",
+                  "Ghi chú",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="border border-black px-2 py-1 text-center font-semibold"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>

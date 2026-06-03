@@ -15,8 +15,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { api } from "../../config/api";
 import { exportPhieuThuToExcel } from "../../utils/exportToExcel";
 import ExportDateSelector from "../common/ExportDateSelector";
-import CustomDateRangePicker from "../common/CustomDateRangePicker"; // 🔥 IMPORT LỊCH XỊN
-import dayjs from "dayjs"; // 🔥 IMPORT DAYJS
+import CustomDateRangePicker from "../common/CustomDateRangePicker";
+import dayjs from "dayjs";
 import {
     EMPTY_EXPORT_DATE_FILTER,
     toISODateRange,
@@ -37,7 +37,6 @@ const formatDateTime = (d) => {
     });
 };
 
-// 🔥 ĐÃ DỌN DẸP PRESETS THỪA
 const DATE_PRESETS = [
     { key: "custom", label: "Chọn trên Lịch", isCalendar: true },
     { key: "today", label: "Hôm nay" },
@@ -97,8 +96,13 @@ export default function PhieuThuPage() {
     // Export UI
     const [openExport, setOpenExport] = useState(false);
     const [exportDateFilter, setExportDateFilter] = useState(EMPTY_EXPORT_DATE_FILTER);
-    const [exportNhaKhoa, setExportNhaKhoa] = useState("");
     const [exporting, setExporting] = useState(false);
+
+    // 🔥 STATES CHO CUSTOM DROPDOWN NHA KHOA MỚI TRONG FORM XUẤT EXCEL 🔥
+    const [exportNhaKhoaObj, setExportNhaKhoaObj] = useState(null);
+    const [openExportNhaKhoaDropdown, setOpenExportNhaKhoaDropdown] = useState(false);
+    const [exportNhaKhoaSearch, setExportNhaKhoaSearch] = useState("");
+    const exportNhaKhoaRef = useRef(null);
 
     // 🔥 STATE ĐỂ NEO TỜ LỊCH CUSTOM TRONG MENU LỌC BẢNG
     const [anchorElCustomDate, setAnchorElCustomDate] = useState(null);
@@ -110,6 +114,7 @@ export default function PhieuThuPage() {
         return () => clearTimeout(t);
     }, [searchTerm]);
 
+    // Lắng nghe click outside cho Menu Lọc Chính
     useEffect(() => {
         const handleClick = (e) => {
             if (filterRef.current && !filterRef.current.contains(e.target)) {
@@ -120,6 +125,19 @@ export default function PhieuThuPage() {
         document.addEventListener("mousedown", handleClick);
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
+
+    // 🔥 Lắng nghe click outside cho Dropdown Nha Khoa (Modal Xuất) 🔥
+    useEffect(() => {
+        const handleClickOutsideDropdown = (event) => {
+            if (exportNhaKhoaRef.current && !exportNhaKhoaRef.current.contains(event.target)) {
+                setOpenExportNhaKhoaDropdown(false);
+            }
+        };
+        if (openExportNhaKhoaDropdown) {
+            document.addEventListener("mousedown", handleClickOutsideDropdown);
+        }
+        return () => document.removeEventListener("mousedown", handleClickOutsideDropdown);
+    }, [openExportNhaKhoaDropdown]);
 
     const handleOpenFilter = () => {
         setDraftNgayThu(appliedNgayThu);
@@ -179,6 +197,7 @@ export default function PhieuThuPage() {
         loadData();
     };
 
+    // 🔥 XỬ LÝ XUẤT EXCEL VỚI STATE MỚI
     const handleExportExcel = async () => {
         const isPreset = exportDateFilter?.preset && exportDateFilter.preset !== "custom";
         const isCustom = exportDateFilter?.preset === "custom" && exportDateFilter?.startDate && exportDateFilter?.endDate;
@@ -206,19 +225,18 @@ export default function PhieuThuPage() {
                     page: 1,
                     limit: 5000,
                     search: "",
-                    nhaKhoaId: exportNhaKhoa || "",
+                    nhaKhoaId: exportNhaKhoaObj?._id || "", // Dùng state object
                     dateFrom: fromISO,
                     dateTo: toISO,
                 },
             });
 
             const data = res.data?.data || [];
-            const selectedNk = nhaKhoaList.find((nk) => nk._id === exportNhaKhoa);
 
             await exportPhieuThuToExcel(data, {
                 fromDate: fromISO,
                 toDate: toISO,
-                nhaKhoaName: selectedNk?.hoVaTen || selectedNk?.tenGiaoDich || "Tất cả",
+                nhaKhoaName: exportNhaKhoaObj?.name || "Tất cả", // Dùng state object
             });
 
             setOpenExport(false);
@@ -233,11 +251,15 @@ export default function PhieuThuPage() {
         .map((nk) => ({ _id: nk._id, name: nk.tenGiaoDich || nk.hoVaTen || "" }))
         .filter((nk) => !nhaKhoaSearch.trim() || nk.name.toLowerCase().includes(nhaKhoaSearch.toLowerCase()));
 
+    // 🔥 Danh sách nha khoa lọc cho Dropdown Xuất Excel
+    const filteredExportNhaKhoaOpts = nhaKhoaList
+        .map((nk) => ({ _id: nk._id, name: nk.tenGiaoDich || nk.hoVaTen || "" }))
+        .filter((nk) => !exportNhaKhoaSearch.trim() || nk.name.toLowerCase().includes(exportNhaKhoaSearch.toLowerCase()));
+
     const getDateLabel = (f) => DATE_PRESETS.find((p) => p.key === f.preset)?.label || "";
     const isFiltered = !!appliedNgayThu.preset || !!appliedNhaKhoa;
     const totalPages = pagination.totalPages || 1;
 
-    // 🔥 GIAO DIỆN LỌC NGÀY ĐÃ ĐƯỢC CẬP NHẬT GIỐNG HOÁ ĐƠN
     const renderDateDropdown = (cf, scf) => (
         <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             {DATE_PRESETS.map((p) => (
@@ -273,7 +295,6 @@ export default function PhieuThuPage() {
                 </div>
             ))}
 
-            {/* LẮP POP-UP LỊCH VÀ BẬT LOGIC "BẤM PHÁT ĂN LUÔN" */}
             <CustomDateRangePicker
                 open={Boolean(anchorElCustomDate)}
                 anchorEl={anchorElCustomDate}
@@ -289,11 +310,9 @@ export default function PhieuThuPage() {
                         customTo: dates.end,
                     };
 
-                    // Cập nhật State đóng lịch
                     setAnchorElCustomDate(null);
                     scf(newNgayThu);
 
-                    // 🔥 BÙM! Lọc bảng & Tắt menu ngay lập tức
                     setAppliedNgayThu(newNgayThu);
                     setAppliedNhaKhoa(draftNhaKhoa);
                     setPage(1);
@@ -577,13 +596,22 @@ export default function PhieuThuPage() {
                 onUpdated={handlePanelUpdated}
             />
 
+            {/* MODAL XUẤT EXCEL */}
             {openExport && (
                 <div className="fixed inset-0 z-[1200] flex items-start justify-center pt-24">
-                    <div className="fixed inset-0 bg-black/40" onClick={() => setOpenExport(false)} />
+                    <div className="fixed inset-0 bg-black/40" onClick={() => {
+                        setOpenExport(false);
+                        setExportDateFilter(EMPTY_EXPORT_DATE_FILTER);
+                        setExportNhaKhoaObj(null);
+                    }} />
                     <div className="relative w-full max-w-3xl bg-gray-50 rounded-2xl shadow-2xl border border-gray-200 overflow-visible">
-                        <div className="bg-[#1ea4e8] px-6 py-4 flex items-center justify-between">
+                        <div className="bg-[#1ea4e8] px-6 py-4 flex items-center justify-between rounded-t-2xl">
                             <h3 className="text-white text-base font-semibold">Xuất excel</h3>
-                            <button className="text-white" onClick={() => setOpenExport(false)}>
+                            <button className="text-white" onClick={() => {
+                                setOpenExport(false);
+                                setExportDateFilter(EMPTY_EXPORT_DATE_FILTER);
+                                setExportNhaKhoaObj(null);
+                            }}>
                                 <CloseIcon sx={{ fontSize: 28 }} />
                             </button>
                         </div>
@@ -598,20 +626,63 @@ export default function PhieuThuPage() {
                                     />
                                 </div>
 
+                                {/* 🔥 THAY THẾ SELECT BẰNG GIAO DIỆN CUSTOM DROPDOWN NHA KHOA 🔥 */}
                                 <div>
-                                    <p className="text-sm text-gray-500 mb-1">Nha khoa</p>
-                                    <select
-                                        value={exportNhaKhoa}
-                                        onChange={(e) => setExportNhaKhoa(e.target.value)}
-                                        className="w-full border-b border-gray-300 bg-transparent py-2 outline-none"
-                                    >
-                                        <option value="">Tất cả nha khoa</option>
-                                        {nhaKhoaList.map((nk) => (
-                                            <option key={nk._id} value={nk._id}>
-                                                {nk.hoVaTen || nk.tenGiaoDich}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <p className="text-sm font-semibold text-gray-500 mb-1">Nha khoa</p>
+                                    <div ref={exportNhaKhoaRef} className="relative">
+                                        {openExportNhaKhoaDropdown ? (
+                                            <div className="border border-blue-400 rounded bg-white px-3 py-2 shadow-sm">
+                                                <input
+                                                    type="text"
+                                                    value={exportNhaKhoaSearch}
+                                                    onChange={(e) => setExportNhaKhoaSearch(e.target.value)}
+                                                    placeholder="Tìm nha khoa..."
+                                                    autoFocus
+                                                    className="w-full border-b border-gray-300 px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="w-full flex items-center justify-between border-b border-gray-300 bg-transparent py-2 hover:bg-gray-50 transition text-sm text-left shadow-none"
+                                                onClick={() => { setExportNhaKhoaSearch(""); setOpenExportNhaKhoaDropdown(true); }}
+                                            >
+                                                <span className={exportNhaKhoaObj ? "text-blue-700 font-medium truncate" : "text-gray-900"}>
+                                                    {exportNhaKhoaObj ? exportNhaKhoaObj.name : "Tất cả nha khoa"}
+                                                </span>
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        )}
+
+                                        {openExportNhaKhoaDropdown && (
+                                            <div className="absolute left-0 top-full mt-1 z-[1300] w-full bg-white rounded-lg shadow-xl border border-gray-200 max-h-56 overflow-y-auto">
+                                                {exportNhaKhoaObj && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setExportNhaKhoaObj(null); setOpenExportNhaKhoaDropdown(false); }}
+                                                        className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 border-b border-gray-100 transition"
+                                                    >
+                                                        Bỏ chọn (Tất cả nha khoa)
+                                                    </button>
+                                                )}
+                                                {filteredExportNhaKhoaOpts.map((item) => (
+                                                    <button
+                                                        type="button"
+                                                        key={item._id}
+                                                        onClick={() => { setExportNhaKhoaObj(item); setOpenExportNhaKhoaDropdown(false); }}
+                                                        className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${exportNhaKhoaObj?._id === item._id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
+                                                    >
+                                                        {item.name}
+                                                    </button>
+                                                ))}
+                                                {filteredExportNhaKhoaOpts.length === 0 && (
+                                                    <p className="text-center text-xs text-gray-400 py-4">Không tìm thấy</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -619,7 +690,7 @@ export default function PhieuThuPage() {
                                 <button
                                     onClick={handleExportExcel}
                                     disabled={exporting}
-                                    className="px-6 py-2.5 bg-[#1ea4e8] hover:bg-[#039be5] text-white rounded-full font-semibold shadow disabled:opacity-60"
+                                    className="px-6 py-2.5 bg-[#1ea4e8] hover:bg-[#039be5] text-white rounded-full font-semibold shadow disabled:opacity-60 transition"
                                 >
                                     {exporting ? "Đang xuất..." : "Tải xuống"}
                                 </button>

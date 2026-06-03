@@ -6,11 +6,7 @@ import {
   IconButton,
   InputBase,
   Box,
-  Slide,
   Paper,
-  Checkbox,
-  FormControlLabel,
-  Divider,
   CircularProgress,
   Button,
   List,
@@ -34,24 +30,17 @@ import debounce from "lodash/debounce";
 // Import trang Tìm kiếm nâng cao vào đây
 import TimKiemNangCaoPage from "./TimKiemNangCaoPage";
 
-const SEARCH_OPTIONS = [
-  { id: "nhakhoa", label: "Khách hàng" },
-  { id: "benhnhan", label: "Bệnh nhân" },
-  { id: "donhang", label: "Đơn hàng" },
-];
-
 const Header = ({ onToggleSidebar }) => {
   const { isAuthenticated } = useSelector(getAuthSelector);
   const navigate = useNavigate();
 
   // States
-  const [searchOpen, setSearchOpen] = useState(false); // Trạng thái đóng/mở tìm kiếm trên Mobile
+  const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedTypes, setSelectedTypes] = useState([]);
+
+  // Khởi tạo state chỉ chứa donHang
   const [results, setResults] = useState({
-    nhaKhoa: [],
-    benhNhan: [],
     donHang: [],
   });
   const [isSearching, setIsSearching] = useState(false);
@@ -69,7 +58,6 @@ const Header = ({ onToggleSidebar }) => {
         !searchContainerRef.current.contains(event.target)
       ) {
         setIsDropdownOpen(false);
-        // Nếu đang ở mobile thì thu nhỏ thanh tìm kiếm lại luôn khi click ra ngoài
         if (window.innerWidth < 600) {
           setSearchOpen(false);
         }
@@ -80,17 +68,22 @@ const Header = ({ onToggleSidebar }) => {
   }, []);
 
   const fetchSearchResults = useCallback(
-    debounce(async (query, types) => {
+    debounce(async (query) => {
       if (!query.trim()) {
-        setResults({ nhaKhoa: [], benhNhan: [], donHang: [] });
+        setResults({ donHang: [] });
         setIsSearching(false);
         return;
       }
       setIsSearching(true);
       try {
-        const typesParam = types.length > 0 ? types.join(",") : "";
-        const res = await api.get(`/search?q=${query}&types=${typesParam}`);
-        setResults(res.data.data);
+        // 🔥 CHIẾN THUẬT: Không ép cứng types. 
+        // Thả cho Backend quét mọi ngóc ngách (quét cả tên Khách Hàng, Bệnh nhân) như cũ
+        const res = await api.get(`/search?q=${query}`);
+
+        // Nhưng UI thì chỉ hứng đúng mảng donHang để hiển thị
+        setResults({
+          donHang: res.data?.data?.donHang || []
+        });
       } catch (error) {
         console.error("Lỗi tìm kiếm:", error);
       } finally {
@@ -104,16 +97,7 @@ const Header = ({ onToggleSidebar }) => {
     const value = e.target.value;
     setSearchQuery(value);
     setIsDropdownOpen(true);
-    fetchSearchResults(value, selectedTypes);
-  };
-
-  const handleTypeToggle = (typeId) => {
-    const newTypes = selectedTypes.includes(typeId)
-      ? selectedTypes.filter((t) => t !== typeId)
-      : [...selectedTypes, typeId];
-
-    setSelectedTypes(newTypes);
-    if (searchQuery) fetchSearchResults(searchQuery, newTypes);
+    fetchSearchResults(value);
   };
 
   return (
@@ -150,7 +134,7 @@ const Header = ({ onToggleSidebar }) => {
             <p className="hidden sm:block font-medium text-xl tracking-wide">CÔNG TY TNHH TẤN DENTAL</p>
           </Box>
 
-          {/* 👉 THANH TÌM KIẾM ĐÃ ĐƯỢC TỐI ƯU CHO CẢ PC & MOBILE */}
+          {/* 👉 THANH TÌM KIẾM CHO CẢ PC & MOBILE */}
           <Box
             ref={searchContainerRef}
             sx={{
@@ -162,7 +146,7 @@ const Header = ({ onToggleSidebar }) => {
               left: 0,
               right: 0,
               bottom: 0,
-              display: { xs: searchOpen ? "flex" : "none", sm: "flex" }, // Bật lên khi searchOpen = true ở Mobile
+              display: { xs: searchOpen ? "flex" : "none", sm: "flex" },
               width: { xs: "100%", sm: "40%", md: "45%" },
               maxWidth: { xs: "100%", sm: 600 },
               height: { xs: searchOpen ? "100%" : "auto", sm: "auto" },
@@ -175,7 +159,6 @@ const Header = ({ onToggleSidebar }) => {
               zIndex: { xs: 1202, sm: "auto" },
             }}
           >
-            {/* Nút đóng (X) tìm kiếm nhanh - Chỉ xuất hiện trên Mobile */}
             {searchOpen && (
               <IconButton
                 color="inherit"
@@ -189,7 +172,6 @@ const Header = ({ onToggleSidebar }) => {
               </IconButton>
             )}
 
-            {/* Input chính */}
             <Box
               sx={{
                 display: "flex",
@@ -203,11 +185,11 @@ const Header = ({ onToggleSidebar }) => {
             >
               <SearchIcon sx={{ color: "#666" }} />
               <InputBase
-                placeholder="Tìm kiếm khách hàng, bệnh nhân, đơn hàng..."
+                placeholder="Tìm kiếm đơn hàng nhanh..."
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onFocus={() => setIsDropdownOpen(true)}
-                autoFocus={searchOpen} // Tự động focus bàn phím khi bấm icon kính lúp trên mobile
+                autoFocus={searchOpen}
                 sx={{ ml: 1, width: "100%", fontSize: "14px" }}
               />
               {isSearching && (
@@ -215,7 +197,7 @@ const Header = ({ onToggleSidebar }) => {
               )}
             </Box>
 
-            {/* DROPDOWN KẾT QUẢ TÌM KIẾM (Tự động thích ứng giao diện Mobile/PC) */}
+            {/* DROPDOWN KẾT QUẢ TÌM KIẾM */}
             {isDropdownOpen && (
               <Paper
                 sx={{
@@ -232,45 +214,28 @@ const Header = ({ onToggleSidebar }) => {
                   overflowY: "auto",
                 }}
               >
-                {/* Vùng chọn Bộ lọc dữ liệu */}
+                {/* THANH CÔNG CỤ */}
                 <Box
                   sx={{
                     display: "flex",
-                    flexWrap: "wrap",
+                    justifyContent: "space-between",
                     p: 1,
                     bgcolor: "#f8fafc",
                     borderBottom: "1px solid #e2e8f0",
                     alignItems: "center",
                   }}
                 >
-                  {SEARCH_OPTIONS.map((opt) => (
-                    <FormControlLabel
-                      key={opt.id}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={selectedTypes.includes(opt.id)}
-                          onChange={() => handleTypeToggle(opt.id)}
-                        />
-                      }
-                      label={
-                        <Typography variant="body2" sx={{ fontSize: "13px" }}>
-                          {opt.label}
-                        </Typography>
-                      }
-                      sx={{ mr: 1.5, mb: 0 }}
-                    />
-                  ))}
-                  <Box sx={{ flexGrow: 1 }} />
+                  <Typography variant="body2" sx={{ fontSize: "13px", fontWeight: "bold", color: "#64748b", pl: 1 }}>
+                    KẾT QUẢ ĐƠN HÀNG
+                  </Typography>
 
-                  {/* Nút Tìm nâng cao */}
                   <Button
                     size="small"
                     endIcon={<OpenInNewIcon fontSize="small" />}
                     onClick={() => {
                       setIsDropdownOpen(false);
-                      setSearchOpen(false); // Đóng thanh mobile tìm nhanh
-                      setShowAdvancedSearch(true); // Bật giao diện full-screen nâng cao lên
+                      setSearchOpen(false);
+                      setShowAdvancedSearch(true);
                     }}
                     sx={{
                       textTransform: "none",
@@ -282,7 +247,7 @@ const Header = ({ onToggleSidebar }) => {
                   </Button>
                 </Box>
 
-                {/* Vùng hiển thị danh sách kết quả */}
+                {/* DANH SÁCH HIỂN THỊ */}
                 <Box sx={{ p: 1 }}>
                   {!searchQuery ? (
                     <Typography
@@ -294,36 +259,26 @@ const Header = ({ onToggleSidebar }) => {
                     </Typography>
                   ) : (
                     <>
-                      {/* 1. ĐƠN HÀNG */}
-                      {results.donHang.length > 0 && (
-                        <Box mb={2}>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{
-                              px: 2,
-                              py: 1,
-                              bgcolor: "#fef3c7",
-                              color: "#d97706",
-                              borderRadius: 1,
-                              fontWeight: "bold",
-                            }}
-                          >
-                            ĐƠN HÀNG
-                          </Typography>
-                          <List dense>
+                      {results?.donHang?.length > 0 && (
+                        <Box mb={1}>
+                          <List dense disablePadding>
                             {results.donHang.map((dh) => (
                               <ListItem
                                 button
                                 key={dh._id}
+                                sx={{ borderRadius: 1, mb: 0.5, "&:hover": { bgcolor: "#f1f5f9" } }}
                                 onClick={() => {
                                   setIsDropdownOpen(false);
                                   setSearchOpen(false);
-                                  // 🔥 ĐÃ FIX: Thêm /edit vào đường dẫn điều hướng
                                   navigate(`/donhang/${dh._id}/edit`);
                                 }}
                               >
                                 <ListItemText
-                                  primary={`Mã: ${dh.maDonHang}`}
+                                  primary={
+                                    <Typography variant="body2" sx={{ fontWeight: "bold", color: "#0f172a" }}>
+                                      Mã ĐH: {dh.maDonHang}
+                                    </Typography>
+                                  }
                                   secondary={
                                     <Box
                                       sx={{
@@ -358,85 +313,8 @@ const Header = ({ onToggleSidebar }) => {
                         </Box>
                       )}
 
-                      {/* 2. BỆNH NHÂN */}
-                      {results.benhNhan.length > 0 && (
-                        <Box mb={2}>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{
-                              px: 2,
-                              py: 1,
-                              bgcolor: "#fce7f3",
-                              color: "#db2777",
-                              borderRadius: 1,
-                              fontWeight: "bold",
-                            }}
-                          >
-                            BỆNH NHÂN
-                          </Typography>
-                          <List dense>
-                            {results.benhNhan.map((bn) => (
-                              <ListItem
-                                button
-                                key={bn._id}
-                                onClick={() => {
-                                  setIsDropdownOpen(false);
-                                  setSearchOpen(false);
-                                  navigate(`/benhnhan/${bn._id}`);
-                                }}
-                              >
-                                <ListItemText
-                                  primary={bn.hoVaTen}
-                                  secondary={bn.namSinh || ""}
-                                />
-                              </ListItem>
-                            ))}
-                          </List>
-                        </Box>
-                      )}
-
-                      {/* 3. KHÁCH HÀNG / NHA KHOA */}
-                      {results.nhaKhoa.length > 0 && (
-                        <Box mb={2}>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{
-                              px: 2,
-                              py: 1,
-                              bgcolor: "#e0f2fe",
-                              color: "#0284c7",
-                              borderRadius: 1,
-                              fontWeight: "bold",
-                            }}
-                          >
-                            KHÁCH HÀNG (NHA KHOA)
-                          </Typography>
-                          <List dense>
-                            {results.nhaKhoa.map((nk) => (
-                              <ListItem
-                                button
-                                key={nk._id}
-                                onClick={() => {
-                                  setIsDropdownOpen(false);
-                                  setSearchOpen(false);
-                                  navigate(`/nhakhoa/${nk._id}`);
-                                }}
-                              >
-                                <ListItemText
-                                  primary={nk.hoVaTen || nk.tenGiaoDich}
-                                  secondary={nk.soDienThoai}
-                                />
-                              </ListItem>
-                            ))}
-                          </List>
-                        </Box>
-                      )}
-
-                      {/* Không tìm thấy kết quả */}
                       {!isSearching &&
-                        results.nhaKhoa.length === 0 &&
-                        results.benhNhan.length === 0 &&
-                        results.donHang.length === 0 && (
+                        (!results.donHang || results.donHang.length === 0) && (
                           <Typography
                             variant="body2"
                             color="textSecondary"
@@ -461,7 +339,6 @@ const Header = ({ onToggleSidebar }) => {
               flexShrink: 0,
             }}
           >
-            {/* Nút kính lúp kích hoạt tìm kiếm nhanh - Chỉ xuất hiện ở Mobile */}
             <IconButton
               color="inherit"
               onClick={() => setSearchOpen(true)}
@@ -485,7 +362,7 @@ const Header = ({ onToggleSidebar }) => {
         </Toolbar>
       </AppBar>
 
-      {/* Hiển thị màn hình Tìm kiếm nâng cao đè lên tất cả khi state bằng true */}
+      {/* HIỂN THỊ MÀN HÌNH TÌM KIẾM NÂNG CAO */}
       {showAdvancedSearch && (
         <TimKiemNangCaoPage onClose={() => setShowAdvancedSearch(false)} />
       )}

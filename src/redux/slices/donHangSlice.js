@@ -318,6 +318,12 @@ const donHangSlice = createSlice({
                     (item) => item._id === action.payload._id
                 );
                 if (index !== -1) {
+                    const oldTrangThai = state.data[index].trangThai;
+                    const newTrangThai = action.payload.trangThai;
+                    if (oldTrangThai !== newTrangThai) {
+                        if (oldTrangThai) state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
+                        if (newTrangThai) state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                    }
                     state.data[index] = action.payload;
                 }
             })
@@ -328,6 +334,12 @@ const donHangSlice = createSlice({
                     (item) => item._id === action.payload._id
                 );
                 if (index !== -1) {
+                    const oldTrangThai = state.data[index].trangThai;
+                    const newTrangThai = action.payload.trangThai;
+                    if (oldTrangThai !== newTrangThai) {
+                        if (oldTrangThai) state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
+                        if (newTrangThai) state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                    }
                     state.data[index] = {
                         ...state.data[index],
                         trangThai: action.payload.trangThai,
@@ -352,8 +364,12 @@ const donHangSlice = createSlice({
                             trangThaiCongDoan: updatedSanPham[i]?.trangThaiCongDoan ?? sp.trangThaiCongDoan,
                         }));
                     }
-                    if (action.payload.trangThai) {
-                        state.data[index].trangThai = action.payload.trangThai;
+                    if (action.payload.trangThai && action.payload.trangThai !== state.data[index].trangThai) {
+                        const oldTrangThai = state.data[index].trangThai;
+                        const newTrangThai = action.payload.trangThai;
+                        if (oldTrangThai) state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
+                        if (newTrangThai) state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                        state.data[index].trangThai = newTrangThai;
                     }
                 }
             })

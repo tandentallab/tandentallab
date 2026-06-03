@@ -746,14 +746,33 @@ const DonHangDetailPanel = (props) => {
           open={isPhieuBaoHanhOpen}
           onClose={() => setIsPhieuBaoHanhOpen(false)}
           donHang={donHang}
-          onSuccess={() => {
+          onSuccess={(newWarranty) => {
             toast.success("Đã tạo phiếu bảo hành");
-            api.get(`/phieu-bao-hanh/don-hang/${donHang._id}`)
-              .then((res) => setWarranty(res.data.data || res.data));
+            setIsPhieuBaoHanhOpen(false);
+            setWarranty(newWarranty);
+            if (newWarranty) {
+              const enriched = (newWarranty.danhSachBaoHanh || []).map((item) => {
+                const startDate = new Date(item.baoHanhTu);
+                const endDate = new Date(item.baoHanhDen);
+                const yearsDiff = endDate.getFullYear() - startDate.getFullYear();
+                const expectedEnd = addYearsToDate(item.baoHanhTu, yearsDiff);
+                const actualEndStr = endDate.toISOString().slice(0, 10);
+                const isExactYears = expectedEnd === actualEndStr;
+                return {
+                  ...item,
+                  selectedYears: isExactYears ? yearsDiff : "",
+                  customEndDate: isExactYears ? "" : actualEndStr,
+                };
+              });
+              setWarrantyEditForm({
+                ghiChu: newWarranty.ghiChu || "",
+                danhSachBaoHanh: enriched,
+              });
+              setOpenWarrantyDialog(true);
+            }
           }}
         />
-      )
-      }
+      )}
 
       {
         warranty && (

@@ -219,7 +219,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
         // Reset form
         setProductWarrantyConfigs({});
 
-        onSuccess?.();
+        onSuccess?.(res.data.data);
       } else {
         toast.error(res.data?.message || "Lỗi khi tạo phiếu bảo hành");
       }

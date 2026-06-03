@@ -18,7 +18,7 @@ const DATE_PRESETS = [
 
 export const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
 
-const STATUS_OPTIONS = ["Chưa thanh toán", "Thanh toán một phần", "Đã thanh toán"];
+const STATUS_OPTIONS = ["Lưu tạm", "Chưa thanh toán", "Thanh toán một phần", "Đã thanh toán"];
 
 const HoaDonFilterDrawer = ({
     open,

@@ -87,7 +87,13 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   const sentinelRef = useRef(null);
 
   const today = new Date().toISOString().split("T")[0];
-  const [fromDate, setFromDate] = useState(today);
+  const defaultFrom = (() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    d.setDate(28);
+    return d.toISOString().split("T")[0];
+  })();
+  const [fromDate, setFromDate] = useState(defaultFrom);
   const [toDate, setToDate] = useState(today);
 
   // 🔥 STATE NEO LỊCH

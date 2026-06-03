@@ -86,7 +86,7 @@ export default function SoDuDauKyDialog({ open, onClose }) {
             }
 
             setSaveSuccess(true);
-            handleOpen(); // Reload lại dữ liệu gốc từ DB sau khi lưu thành công
+            setTimeout(() => handleOpen(), 1500); // Reload sau 1.5s để user thấy thông báo
         } catch {
             setSaveError('Lưu thất bại, vui lòng thử lại.');
         } finally {

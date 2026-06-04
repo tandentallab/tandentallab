@@ -84,17 +84,15 @@ const HoaDonDetail = () => {
     ngayXuatHoaDon: "",
   });
 
-  // ================= LOAD DATA (TỐC ĐỘ BÀN THỜ 🚀) =================
+  // ================= LOAD DATA =================
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        // 🔥 Bí quyết ở đây: Chạy 3 API cùng MỘT LÚC thay vì đợi nhau
         const [nhaKhoaRes, hoaDonRes, ptRes] = await Promise.all([
           dispatch(fetchNhaKhoa()),
           dispatch(fetchHoaDonById(id)).unwrap(),
           dispatch(fetchPhieuThuByHoaDon(id)).unwrap().catch((ptErr) => {
-            // Lỡ phiếu thu lỗi thì cũng không làm sập tiến trình tải Hóa đơn
             console.error("Không tải được phiếu thu:", ptErr);
             return [];
           })
@@ -102,7 +100,6 @@ const HoaDonDetail = () => {
 
         const data = hoaDonRes.data;
 
-        // Xử lý mapping dữ liệu Hóa Đơn
         const mappedData = {
           ...data,
           danhSachSanPham: (data.danhSachSanPham || []).map((sp) => ({
@@ -115,11 +112,9 @@ const HoaDonDetail = () => {
 
         setHoaDon(mappedData);
 
-        // Lưu mốc ID đơn hàng
         const ids = [...new Set((mappedData.danhSachSanPham || []).map(sp => sp.donHang?._id || sp.donHang))].sort().join(',');
         setInitialDonHangIds(ids);
 
-        // Tính toán các giá trị mặc định cho Form
         const tongCongLoaded = mappedData.tongCong || 0;
         const chietKhauPhanTram =
           tongCongLoaded > 0
@@ -145,7 +140,6 @@ const HoaDonDetail = () => {
             : "",
         });
 
-        // Set danh sách Phiếu Thu từ kết quả của Promise.all
         setPhieuThuList(ptRes?.data || ptRes || []);
 
       } catch (err) {
@@ -163,38 +157,42 @@ const HoaDonDetail = () => {
     setIsDirty(true);
   };
 
+  // ✅ FIX: dùng functional update → dep rỗng → callback stable, không tạo lại mỗi lần render
   const handleGiamGiaChange = useCallback((idx, val, loai) => {
-    let value = Number(val) || 0;
-    const newHoaDon = { ...hoaDon };
-    newHoaDon.danhSachSanPham = [...newHoaDon.danhSachSanPham];
-    const sp = { ...newHoaDon.danhSachSanPham[idx] };
-    const baseAmount = Number(sp.thanhTien) || 0;
+    const value = Number(val) || 0;
+    setHoaDon(prev => {
+      const newList = [...prev.danhSachSanPham];
+      const sp = { ...newList[idx] };
+      const baseAmount = Number(sp.thanhTien) || 0;
 
-    if (loai === "phanTram") {
-      const percent = Math.min(100, Math.max(0, value));
-      sp.giamGiaPhanTram = percent;
-      sp.loaiGiamGia = "phanTram";
-      sp.giamGia = Math.round(baseAmount * (percent / 100));
-    } else {
-      const amount = Math.min(baseAmount, Math.max(0, value));
-      sp.giamGiaPhanTram = 0;
-      sp.loaiGiamGia = "tienMat";
-      sp.giamGia = amount;
-    }
+      if (loai === "phanTram") {
+        const percent = Math.min(100, Math.max(0, value));
+        sp.giamGiaPhanTram = percent;
+        sp.loaiGiamGia = "phanTram";
+        sp.giamGia = Math.round(baseAmount * (percent / 100));
+      } else {
+        const amount = Math.min(baseAmount, Math.max(0, value));
+        sp.giamGiaPhanTram = 0;
+        sp.loaiGiamGia = "tienMat";
+        sp.giamGia = amount;
+      }
 
-    sp.tongCongSanPham = baseAmount - sp.giamGia;
-    newHoaDon.danhSachSanPham[idx] = sp;
-    setHoaDon(newHoaDon);
+      sp.tongCongSanPham = baseAmount - sp.giamGia;
+      newList[idx] = sp;
+      return { ...prev, danhSachSanPham: newList };
+    });
     setIsDirty(true);
-  }, [hoaDon]);
+  }, []); // ✅ dep rỗng
 
+  // ✅ FIX: dùng functional update → dep rỗng → callback stable
   const handleGhiChuChange = useCallback((idx, val) => {
-    const newHoaDon = { ...hoaDon };
-    newHoaDon.danhSachSanPham = [...newHoaDon.danhSachSanPham];
-    newHoaDon.danhSachSanPham[idx] = { ...newHoaDon.danhSachSanPham[idx], ghiChu: val };
-    setHoaDon(newHoaDon);
+    setHoaDon(prev => {
+      const newList = [...prev.danhSachSanPham];
+      newList[idx] = { ...newList[idx], ghiChu: val };
+      return { ...prev, danhSachSanPham: newList };
+    });
     setIsDirty(true);
-  }, [hoaDon]);
+  }, []); // ✅ dep rỗng
 
   const minNgayXuatStr = useMemo(() => {
     if (!hoaDon?.danhSachSanPham) return "";
@@ -285,7 +283,6 @@ const HoaDonDetail = () => {
         ? (fin.thueTien / sauCK) * 100
         : fin.thuePhanTram;
 
-      // 1. GOM TOÀN BỘ DATA ĐANG NHẬP TRÊN FORM
       const updateData = {
         ngayXuatHoaDon: formState.ngayXuatHoaDon,
         chietKhau: Math.round(fin.chietKhauTien),
@@ -297,17 +294,14 @@ const HoaDonDetail = () => {
         danhSachSanPham: hoaDon.danhSachSanPham,
       };
 
-      // 2. NẾU LÀ LUỒNG XÁC NHẬN -> ĐÍNH KÈM CỜ
       if (isConfirm) updateData.xacNhanHoaDon = true;
 
       if ((hoaDon.daThanhToan || 0) === 0) {
         updateData.danhSachDonHangIds = [...new Set(hoaDon.danhSachSanPham.map(sp => sp.donHang?._id || sp.donHang))];
       }
 
-      // 3. GỌI API
       const res = await dispatch(updateHoaDon({ id, data: updateData })).unwrap();
 
-      // 4. CẬP NHẬT LẠI STATE GIAO DIỆN (chỉ khi không exit)
       if (!exitAfter) {
         setHoaDon({
           ...res.data,
@@ -324,7 +318,6 @@ const HoaDonDetail = () => {
 
       setIsDirty(false);
 
-      // 5. HIỂN THỊ THÔNG BÁO TƯƠNG ỨNG
       if (isConfirm) {
         setShowXacNhanConfirm(false);
         toast.success("Hóa đơn đã được LƯU VÀ XÁC NHẬN thành công!");
@@ -347,13 +340,16 @@ const HoaDonDetail = () => {
   };
 
   // ================= XÓA DÒNG =================
+  // ✅ FIX: dùng functional update → dep rỗng → stable
   const handleRemoveDonHang = useCallback((donHangId) => {
-    const newDanhSach = hoaDon.danhSachSanPham.filter(
-      sp => (sp.donHang?._id || sp.donHang) !== donHangId
-    );
-    setHoaDon({ ...hoaDon, danhSachSanPham: newDanhSach });
+    setHoaDon(prev => ({
+      ...prev,
+      danhSachSanPham: prev.danhSachSanPham.filter(
+        sp => (sp.donHang?._id || sp.donHang) !== donHangId
+      )
+    }));
     setIsDirty(true);
-  }, [hoaDon]);
+  }, []); // ✅ dep rỗng
 
   const handleAddRowClick = useCallback(() => {
     setIsAddModalOpen(true);
@@ -403,6 +399,7 @@ const HoaDonDetail = () => {
     }
     setShowDeleteConfirm(true);
   };
+
   const executeDelete = async () => {
     try {
       await dispatch(deleteHoaDon(id)).unwrap();

@@ -104,10 +104,13 @@ const CustomDateRangePicker = ({ open, anchorEl, onClose, initialDates, onApply 
                         const isBetween = tempDates.start && tempDates.end && d.isAfter(dayjs(tempDates.start), 'day') && d.isBefore(dayjs(tempDates.end), 'day');
                         const isToday = d.isSame(dayjs(), 'day');
 
+                        // Ẩn các ngày không thuộc tháng hiện tại
+                        if (!isCurrentMonth) {
+                            return <div key={i} className="p-0.5" />;
+                        }
+
                         let bgClass = "bg-transparent hover:bg-gray-100 text-gray-800 rounded-lg cursor-pointer";
                         let wrapClass = "p-0.5";
-
-                        if (!isCurrentMonth) bgClass = "text-gray-300";
 
                         if (isStart) {
                             bgClass = "bg-blue-600 text-white font-bold rounded-lg cursor-pointer shadow-md";

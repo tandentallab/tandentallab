@@ -29,7 +29,7 @@ const formatViTriRang = (viTriArr) => {
                 ? `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
                 : v.soRang?.join(", ")
         )
-        .join("; ");
+        .join(", ");
 };
 
 const getFirstName = (fullName) => {
@@ -51,13 +51,101 @@ const RHCell = React.memo(({ label, style, columnKey, onResize }) => (
     </TableCell>
 ));
 
+// ================= DETAIL ROW — memo để chỉ re-render dòng bị thay đổi =================
+const DetailRow = React.memo(({ sp, idx, cellStyles, isLocked, canEditItems, uniqueOrdersCount, handleGiamGiaChange, handleGhiChuChange, onDeleteClick, navigate }) => {
+    return (
+        <TableRow hover className="transition-colors group">
+            <TableCell
+                sx={cellStyles.row.donHang_link}
+                onClick={() => navigate(`/donhang/${sp.donHang?._id}/edit`)}
+            >
+                {sp.donHang?.maDonHang || "---"}
+            </TableCell>
+
+            <TableCell sx={cellStyles.row.ngayNhan}>{fmtDate(sp.donHang?.ngayNhan)}</TableCell>
+            <TableCell sx={cellStyles.row.bacSi}>{getFirstName(sp.donHang?.bacSi?.hoVaTen)}</TableCell>
+            <TableCell sx={cellStyles.row.benhNhan}>{sp.donHang?.benhNhan?.hoVaTen || "---"}</TableCell>
+            <TableCell sx={cellStyles.row.sanPham_bold}>{sp.tenSanPham || "---"}</TableCell>
+            <TableCell sx={cellStyles.row.loaiDon}>{sp.loaiDon || "---"}</TableCell>
+            <TableCell sx={cellStyles.row.viTri_mono}>{formatViTriRang(sp.viTri)}</TableCell>
+            <TableCell sx={cellStyles.row.soLuong_bold}>{sp.soLuong}</TableCell>
+            <TableCell sx={cellStyles.row.donGia}>{fmtVND(sp.donGia)}</TableCell>
+            <TableCell sx={cellStyles.row.thanhTien}>{fmtVND(sp.thanhTien)}</TableCell>
+
+            <TableCell sx={cellStyles.row.giamGia}>
+                <div className="flex items-center gap-2 w-full">
+                    <input
+                        type="text"
+                        inputMode="numeric"
+                        disabled={isLocked}
+                        value={
+                            sp.loaiGiamGia === "phanTram"
+                                ? (sp.giamGiaPhanTram || "")
+                                : vndFormatter.format(sp.giamGia || 0)
+                        }
+                        onChange={(e) => {
+                            const rawValue = e.target.value.replace(/\D/g, "");
+                            handleGiamGiaChange(idx, Number(rawValue), sp.loaiGiamGia || "phanTram");
+                        }}
+                        className="w-[calc(100%-34px)] border border-gray-300 rounded-md px-2 py-1 outline-none text-right bg-white focus:border-blue-500"
+                    />
+                    <select
+                        disabled={isLocked}
+                        value={sp.loaiGiamGia || "phanTram"}
+                        onChange={(e) =>
+                            handleGiamGiaChange(
+                                idx,
+                                e.target.value === "phanTram" ? (sp.giamGiaPhanTram || 0) : sp.giamGia,
+                                e.target.value
+                            )
+                        }
+                        className="w-[34px] h-[34px] rounded-md border border-gray-300 bg-gray-50 cursor-pointer outline-none text-sm"
+                    >
+                        <option value="phanTram">%</option>
+                        <option value="tienMat">đ</option>
+                    </select>
+                </div>
+            </TableCell>
+
+            <TableCell sx={cellStyles.row.tongCong_bold}>{fmtVND(sp.tongCongSanPham)}</TableCell>
+
+            <TableCell sx={cellStyles.row.ghiChu}>
+                <input
+                    disabled={isLocked}
+                    type="text"
+                    value={sp.ghiChu || ""}
+                    onChange={(e) => handleGhiChuChange(idx, e.target.value)}
+                    className="w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-[#00a8df] outline-none text-gray-700 transition-colors py-0.5"
+                />
+            </TableCell>
+
+            {/* CỘT ẢO CUỐI CÙNG CHỨA NÚT X */}
+            <TableCell sx={{ padding: 0, borderBottom: "1px solid #cbd5e1", width: "auto", minWidth: 0, position: "relative" }}>
+                {canEditItems && (
+                    <button
+                        onClick={() => {
+                            if (uniqueOrdersCount <= 1) {
+                                toast.error("Hóa đơn phải chứa ít nhất 1 đơn hàng! Nếu muốn hủy, vui lòng chọn Xóa Hóa Đơn ở dưới cùng.");
+                            } else {
+                                onDeleteClick(sp.donHang);
+                            }
+                        }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 z-10"
+                        title="Loại bỏ đơn hàng này"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
+            </TableCell>
+        </TableRow>
+    );
+});
+
 // ================= COMPONENT CHÍNH =================
 const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaChange, isLocked, canEditItems, onRemoveDonHang, onAddRowClick }) => {
 
-    // 👉 State quản lý Popup Xóa
     const [deleteTarget, setDeleteTarget] = useState(null);
 
-    // 🔥 Đếm số đơn hàng độc nhất để chặn xóa hết
     const uniqueOrdersCount = useMemo(() => {
         const ids = new Set();
         rows.forEach(sp => {
@@ -225,95 +313,24 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                             </TableRow>
                         ) : (
                             rows.map((sp, idx) => (
-                                // 🔥 Thêm class group để hover hiện nút X
-                                <TableRow key={idx} hover className="transition-colors group">
-                                    <TableCell
-                                        sx={cellStyles.row.donHang_link}
-                                        onClick={() => navigate(`/donhang/${sp.donHang?._id}/edit`)}
-                                    >
-                                        {sp.donHang?.maDonHang || "---"}
-                                    </TableCell>
-
-                                    <TableCell sx={cellStyles.row.ngayNhan}>{fmtDate(sp.donHang?.ngayNhan)}</TableCell>
-                                    <TableCell sx={cellStyles.row.bacSi}>{getFirstName(sp.donHang?.bacSi?.hoVaTen)}</TableCell>
-                                    <TableCell sx={cellStyles.row.benhNhan}>{sp.donHang?.benhNhan?.hoVaTen || "---"}</TableCell>
-                                    <TableCell sx={cellStyles.row.sanPham_bold}>{sp.tenSanPham || "---"}</TableCell>
-                                    <TableCell sx={cellStyles.row.loaiDon}>{sp.loaiDon || "---"}</TableCell>
-                                    <TableCell sx={cellStyles.row.viTri_mono}>{formatViTriRang(sp.viTri)}</TableCell>
-                                    <TableCell sx={cellStyles.row.soLuong_bold}>{sp.soLuong}</TableCell>
-                                    <TableCell sx={cellStyles.row.donGia}>{fmtVND(sp.donGia)}</TableCell>
-                                    <TableCell sx={cellStyles.row.thanhTien}>{fmtVND(sp.thanhTien)}</TableCell>
-
-                                    <TableCell sx={cellStyles.row.giamGia}>
-                                        <div className="flex items-center gap-2 w-full">
-                                            <input
-                                                type="text"
-                                                inputMode="numeric"
-                                                disabled={isLocked}
-                                                value={
-                                                    sp.loaiGiamGia === "phanTram"
-                                                        ? (sp.giamGiaPhanTram || "")
-                                                        : vndFormatter.format(sp.giamGia || 0)
-                                                }
-                                                onChange={(e) => {
-                                                    const rawValue = e.target.value.replace(/\D/g, "");
-                                                    handleGiamGiaChange(idx, Number(rawValue), sp.loaiGiamGia || "phanTram");
-                                                }}
-                                                className="w-[calc(100%-34px)] border border-gray-300 rounded-md px-2 py-1 outline-none text-right bg-white focus:border-blue-500"
-                                            />
-                                            <select
-                                                disabled={isLocked}
-                                                value={sp.loaiGiamGia || "phanTram"}
-                                                onChange={(e) =>
-                                                    handleGiamGiaChange(
-                                                        idx,
-                                                        e.target.value === "phanTram" ? (sp.giamGiaPhanTram || 0) : sp.giamGia,
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-[34px] h-[34px] rounded-md border border-gray-300 bg-gray-50 cursor-pointer outline-none text-sm"
-                                            >
-                                                <option value="phanTram">%</option>
-                                                <option value="tienMat">đ</option>
-                                            </select>
-                                        </div>
-                                    </TableCell>
-
-                                    <TableCell sx={cellStyles.row.tongCong_bold}>{fmtVND(sp.tongCongSanPham)}</TableCell>
-
-                                    <TableCell sx={cellStyles.row.ghiChu}>
-                                        <input
-                                            disabled={isLocked}
-                                            type="text"
-                                            value={sp.ghiChu || ""}
-                                            onChange={(e) => handleGhiChuChange(idx, e.target.value)}
-                                            className="w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-[#00a8df] outline-none text-gray-700 transition-colors py-0.5"
-                                        />
-                                    </TableCell>
-
-                                    {/* 🔥 CỘT ẢO CUỐI CÙNG CHỨA NÚT X (CHỈ HIỆN KHI CHƯA CHỐT) */}
-                                    <TableCell sx={{ padding: 0, borderBottom: "1px solid #cbd5e1", width: "auto", minWidth: 0, position: "relative" }}>
-                                        {canEditItems && (
-                                            <button
-                                                onClick={() => {
-                                                    if (uniqueOrdersCount <= 1) {
-                                                        toast.error("Hóa đơn phải chứa ít nhất 1 đơn hàng! Nếu muốn hủy, vui lòng chọn Xóa Hóa Đơn ở dưới cùng.");
-                                                    } else {
-                                                        setDeleteTarget(sp.donHang);
-                                                    }
-                                                }}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100 z-10"
-                                                title="Loại bỏ đơn hàng này"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
+                                // ✅ key dùng idx — stable vì list không reorder, chỉ append/remove
+                                <DetailRow
+                                    key={idx}
+                                    sp={sp}
+                                    idx={idx}
+                                    cellStyles={cellStyles}
+                                    isLocked={isLocked}
+                                    canEditItems={canEditItems}
+                                    uniqueOrdersCount={uniqueOrdersCount}
+                                    handleGiamGiaChange={handleGiamGiaChange}
+                                    handleGhiChuChange={handleGhiChuChange}
+                                    onDeleteClick={setDeleteTarget}
+                                    navigate={navigate}
+                                />
                             ))
                         )}
 
-                        {/* 🔥 DÒNG: + THÊM DÒNG (CHỈ HIỆN KHI CHƯA CHỐT) */}
+                        {/* DÒNG: + THÊM DÒNG */}
                         {canEditItems && (
                             <TableRow>
                                 <TableCell colSpan={14} sx={{ py: 2, borderBottom: "none" }}>
@@ -330,7 +347,7 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                 </Table>
             </TableContainer>
 
-            {/* 👉 POPUP XÁC NHẬN XÓA ĐƠN HÀNG */}
+            {/* POPUP XÁC NHẬN XÓA ĐƠN HÀNG */}
             {deleteTarget && (
                 <div className="fixed inset-0 z-[1600] flex items-center justify-center bg-black/40 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-xl p-6 w-[90%] max-w-md mx-4">

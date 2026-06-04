@@ -15,13 +15,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import PrintIcon from "@mui/icons-material/Print";
 import { api } from "../../config/api";
 import { exportPhieuThuToExcel } from "../../utils/exportToExcel";
-import ExportDateSelector from "../common/ExportDateSelector";
 import CustomDateRangePicker from "../common/CustomDateRangePicker";
 import dayjs from "dayjs";
-import {
-    EMPTY_EXPORT_DATE_FILTER,
-    toISODateRange
-} from "../../utils/exportDatePresets";
 import { toast } from "sonner";
 
 const formatCurrency = (value) =>
@@ -82,7 +77,7 @@ export default function PhieuThuPage() {
 
     // Applied filter (drives API calls)
     const [appliedNgayThu, setAppliedNgayThu] = useState(EMPTY_DATE);
-    const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(null); // { _id, name }
+    const [appliedNhaKhoa, setAppliedNhaKhoa] = useState(null);
 
     // Filter panel UI
     const [showFilter, setShowFilter] = useState(false);
@@ -95,16 +90,21 @@ export default function PhieuThuPage() {
 
     // Export UI
     const [openExport, setOpenExport] = useState(false);
-    const [exportDateFilter, setExportDateFilter] = useState(EMPTY_EXPORT_DATE_FILTER);
+    const [exportDateFilter, setExportDateFilter] = useState(EMPTY_DATE);
     const [exporting, setExporting] = useState(false);
 
-    // 🔥 STATES CHO CUSTOM DROPDOWN NHA KHOA MỚI TRONG FORM XUẤT EXCEL 🔥
+    // STATES CHO CUSTOM DROPDOWN NHA KHOA MỚI (XUẤT EXCEL)
     const [exportNhaKhoaObj, setExportNhaKhoaObj] = useState(null);
     const [openExportNhaKhoaDropdown, setOpenExportNhaKhoaDropdown] = useState(false);
     const [exportNhaKhoaSearch, setExportNhaKhoaSearch] = useState("");
     const exportNhaKhoaRef = useRef(null);
 
-    // 🔥 STATE ĐỂ NEO TỜ LỊCH CUSTOM TRONG MENU LỌC BẢNG
+    // STATES CHO DROPDOWN NGÀY (MODAL XUẤT)
+    const [openExportDateDropdown, setOpenExportDateDropdown] = useState(false);
+    const [exportDateAnchorEl, setExportDateAnchorEl] = useState(null);
+    const exportDateRef = useRef(null);
+
+    // STATE ĐỂ NEO TỜ LỊCH CUSTOM TRONG MENU LỌC BẢNG
     const [anchorElCustomDate, setAnchorElCustomDate] = useState(null);
 
     const [isPrintingBlank, setIsPrintingBlank] = useState(false);
@@ -150,18 +150,19 @@ export default function PhieuThuPage() {
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
 
-    // 🔥 Lắng nghe click outside cho Dropdown Nha Khoa (Modal Xuất) 🔥
+    // Lắng nghe click outside cho Modal Xuất (Ngày & Nha Khoa)
     useEffect(() => {
         const handleClickOutsideDropdown = (event) => {
             if (exportNhaKhoaRef.current && !exportNhaKhoaRef.current.contains(event.target)) {
                 setOpenExportNhaKhoaDropdown(false);
             }
+            if (exportDateRef.current && !exportDateRef.current.contains(event.target)) {
+                setOpenExportDateDropdown(false);
+            }
         };
-        if (openExportNhaKhoaDropdown) {
-            document.addEventListener("mousedown", handleClickOutsideDropdown);
-        }
+        document.addEventListener("mousedown", handleClickOutsideDropdown);
         return () => document.removeEventListener("mousedown", handleClickOutsideDropdown);
-    }, [openExportNhaKhoaDropdown]);
+    }, []);
 
     const handleOpenFilter = () => {
         setDraftNgayThu(appliedNgayThu);
@@ -221,12 +222,15 @@ export default function PhieuThuPage() {
         loadData();
     };
 
-    // 🔥 XỬ LÝ XUẤT EXCEL VỚI STATE MỚI
+    // 🔥 XỬ LÝ XUẤT EXCEL
     const handleExportExcel = async () => {
-        const isPreset = exportDateFilter?.preset && exportDateFilter.preset !== "custom";
-        const isCustom = exportDateFilter?.preset === "custom" && exportDateFilter?.startDate && exportDateFilter?.endDate;
+        const { dateFrom: fromISO, dateTo: toISO } = getApiDates(
+            exportDateFilter?.preset,
+            exportDateFilter?.customFrom,
+            exportDateFilter?.customTo
+        );
 
-        if (!isPreset && !isCustom) {
+        if (!fromISO || !toISO) {
             toast.error("Vui lòng chọn khoảng thời gian xuất Excel.");
             return;
         }
@@ -234,22 +238,12 @@ export default function PhieuThuPage() {
         try {
             setExporting(true);
 
-            let fromISO, toISO;
-            if (isCustom) {
-                fromISO = new Date(exportDateFilter.startDate).toISOString();
-                toISO = new Date(`${exportDateFilter.endDate}T23:59:59`).toISOString();
-            } else {
-                const dateRange = toISODateRange(exportDateFilter);
-                fromISO = dateRange.fromISO;
-                toISO = dateRange.toISO;
-            }
-
             const res = await api.get("/phieu-thu", {
                 params: {
                     page: 1,
                     limit: 5000,
                     search: "",
-                    nhaKhoaId: exportNhaKhoaObj?._id || "", // Dùng state object
+                    nhaKhoaId: exportNhaKhoaObj?._id || "",
                     dateFrom: fromISO,
                     dateTo: toISO,
                 },
@@ -260,7 +254,7 @@ export default function PhieuThuPage() {
             await exportPhieuThuToExcel(data, {
                 fromDate: fromISO,
                 toDate: toISO,
-                nhaKhoaName: exportNhaKhoaObj?.name || "Tất cả", // Dùng state object
+                nhaKhoaName: exportNhaKhoaObj?.name || "Tất cả",
             });
 
             setOpenExport(false);
@@ -275,7 +269,6 @@ export default function PhieuThuPage() {
         .map((nk) => ({ _id: nk._id, name: nk.tenGiaoDich || nk.hoVaTen || "" }))
         .filter((nk) => !nhaKhoaSearch.trim() || nk.name.toLowerCase().includes(nhaKhoaSearch.toLowerCase()));
 
-    // 🔥 Danh sách nha khoa lọc cho Dropdown Xuất Excel
     const filteredExportNhaKhoaOpts = nhaKhoaList
         .map((nk) => ({ _id: nk._id, name: nk.tenGiaoDich || nk.hoVaTen || "" }))
         .filter((nk) => !exportNhaKhoaSearch.trim() || nk.name.toLowerCase().includes(exportNhaKhoaSearch.toLowerCase()));
@@ -353,8 +346,6 @@ export default function PhieuThuPage() {
             {/* Toolbar */}
             <div className="mb-4 bg-white rounded shadow-sm border">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3">
-
-                    {/* Left: filter icon + title */}
                     <div className="flex items-center gap-2 flex-wrap">
                         <div className="relative" ref={filterRef}>
                             <button
@@ -363,14 +354,12 @@ export default function PhieuThuPage() {
                                 className={`relative p-1.5 rounded transition ${isFiltered ? "text-blue-600 bg-blue-50 hover:bg-blue-100" : "text-gray-500 hover:bg-gray-100"}`}
                             >
                                 <FilterAltIcon sx={{ fontSize: 20 }} />
-
                                 {isFiltered && <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-blue-500 rounded-full" />}
                             </button>
 
                             {/* Filter dropdown */}
                             {showFilter && (
                                 <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-white rounded-xl shadow-2xl border border-gray-200" onClick={() => { setOpenDateModal(null); setOpenPickerModal(null); }}>
-
                                     {/* Ngày thu */}
                                     <div className="relative border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
                                         <button
@@ -520,7 +509,6 @@ export default function PhieuThuPage() {
 
             {/* Table */}
             <div className="bg-white rounded shadow-sm overflow-hidden border">
-                {/* ── MOBILE: Card list (hidden sm+) ── */}
                 <div className="sm:hidden divide-y divide-gray-100">
                     {loading ? (
                         <p className="text-center py-10 text-gray-400 text-sm">Đang tải dữ liệu...</p>
@@ -533,7 +521,6 @@ export default function PhieuThuPage() {
                                 onClick={() => handleRowClick(pt)}
                                 className={`px-4 py-3 cursor-pointer transition-colors ${selectedPhieuThu?._id === pt._id ? "bg-blue-50" : "hover:bg-gray-50"}`}
                             >
-                                {/* Row 1: số phiếu + số tiền */}
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="font-semibold text-blue-700 text-sm">
                                         {pt.soPhieuThu || formatSoPhieu(pt._id)}
@@ -542,11 +529,9 @@ export default function PhieuThuPage() {
                                         {formatCurrency(pt.soTienThu)}
                                     </span>
                                 </div>
-                                {/* Row 2: khách hàng */}
                                 <p className="text-sm text-gray-800 font-medium truncate">
                                     {pt.nhaKhoaInfo?.hoVaTen || pt.nhaKhoaInfo?.tenGiaoDich || "—"}
                                 </p>
-                                {/* Row 3: ngày thu · phương thức */}
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <span className="text-xs text-gray-400">{formatDateTime(pt.ngayThu)}</span>
                                     {pt.phuongThucThanhToan && (
@@ -555,7 +540,6 @@ export default function PhieuThuPage() {
                                         </span>
                                     )}
                                 </div>
-                                {/* Row 4: nội dung (nếu có) */}
                                 {pt.noiDung && (
                                     <p className="text-xs text-gray-400 mt-0.5 truncate">{pt.noiDung}</p>
                                 )}
@@ -564,7 +548,6 @@ export default function PhieuThuPage() {
                     )}
                 </div>
 
-                {/* ── DESKTOP: Table (hidden on mobile) ── */}
                 <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full min-w-[640px] text-sm text-left whitespace-nowrap">
                         <thead className="bg-blue-50 text-blue-600 font-medium border-b sticky top-0 z-10">
@@ -632,15 +615,15 @@ export default function PhieuThuPage() {
                 <div className="fixed inset-0 z-[1200] flex items-start justify-center pt-24">
                     <div className="fixed inset-0 bg-black/40" onClick={() => {
                         setOpenExport(false);
-                        setExportDateFilter(EMPTY_EXPORT_DATE_FILTER);
+                        setExportDateFilter(EMPTY_DATE);
                         setExportNhaKhoaObj(null);
                     }} />
-                    <div className="relative w-full max-w-3xl bg-gray-50 rounded-2xl shadow-2xl border border-gray-200 overflow-visible">
+                    <div className="relative w-full max-w-xl bg-gray-50 rounded-2xl shadow-2xl border border-gray-200 overflow-visible">
                         <div className="bg-[#1ea4e8] px-6 py-4 flex items-center justify-between rounded-t-2xl">
                             <h3 className="text-white text-base font-semibold">Xuất excel</h3>
                             <button className="text-white" onClick={() => {
                                 setOpenExport(false);
-                                setExportDateFilter(EMPTY_EXPORT_DATE_FILTER);
+                                setExportDateFilter(EMPTY_DATE);
                                 setExportNhaKhoaObj(null);
                             }}>
                                 <CloseIcon sx={{ fontSize: 28 }} />
@@ -649,15 +632,84 @@ export default function PhieuThuPage() {
 
                         <div className="p-6">
                             <div className="grid grid-cols-1 gap-6 mb-6">
+
+                                {/* 🔥 CUSTOM DROPDOWN CHỌN NGÀY XUẤT EXCEL 🔥 */}
                                 <div>
-                                    <ExportDateSelector
-                                        title="Chọn ngày xuất"
-                                        value={exportDateFilter}
-                                        onChange={setExportDateFilter}
-                                    />
+                                    <p className="text-sm font-semibold text-gray-500 mb-1">Chọn ngày xuất</p>
+                                    <div className="relative" ref={exportDateRef}>
+                                        <button
+                                            type="button"
+                                            className="w-full flex items-center justify-between border-b border-gray-300 bg-transparent py-2 hover:bg-gray-50 transition text-sm text-left shadow-none"
+                                            onClick={() => setOpenExportDateDropdown(!openExportDateDropdown)}
+                                        >
+                                            <span className={exportDateFilter?.preset ? "text-blue-700 font-medium truncate" : "text-gray-900"}>
+                                                {exportDateFilter?.preset === "custom" && exportDateFilter.customFrom
+                                                    ? `${dayjs(exportDateFilter.customFrom).format('DD/MM/YYYY')} - ${dayjs(exportDateFilter.customTo).format('DD/MM/YYYY')}`
+                                                    : DATE_PRESETS.find(p => p.key === exportDateFilter?.preset)?.label || "Tất cả thời gian"}
+                                            </span>
+                                            <CalendarTodayIcon sx={{ fontSize: 16, color: "#9ca3af" }} />
+                                        </button>
+
+                                        {openExportDateDropdown && (
+                                            <div className="absolute left-0 top-full mt-1 z-[1300] w-full bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
+                                                {DATE_PRESETS.map((p) => (
+                                                    <div key={p.key}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setExportDateFilter(prev => ({ ...prev, preset: p.key }));
+                                                                if (!p.isCalendar) {
+                                                                    setOpenExportDateDropdown(false);
+                                                                } else {
+                                                                    setExportDateAnchorEl(exportDateRef.current);
+                                                                }
+                                                            }}
+                                                            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${exportDateFilter?.preset === p.key ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
+                                                        >
+                                                            {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
+                                                            {p.label}
+                                                        </button>
+
+                                                        {p.isCalendar && exportDateFilter?.preset === "custom" && (
+                                                            <div className="px-4 py-3 bg-blue-50/30 border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setExportDateAnchorEl(exportDateRef.current)}
+                                                                    className="w-full h-9 px-2 flex items-center justify-center gap-2 text-xs font-semibold text-blue-700 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors shadow-sm"
+                                                                >
+                                                                    {exportDateFilter.customFrom && exportDateFilter.customTo
+                                                                        ? `${dayjs(exportDateFilter.customFrom).format('DD/MM/YYYY')} - ${dayjs(exportDateFilter.customTo).format('DD/MM/YYYY')}`
+                                                                        : "📅 Bấm để chọn ngày..."}
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <CustomDateRangePicker
+                                            open={Boolean(exportDateAnchorEl)}
+                                            anchorEl={exportDateAnchorEl}
+                                            onClose={() => setExportDateAnchorEl(null)}
+                                            initialDates={{
+                                                start: exportDateFilter?.customFrom || "",
+                                                end: exportDateFilter?.customTo || "",
+                                            }}
+                                            onApply={(dates) => {
+                                                setExportDateFilter({
+                                                    preset: "custom",
+                                                    customFrom: dates.start,
+                                                    customTo: dates.end,
+                                                });
+                                                setExportDateAnchorEl(null);
+                                                setOpenExportDateDropdown(false);
+                                            }}
+                                        />
+                                    </div>
                                 </div>
 
-                                {/* 🔥 THAY THẾ SELECT BẰNG GIAO DIỆN CUSTOM DROPDOWN NHA KHOA 🔥 */}
+                                {/* CUSTOM DROPDOWN NHA KHOA */}
                                 <div>
                                     <p className="text-sm font-semibold text-gray-500 mb-1">Nha khoa</p>
                                     <div ref={exportNhaKhoaRef} className="relative">

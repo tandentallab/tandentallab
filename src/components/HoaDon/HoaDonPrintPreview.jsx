@@ -87,7 +87,7 @@ const HoaDonPrintPreview = () => {
           : v.soRang?.join(", ")
       )
       .filter(Boolean)
-      .join("; ");
+      .join(", ");
   };
 
   const getFirstName = (fullName) => {

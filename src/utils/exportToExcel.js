@@ -366,18 +366,18 @@ export const exportHoaDonListToExcel = async (
   const worksheet = workbook.addWorksheet('Danh sách Hóa Đơn');
 
   worksheet.columns = [
-    { width: 12 }, // Ngày xuất
+    { width: 14 }, // Ngày xuất
     { width: 18 }, // Số
-    { width: 24 }, // Nha khoa
-    { width: 14 }, // Tổng cộng
-    { width: 12 }, // Giảm giá
-    { width: 16 }, // Giá trị thanh toán
-    { width: 14 }, // Đã thanh toán
-    { width: 14 }, // Còn lại
-    { width: 14 }, // Chi phí khác
-    { width: 16 }, // Trạng thái
-    { width: 28 }, // Ghi chú cho khách hàng
-    { width: 14 }, // Ngày đến hạn
+    { width: 20 }, // Nha khoa
+    { width: 15 }, // Tổng cộng
+    { width: 13 }, // Giảm giá
+    { width: 18 }, // Giá trị thanh toán
+    { width: 15 }, // Đã thanh toán
+    { width: 15 }, // Còn lại
+    { width: 15 }, // Chi phí khác
+    { width: 22 }, // 🔥 TRẠNG THÁI:
+    { width: 26 }, // Ghi chú cho khách hàng
+    { width: 15 }, // Ngày đến hạn
   ];
 
   // Header
@@ -410,21 +410,11 @@ export const exportHoaDonListToExcel = async (
   worksheet.getRow(headerRow).values = headers;
   worksheet.getRow(headerRow).font = { bold: true };
 
+  // 🔥 ĐÃ SỬA: Loại bỏ các tính toán chính sách cũ, mặc định lấy ngày xuất + 20 ngày
   const computeDueDate = (hoaDon) => {
     if (!hoaDon || !hoaDon.ngayXuatHoaDon) return '';
     const d = new Date(hoaDon.ngayXuatHoaDon);
-    const policy = hoaDon.chinhSachThanhToan || '';
-    if (policy.includes('7')) { d.setDate(d.getDate() + 7); }
-    else if (policy.includes('10')) { d.setDate(d.getDate() + 10); }
-    else if (policy.includes('30')) { d.setDate(d.getDate() + 30); }
-    else if (policy.includes('60')) { d.setDate(d.getDate() + 60); }
-    else if (policy.includes('90')) { d.setDate(d.getDate() + 90); }
-    else if (policy.includes('cuối tháng')) {
-      const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-      return last.toLocaleDateString('vi-VN');
-    } else {
-      return new Date(hoaDon.ngayXuatHoaDon).toLocaleDateString('vi-VN');
-    }
+    d.setDate(d.getDate() + 20); // Cộng chuẩn 20 ngày theo quy định mới
     return d.toLocaleDateString('vi-VN');
   };
 
@@ -447,7 +437,8 @@ export const exportHoaDonListToExcel = async (
       computeDueDate(hd),
     ];
 
-    [4, 5, 6, 7, 8].forEach((col) => {
+    // Định dạng số và căn lề phải cho các cột tiền mặt (đã bổ sung cột số 9 Chi phí khác cho đồng bộ)
+    [4, 5, 6, 7, 8, 9].forEach((col) => {
       worksheet.getCell(rowIndex, col).numFmt = '#,##0';
       worksheet.getCell(rowIndex, col).alignment = { horizontal: 'right' };
     });

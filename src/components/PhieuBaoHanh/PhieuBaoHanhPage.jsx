@@ -354,20 +354,42 @@ const PhieuBaoHanhPage = () => {
   };
 
   return (
-    <div className="w-full p-4 md:p-8 max-w-7xl mx-auto bg-slate-50 min-h-screen">
-      {/* Header Section */}
-      <div className="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          <CalendarMonthIcon className="text-blue-600" /> Quản lý Phiếu Bảo Hành
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Theo dõi, cập nhật và xử lý thông tin bảo hành của bệnh nhân
-        </p>
-      </div>
-
+    <div className="p-4 bg-gray-100">
       {/* Filters & Search Bar */}
-      <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-start">
+      <div className="mb-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center">
         <div className="flex items-center gap-3 w-full flex-1">
+          <div className="flex gap-4 w-full md:w-auto shrink-0 items-start">
+            <ExportDateSelector
+              placeholder="Chọn ngày tạo"
+              value={dateFilter}
+              onChange={(dates) => {
+                setDateFilter(dates);
+                setPage(0);
+              }}
+            />
+            <TextField
+              select
+              size="small"
+              value={nhaKhoaFilter}
+              onChange={(e) => {
+                setNhaKhoaFilter(e.target.value);
+                setPage(0);
+              }}
+              className="w-full md:w-48 bg-slate-50/50 rounded-lg"
+              SelectProps={{
+                displayEmpty: true,
+              }}
+            >
+              <MenuItem value="all">
+                <span className="text-slate-500">Tất cả nha khoa</span>
+              </MenuItem>
+              {nhaKhoaOptions.map((nk) => (
+                <MenuItem key={nk._id} value={nk._id}>
+                  {nk.tenNhaKhoa || nk.hoVaTen || "Không tên"}
+                </MenuItem>
+              ))}
+            </TextField>
+          </div>
           <TextField
             placeholder="Tìm kiếm nhanh theo mã phiếu, mã đơn hàng, tên bệnh nhân..."
             value={searchTerm}
@@ -389,43 +411,11 @@ const PhieuBaoHanhPage = () => {
             onClick={loadPhieuList}
             disabled={loading}
             title="Làm mới dữ liệu"
-            className="border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition-all shadow-sm shrink-0"
+            className="text-slate-600 hover:bg-slate-100 transition-all shadow-sm shrink-0"
             sx={{ width: 40, height: 40, borderRadius: "10px" }}
           >
             <RefreshIcon />
           </IconButton>
-        </div>
-        <div className="flex gap-4 w-full md:w-auto shrink-0 items-start">
-          <ExportDateSelector
-            placeholder="Chọn ngày tạo"
-            value={dateFilter}
-            onChange={(dates) => {
-              setDateFilter(dates);
-              setPage(0);
-            }}
-          />
-          <TextField
-            select
-            size="small"
-            value={nhaKhoaFilter}
-            onChange={(e) => {
-              setNhaKhoaFilter(e.target.value);
-              setPage(0);
-            }}
-            className="w-full md:w-48 bg-slate-50/50 rounded-lg"
-            SelectProps={{
-              displayEmpty: true,
-            }}
-          >
-            <MenuItem value="all">
-              <span className="text-slate-500">Tất cả nha khoa</span>
-            </MenuItem>
-            {nhaKhoaOptions.map((nk) => (
-              <MenuItem key={nk._id} value={nk._id}>
-                {nk.tenNhaKhoa || nk.hoVaTen || "Không tên"}
-              </MenuItem>
-            ))}
-          </TextField>
         </div>
       </div>
 

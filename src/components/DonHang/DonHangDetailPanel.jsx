@@ -63,6 +63,7 @@ const DonHangDetailPanel = (props) => {
   const [openDropdown, setOpenDropdown] = useState(null); // { spIndex, thuTu, top, right }
   const [isOpen, setIsOpen] = useState(false);
   const [fullDonHang, setFullDonHang] = useState(donHang);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (donHang) {
@@ -142,15 +143,18 @@ const DonHangDetailPanel = (props) => {
       toast.error("Đơn hàng đã xuất hóa đơn / đã giao, không thể xóa");
       return;
     }
-    if (window.confirm(`Bạn có chắc chắn muốn xóa đơn hàng ${maDonHang}?`)) {
-      const promise = dispatch(deleteDonHang(donHang._id)).unwrap();
-      toast.promise(promise, {
-        loading: "Đang xóa...",
-        success: `Đã xóa đơn hàng ${maDonHang}`,
-        error: (err) => err || "Xóa đơn hàng thất bại",
-      });
-      promise.then(() => onClose()).catch(() => { });
-    }
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setShowDeleteConfirm(false);
+    const promise = dispatch(deleteDonHang(donHang._id)).unwrap();
+    toast.promise(promise, {
+      loading: "Đang xóa...",
+      success: `Đã xóa đơn hàng ${maDonHang}`,
+      error: (err) => err || "Xóa đơn hàng thất bại",
+    });
+    promise.then(() => onClose()).catch(() => { });
   };
 
   // --- Luồng trạng thái theo yêu cầu thử ---
@@ -839,6 +843,19 @@ const DonHangDetailPanel = (props) => {
           />
         )
       }
+
+      {/* Delete confirm dialog */}
+      <Dialog open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: "bold" }}>Xác nhận xóa đơn hàng</DialogTitle>
+        <DialogContent>
+          <p>Bạn có chắc chắn muốn xóa đơn hàng <strong>{maDonHang}</strong>?</p>
+          <p className="text-sm text-gray-500 mt-1">Hành động này không thể hoàn tác.</p>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => setShowDeleteConfirm(false)} variant="outlined" color="inherit">Hủy</Button>
+          <Button onClick={handleConfirmDelete} variant="contained" color="error">Xóa</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Warranty edit dialog */}
       <Dialog open={openWarrantyDialog} onClose={() => setOpenWarrantyDialog(false)} maxWidth="md" fullWidth>

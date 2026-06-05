@@ -48,7 +48,7 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
         return new Date(value).toLocaleDateString("vi-VN");
     };
 
-    const loaiDonPrefix = { "Hàng sửa": "Sửa", "Hàng làm lại": "Làm lại", "Hàng bảo hành": "Bảo hành" };
+    const loaiDonPrefix = { "Mới": "Mới", "Hàng sửa": "Sửa", "Hàng làm lại": "Làm lại", "Hàng bảo hành": "Bảo hành" };
 
     const renderViTri = (viTri) => {
         if (!Array.isArray(viTri) || viTri.length === 0) return "";
@@ -68,9 +68,8 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
             const prefix = loaiDonPrefix[sp.loaiDon] || "";
             const soLuong = sp.soLuong || 1;
             const tenSanPham = sp.sanPham?.tenSanPham || "";
-            const viTriStr = renderViTri(sp.viTri);
-            return [prefix, soLuong, tenSanPham, viTriStr].filter(Boolean).join(" ");
-        }).join(", ");
+            return [prefix, " - ", soLuong, tenSanPham].filter(Boolean).join(" ");
+        }).join(" | ");
     };
 
     const totalWidth = colWidths.reduce((a, b) => a + b, 0);
@@ -115,6 +114,11 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                                 {dh.ngayNhan && <span>Nhận: {new Date(dh.ngayNhan).toLocaleDateString('vi-VN')}</span>}
                                 {dh.henGiao && <span>Hẹn giao: {new Date(dh.henGiao).toLocaleDateString('vi-VN')}</span>}
                             </div>
+                            {dh.danhSachSanPham?.length > 0 && (
+                                <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                    {renderTomTatRang(dh.danhSachSanPham)}
+                                </p>
+                            )}
                         </div>
                     ))
                 )}

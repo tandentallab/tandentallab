@@ -147,7 +147,7 @@ const CheckPhieuBaoHanhPage = () => {
     <div className="warranty-lookup-body">
       <div className="container">
         <img
-          src="/logo_tan_dental.jpg"
+          src="/TẤN 2.png"
           className="logo"
           alt="Logo"
           onError={(e) => e.target.src = '/logo192.png'}
@@ -341,7 +341,7 @@ const CheckPhieuBaoHanhPage = () => {
         .warranty-lookup-body .loading { color: #ff4500; font-weight: bold; text-align: center; }
         
         .warranty-lookup-body .logo { 
-            max-width: 100px; 
+            max-width: 160px; 
             margin: 0 auto 20px auto; 
             display: block; 
             border-radius: 0 !important; 

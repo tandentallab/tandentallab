@@ -44,7 +44,6 @@ export default function LoginPage() {
     };
     try {
       const result = await dispatch(login(payload)).unwrap();
-      console.log("✅ Đăng nhập thành công:", result);
     } catch (err) {
       console.log("❌ Lỗi đăng nhập:", err);
       setErrorMsg(err || "Đăng nhập thất bại");

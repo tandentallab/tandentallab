@@ -152,11 +152,6 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   };
 
   const handleSubmit = async () => {
-    console.log("Dữ liệu gửi lên:", {
-      donHang: fullDonHang._id,
-      mauTheId: selectedMauTheId, // Kiểm tra kỹ chỗ này
-      ghiChu
-    });
     try {
 
       // Kiểm tra nếu chưa chọn sản phẩm
@@ -219,7 +214,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
         // Reset form
         setProductWarrantyConfigs({});
 
-        onSuccess?.();
+        onSuccess?.(res.data.data);
       } else {
         toast.error(res.data?.message || "Lỗi khi tạo phiếu bảo hành");
       }

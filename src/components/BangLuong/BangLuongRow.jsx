@@ -49,7 +49,7 @@ const VndInput = ({ value, onChange }) => {
   );
 };
 
-const BangLuongRow = ({ item, onChange, isEven }) => {
+const BangLuongRow = ({ item, onChange, isEven, onRowClick }) => {
   const { luongNgay, thanhTienCong, tongPhuCap, thucNhan } = tinhLuong({
     luongCoBan: item.luongCanBan,
     ngayCongThang: item.ngayCongThang,
@@ -69,7 +69,11 @@ const BangLuongRow = ({ item, onChange, isEven }) => {
 
   return (
     <tr
-      style={{ background: rowBg, transition: "background 0.15s" }}
+      style={{
+        background: rowBg,
+        transition: "background 0.15s",
+        cursor: "pointer",
+      }}
       onMouseEnter={(e) => (e.currentTarget.style.background = "#eff6ff")}
       onMouseLeave={(e) => (e.currentTarget.style.background = rowBg)}
     >
@@ -90,6 +94,7 @@ const BangLuongRow = ({ item, onChange, isEven }) => {
       <td
         className="px-4 py-2 text-right text-sm text-gray-600 whitespace-nowrap"
         style={{ borderBottom: "1px solid #f1f5f9" }}
+        onClick={onRowClick}
       >
         {fmt(item.luongCanBan)}
       </td>

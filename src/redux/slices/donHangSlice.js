@@ -121,6 +121,21 @@ export const updateCongDoanTrangThai = createAsyncThunk(
     }
 );
 
+/* ================= ADVANCE TRANG THAI (flow buttons) ================= */
+export const advanceTrangThai = createAsyncThunk(
+    "donHang/advanceTrangThai",
+    async ({ id, trangThai, buocThuHienTai }, { rejectWithValue }) => {
+        try {
+            const res = await api.patch(`/donhang/${id}/trang-thai`, { trangThai, buocThuHienTai });
+            return res.data.data;
+        } catch (err) {
+            return rejectWithValue(
+                err.response?.data?.message || "Cập nhật trạng thái thất bại"
+            );
+        }
+    }
+);
+
 /* ================= GET THONG KE ================= */
 export const fetchThongKe = createAsyncThunk(
     "donHang/fetchThongKe",
@@ -136,19 +151,37 @@ export const fetchThongKe = createAsyncThunk(
     }
 );
 
-//Khởi tạo filter kế hoạch giao hàng
-const initialFilterState = {
-    showUrgentOnly: false,
-    filterType: "all",
-    filterStatus: "Chờ xử lý",
-    fromDate: "",
-    toDate: "",
-    searchText: "",
-};
 
 //Khởi tạo filter đơn hàng page
 
 const initialDonHangPageFilter = {
+    searchTerm: "",
+
+    appliedNgayNhan: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedYcHoanThanh: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedHenGiao: {
+        preset: null,
+        customFrom: "",
+        customTo: "",
+    },
+
+    appliedNhaKhoa: null,
+    appliedBenhNhan: null,
+    appliedTrangThai: [],
+};
+
+// Khởi tạo filter kế hoạch giao hàng
+const initialKeHoachGiaoHangPageFilter = {
     searchTerm: "",
 
     appliedNgayNhan: {
@@ -183,8 +216,8 @@ const donHangSlice = createSlice({
     initialState: {
         data: [],
         allData: [], // dùng cho KeHoachGiaoHang (không phân trang)
-        filters: initialFilterState,
         donHangPageFilter: initialDonHangPageFilter,
+        keHoachGiaoHangPageFilter: initialKeHoachGiaoHangPageFilter,
         loading: false,
         loadingMore: false,
         error: null,
@@ -198,15 +231,15 @@ const donHangSlice = createSlice({
     },
 
     reducers: {
-        setFilter(state, action) {
-            state.filters = {
-                ...state.filters,
+        setKeHoachGiaoHangPageFilter(state, action) {
+            state.keHoachGiaoHangPageFilter = {
+                ...state.keHoachGiaoHangPageFilter,
                 ...action.payload,
             };
         },
 
-        resetFilter(state) {
-            state.filters = initialFilterState;
+        resetKeHoachGiaoHangPageFilter(state) {
+            state.keHoachGiaoHangPageFilter = initialKeHoachGiaoHangPageFilter;
         },
 
         setDonHangPageFilter(state, action) {
@@ -285,7 +318,34 @@ const donHangSlice = createSlice({
                     (item) => item._id === action.payload._id
                 );
                 if (index !== -1) {
+                    const oldTrangThai = state.data[index].trangThai;
+                    const newTrangThai = action.payload.trangThai;
+                    if (oldTrangThai !== newTrangThai) {
+                        if (oldTrangThai) state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
+                        if (newTrangThai) state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                    }
                     state.data[index] = action.payload;
+                }
+            })
+
+            /* ===== ADVANCE TRANG THAI ===== */
+            .addCase(advanceTrangThai.fulfilled, (state, action) => {
+                const index = state.data.findIndex(
+                    (item) => item._id === action.payload._id
+                );
+                if (index !== -1) {
+                    const oldTrangThai = state.data[index].trangThai;
+                    const newTrangThai = action.payload.trangThai;
+                    if (oldTrangThai !== newTrangThai) {
+                        if (oldTrangThai) state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
+                        if (newTrangThai) state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                    }
+                    state.data[index] = {
+                        ...state.data[index],
+                        trangThai: action.payload.trangThai,
+                        buocThuHienTai: action.payload.buocThuHienTai,
+                        nhatKyChinhSua: action.payload.nhatKyChinhSua,
+                    };
                 }
             })
 
@@ -304,8 +364,12 @@ const donHangSlice = createSlice({
                             trangThaiCongDoan: updatedSanPham[i]?.trangThaiCongDoan ?? sp.trangThaiCongDoan,
                         }));
                     }
-                    if (action.payload.trangThai) {
-                        state.data[index].trangThai = action.payload.trangThai;
+                    if (action.payload.trangThai && action.payload.trangThai !== state.data[index].trangThai) {
+                        const oldTrangThai = state.data[index].trangThai;
+                        const newTrangThai = action.payload.trangThai;
+                        if (oldTrangThai) state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
+                        if (newTrangThai) state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                        state.data[index].trangThai = newTrangThai;
                     }
                 }
             })
@@ -336,6 +400,6 @@ export const {
     resetDonHangPageFilter,
 } = donHangSlice.actions;
 
-export const { setFilter, resetFilter } = donHangSlice.actions;
+export const { setKeHoachGiaoHangPageFilter, resetKeHoachGiaoHangPageFilter } = donHangSlice.actions;
 
 export default donHangSlice.reducer;

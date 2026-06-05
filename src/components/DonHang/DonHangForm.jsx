@@ -7,7 +7,7 @@ import dayjs from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import CustomDateRangePicker from "../common/CustomDateRangePicker";
 import { createDonHang, updateDonHang } from "../../redux/slices/donHangSlice";
 import DanhSachPhuKien from "./DanhSachPhuKien";
 import ChonViTriRangModal from "./ChonViTriRangModal";
@@ -200,9 +200,10 @@ const DonHangForm = () => {
   const [quickAddBacSi, setQuickAddBacSi] = useState({ open: false, loading: false, form: { hoVaTen: "", email: "", soDienThoai: "", tieuDe: "", moTa: "" } });
   const [quickAddBenhNhan, setQuickAddBenhNhan] = useState({ open: false, loading: false, form: { hoVaTen: "", soHoSo: "", gioiTinh: "", tinh: "", quanHuyen: "" } });
 
+  const [isViewOnly, setIsViewOnly] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
-  const markDirty = () => setIsDirty(true);
+  const markDirty = () => { if (!isViewOnly) setIsDirty(true); };
 
   const [isViTriModalOpen, setIsViTriModalOpen] = useState(false);
   const [editingSpIndex, setEditingSpIndex] = useState(null);
@@ -221,6 +222,11 @@ const DonHangForm = () => {
   const [phieuBaoHanhList, setPhieuBaoHanhList] = useState([]);
   const [openPrintWarranty, setOpenPrintWarranty] = useState(false);
   const [selectedWarranty, setSelectedWarranty] = useState(null);
+
+  // Date picker anchor elements
+  const [ngayNhanAnchor, setNgayNhanAnchor] = useState(null);
+  const [yeuCauHoanThanhAnchor, setYeuCauHoanThanhAnchor] = useState(null);
+  const [henGiaoAnchor, setHenGiaoAnchor] = useState(null);
 
   const [formData, setFormData] = useState({
     nhaKhoa: "",
@@ -325,9 +331,7 @@ const DonHangForm = () => {
         .then((res) => {
           const dh = res.data.data;
           if (dh.trangThai === "Đã giao" || dh.daXuatHoaDon) {
-            toast.error("Đơn hàng đã xuất hóa đơn / đã giao, không thể chỉnh sửa");
-            navigate(-1);
-            return;
+            setIsViewOnly(true);
           }
           setFormData({
             ...dh,
@@ -358,7 +362,6 @@ const DonHangForm = () => {
           const warranty = res.data?.data || res.data;
           // Convert single warranty to array
           const warrantyArray = warranty ? (Array.isArray(warranty) ? warranty : [warranty]) : [];
-          console.log("Warranty fetched:", warrantyArray, "Length:", warrantyArray.length);
           setPhieuBaoHanhList(warrantyArray);
         })
         .catch((err) => {
@@ -383,7 +386,7 @@ const DonHangForm = () => {
     const handleKeyDown = (e) => {
       if (e.key === "F3") {
         e.preventDefault();
-        handleSaveRef.current();
+        if (!isViewOnly) handleSaveRef.current();
       } else if (e.key === "F4" && isEditMode) {
         e.preventDefault();
         navigate(`/donhang/${id}/print`);
@@ -518,7 +521,7 @@ const DonHangForm = () => {
   };
 
   const handleClose = () => {
-    if (isDirty) {
+    if (isDirty && !isViewOnly) {
       setShowExitWarning(true);
     } else {
       navigate(-1);
@@ -632,7 +635,13 @@ const DonHangForm = () => {
             ? "Cập nhật thất bại"
             : "Tạo đơn hàng thất bại",
     });
-    promise.then(() => navigate(-1)).catch(() => { });
+    promise.then((result) => {
+      if (!isEditMode && result?._id) {
+        navigate(`/donhang/${result._id}/print`, { replace: true });
+      } else {
+        navigate(-1);
+      }
+    }).catch(() => { });
   };
 
   const handleSaveRef = useRef(null);
@@ -658,8 +667,13 @@ const DonHangForm = () => {
     <div className="fixed inset-0 z-[1299] bg-white flex flex-col w-full h-full overflow-hidden">
       {/* Top bar */}
       <div className="h-10 bg-[#00a8ff] flex justify-between items-center px-4 shrink-0">
-        <span className="text-white font-medium text-sm">
-          {isEditMode ? "Chỉnh sửa đơn hàng" : "Tạo đơn hàng mới"}
+        <span className="text-white font-medium text-sm flex items-center gap-2">
+          {isViewOnly ? "Xem đơn hàng (chỉ đọc)" : isEditMode ? "Chỉnh sửa đơn hàng" : "Tạo đơn hàng mới"}
+          {formData.maDonHang && (
+            <span className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded">
+              {formData.maDonHang}
+            </span>
+          )}
         </span>
         <button
           onClick={handleClose}
@@ -743,14 +757,25 @@ const DonHangForm = () => {
                 {/* Ngày nhận */}
                 <div className="flex items-center gap-2">
                   <label className="text-gray-500 inline-block w-32">Ngày nhận:</label>
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DatePicker
-                      format="DD/MM/YYYY"
-                      value={formData.ngayNhan?.split("T")[0] ? dayjs(formData.ngayNhan.split("T")[0]) : null}
-                      onChange={val => handleDateChange("ngayNhan", val ? val.format("YYYY-MM-DD") : "", formData.ngayNhan?.split("T")[1] || "00:00")}
-                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem" } } } }}
-                    />
-                  </LocalizationProvider>
+                  <button
+                    type="button"
+                    onClick={(e) => setNgayNhanAnchor(e.currentTarget)}
+                    className="border-b border-gray-400 px-1 py-1 min-w-[90px] text-left hover:border-blue-500 transition-colors"
+                  >
+                    {formData.ngayNhan?.split("T")[0]
+                      ? dayjs(formData.ngayNhan.split("T")[0]).format("DD/MM/YYYY")
+                      : "--/--/----"}
+                  </button>
+                  <CustomDateRangePicker
+                    open={Boolean(ngayNhanAnchor)}
+                    anchorEl={ngayNhanAnchor}
+                    onClose={() => setNgayNhanAnchor(null)}
+                    initialDates={{ start: formData.ngayNhan?.split("T")[0] || "", end: "" }}
+                    onApply={(dates) => {
+                      if (dates.start) handleDateChange("ngayNhan", dates.start, formData.ngayNhan?.split("T")[1] || "00:00");
+                      setNgayNhanAnchor(null);
+                    }}
+                  />
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <TimePicker
                       ampm={false}
@@ -763,14 +788,25 @@ const DonHangForm = () => {
                 {/* Y/c hoàn thành */}
                 <div className="flex items-center gap-2">
                   <label className="text-gray-500 inline-block w-32">Y/c hoàn thành:</label>
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DatePicker
-                      format="DD/MM/YYYY"
-                      value={formData.yeuCauHoanThanh?.split("T")[0] ? dayjs(formData.yeuCauHoanThanh.split("T")[0]) : null}
-                      onChange={val => handleDateChange("yeuCauHoanThanh", val ? val.format("YYYY-MM-DD") : "", formData.yeuCauHoanThanh?.split("T")[1] || "00:00")}
-                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem" } } } }}
-                    />
-                  </LocalizationProvider>
+                  <button
+                    type="button"
+                    onClick={(e) => setYeuCauHoanThanhAnchor(e.currentTarget)}
+                    className="border-b border-gray-400 px-1 py-1 min-w-[90px] text-left hover:border-blue-500 transition-colors"
+                  >
+                    {formData.yeuCauHoanThanh?.split("T")[0]
+                      ? dayjs(formData.yeuCauHoanThanh.split("T")[0]).format("DD/MM/YYYY")
+                      : "--/--/----"}
+                  </button>
+                  <CustomDateRangePicker
+                    open={Boolean(yeuCauHoanThanhAnchor)}
+                    anchorEl={yeuCauHoanThanhAnchor}
+                    onClose={() => setYeuCauHoanThanhAnchor(null)}
+                    initialDates={{ start: formData.yeuCauHoanThanh?.split("T")[0] || "", end: "" }}
+                    onApply={(dates) => {
+                      if (dates.start) handleDateChange("yeuCauHoanThanh", dates.start, formData.yeuCauHoanThanh?.split("T")[1] || "00:00");
+                      setYeuCauHoanThanhAnchor(null);
+                    }}
+                  />
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <TimePicker
                       ampm={false}
@@ -783,14 +819,25 @@ const DonHangForm = () => {
                 {/* Hẹn giao */}
                 <div className="flex items-center gap-2">
                   <label className="text-gray-500 inline-block w-32">Hẹn giao:</label>
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DatePicker
-                      format="DD/MM/YYYY"
-                      value={formData.henGiao?.split("T")[0] ? dayjs(formData.henGiao.split("T")[0]) : null}
-                      onChange={val => handleDateChange("henGiao", val ? val.format("YYYY-MM-DD") : "", formData.henGiao?.split("T")[1] || "00:00")}
-                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem" } } } }}
-                    />
-                  </LocalizationProvider>
+                  <button
+                    type="button"
+                    onClick={(e) => setHenGiaoAnchor(e.currentTarget)}
+                    className="border-b border-gray-400 px-1 py-1 min-w-[90px] text-left hover:border-blue-500 transition-colors"
+                  >
+                    {formData.henGiao?.split("T")[0]
+                      ? dayjs(formData.henGiao.split("T")[0]).format("DD/MM/YYYY")
+                      : "--/--/----"}
+                  </button>
+                  <CustomDateRangePicker
+                    open={Boolean(henGiaoAnchor)}
+                    anchorEl={henGiaoAnchor}
+                    onClose={() => setHenGiaoAnchor(null)}
+                    initialDates={{ start: formData.henGiao?.split("T")[0] || "", end: "" }}
+                    onApply={(dates) => {
+                      if (dates.start) handleDateChange("henGiao", dates.start, formData.henGiao?.split("T")[1] || "00:00");
+                      setHenGiaoAnchor(null);
+                    }}
+                  />
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <TimePicker
                       ampm={false}
@@ -1077,7 +1124,7 @@ const DonHangForm = () => {
               In Phiếu giao hàng
             </button>
           )}
-          {isEditMode && formData.danhSachSanPham?.some(sp => sp.loaiDon === "Mới") && (
+          {isEditMode && !isViewOnly && formData.danhSachSanPham?.some(sp => sp.loaiDon === "Mới") && (
             <button
               onClick={() => {
                 if (!formData._id) { toast.error("Vui lòng lưu đơn hàng trước khi thêm thẻ bảo hành"); return; }
@@ -1104,6 +1151,7 @@ const DonHangForm = () => {
         <button
           onClick={handleSave}
           className="bg-[#4CAF50] hover:bg-green-600 text-white px-8 py-2 rounded shadow-md font-medium"
+          style={{ display: isViewOnly ? 'none' : undefined }}
         >
           Lưu (F3)
         </button>

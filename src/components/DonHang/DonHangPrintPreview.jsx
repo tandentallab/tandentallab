@@ -36,9 +36,6 @@ const DonHangPrintPreview = () => {
     fetchData();
   }, [id]);
 
-  console.log(donHang);
-
-
   if (loading) return <div className="p-4">Đang tải...</div>;
   if (!donHang) return <div className="p-4">Không tìm thấy đơn hàng</div>;
 
@@ -148,8 +145,11 @@ const DonHangPrintPreview = () => {
                 <span style={{ display: "inline-block", minWidth: "100px" }}>Chỉ định giao: </span>
                 <span style={{ fontWeight: "bold" }}>{(() => {
                   const allYct = (donHang.danhSachSanPham || []).flatMap(sp => sp.yeuCauThu || []);
-                  if (!allYct.length) return "Hoàn thành";
-                  return allYct[allYct.length - 1].congDoan || "Hoàn thành";
+                  if (donHang.trangThai === "Đang thử" && allYct.length > 0) {
+                    const idx = donHang.buocThuHienTai ?? 0;
+                    return allYct[idx]?.congDoan || "Hoàn thành";
+                  }
+                  return "Hoàn thành";
                 })()}</span>
               </div>
             </div>

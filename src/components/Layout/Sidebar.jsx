@@ -54,10 +54,6 @@ const Sidebar = ({ collapsed }) => {
   const auth = useSelector((state) => state.auth);
   const currentUser = auth?.user;
 
-  useEffect(() => {
-    console.log("Quyền sử dụng của bạn là ", auth?.user?.quyenSuDung?.ten);
-  }, [auth]);
-
   // 2. LOGIC RESPONSIVE VÀ LAYOUT TỪ FILE 2
   const theme = useTheme();
   const isMobileSize = useMediaQuery(theme.breakpoints.down("md"));

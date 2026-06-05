@@ -309,58 +309,55 @@ const MauTheBaoHanhPage = () => {
   if (loading && mauTheList.length === 0) return <FullScreenLoader />;
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl bg-slate-50/50 min-h-screen">
-      {/* HEADER SECTION */}
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 flex items-center gap-3 tracking-tight">
-            <StyleIcon className="text-sky-600 text-3xl md:text-4xl" />
-            Mẫu Thẻ Bảo Hành
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Quản lý và thiết kế tùy biến phôi in tọa độ thẻ bảo hành nha khoa.
-          </p>
+    <div className="p-4 bg-gray-100">
+      {/* TOOLBAR SECTION */}
+      <div className="mb-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-end">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 max-w-md">
+          <TextField
+            placeholder="Tìm kiếm mẫu thẻ theo tên hoặc mô tả..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            fullWidth
+            size="small"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon className="text-slate-400" />
+                </InputAdornment>
+              ),
+              className: "bg-transparent border-none rounded-lg text-slate-800",
+            }}
+            sx={{ "& .MuiOutlinedInput-notchedOutline": { border: "none" } }}
+          />
         </div>
-        <div className="flex gap-3">
-          <Button
-            variant="outlined"
-            color="inherit"
-            startIcon={<RefreshIcon />}
-            onClick={loadMauTheList}
-            disabled={loading}
-            className="border-slate-300 text-slate-700 hover:bg-slate-100 font-medium px-4 py-2 rounded-xl normal-case transition-all shadow-sm"
-          >
-            Làm mới
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenCreate}
-            className="bg-sky-600 hover:bg-sky-700 text-white font-semibold px-5 py-2 rounded-xl normal-case tracking-wide transition-all shadow-md hover:shadow-lg"
-          >
-            Tạo Mẫu Mới
-          </Button>
-        </div>
-      </div>
 
-      {/* SEARCH BAR */}
-      <div className="mb-6 bg-white p-2 rounded-xl shadow-sm border border-slate-200 max-w-md">
-        <TextField
-          placeholder="Tìm kiếm mẫu thẻ theo tên hoặc mô tả..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          fullWidth
-          size="small"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon className="text-slate-400" />
-              </InputAdornment>
-            ),
-            className: "bg-transparent border-none rounded-lg text-slate-800",
+        <IconButton
+          onClick={loadMauTheList}
+          disabled={loading}
+          title="Làm mới"
+          className="text-slate-600 hover:bg-slate-100 transition-all shadow-sm shrink-0"
+          sx={{ width: 48, height: 48, borderRadius: "12px" }}
+        >
+          <RefreshIcon />
+        </IconButton>
+
+        <IconButton
+          onClick={handleOpenCreate}
+          title="Tạo mẫu mới"
+          className="bg-sky-600 text-white hover:bg-sky-700 transition-all shadow-md"
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: "12px",
+            backgroundColor: "#0284c7",
+            color: "#ffffff",
+            "&:hover": {
+              backgroundColor: "#0369a1",
+            }
           }}
-          sx={{ "& .MuiOutlinedInput-notchedOutline": { border: "none" } }}
-        />
+        >
+          <AddIcon />
+        </IconButton>
       </div>
 
       {/* DESKTOP: TABLE LAYOUT */}

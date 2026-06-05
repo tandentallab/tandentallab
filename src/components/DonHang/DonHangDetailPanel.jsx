@@ -17,6 +17,7 @@ import {
   deleteDonHang,
   updateDonHang,
   updateCongDoanTrangThai,
+  advanceTrangThai,
 } from "../../redux/slices/donHangSlice";
 import { toast } from "sonner";
 import { api } from "../../config/api";
@@ -29,6 +30,7 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import PrintIcon from '@mui/icons-material/Print';
 import CheckIcon from '@mui/icons-material/Check';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 // Helpers for warranty edit
 const addYearsToDate = (dateValue, years) => {
@@ -61,6 +63,7 @@ const DonHangDetailPanel = (props) => {
   const [openDropdown, setOpenDropdown] = useState(null); // { spIndex, thuTu, top, right }
   const [isOpen, setIsOpen] = useState(false);
   const [fullDonHang, setFullDonHang] = useState(donHang);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (donHang) {
@@ -105,11 +108,9 @@ const DonHangDetailPanel = (props) => {
       api
         .get(`/phieu-bao-hanh/don-hang/${donHang._id}`)
         .then((res) => {
-          console.log("Warranty Response:", res.data);
           setWarranty(res.data.data || res.data);
         })
         .catch((err) => {
-          console.log("Warranty Fetch Error:", err.message);
           setWarranty(null);
         });
     }
@@ -142,38 +143,103 @@ const DonHangDetailPanel = (props) => {
       toast.error("Đơn hàng đã xuất hóa đơn / đã giao, không thể xóa");
       return;
     }
-    if (window.confirm(`Bạn có chắc chắn muốn xóa đơn hàng ${maDonHang}?`)) {
-      const promise = dispatch(deleteDonHang(donHang._id)).unwrap();
-      toast.promise(promise, {
-        loading: "Đang xóa...",
-        success: `Đã xóa đơn hàng ${maDonHang}`,
-        error: (err) => err || "Xóa đơn hàng thất bại",
-      });
-      promise.then(() => onClose()).catch(() => { });
-    }
+    setShowDeleteConfirm(true);
   };
 
-  const handleMarkComplete = () => {
-    const payload = {
-      ...donHang,
-      trangThai: "Hoàn thành",
-      nhaKhoa: donHang.nhaKhoa?._id || donHang.nhaKhoa,
-      bacSi: donHang.bacSi?._id || donHang.bacSi,
-      benhNhan: donHang.benhNhan?._id || donHang.benhNhan,
-      danhSachSanPham: donHang.danhSachSanPham?.map((sp) => ({
-        ...sp,
-        sanPham: sp.sanPham?._id || sp.sanPham,
-        donHangCu: sp.donHangCu?._id || sp.donHangCu || undefined,
-      })),
-    };
+  const handleConfirmDelete = () => {
+    setShowDeleteConfirm(false);
+    const promise = dispatch(deleteDonHang(donHang._id)).unwrap();
+    toast.promise(promise, {
+      loading: "Đang xóa...",
+      success: `Đã xóa đơn hàng ${maDonHang}`,
+      error: (err) => err || "Xóa đơn hàng thất bại",
+    });
+    promise.then(() => onClose()).catch(() => { });
+  };
+
+  // --- Luồng trạng thái theo yêu cầu thử ---
+  const getOrderedTrials = (danhSachSanPham) =>
+    (danhSachSanPham || []).flatMap((sp) => sp.yeuCauThu || []);
+
+  const getFlowButton = (dh) => {
+    if (!dh) return null;
+    const trials = getOrderedTrials(dh.danhSachSanPham);
+    const { trangThai, buocThuHienTai } = dh;
+    if (trangThai === "Hoàn thành" || trangThai === "Đã giao") return { type: "done" };
+    if (trials.length === 0) return { type: "hoan_thanh" };
+    if (trangThai === "Đang thử") return { type: "san_xuat_tiep" };
+    // "Chờ xử lý" hoặc "Đang sản xuất"
+    const nextIndex = buocThuHienTai == null ? 0 : buocThuHienTai + 1;
+    if (nextIndex < trials.length) {
+      return { type: "thu", congDoan: trials[nextIndex].congDoan, index: nextIndex };
+    }
+    return { type: "hoan_thanh" };
+  };
+
+  const handleAdvanceStatus = (flowBtn) => {
+    if (!flowBtn || flowBtn.type === "done") return;
+    let newTrangThai;
+    let newBuocThuHienTai = undefined;
+    if (flowBtn.type === "thu") {
+      newTrangThai = "Đang thử";
+      newBuocThuHienTai = flowBtn.index;
+    } else if (flowBtn.type === "san_xuat_tiep") {
+      newTrangThai = "Đang sản xuất";
+      newBuocThuHienTai = donHang.buocThuHienTai == null ? 0 : donHang.buocThuHienTai;
+    } else if (flowBtn.type === "hoan_thanh") {
+      newTrangThai = "Hoàn thành";
+    }
     const promise = dispatch(
-      updateDonHang({ id: donHang._id, data: payload })
+      advanceTrangThai({ id: donHang._id, trangThai: newTrangThai, buocThuHienTai: newBuocThuHienTai })
     ).unwrap();
     toast.promise(promise, {
       loading: "Đang cập nhật...",
-      success: `Đơn hàng ${maDonHang} đã hoàn thành!`,
+      success: `Đơn hàng ${maDonHang}: ${newTrangThai}`,
       error: (err) => err || "Cập nhật trạng thái thất bại",
     });
+  };
+
+  const renderFlowButton = () => {
+    const flowBtn = getFlowButton(donHang);
+    if (!flowBtn) return null;
+    if (flowBtn.type === "done") {
+      return (
+        <button disabled className="flex-1 py-2 rounded-lg font-medium text-sm bg-green-100 text-green-700 border border-green-200 cursor-default flex items-center justify-center gap-1.5">
+          <CheckIcon sx={{ fontSize: 18 }} /> Đã hoàn thành
+        </button>
+      );
+    }
+    if (flowBtn.type === "hoan_thanh") {
+      return (
+        <button
+          onClick={() => handleAdvanceStatus(flowBtn)}
+          className="flex-1 py-2 rounded-lg font-medium text-sm bg-green-500 hover:bg-green-600 text-white transition flex items-center justify-center gap-1.5"
+        >
+          <CheckIcon sx={{ fontSize: 18 }} /> Hoàn thành
+        </button>
+      );
+    }
+    if (flowBtn.type === "san_xuat_tiep") {
+      return (
+        <button
+          onClick={() => handleAdvanceStatus(flowBtn)}
+          className="flex-1 py-2 rounded-lg font-medium text-sm bg-blue-500 hover:bg-blue-600 text-white transition flex items-center justify-center gap-1.5"
+        >
+          <PlayArrowIcon sx={{ fontSize: 18 }} /> Sản xuất tiếp
+        </button>
+      );
+    }
+    if (flowBtn.type === "thu") {
+      return (
+        <button
+          onClick={() => handleAdvanceStatus(flowBtn)}
+          className="flex-1 py-2 rounded-lg font-medium text-sm bg-purple-500 hover:bg-purple-600 text-white transition flex items-center justify-center gap-1.5"
+        >
+          {flowBtn.congDoan}
+        </button>
+      );
+    }
+    return null;
   };
 
   const renderViTriText = (viTriArr) => {
@@ -389,7 +455,7 @@ const DonHangDetailPanel = (props) => {
     "Chờ sản xuất": "text-cyan-600 font-medium",
   };
 
-  const panelTop = props.fullscreen ? 0 : 70;
+  const panelTop = isVerySmall ? 0 : 70;
   const panelWidth = isVerySmall ? "100%" : "530px";
   const panelHeight = `calc(100vh - ${panelTop}px)`;
 
@@ -446,7 +512,7 @@ const DonHangDetailPanel = (props) => {
       {/* Slide-out panel */}
       <div
         className={`fixed right-0 flex flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
-        style={{ zIndex: props.fullscreen ? 2999 : (isVerySmall ? 1500 : 1300), top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight }}
+        style={{ zIndex: props.fullscreen ? 2999 : (isVerySmall ? 1500 : 1300), top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight, paddingBottom: isMobile ? "40px" : "0" }}
       >
         {/* Header */}
         <div className="bg-[#4fc3f7] border-b px-4 py-3 flex items-center justify-between shrink-0">
@@ -551,15 +617,17 @@ const DonHangDetailPanel = (props) => {
                 {donHang.danhSachSanPham?.length > 0 ? (
                   donHang.danhSachSanPham.map((sp, idx) => (
                     <div key={idx} className="mb-1 last:mb-0">
-                      <div className="flex">
-                        <div className="font-medium text-sm">{sp.sanPham?.tenSanPham || "N/A"}</div>
-                        {sp.loaiDon != "Mới" && <div className="text-sm ml-2">[{sp.loaiDon}]</div>}
+                      <div className="flex gap-1 items-center font-medium ">
+                        <div className="text-sm">{{ "Hàng sửa": "Sửa", "Hàng làm lại": "Làm lại", "Hàng bảo hành": "Bảo hành" }[sp.loaiDon] ?? sp.loaiDon}</div>
+                        -
+                        <div className="text-sm">{sp.soLuong}</div>
+                        <div className="text-sm">{sp.sanPham?.tenSanPham || "N/A"}</div>
                       </div>
                       {sp.viTri?.length > 0 && (
-                        <div className="text-sm text-gray-700 mt-0.5">• {sp.soLuong} răng: {renderViTriText(sp.viTri)}</div>
+                        <div className="text-sm text-gray-700">• Vị trí: {renderViTriText(sp.viTri)}</div>
                       )}
-                      {sp.mau && <div className="text-sm text-gray-700 mt-0.5">• Màu: {sp.mau}</div>}
-                      {sp.ghiChu && <div className="text-sm text-gray-700 italic mt-0.5">{sp.ghiChu}</div>}
+                      {sp.mau && <div className="text-sm text-gray-700">• Màu: {sp.mau}</div>}
+                      {sp.ghiChu && <div className="text-sm text-gray-700">• {sp.ghiChu}</div>}
                     </div>
                   ))
                 ) : (
@@ -713,14 +781,7 @@ const DonHangDetailPanel = (props) => {
         {/* Bottom bar */}
         {!props.fullscreen && (
           <div className="border-t bg-white px-3 py-2.5 flex gap-2 shrink-0">
-            <button
-              onClick={handleMarkComplete}
-              disabled={donHang?.trangThai === "Hoàn thành"}
-              className={`flex-1 py-2 rounded-lg font-medium text-sm transition flex items-center justify-center gap-1.5 ${donHang?.trangThai === "Hoàn thành" ? "bg-green-100 text-green-700 border border-green-200 cursor-default" : "bg-green-500 hover:bg-green-600 text-white"}`}
-            >
-              <CheckIcon />
-              {donHang?.trangThai === "Hoàn thành" ? "Đã hoàn thành" : "Hoàn thành"}
-            </button>
+            {renderFlowButton()}
             <button
               onClick={() => navigate(`/donhang/${donHang._id}/print`)}
               className="flex-1 py-2 rounded-lg font-medium text-sm bg-blue-500 hover:bg-blue-600 text-white transition flex items-center justify-center gap-1.5"
@@ -744,14 +805,33 @@ const DonHangDetailPanel = (props) => {
           open={isPhieuBaoHanhOpen}
           onClose={() => setIsPhieuBaoHanhOpen(false)}
           donHang={donHang}
-          onSuccess={() => {
+          onSuccess={(newWarranty) => {
             toast.success("Đã tạo phiếu bảo hành");
-            api.get(`/phieu-bao-hanh/don-hang/${donHang._id}`)
-              .then((res) => setWarranty(res.data.data || res.data));
+            setIsPhieuBaoHanhOpen(false);
+            setWarranty(newWarranty);
+            if (newWarranty) {
+              const enriched = (newWarranty.danhSachBaoHanh || []).map((item) => {
+                const startDate = new Date(item.baoHanhTu);
+                const endDate = new Date(item.baoHanhDen);
+                const yearsDiff = endDate.getFullYear() - startDate.getFullYear();
+                const expectedEnd = addYearsToDate(item.baoHanhTu, yearsDiff);
+                const actualEndStr = endDate.toISOString().slice(0, 10);
+                const isExactYears = expectedEnd === actualEndStr;
+                return {
+                  ...item,
+                  selectedYears: isExactYears ? yearsDiff : "",
+                  customEndDate: isExactYears ? "" : actualEndStr,
+                };
+              });
+              setWarrantyEditForm({
+                ghiChu: newWarranty.ghiChu || "",
+                danhSachBaoHanh: enriched,
+              });
+              setOpenWarrantyDialog(true);
+            }
           }}
         />
-      )
-      }
+      )}
 
       {
         warranty && (
@@ -763,6 +843,19 @@ const DonHangDetailPanel = (props) => {
           />
         )
       }
+
+      {/* Delete confirm dialog */}
+      <Dialog open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: "bold" }}>Xác nhận xóa đơn hàng</DialogTitle>
+        <DialogContent>
+          <p>Bạn có chắc chắn muốn xóa đơn hàng <strong>{maDonHang}</strong>?</p>
+          <p className="text-sm text-gray-500 mt-1">Hành động này không thể hoàn tác.</p>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => setShowDeleteConfirm(false)} variant="outlined" color="inherit">Hủy</Button>
+          <Button onClick={handleConfirmDelete} variant="contained" color="error">Xóa</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Warranty edit dialog */}
       <Dialog open={openWarrantyDialog} onClose={() => setOpenWarrantyDialog(false)} maxWidth="md" fullWidth>

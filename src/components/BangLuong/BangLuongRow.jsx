@@ -80,7 +80,16 @@ const BangLuongRow = ({ item, onChange, isEven, onRowClick }) => {
       {/* Tên nhân viên */}
       <td
         className="px-4 py-2 whitespace-nowrap"
-        style={{ borderBottom: "1px solid #f1f5f9" }}
+        style={{
+          borderBottom: "1px solid #f1f5f9",
+          position: "sticky",
+          left: 0,
+          zIndex: 1,
+          background: rowBg,
+          transition: "background 0.15s",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#eff6ff")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = rowBg)}
       >
         <button
           onClick={() => navigate(`/nhan-vien/${item._id}`)}

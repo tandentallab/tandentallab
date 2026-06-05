@@ -11,6 +11,7 @@ import {
   Button,
   Chip,
   IconButton,
+  Typography,
 } from "@mui/material";
 import {
   ResponsiveContainer,
@@ -61,7 +62,9 @@ const COLUMNS = [
 const BangLuongPage = () => {
   const dispatch = useDispatch();
   const { data: nhanVienData } = useSelector((state) => state.nhanVien);
-  const { data: bangLuongData } = useSelector((state) => state.bangLuong);
+  const { data: bangLuongData, loading } = useSelector(
+    (state) => state.bangLuong
+  );
 
   const [thang, setThang] = useState(new Date().getMonth() + 1);
   const [nam, setNam] = useState(new Date().getFullYear());
@@ -69,6 +72,7 @@ const BangLuongPage = () => {
   const [openPrintModal, setOpenPrintModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   // null | -1 (go back) | string path (navigate to)
   const [pendingNavTarget, setPendingNavTarget] = useState(null);
@@ -209,6 +213,8 @@ const BangLuongPage = () => {
   }));
 
   const handleSave = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
     try {
       for (const item of salaryData) {
         await dispatch(
@@ -229,6 +235,8 @@ const BangLuongPage = () => {
       setIsDirty(false);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -342,7 +350,7 @@ const BangLuongPage = () => {
       ];
       return ReactDOM.createPortal(
         <>
-          <style>{`@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+          <style>{`@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           {/* Backdrop */}
           <div
             style={{
@@ -732,24 +740,50 @@ const BangLuongPage = () => {
             {/* Save */}
             <button
               onClick={handleSave}
+              disabled={isSaving}
               className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all w-full sm:w-auto"
               style={{
-                background: "#2563eb",
+                background: isSaving ? "#1e40af" : "#2563eb",
                 color: "#fff",
                 border: "none",
-                cursor: "pointer",
+                cursor: isSaving ? "not-allowed" : "pointer",
+                opacity: isSaving ? 0.75 : 1,
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#1d4ed8")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "#2563eb")
-              }
+              onMouseEnter={(e) => {
+                if (!isSaving) e.currentTarget.style.background = "#1d4ed8";
+              }}
+              onMouseLeave={(e) => {
+                if (!isSaving) e.currentTarget.style.background = "#2563eb";
+              }}
             >
-              <SaveIcon sx={{ fontSize: 16 }} />
-              <span className="whitespace-nowrap">
-                {hasData ? "Cập nhật" : "Tạo bảng lương"}
-              </span>
+              {isSaving ? (
+                <>
+                  <svg
+                    style={{
+                      animation: "spin 0.8s linear infinite",
+                      flexShrink: 0,
+                    }}
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                  <span className="whitespace-nowrap">Đang lưu…</span>
+                </>
+              ) : (
+                <>
+                  <SaveIcon sx={{ fontSize: 16 }} />
+                  <span className="whitespace-nowrap">
+                    {hasData ? "Cập nhật" : "Tạo bảng lương"}
+                  </span>
+                </>
+              )}
             </button>
 
             {/* Staff */}
@@ -1023,6 +1057,11 @@ const BangLuongPage = () => {
                         color: "#94a3b8",
                         borderBottom: "2px solid #1e293b",
                         background: "#0f172a",
+                        ...(col === "Nhân viên" && {
+                          position: "sticky",
+                          left: 0,
+                          zIndex: 12,
+                        }),
                       }}
                     >
                       {col}
@@ -1047,7 +1086,15 @@ const BangLuongPage = () => {
                         }}
                       >
                         {/* Nhân viên */}
-                        <td className="px-4 py-2 text-xs font-bold text-emerald-700 whitespace-nowrap">
+                        <td
+                          className="px-4 py-2 text-xs font-bold text-emerald-700 whitespace-nowrap"
+                          style={{
+                            position: "sticky",
+                            left: 0,
+                            background: "#f0fdf4",
+                            zIndex: 8,
+                          }}
+                        >
                           Tổng ({salaryData.length} NV)
                         </td>
                         {/* LCB */}

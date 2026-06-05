@@ -32,7 +32,12 @@ import CustomDateRangePicker from "../common/CustomDateRangePicker";
 import dayjs from "dayjs";
 
 const ROWS_PER_PAGE = 20;
-const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Đang thử", "Hoàn thành"];
+const TRANG_THAI_OPTIONS = [
+  "Chờ xử lý",
+  "Đang sản xuất",
+  "Đang thử",
+  "Hoàn thành",
+];
 
 // 🔥 Đã giữ lại Tuần trước và Tháng trước
 const DATE_PRESETS = [
@@ -555,7 +560,7 @@ const KeHoachGiaoHangTable = () => {
   useEffect(() => {
     dispatch(
       setKeHoachGiaoHangPageFilter({
-        appliedTrangThai: ["Chờ xử lý"],
+        appliedTrangThai: ["Chờ xử lý", "Đang sản xuất", "Đang thử"],
       })
     );
     filterReadyRef.current = true;
@@ -584,7 +589,7 @@ const KeHoachGiaoHangTable = () => {
                     appliedTrangThai:
                       appliedHenGiao?.preset === "today"
                         ? []
-                        : ["Chờ xử lý", "Đang thử"],
+                        : ["Chờ xử lý", "Đang sản xuất", "Đang thử"],
                   })
                 );
                 setPage(1);
@@ -631,7 +636,7 @@ const KeHoachGiaoHangTable = () => {
                         },
                     appliedTrangThai: alreadyFiltering
                       ? []
-                      : ["Chờ xử lý", "Đang thử"],
+                      : ["Chờ xử lý", "Đang sản xuất", "Đang thử"],
                   })
                 );
                 setPage(1);
@@ -679,228 +684,232 @@ const KeHoachGiaoHangTable = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-2 px-1 print:hidden">
-          <div className="relative" ref={filterRef}>
-            <button
-              onClick={handleOpenFilter}
-              title="Bộ lọc"
-              className={`relative p-1.5 rounded transition ${
-                isFiltered
-                  ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              <FilterAltIcon sx={{ fontSize: 20 }} />
-              {isFiltered && (
-                <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-blue-500 rounded-full" />
-              )}
-            </button>
-
-            {showFilter && (
-              <div
-                className="absolute left-0 top-full mt-1 z-50 w-64 bg-white rounded-xl shadow-2xl border border-gray-200"
-                onClick={() => {
-                  setOpenDateModal(null);
-                  setOpenPickerModal(null);
-                }}
+        <div className="flex flex-col gap-1.5 mb-2 px-1 print:hidden">
+          {/* Hàng 1: Filter button + Filter tags (wrappable) */}
+          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+            <div className="relative shrink-0" ref={filterRef}>
+              <button
+                onClick={handleOpenFilter}
+                title="Bộ lọc"
+                className={`relative p-1.5 rounded transition ${
+                  isFiltered
+                    ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                    : "text-gray-500 hover:bg-gray-100"
+                }`}
               >
-                <div
-                  className="relative border-b border-gray-100"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
-                    onClick={() => {
-                      setOpenPickerModal(null);
-                      setOpenDateModal(
-                        openDateModal === "henGiao" ? null : "henGiao"
-                      );
-                    }}
-                  >
-                    <span
-                      className={
-                        draftHenGiao.preset
-                          ? "text-blue-600 font-medium"
-                          : "text-gray-600"
-                      }
-                    >
-                      {draftHenGiao.preset
-                        ? getDateLabel(draftHenGiao)
-                        : "Hẹn giao"}
-                    </span>
-                    <CalendarTodayIcon
-                      sx={{ fontSize: 16, color: "#9ca3af" }}
-                    />
-                  </button>
-                  {openDateModal === "henGiao" &&
-                    renderDateDropdown(
-                      draftHenGiao,
-                      setDraftHenGiao,
-                      "henGiao"
-                    )}
-                </div>
+                <FilterAltIcon sx={{ fontSize: 20 }} />
+                {isFiltered && (
+                  <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-blue-500 rounded-full" />
+                )}
+              </button>
 
+              {showFilter && (
                 <div
-                  className="relative border-b border-gray-100"
-                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-0 top-full mt-1 z-50 w-64 bg-white rounded-xl shadow-2xl border border-gray-200"
+                  onClick={() => {
+                    setOpenDateModal(null);
+                    setOpenPickerModal(null);
+                  }}
                 >
-                  <button
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
-                    onClick={() => {
-                      setOpenPickerModal(null);
-                      setOpenDateModal(
-                        openDateModal === "ngayNhan" ? null : "ngayNhan"
-                      );
-                    }}
+                  <div
+                    className="relative border-b border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <span
-                      className={
-                        draftNgayNhan.preset
-                          ? "text-blue-600 font-medium"
-                          : "text-gray-600"
-                      }
-                    >
-                      {draftNgayNhan.preset
-                        ? getDateLabel(draftNgayNhan)
-                        : "Ngày nhận"}
-                    </span>
-                    <CalendarTodayIcon
-                      sx={{ fontSize: 16, color: "#9ca3af" }}
-                    />
-                  </button>
-                  {openDateModal === "ngayNhan" &&
-                    renderDateDropdown(
-                      draftNgayNhan,
-                      setDraftNgayNhan,
-                      "ngayNhan"
-                    )}
-                </div>
-
-                <div
-                  className="relative border-b border-gray-100"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {openPickerModal === "nhaKhoa" ? (
-                    <div className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={nhaKhoaSearch}
-                        onChange={(e) => setNhaKhoaSearch(e.target.value)}
-                        placeholder="Tìm nha khoa..."
-                        autoFocus
-                        className="w-full border-b border-blue-400 px-3 py-1.5 text-sm focus:outline-none"
-                      />
-                    </div>
-                  ) : (
                     <button
-                      className="w-full flex items-start px-4 py-3 hover:bg-gray-50 transition text-sm"
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
                       onClick={() => {
-                        setOpenDateModal(null);
-                        setNhaKhoaSearch("");
-                        setOpenPickerModal("nhaKhoa");
+                        setOpenPickerModal(null);
+                        setOpenDateModal(
+                          openDateModal === "henGiao" ? null : "henGiao"
+                        );
                       }}
                     >
                       <span
                         className={
-                          draftNhaKhoa
-                            ? "text-blue-600 font-medium truncate"
-                            : "text-gray-400"
+                          draftHenGiao.preset
+                            ? "text-blue-600 font-medium"
+                            : "text-gray-600"
                         }
                       >
-                        {draftNhaKhoa ? draftNhaKhoa.name : "Nha khoa"}
+                        {draftHenGiao.preset
+                          ? getDateLabel(draftHenGiao)
+                          : "Hẹn giao"}
                       </span>
+                      <CalendarTodayIcon
+                        sx={{ fontSize: 16, color: "#9ca3af" }}
+                      />
                     </button>
-                  )}
-                  {openPickerModal === "nhaKhoa" && (
-                    <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded shadow-xl border border-t-0 border-gray-200 max-h-56 overflow-y-auto">
-                      {draftNhaKhoa && (
-                        <button
-                          onClick={() => {
-                            setDraftNhaKhoa(null);
-                            setOpenPickerModal(null);
-                          }}
-                          className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 border-b border-gray-100 transition"
-                        >
-                          Bỏ chọn
-                        </button>
+                    {openDateModal === "henGiao" &&
+                      renderDateDropdown(
+                        draftHenGiao,
+                        setDraftHenGiao,
+                        "henGiao"
                       )}
-                      {filteredNhaKhoaOpts.map((item) => (
-                        <button
-                          key={item._id}
-                          onClick={() => {
-                            setDraftNhaKhoa(item);
-                            setOpenPickerModal(null);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
-                            draftNhaKhoa?._id === item._id
-                              ? "bg-blue-50 text-blue-700 font-semibold"
-                              : "text-gray-700 hover:bg-gray-50"
-                          }`}
-                        >
-                          {item.name}
-                        </button>
-                      ))}
-                      {filteredNhaKhoaOpts.length === 0 && (
-                        <p className="text-center text-xs text-gray-400 py-4">
-                          Không tìm thấy
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
+                  </div>
 
-                <div
-                  className="border-b border-gray-100 px-3 py-2.5"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <p className="text-xs text-gray-400 mb-1.5">Trạng thái</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {TRANG_THAI_OPTIONS.map((status) => {
-                      const isActive = draftTrangThai.includes(status);
-                      const colorMap = {
-                        "Chờ xử lý": isActive
-                          ? "bg-yellow-400 text-yellow-900 border-yellow-400"
-                          : "bg-white text-yellow-700 border-yellow-300 hover:bg-yellow-50",
-                        "Đang thử": isActive
-                          ? "bg-purple-500 text-white border-purple-500"
-                          : "bg-white text-purple-700 border-purple-300 hover:bg-purple-50",
-                        "Hoàn thành": isActive
-                          ? "bg-green-500 text-white border-green-500"
-                          : "bg-white text-green-700 border-green-300 hover:bg-green-50",
-                      };
-                      return (
-                        <button
-                          key={status}
-                          onClick={() => toggleDraftTrangThai(status)}
-                          className={`px-2.5 py-1 rounded-full border text-xs font-medium transition-all ${colorMap[status]}`}
+                  <div
+                    className="relative border-b border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-sm"
+                      onClick={() => {
+                        setOpenPickerModal(null);
+                        setOpenDateModal(
+                          openDateModal === "ngayNhan" ? null : "ngayNhan"
+                        );
+                      }}
+                    >
+                      <span
+                        className={
+                          draftNgayNhan.preset
+                            ? "text-blue-600 font-medium"
+                            : "text-gray-600"
+                        }
+                      >
+                        {draftNgayNhan.preset
+                          ? getDateLabel(draftNgayNhan)
+                          : "Ngày nhận"}
+                      </span>
+                      <CalendarTodayIcon
+                        sx={{ fontSize: 16, color: "#9ca3af" }}
+                      />
+                    </button>
+                    {openDateModal === "ngayNhan" &&
+                      renderDateDropdown(
+                        draftNgayNhan,
+                        setDraftNgayNhan,
+                        "ngayNhan"
+                      )}
+                  </div>
+
+                  <div
+                    className="relative border-b border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {openPickerModal === "nhaKhoa" ? (
+                      <div className="px-3 py-2">
+                        <input
+                          type="text"
+                          value={nhaKhoaSearch}
+                          onChange={(e) => setNhaKhoaSearch(e.target.value)}
+                          placeholder="Tìm nha khoa..."
+                          autoFocus
+                          className="w-full border-b border-blue-400 px-3 py-1.5 text-sm focus:outline-none"
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        className="w-full flex items-start px-4 py-3 hover:bg-gray-50 transition text-sm"
+                        onClick={() => {
+                          setOpenDateModal(null);
+                          setNhaKhoaSearch("");
+                          setOpenPickerModal("nhaKhoa");
+                        }}
+                      >
+                        <span
+                          className={
+                            draftNhaKhoa
+                              ? "text-blue-600 font-medium truncate"
+                              : "text-gray-400"
+                          }
                         >
-                          {status}
-                        </button>
-                      );
-                    })}
+                          {draftNhaKhoa ? draftNhaKhoa.name : "Nha khoa"}
+                        </span>
+                      </button>
+                    )}
+                    {openPickerModal === "nhaKhoa" && (
+                      <div className="absolute left-2 top-full z-[100] w-[90%] bg-white rounded shadow-xl border border-t-0 border-gray-200 max-h-56 overflow-y-auto">
+                        {draftNhaKhoa && (
+                          <button
+                            onClick={() => {
+                              setDraftNhaKhoa(null);
+                              setOpenPickerModal(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 border-b border-gray-100 transition"
+                          >
+                            Bỏ chọn
+                          </button>
+                        )}
+                        {filteredNhaKhoaOpts.map((item) => (
+                          <button
+                            key={item._id}
+                            onClick={() => {
+                              setDraftNhaKhoa(item);
+                              setOpenPickerModal(null);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
+                              draftNhaKhoa?._id === item._id
+                                ? "bg-blue-50 text-blue-700 font-semibold"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            {item.name}
+                          </button>
+                        ))}
+                        {filteredNhaKhoaOpts.length === 0 && (
+                          <p className="text-center text-xs text-gray-400 py-4">
+                            Không tìm thấy
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    className="border-b border-gray-100 px-3 py-2.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p className="text-xs text-gray-400 mb-1.5">Trạng thái</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {TRANG_THAI_OPTIONS.map((status) => {
+                        const isActive = draftTrangThai.includes(status);
+                        const colorMap = {
+                          "Chờ xử lý": isActive
+                            ? "bg-yellow-400 text-yellow-900 border-yellow-400"
+                            : "bg-white text-yellow-700 border-yellow-300 hover:bg-yellow-50",
+                          "Đang thử": isActive
+                            ? "bg-purple-500 text-white border-purple-500"
+                            : "bg-white text-purple-700 border-purple-300 hover:bg-purple-50",
+                          "Đang sản xuất": isActive
+                            ? "bg-gray-500 text-white border-gray-500"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50",
+                          "Hoàn thành": isActive
+                            ? "bg-green-500 text-white border-green-500"
+                            : "bg-white text-green-700 border-green-300 hover:bg-green-50",
+                        };
+                        return (
+                          <button
+                            key={status}
+                            onClick={() => toggleDraftTrangThai(status)}
+                            className={`px-2.5 py-1 rounded-full border text-xs font-medium transition-all ${colorMap[status]}`}
+                          >
+                            {status}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <button
+                      onClick={handleResetDraft}
+                      className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 transition"
+                      title="Reset lọc"
+                    >
+                      <RefreshIcon sx={{ fontSize: 20 }} />
+                    </button>
+                    <button
+                      onClick={handleApplyFilters}
+                      className="flex items-center gap-1 px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition shadow-sm"
+                    >
+                      ✓ Lưu
+                    </button>
                   </div>
                 </div>
+              )}
+            </div>
 
-                <div className="flex items-center justify-between px-4 py-3">
-                  <button
-                    onClick={handleResetDraft}
-                    className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 transition"
-                    title="Reset lọc"
-                  >
-                    <RefreshIcon sx={{ fontSize: 20 }} />
-                  </button>
-                  <button
-                    onClick={handleApplyFilters}
-                    className="flex items-center gap-1 px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition shadow-sm"
-                  >
-                    ✓ Lưu
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1 flex-wrap">
             {appliedHenGiao?.preset && (
               <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
                 <CalendarTodayIcon sx={{ fontSize: 11 }} />
@@ -993,56 +1002,59 @@ const KeHoachGiaoHangTable = () => {
             ))}
           </div>
 
-          <div className="flex-1" />
+          {/* Hàng 2: Search + Action buttons */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 min-w-0">
+              <FiSearch
+                size={15}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Tìm kiếm..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="pl-8 pr-3 py-1.5 border rounded-full text-sm bg-white w-full focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+              {searchText && (
+                <button
+                  onClick={() => setSearchText("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <CloseIcon sx={{ fontSize: 15 }} />
+                </button>
+              )}
+            </div>
 
-          <div className="relative">
-            <FiSearch
-              size={15}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Tìm kiếm..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="pl-8 pr-3 py-1.5 border rounded-full text-sm bg-white w-52 focus:outline-none focus:ring-1 focus:ring-blue-400"
-            />
-            {searchText && (
+            <div className="flex items-center gap-1 shrink-0">
               <button
-                onClick={() => setSearchText("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                onClick={handleExportExcel}
+                className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
+                title="Xuất Excel"
               >
-                <CloseIcon sx={{ fontSize: 15 }} />
+                <FiDownload size={17} />
               </button>
-            )}
+              <button
+                onClick={handlePrint}
+                disabled={loadingAll}
+                className="p-2 rounded hover:bg-gray-200 text-gray-500 transition disabled:opacity-50"
+                title="In danh sách"
+              >
+                {loadingAll ? (
+                  <FiRefreshCw size={17} className="animate-spin" />
+                ) : (
+                  <FiPrinter size={17} />
+                )}
+              </button>
+              <button
+                onClick={handleRefresh}
+                className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
+                title="Làm mới"
+              >
+                <FiRefreshCw size={17} />
+              </button>
+            </div>
           </div>
-
-          <button
-            onClick={handleExportExcel}
-            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
-            title="Xuất Excel"
-          >
-            <FiDownload size={17} />
-          </button>
-          <button
-            onClick={handlePrint}
-            disabled={loadingAll}
-            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition disabled:opacity-50"
-            title="In danh sách"
-          >
-            {loadingAll ? (
-              <FiRefreshCw size={17} className="animate-spin" />
-            ) : (
-              <FiPrinter size={17} />
-            )}
-          </button>
-          <button
-            onClick={handleRefresh}
-            className="p-2 rounded hover:bg-gray-200 text-gray-500 transition"
-            title="Làm mới"
-          >
-            <FiRefreshCw size={17} />
-          </button>
         </div>
 
         <div className="bg-white rounded shadow-sm overflow-hidden border print:hidden">
@@ -1398,6 +1410,7 @@ const TrangThaiBadge = ({ value }) => {
   const map = {
     "Chờ xử lý": "bg-yellow-100 text-yellow-800",
     "Đang thử": "bg-purple-100 text-purple-800",
+    "Đang sản xuất": "bg-gray-100 text-gray-800",
     "Hoàn thành": "bg-green-100 text-green-800",
   };
   return (

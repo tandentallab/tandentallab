@@ -309,21 +309,10 @@ const MauTheBaoHanhPage = () => {
   if (loading && mauTheList.length === 0) return <FullScreenLoader />;
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl bg-slate-50/50 min-h-screen">
-      {/* HEADER SECTION */}
-      <div className="mb-8 border-b border-slate-200 pb-6">
-        <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 flex items-center gap-3 tracking-tight">
-          <StyleIcon className="text-sky-600 text-3xl md:text-4xl" />
-          Mẫu Thẻ Bảo Hành
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Quản lý và thiết kế tùy biến phôi in tọa độ thẻ bảo hành nha khoa.
-        </p>
-      </div>
-
+    <div className="p-4 bg-gray-100">
       {/* TOOLBAR SECTION */}
-      <div className="mb-6 flex flex-row items-center gap-3 flex-wrap">
-        <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200 flex-1 max-w-md">
+      <div className="mb-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-end">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 max-w-md">
           <TextField
             placeholder="Tìm kiếm mẫu thẻ theo tên hoặc mô tả..."
             value={searchTerm}
@@ -346,7 +335,7 @@ const MauTheBaoHanhPage = () => {
           onClick={loadMauTheList}
           disabled={loading}
           title="Làm mới"
-          className="border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition-all shadow-sm"
+          className="text-slate-600 hover:bg-slate-100 transition-all shadow-sm shrink-0"
           sx={{ width: 48, height: 48, borderRadius: "12px" }}
         >
           <RefreshIcon />

@@ -107,7 +107,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
   // ── Resizable columns ──
   const [columnWidths, setColumnWidths] = useState({
     ngayXuat: 120, soHoaDon: 130, nhaKhoa: 180, tongCong: 200, giamGia: 120,
-    giaTriThanhToan: 200, daThanhToan: 180, conLai: 160, chiPhiKhac: 120,
+    giaTriThanhToan: 200, daThanhToan: 180, conLai: 160, chiPhiKhac: 160,
     trangThai: 160, ghiChu: 160, ngayDenHan: 130,
   });
 

@@ -512,7 +512,7 @@ const DonHangDetailPanel = (props) => {
       {/* Slide-out panel */}
       <div
         className={`fixed right-0 flex flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
-        style={{ zIndex: props.fullscreen ? 2999 : (isVerySmall ? 1500 : 1300), top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight, paddingBottom: isMobile ? "40px" : "0" }}
+        style={{ zIndex: props.fullscreen ? 2999 : (isVerySmall ? 1500 : 1300), top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight, paddingBottom: isMobile ? "80px" : "0" }}
       >
         {/* Header */}
         <div className="bg-[#4fc3f7] border-b px-4 py-3 flex items-center justify-between shrink-0">
@@ -845,7 +845,7 @@ const DonHangDetailPanel = (props) => {
       }
 
       {/* Delete confirm dialog */}
-      <Dialog open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} maxWidth="xs" fullWidth>
+      <Dialog open={showDeleteConfirm} sx={{ zIndex: 9999 }} onClose={() => setShowDeleteConfirm(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: "bold" }}>Xác nhận xóa đơn hàng</DialogTitle>
         <DialogContent>
           <p>Bạn có chắc chắn muốn xóa đơn hàng <strong>{maDonHang}</strong>?</p>

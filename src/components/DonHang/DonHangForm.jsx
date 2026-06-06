@@ -203,6 +203,7 @@ const DonHangForm = () => {
   const [isViewOnly, setIsViewOnly] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const markDirty = () => { if (!isViewOnly) setIsDirty(true); };
 
   const [isViTriModalOpen, setIsViTriModalOpen] = useState(false);
@@ -562,6 +563,7 @@ const DonHangForm = () => {
   };
 
   const handleSave = () => {
+    if (isSubmitting) return;
     const errors = [];
 
     if (!formData.nhaKhoa) errors.push("Chưa chọn Nha Khoa");
@@ -618,6 +620,7 @@ const DonHangForm = () => {
         : { nguoiThucDuyet: nguoiThuc }),
     };
 
+    setIsSubmitting(true);
     const action = isEditMode
       ? updateDonHang({ id, data: dataToSend })
       : createDonHang(dataToSend);
@@ -641,7 +644,7 @@ const DonHangForm = () => {
       } else {
         navigate(-1);
       }
-    }).catch(() => { });
+    }).catch(() => { }).finally(() => { setIsSubmitting(false); });
   };
 
   const handleSaveRef = useRef(null);
@@ -1150,10 +1153,11 @@ const DonHangForm = () => {
         </div>
         <button
           onClick={handleSave}
-          className="bg-[#4CAF50] hover:bg-green-600 text-white px-8 py-2 rounded shadow-md font-medium"
+          disabled={isSubmitting}
+          className="bg-[#4CAF50] hover:bg-green-600 text-white px-8 py-2 rounded shadow-md font-medium disabled:opacity-60 disabled:cursor-not-allowed"
           style={{ display: isViewOnly ? 'none' : undefined }}
         >
-          Lưu (F3)
+          {isSubmitting ? "Đang lưu..." : "Lưu (F3)"}
         </button>
       </div>
 

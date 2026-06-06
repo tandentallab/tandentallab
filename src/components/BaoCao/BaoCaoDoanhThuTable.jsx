@@ -37,7 +37,7 @@ const MemoizedTableRow = memo(function MemoizedTableRow({ row, i, rowNote, onOpe
         >
             <TableCell align="center" sx={{ ...cellSx, color: '#9e9e9e', width: 44 }}>{row.stt}</TableCell>
 
-            <TableCell sx={{ ...cellSx, fontWeight: 600, minWidth: 220, color: '#212121' }}>
+            <TableCell sx={{ ...cellSx, fontWeight: 600, minWidth: 150, maxWidth: 180, color: '#212121' }}>
                 {row.tenNhaKhoa}
             </TableCell>
 

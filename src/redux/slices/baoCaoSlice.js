@@ -26,13 +26,12 @@ export const fetchDetailedReport = createAsyncThunk(
     }
 );
 
-/* ================= 2. GET BÁO CÁO DOANH THU (THÊM MỚI) ================= */
+/* ================= 2. GET BÁO CÁO DOANH THU (GIỮ NGUYÊN) ================= */
 export const fetchBaoCaoDoanhThuThang = createAsyncThunk(
     "baoCao/fetchBaoCaoDoanhThuThang",
     async ({ thang, nam }, { rejectWithValue }) => {
         try {
             const res = await api.get("/baocao/doanh-thu-thang", { params: { thang, nam } });
-            // Trả về thẳng dữ liệu (res.data chứa { success, thang, nam, tongHop, chiTiet })
             return res.data;
         } catch (err) {
             return rejectWithValue(err.response?.data?.message || "Lỗi lấy báo cáo doanh thu");
@@ -52,6 +51,20 @@ export const upsertGhiChu = createAsyncThunk(
     }
 );
 
+/* ================= 3. GET SẢN LƯỢNG THEO KHÁCH HÀNG (THÊM MỚI) ================= */
+export const fetchSanLuongKhachHang = createAsyncThunk(
+    "baoCao/fetchSanLuongKhachHang",
+    async (params, { rejectWithValue }) => {
+        try {
+            const res = await api.get("/baocao/san-luong-khach-hang", { params });
+            // Trả về nguyên cục data chứa cả tongTatCa và mảng danh sách
+            return res.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.message || "Lỗi lấy báo cáo sản lượng khách hàng");
+        }
+    }
+);
+
 /* ================= SLICE ================= */
 const baoCaoSlice = createSlice({
     name: "baoCao",
@@ -63,11 +76,16 @@ const baoCaoSlice = createSlice({
         detailedLoading: false,
         error: null,
 
-        // --- State của trang Doanh thu (Được tách riêng, chống crash) ---
+        // --- State của trang Doanh thu (Giữ nguyên) ---
         doanhThuData: null,
         doanhThuLoading: false,
         doanhThuError: null,
         notes: {},
+
+        // --- State của trang Sản lượng Khách hàng (THÊM MỚI) ---
+        sanLuongKhachHangData: null,
+        sanLuongKhachHangLoading: false,
+        sanLuongKhachHangError: null,
     },
 
     reducers: {
@@ -75,10 +93,12 @@ const baoCaoSlice = createSlice({
             state.data = [];
             state.detailedData = [];
             state.error = null;
-            // Xóa state mới
             state.doanhThuData = null;
             state.doanhThuError = null;
             state.notes = {};
+            // Clear luôn state mới
+            state.sanLuongKhachHangData = null;
+            state.sanLuongKhachHangError = null;
         }
     },
 
@@ -110,7 +130,7 @@ const baoCaoSlice = createSlice({
                 state.error = action.payload;
             })
 
-            /* ===== CASE CỦA DOANH THU MỚI THÊM VÀO ===== */
+            /* ===== CASE CỦA DOANH THU ===== */
             .addCase(fetchBaoCaoDoanhThuThang.pending, (state) => {
                 state.doanhThuLoading = true;
                 state.doanhThuError = null;
@@ -119,7 +139,6 @@ const baoCaoSlice = createSlice({
                 state.doanhThuLoading = false;
                 state.doanhThuData = action.payload;
 
-                // Tự động rải Ghi chú vào map notes
                 const notesMap = {};
                 const chiTiet = action.payload?.chiTiet || [];
                 chiTiet.forEach((row) => {
@@ -134,6 +153,21 @@ const baoCaoSlice = createSlice({
             .addCase(upsertGhiChu.fulfilled, (state, action) => {
                 const { nhaKhoaId, noiDung } = action.payload;
                 state.notes[nhaKhoaId] = noiDung;
+            })
+
+            /* ===== CASE CỦA SẢN LƯỢNG KHÁCH HÀNG (THÊM MỚI) ===== */
+            .addCase(fetchSanLuongKhachHang.pending, (state) => {
+                state.sanLuongKhachHangLoading = true;
+                state.sanLuongKhachHangError = null;
+            })
+            .addCase(fetchSanLuongKhachHang.fulfilled, (state, action) => {
+                state.sanLuongKhachHangLoading = false;
+                // Lưu nguyên cục payload chứa success, loaiDonDaLoc, tongTatCa, data
+                state.sanLuongKhachHangData = action.payload;
+            })
+            .addCase(fetchSanLuongKhachHang.rejected, (state, action) => {
+                state.sanLuongKhachHangLoading = false;
+                state.sanLuongKhachHangError = action.payload;
             });
     },
 });

@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { useSelector } from 'react-redux';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Box } from '@mui/material';
 
-// 🔥 CSS KIỂU EXCEL CHO HEADER
+// CSS KIỂU EXCEL CHO HEADER
 const headSx = {
     bgcolor: '#f1f5f9',
     color: '#1e293b',
@@ -14,7 +13,7 @@ const headSx = {
     borderBottom: '1px solid #cbd5e1',
 };
 
-// 🔥 CSS KIỂU EXCEL CHO CÁC Ô DỮ LIỆU
+// CSS KIỂU EXCEL CHO CÁC Ô DỮ LIỆU
 const cellSx = {
     py: 0.5,
     px: 1.5,
@@ -22,16 +21,15 @@ const cellSx = {
     color: '#333',
     borderRight: '1px solid #e2e8f0',
     borderBottom: '1px solid #e2e8f0',
-    // Giúp chữ bị dài quá tự động thêm "..." thay vì đẩy bảng to ra
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap'
 };
 
-const formatNumber = (val) => new Intl.NumberFormat('vi-VN').format(val || 0);
+const formatCurrency = (val) => new Intl.NumberFormat('vi-VN').format(val || 0);
 
 // =======================================================================
-// 🚀 COMPONENT CHUYÊN TRỊ KÉO DÃN CỘT (HOVER VÀO ĐƯỜNG BIÊN)
+// COMPONENT KÉO DÃN CỘT
 // =======================================================================
 const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) => {
     const [width, setWidth] = useState(initialWidth);
@@ -47,7 +45,6 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
 
     const handleMouseMove = (e) => {
         if (startX.current !== null) {
-            // Tính toán độ rộng mới khi di chuột
             const newWidth = Math.max(minWidth, startWidth.current + (e.clientX - startX.current));
             setWidth(newWidth);
         }
@@ -74,7 +71,6 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
                 {children}
             </div>
 
-            {/* Thanh kéo vô hình nằm ngay trên đường biên */}
             {!isLast && (
                 <div
                     onMouseDown={handleMouseDown}
@@ -89,7 +85,6 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
                         backgroundColor: 'transparent',
                         transition: 'background-color 0.2s'
                     }}
-                    // Hover vào thì sáng viền lên giống Excel/Google Sheets
                     onMouseEnter={(e) => e.target.style.backgroundColor = '#0ea5e9'}
                     onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                 />
@@ -99,11 +94,11 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
 };
 
 // =======================================================================
-// BẢNG CHÍNH
+// BẢNG CHÍNH — nhận data + loading qua props (vì filter ở Page)
 // =======================================================================
-const BaoCaoKhachHangTable = () => {
-    const { sanLuongKhachHangData, sanLuongKhachHangLoading } = useSelector((state) => state.baoCao);
-    const dataList = sanLuongKhachHangData?.data || [];
+const DoanhSoSanPhamTable = ({ data = [], loading = false }) => {
+    const tongTatCaDoanhSo = data.reduce((sum, item) => sum + (item.tongDoanhSo || 0), 0);
+    const tongTatCaSoLuong = data.reduce((sum, item) => sum + (item.tongSoLuong || 0), 0);
 
     return (
         <Box sx={{ width: 'fit-content', maxWidth: '100%' }}>
@@ -116,40 +111,55 @@ const BaoCaoKhachHangTable = () => {
 
                     <TableHead>
                         <TableRow>
-                            {/* Bảng này chỉ có 2 cột nên mình set width cho thoải mái */}
-                            <ResizableHeaderCell initialWidth={250}>
-                                Khách hàng
+                            <ResizableHeaderCell initialWidth={220}>
+                                Sản phẩm
                             </ResizableHeaderCell>
-
-                            <ResizableHeaderCell initialWidth={120} isLast={true}>
+                            <ResizableHeaderCell initialWidth={100}>
                                 Số lượng
+                            </ResizableHeaderCell>
+                            <ResizableHeaderCell initialWidth={130} isLast={true}>
+                                Doanh số
                             </ResizableHeaderCell>
                         </TableRow>
                     </TableHead>
 
                     <TableBody>
-                        {sanLuongKhachHangLoading ? (
+                        {loading ? (
                             <TableRow>
-                                <TableCell colSpan={2} align="center" sx={{ py: 4, color: '#60a5fa', fontStyle: 'italic' }}>
-                                    Đang tổng hợp...
+                                <TableCell colSpan={3} align="center" sx={{ py: 4, color: '#60a5fa', fontStyle: 'italic' }}>
+                                    Đang tính toán doanh số...
                                 </TableCell>
                             </TableRow>
-                        ) : dataList.length === 0 ? (
+                        ) : data.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={2} align="center" sx={{ py: 4, color: '#94a3b8' }}>
+                                <TableCell colSpan={3} align="center" sx={{ py: 4, color: '#94a3b8' }}>
                                     Không có dữ liệu
                                 </TableCell>
                             </TableRow>
                         ) : (
                             <>
-                                {/* Render danh sách chi tiết (KHÔNG CÓ DÒNG TỔNG CỘNG) */}
-                                {dataList.map((row) => (
-                                    <TableRow key={row.nhaKhoaId} sx={{ '&:hover': { bgcolor: '#f1f5f9' } }}>
+                                {/* DÒNG TỔNG CỘNG */}
+                                <TableRow>
+                                    <TableCell sx={{ ...cellSx, fontWeight: 'bold' }}></TableCell>
+                                    <TableCell align="center" sx={{ ...cellSx, fontWeight: 'bold', bgcolor: '#fce7f3' }}>
+                                        {formatCurrency(tongTatCaSoLuong)}
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ ...cellSx, pr: 2, fontWeight: 'bold', bgcolor: '#fce7f3', borderRight: 'none' }}>
+                                        {formatCurrency(tongTatCaDoanhSo)}
+                                    </TableCell>
+                                </TableRow>
+
+                                {/* DANH SÁCH CHI TIẾT */}
+                                {data.map((row, index) => (
+                                    <TableRow key={row.sanPhamId || index} sx={{ '&:hover': { bgcolor: '#f1f5f9' } }}>
                                         <TableCell sx={{ ...cellSx }}>
-                                            {row.tenNhaKhoa}
+                                            {row.tenSanPham}
                                         </TableCell>
-                                        <TableCell align="right" sx={{ ...cellSx, pr: 2, borderRight: 'none', fontWeight: 600, color: '#0369a1' }}>
-                                            {formatNumber(row.tongSanLuong)}
+                                        <TableCell align="center" sx={{ ...cellSx }}>
+                                            {formatCurrency(row.tongSoLuong)}
+                                        </TableCell>
+                                        <TableCell align="right" sx={{ ...cellSx, pr: 2, borderRight: 'none' }}>
+                                            {formatCurrency(row.tongDoanhSo)}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -162,4 +172,4 @@ const BaoCaoKhachHangTable = () => {
     );
 };
 
-export default BaoCaoKhachHangTable;
+export default DoanhSoSanPhamTable;

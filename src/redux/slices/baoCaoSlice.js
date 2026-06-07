@@ -51,16 +51,55 @@ export const upsertGhiChu = createAsyncThunk(
     }
 );
 
-/* ================= 3. GET SẢN LƯỢNG THEO KHÁCH HÀNG (THÊM MỚI) ================= */
+/* ================= 3. GET SẢN LƯỢNG THEO KHÁCH HÀNG (GIỮ NGUYÊN) ================= */
 export const fetchSanLuongKhachHang = createAsyncThunk(
     "baoCao/fetchSanLuongKhachHang",
     async (params, { rejectWithValue }) => {
         try {
             const res = await api.get("/baocao/san-luong-khach-hang", { params });
-            // Trả về nguyên cục data chứa cả tongTatCa và mảng danh sách
             return res.data;
         } catch (err) {
             return rejectWithValue(err.response?.data?.message || "Lỗi lấy báo cáo sản lượng khách hàng");
+        }
+    }
+);
+
+/* ================= 4. GET DOANH SỐ THEO KHÁCH HÀNG (GIỮ NGUYÊN) ================= */
+export const fetchDoanhSoKhachHang = createAsyncThunk(
+    "baoCao/fetchDoanhSoKhachHang",
+    async (params, { rejectWithValue }) => {
+        try {
+            const res = await api.get("/baocao/doanh-so-khach-hang", { params });
+            return res.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.message || "Lỗi lấy báo cáo doanh số khách hàng");
+        }
+    }
+);
+
+/* ================= 5. GET DOANH SỐ THEO SẢN PHẨM (GIỮ NGUYÊN) ================= */
+export const fetchDoanhSoSanPham = createAsyncThunk(
+    "baoCao/fetchDoanhSoSanPham",
+    async (params, { rejectWithValue }) => {
+        try {
+            const res = await api.get("/baocao/doanh-so-san-pham", { params });
+            return res.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.message || "Lỗi lấy báo cáo doanh số sản phẩm");
+        }
+    }
+);
+
+/* ================= 6. GET DOANH SỐ THEO THỜI GIAN (THÊM MỚI) ================= */
+export const fetchDoanhSoThoiGian = createAsyncThunk(
+    "baoCao/fetchDoanhSoThoiGian",
+    async (params, { rejectWithValue }) => {
+        try {
+            // Gọi API mới tạo
+            const res = await api.get("/baocao/doanh-so-thoi-gian", { params });
+            return res.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.message || "Lỗi lấy báo cáo doanh số thời gian");
         }
     }
 );
@@ -69,23 +108,33 @@ export const fetchSanLuongKhachHang = createAsyncThunk(
 const baoCaoSlice = createSlice({
     name: "baoCao",
     initialState: {
-        // --- State của trang Sản lượng (Giữ nguyên) ---
         data: [],
         detailedData: [],
         loading: false,
         detailedLoading: false,
         error: null,
 
-        // --- State của trang Doanh thu (Giữ nguyên) ---
         doanhThuData: null,
         doanhThuLoading: false,
         doanhThuError: null,
         notes: {},
 
-        // --- State của trang Sản lượng Khách hàng (THÊM MỚI) ---
         sanLuongKhachHangData: null,
         sanLuongKhachHangLoading: false,
         sanLuongKhachHangError: null,
+
+        doanhSoKhachHangData: null,
+        doanhSoKhachHangLoading: false,
+        doanhSoKhachHangError: null,
+
+        doanhSoSanPhamData: null,
+        doanhSoSanPhamLoading: false,
+        doanhSoSanPhamError: null,
+
+        // --- State của trang Doanh số Thời gian (THÊM MỚI) ---
+        doanhSoThoiGianData: null,
+        doanhSoThoiGianLoading: false,
+        doanhSoThoiGianError: null,
     },
 
     reducers: {
@@ -96,15 +145,22 @@ const baoCaoSlice = createSlice({
             state.doanhThuData = null;
             state.doanhThuError = null;
             state.notes = {};
-            // Clear luôn state mới
             state.sanLuongKhachHangData = null;
             state.sanLuongKhachHangError = null;
+            state.doanhSoKhachHangData = null;
+            state.doanhSoKhachHangError = null;
+            state.doanhSoSanPhamData = null;
+            state.doanhSoSanPhamError = null;
+
+            // Clear state doanh số thời gian
+            state.doanhSoThoiGianData = null;
+            state.doanhSoThoiGianError = null;
         }
     },
 
     extraReducers: (builder) => {
         builder
-            /* ===== CASE CỦA SẢN LƯỢNG (GIỮ NGUYÊN 100%) ===== */
+            /* ===== CASE CỦA SẢN LƯỢNG ===== */
             .addCase(fetchTopProductsBaoCao.pending, (state) => {
                 state.loading = true;
                 state.error = null;
@@ -155,19 +211,60 @@ const baoCaoSlice = createSlice({
                 state.notes[nhaKhoaId] = noiDung;
             })
 
-            /* ===== CASE CỦA SẢN LƯỢNG KHÁCH HÀNG (THÊM MỚI) ===== */
+            /* ===== CASE CỦA SẢN LƯỢNG KHÁCH HÀNG ===== */
             .addCase(fetchSanLuongKhachHang.pending, (state) => {
                 state.sanLuongKhachHangLoading = true;
                 state.sanLuongKhachHangError = null;
             })
             .addCase(fetchSanLuongKhachHang.fulfilled, (state, action) => {
                 state.sanLuongKhachHangLoading = false;
-                // Lưu nguyên cục payload chứa success, loaiDonDaLoc, tongTatCa, data
                 state.sanLuongKhachHangData = action.payload;
             })
             .addCase(fetchSanLuongKhachHang.rejected, (state, action) => {
                 state.sanLuongKhachHangLoading = false;
                 state.sanLuongKhachHangError = action.payload;
+            })
+
+            /* ===== CASE CỦA DOANH SỐ KHÁCH HÀNG ===== */
+            .addCase(fetchDoanhSoKhachHang.pending, (state) => {
+                state.doanhSoKhachHangLoading = true;
+                state.doanhSoKhachHangError = null;
+            })
+            .addCase(fetchDoanhSoKhachHang.fulfilled, (state, action) => {
+                state.doanhSoKhachHangLoading = false;
+                state.doanhSoKhachHangData = action.payload;
+            })
+            .addCase(fetchDoanhSoKhachHang.rejected, (state, action) => {
+                state.doanhSoKhachHangLoading = false;
+                state.doanhSoKhachHangError = action.payload;
+            })
+
+            /* ===== CASE CỦA DOANH SỐ SẢN PHẨM ===== */
+            .addCase(fetchDoanhSoSanPham.pending, (state) => {
+                state.doanhSoSanPhamLoading = true;
+                state.doanhSoSanPhamError = null;
+            })
+            .addCase(fetchDoanhSoSanPham.fulfilled, (state, action) => {
+                state.doanhSoSanPhamLoading = false;
+                state.doanhSoSanPhamData = action.payload;
+            })
+            .addCase(fetchDoanhSoSanPham.rejected, (state, action) => {
+                state.doanhSoSanPhamLoading = false;
+                state.doanhSoSanPhamError = action.payload;
+            })
+
+            /* ===== CASE CỦA DOANH SỐ THỜI GIAN (THÊM MỚI) ===== */
+            .addCase(fetchDoanhSoThoiGian.pending, (state) => {
+                state.doanhSoThoiGianLoading = true;
+                state.doanhSoThoiGianError = null;
+            })
+            .addCase(fetchDoanhSoThoiGian.fulfilled, (state, action) => {
+                state.doanhSoThoiGianLoading = false;
+                state.doanhSoThoiGianData = action.payload;
+            })
+            .addCase(fetchDoanhSoThoiGian.rejected, (state, action) => {
+                state.doanhSoThoiGianLoading = false;
+                state.doanhSoThoiGianError = action.payload;
             });
     },
 });

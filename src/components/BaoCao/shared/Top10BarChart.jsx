@@ -27,7 +27,8 @@ const CustomYAxisTick = (props) => {
     );
 };
 
-const Top10BarChart = ({ data, loading, error, title, subTitle }) => {
+// 🔥 THÊM PROP `isCurrency` VÀO ĐÂY (Mặc định là false để không ảnh hưởng trang Báo cáo Sản lượng)
+const Top10BarChart = ({ data, loading, error, title, subTitle, isCurrency = false }) => {
     const [isMobile, setIsMobile] = useState(false);
     const [chartWidth, setChartWidth] = useState(0);
     const chartRef = useRef(null);
@@ -107,8 +108,8 @@ const Top10BarChart = ({ data, loading, error, title, subTitle }) => {
                             Không có dữ liệu trong khoảng thời gian này
                         </div>
                     ) : chartWidth > 0 ? (
-                        // 🔥 ĐÃ XÓA RESPONSIVE CONTAINER. Gắn cứng width và height vào BarChart
-                        <BarChart width={chartWidth} height={300} layout="vertical" data={data} barCategoryGap="15%" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
+                        // 🔥 ĐÃ TĂNG MARGIN RIGHT CHO BIỂU ĐỒ TIỀN (tránh bị cắt mất dãy số dài)
+                        <BarChart width={chartWidth} height={300} layout="vertical" data={data} barCategoryGap="15%" margin={{ top: 0, right: isCurrency ? 80 : 30, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                             <XAxis type="number" hide domain={[0, (dataMax) => Math.round(dataMax * 1.25)]} />
                             <YAxis
@@ -121,10 +122,24 @@ const Top10BarChart = ({ data, loading, error, title, subTitle }) => {
                                 interval={0}
                                 tick={<CustomYAxisTick axisWidth={yAxisWidth} isMobile={isMobile} />}
                             />
-                            <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
+
+                            {/* 🚀 ĐÃ THÊM FORMATTER CHO TOOLTIP (Hiển thị khi di chuột vào) */}
+                            <Tooltip
+                                cursor={{ fill: '#f8fafc' }}
+                                contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
+                                formatter={(value) => isCurrency ? new Intl.NumberFormat('vi-VN').format(value) : value}
+                            />
+
                             {/* Tắt animation mặc định để không tốn tài nguyên lúc chớp width */}
                             <Bar dataKey="quantity" fill="#00a3e0" radius={[0, 4, 4, 0]} barSize={isMobile ? 12 : 14} isAnimationActive={false}>
-                                <LabelList dataKey="quantity" position="right" style={{ fill: '#00a3e0', fontSize: 11, fontWeight: 'bold' }} offset={8} />
+                                {/* 🚀 ĐÃ THÊM FORMATTER CHO LABELLIST (Chữ hiển thị trên cột) */}
+                                <LabelList
+                                    dataKey="quantity"
+                                    position="right"
+                                    style={{ fill: '#00a3e0', fontSize: 11, fontWeight: 'bold' }}
+                                    offset={8}
+                                    formatter={(value) => isCurrency ? new Intl.NumberFormat('vi-VN').format(value) : value}
+                                />
                             </Bar>
                         </BarChart>
                     ) : null}

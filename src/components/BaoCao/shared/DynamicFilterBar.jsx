@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Print, CalendarMonth } from '@mui/icons-material';
+import { Select, MenuItem } from '@mui/material';
 import dayjs from 'dayjs';
 import CustomDateRangePicker from '../../common/CustomDateRangePicker';
 
@@ -14,7 +15,7 @@ const TIME_FILTERS = [
     { id: 'last_30_days', label: '30 ngày qua' },
 ];
 
-/* Field kiểu MUI standard — label trên, underline dưới */
+/* GIAO DIỆN GẠCH CHÂN */
 const FieldWrapper = ({ label, children }) => (
     <div className="flex flex-col gap-1 min-w-0">
         <span className="text-sm text-gray-500 leading-none">{label}</span>
@@ -49,20 +50,63 @@ const DynamicFilterBar = ({
 
                 {/* 1. THỜI GIAN */}
                 <FieldWrapper label="Thời gian">
-                    <select
+                    <Select
                         value={selectedFilter}
                         onChange={handleSelectChange}
-                        className="text-base font-medium text-gray-900 bg-transparent outline-none cursor-pointer appearance-none pr-7"
-                        style={{
-                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-                            backgroundRepeat: 'no-repeat',
-                            backgroundPosition: 'right 2px center',
+                        variant="standard"
+                        disableUnderline
+                        sx={{
+                            fontSize: '16px',
+                            fontWeight: 500,
+                            color: '#111827',
+                            minWidth: '130px',
+                            '& .MuiSelect-select': {
+                                py: 0,
+                                pl: 0,
+                                // 🔥 Thêm flex để icon và chữ căn giữa trên thanh gạch chân
+                                display: 'flex',
+                                alignItems: 'center'
+                            }
+                        }}
+                        MenuProps={{
+                            PaperProps: {
+                                sx: {
+                                    mt: 1,
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                                    '& .MuiMenuItem-root': {
+                                        fontSize: '15px',
+                                        py: 1.5,
+                                        px: 2.5,
+                                        transition: 'background-color 0.2s',
+                                        '&:hover': {
+                                            backgroundColor: '#f1f5f9',
+                                        },
+                                        '&.Mui-selected': {
+                                            backgroundColor: '#e0f2fe',
+                                            color: '#0369a1',
+                                            fontWeight: 600,
+                                            '&:hover': {
+                                                backgroundColor: '#bae6fd',
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }}
                     >
-                        {TIME_FILTERS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-                    </select>
+                        {TIME_FILTERS.map((f) => (
+                            <MenuItem key={f.id} value={f.id}>
+                                {/* 🔥 THÊM ICON LỊCH BÁ CHÁY VÀO ĐÂY */}
+                                {f.id === 'custom' && (
+                                    <CalendarMonth sx={{ fontSize: 20, mr: 1, color: '#8c857e' }} />
+                                )}
+                                {f.label}
+                            </MenuItem>
+                        ))}
+                    </Select>
 
-                    {/* Nút chọn ngày khi custom — icon calendar + nút clear */}
+                    {/* Nút chọn ngày khi custom */}
                     {selectedFilter === 'custom' && (
                         <>
                             <button

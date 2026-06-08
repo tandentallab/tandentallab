@@ -28,7 +28,7 @@ const cellSx = {
     whiteSpace: 'nowrap'
 };
 
-const formatNumber = (val) => new Intl.NumberFormat('vi-VN').format(val || 0);
+const formatCurrency = (val) => new Intl.NumberFormat('vi-VN').format(val || 0);
 
 // =======================================================================
 // 🚀 COMPONENT CHUYÊN TRỊ KÉO DÃN CỘT (HOVER VÀO ĐƯỜNG BIÊN)
@@ -81,7 +81,7 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
                     style={{
                         position: 'absolute',
                         top: 0,
-                        right: -3,
+                        right: -3, // Lệch sang phải 3px để nằm đè lên đúng cái đường kẻ
                         bottom: 0,
                         width: '6px',
                         cursor: 'col-resize',
@@ -101,55 +101,80 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
 // =======================================================================
 // BẢNG CHÍNH
 // =======================================================================
-const BaoCaoKhachHangTable = () => {
-    const { sanLuongKhachHangData, sanLuongKhachHangLoading } = useSelector((state) => state.baoCao);
-    const dataList = sanLuongKhachHangData?.data || [];
+const DoanhSoKhachHangTable = () => {
+    const { doanhSoKhachHangData, doanhSoKhachHangLoading } = useSelector((state) => state.baoCao);
+    const dataList = doanhSoKhachHangData?.data || [];
+
+    const tongTatCaDoanhSo = dataList.reduce((sum, item) => sum + (item.tongDoanhSo || 0), 0);
+    const tongTatCaSoLuong = dataList.reduce((sum, item) => sum + (item.tongSoLuong || 0), 0);
 
     return (
+        // 🔥 Đã đổi sang fit-content để bảng không bị giãn full màn hình
         <Box sx={{ width: 'fit-content', maxWidth: '100%' }}>
             <TableContainer
                 component={Paper}
                 className="shadow-sm border border-gray-300 overflow-hidden flex flex-col rounded-md"
                 sx={{ maxHeight: 900, overflowY: 'auto', overflowX: 'auto' }}
             >
+                {/* Thêm tableLayout: 'fixed' để bảng tuân thủ tuyệt đối kích thước tự setup */}
                 <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', width: 'fit-content' }}>
 
                     <TableHead>
                         <TableRow>
-                            {/* Bảng này chỉ có 2 cột nên mình set width cho thoải mái */}
-                            <ResizableHeaderCell initialWidth={250}>
+                            {/* Cột khách hàng ban đầu để 250px */}
+                            <ResizableHeaderCell initialWidth={200}>
                                 Khách hàng
                             </ResizableHeaderCell>
 
-                            <ResizableHeaderCell initialWidth={120} isLast={true}>
+                            {/* Cột số lượng */}
+                            <ResizableHeaderCell initialWidth={100}>
                                 Số lượng
+                            </ResizableHeaderCell>
+
+                            {/* Cột doanh số */}
+                            <ResizableHeaderCell initialWidth={130} isLast={true}>
+                                Doanh số
                             </ResizableHeaderCell>
                         </TableRow>
                     </TableHead>
 
                     <TableBody>
-                        {sanLuongKhachHangLoading ? (
+                        {doanhSoKhachHangLoading ? (
                             <TableRow>
-                                <TableCell colSpan={2} align="center" sx={{ py: 4, color: '#60a5fa', fontStyle: 'italic' }}>
-                                    Đang tổng hợp...
+                                <TableCell colSpan={3} align="center" sx={{ py: 4, color: '#60a5fa', fontStyle: 'italic' }}>
+                                    Đang tính toán doanh số...
                                 </TableCell>
                             </TableRow>
                         ) : dataList.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={2} align="center" sx={{ py: 4, color: '#94a3b8' }}>
+                                <TableCell colSpan={3} align="center" sx={{ py: 4, color: '#94a3b8' }}>
                                     Không có dữ liệu
                                 </TableCell>
                             </TableRow>
                         ) : (
                             <>
-                                {/* Render danh sách chi tiết (KHÔNG CÓ DÒNG TỔNG CỘNG) */}
+                                {/* 🔥 DÒNG TỔNG CỘNG */}
+                                <TableRow>
+                                    <TableCell sx={{ ...cellSx, fontWeight: 'bold' }}></TableCell>
+                                    <TableCell align="center" sx={{ ...cellSx, fontWeight: 'bold', bgcolor: '#fce7f3' }}>
+                                        {formatCurrency(tongTatCaSoLuong)}
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ ...cellSx, pr: 2, fontWeight: 'bold', bgcolor: '#fce7f3', borderRight: 'none' }}>
+                                        {formatCurrency(tongTatCaDoanhSo)}
+                                    </TableCell>
+                                </TableRow>
+
+                                {/* DANH SÁCH CHI TIẾT */}
                                 {dataList.map((row) => (
                                     <TableRow key={row.nhaKhoaId} sx={{ '&:hover': { bgcolor: '#f1f5f9' } }}>
                                         <TableCell sx={{ ...cellSx }}>
                                             {row.tenNhaKhoa}
                                         </TableCell>
-                                        <TableCell align="right" sx={{ ...cellSx, pr: 2, borderRight: 'none', fontWeight: 600, color: '#0369a1' }}>
-                                            {formatNumber(row.tongSanLuong)}
+                                        <TableCell align="center" sx={{ ...cellSx }}>
+                                            {formatCurrency(row.tongSoLuong)}
+                                        </TableCell>
+                                        <TableCell align="right" sx={{ ...cellSx, pr: 2, borderRight: 'none' }}>
+                                            {formatCurrency(row.tongDoanhSo)}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -162,4 +187,4 @@ const BaoCaoKhachHangTable = () => {
     );
 };
 
-export default BaoCaoKhachHangTable;
+export default DoanhSoKhachHangTable;

@@ -8,8 +8,11 @@ import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import BarChartIcon from '@mui/icons-material/BarChart';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import TimelineIcon from '@mui/icons-material/Timeline';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const SIDEBAR_EXPANDED = 220;
@@ -18,6 +21,9 @@ const SIDEBAR_COLLAPSED = 56;
 const REPORT_MENU = [
     { path: '/bao-cao', label: 'Sản lượng theo thời gian', icon: <BarChartIcon fontSize="small" /> },
     { path: '/bao-cao/khach-hang', label: 'Sản lượng theo khách hàng', icon: <PeopleAltIcon fontSize="small" /> },
+    { path: '/bao-cao/doanh-so', label: 'Doanh số theo khách hàng', icon: <StorefrontIcon fontSize="small" /> },
+    { path: '/bao-cao/doanh-so-san-pham', label: 'Doanh số theo sản phẩm', icon: <Inventory2Icon fontSize="small" /> },
+    { path: '/bao-cao/doanh-so-thoi-gian', label: 'Doanh số theo thời gian', icon: <TimelineIcon fontSize="small" /> },
     { path: '/bao-cao/doanh-thu', label: 'Doanh thu theo tháng', icon: <AttachMoneyIcon fontSize="small" /> },
 ];
 
@@ -26,39 +32,56 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
     const location = useLocation();
     const theme = useTheme();
 
-    const getItemSx = (active) => ({
+    const TRANSITION = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+
+    // Màu riêng cho từng item
+    const ITEM_COLORS = [
+        { bg: '#ede9fe', border: '#a78bfa', icon: '#7c3aed' }, // tím
+        { bg: '#dbeafe', border: '#60a5fa', icon: '#1d4ed8' }, // xanh dương
+        { bg: '#dcfce7', border: '#4ade80', icon: '#15803d' }, // xanh lá
+        { bg: '#fef9c3', border: '#facc15', icon: '#a16207' }, // vàng
+        { bg: '#ffedd5', border: '#fdba74', icon: '#ea580c' }, // cam
+        { bg: '#fee2e2', border: '#f87171', icon: '#b91c1c' }, // đỏ
+    ];
+
+    const getItemSx = (active) => collapsed ? ({
+        // collapsed: button hoàn toàn transparent, không borderRadius để tránh animate ellipse
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 44,
+        height: 44,
+        minWidth: 0,
+        mx: 'auto',
+        my: '2px',
+        p: 0,
+        borderRadius: 0,
+        backgroundColor: 'transparent !important',
+        outline: 'none',
+        border: 'none',
+        transition: 'none',
+        '&:hover': { backgroundColor: 'transparent !important' },
+        '&:focus': { outline: 'none', border: 'none', backgroundColor: 'transparent !important' },
+        '&.Mui-focusVisible': { outline: 'none', border: 'none', backgroundColor: 'transparent !important', boxShadow: 'none' },
+        overflow: 'visible',
+    }) : ({
         justifyContent: 'flex-start',
-        width: 'calc(100% - 16px)',
-        margin: '2px 8px',
-        pl: 1.5,
-        pr: 1.5,
+        width: '100%',
+        margin: '2px 0',
+        pl: 1,
+        pr: 1,
+        py: 1.2,
         borderRadius: 2,
         backgroundColor: active ? '#bfdbfe' : 'transparent',
-        '&:hover': { backgroundColor: active ? '#93c5fd' : 'rgba(0,0,0,0.04)' },
+        '&:hover': {
+            backgroundColor: active ? '#93c5fd' : 'rgba(0,0,0,0.04)'
+        },
         overflow: 'hidden',
-        transition: theme.transitions.create('padding-left', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-        }),
     });
-
-    const iconSx = {
-        minWidth: 24,
-        width: 24,
-        mr: collapsed ? 0 : 2,
-        justifyContent: 'center',
-        flexShrink: 0,
-        color: 'inherit',
-        transition: theme.transitions.create('margin', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-        }),
-    };
 
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-            {/* Header với nút toggle ở góc phải */}
+            {/* Header */}
             <Box sx={{
                 px: 1.5,
                 bgcolor: '#FFF',
@@ -68,25 +91,45 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
                 minHeight: 48,
                 overflow: 'hidden',
             }}>
+                {/* Nút collapse — chỉ hiện trên desktop */}
+                {!onNavigate && (
+                    <Tooltip title={collapsed ? 'Mở rộng' : 'Thu gọn'} placement="right" arrow>
+                        <IconButton
+                            onClick={onCollapse}
+                            size="small"
+                            sx={{
+                                color: 'white',
+                                flexShrink: 0,
+                                bgcolor: '#0EA5A4',
+                                transition: TRANSITION,
+                                '&:hover': { bgcolor: '#0D9488', color: 'white' },
+                            }}
+                        >
+                            {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
+                        </IconButton>
+                    </Tooltip>
+                )}
 
-
-                {/* Nút toggle nằm ngay header */}
-                <Tooltip title={collapsed ? 'Mở rộng' : 'Thu gọn'} placement="right" arrow>
-                    <IconButton
-                        onClick={onCollapse}
-                        size="small"
-                        sx={{
-                            color: 'white',
-                            flexShrink: 0,
-                            bgcolor: '#0EA5A4',
-                            ml: collapsed ? 'auto' : 0,
-                            mr: collapsed ? 'auto' : 0,
-                            '&:hover': { bgcolor: '#0D9488', color: 'white' },
-                        }}
-                    >
-                        {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
-                    </IconButton>
-                </Tooltip>
+                {/* Nút đóng — chỉ hiện trên mobile, góc trên bên phải */}
+                {onNavigate && (
+                    <Box sx={{ display: 'flex', width: '100%', justifyContent: 'flex-end' }}>
+                        <Tooltip title="Đóng" placement="left" arrow>
+                            <IconButton
+                                onClick={onNavigate}
+                                size="small"
+                                sx={{
+                                    color: 'white',
+                                    flexShrink: 0,
+                                    bgcolor: '#0EA5A4',
+                                    transition: TRANSITION,
+                                    '&:hover': { bgcolor: '#0D9488', color: 'white' },
+                                }}
+                            >
+                                <ChevronLeftIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                )}
             </Box>
 
             {/* Menu items */}
@@ -98,26 +141,65 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
 
                     const button = (
                         <ListItemButton
-                            onClick={() => {
-                                navigate(item.path);
-                                onNavigate?.();
-                            }}
+                            onClick={() => { navigate(item.path); onNavigate?.(); }}
                             sx={getItemSx(isActive)}
+                            disableRipple={collapsed}
+                            disableTouchRipple={collapsed}
                         >
-                            <ListItemIcon sx={{ ...iconSx, color: isActive ? '#1d4ed8' : '#64748b' }}>
+                            {/* Icon — có vòng tròn riêng khi collapsed, plain khi expanded */}
+                            <Box sx={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                ml: collapsed ? 0 : '4px',
+                                transition: TRANSITION,
+                                // Chỉ hiện bg + border khi collapsed
+                                ...(collapsed ? {
+                                    backgroundColor: ITEM_COLORS[REPORT_MENU.indexOf(item)].bg,
+                                    border: `1.5px solid ${ITEM_COLORS[REPORT_MENU.indexOf(item)].border}`,
+                                    '&:hover': {
+                                        filter: 'brightness(0.93)',
+                                    },
+                                } : {
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
+                                }),
+                                color: collapsed
+                                    ? ITEM_COLORS[REPORT_MENU.indexOf(item)].icon
+                                    : (isActive ? '#1d4ed8' : '#64748b'),
+                            }}>
                                 {item.icon}
-                            </ListItemIcon>
+                            </Box>
+
+                            {/* Label — ẩn khi collapsed */}
                             {!collapsed && (
-                                <ListItemText
-                                    primary={item.label}
-                                    primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: isActive ? 700 : 500, whiteSpace: 'normal', lineHeight: 1.4 }}
-                                />
+                                <Box sx={{ flexShrink: 0, ml: 2 }}>
+                                    <Box sx={{
+                                        width: 160,
+                                        whiteSpace: 'normal',
+                                        lineHeight: 1.4,
+                                        fontSize: '0.95rem',
+                                        fontWeight: isActive ? 700 : 500,
+                                        color: isActive ? '#1d4ed8' : '#1e293b',
+                                        pr: 2,
+                                    }}>
+                                        {item.label}
+                                    </Box>
+                                </Box>
                             )}
                         </ListItemButton>
                     );
 
                     return (
-                        <ListItem key={item.path} disablePadding>
+                        <ListItem
+                            key={item.path}
+                            disablePadding
+                            sx={collapsed ? { justifyContent: 'center' } : {}}
+                        >
                             {collapsed ? (
                                 <Tooltip title={item.label} placement="right" arrow>
                                     {button}
@@ -133,9 +215,18 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
 
 const ReportLayout = ({ children, title }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(() => {
+        try { return localStorage.getItem('sidebar-collapsed') === 'true'; }
+        catch { return false; }
+    });
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+    const toggleCollapsed = () => setCollapsed(v => {
+        const next = !v;
+        try { localStorage.setItem('sidebar-collapsed', String(next)); } catch { }
+        return next;
+    });
 
     const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 
@@ -163,7 +254,7 @@ const ReportLayout = ({ children, title }) => {
                 >
                     <SidebarContent
                         collapsed={collapsed}
-                        onCollapse={() => setCollapsed(v => !v)}
+                        onCollapse={toggleCollapsed}
                     />
                 </Box>
             )}
@@ -171,7 +262,7 @@ const ReportLayout = ({ children, title }) => {
             {/* ── MOBILE: Drawer trượt ── */}
             {isMobile && (
                 <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-                    <Box sx={{ width: SIDEBAR_EXPANDED }} role="presentation">
+                    <Box sx={{ width: SIDEBAR_EXPANDED, pt: '68px' }} role="presentation">
                         <SidebarContent
                             collapsed={false}
                             onCollapse={() => { }}

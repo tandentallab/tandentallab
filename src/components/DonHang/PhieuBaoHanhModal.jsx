@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem } from "@mui/material";
 import { api } from "../../config/api";
 import { toast } from "sonner";
+import WarrantyCardPrint from "./WarrantyCardPrint";
 
 const generateQRCode = () => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -27,7 +28,7 @@ const formatDateVN = (dateValue) => {
   return new Date(dateValue).toLocaleDateString("vi-VN");
 };
 
-const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
+const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [fullDonHang, setFullDonHang] = useState(null);
   const [generatedQR, setGeneratedQR] = useState("");
@@ -39,10 +40,19 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   const [mauTheList, setMauTheList] = useState([]);
   const [selectedMauTheId, setSelectedMauTheId] = useState("");
   const [mapGia, setMapGia] = useState({});
+  const [warrantyState, setWarrantyState] = useState(null);
+  const [openPrint, setOpenPrint] = useState(false);
 
   useEffect(() => {
-    if (open && donHang?.nhaKhoa) {
-      const nhaKhoaId = donHang.nhaKhoa?._id || donHang.nhaKhoa;
+    if (open) {
+      setWarrantyState(warranty);
+    }
+  }, [open, warranty]);
+
+  // Load bảng giá nha khoa
+  useEffect(() => {
+    const nhaKhoaId = donHang?.nhaKhoa?._id || donHang?.nhaKhoa || warranty?.nhaKhoa?._id || warranty?.nhaKhoa;
+    if (open && nhaKhoaId) {
       api.get(`/bang-gia/nha-khoa/${nhaKhoaId}`)
         .then((res) => {
           const map = {};
@@ -59,70 +69,100 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
           console.error("Lỗi fetch bang gia:", err);
         });
     }
-  }, [open, donHang?.nhaKhoa]);
+  }, [open, donHang, warranty]);
 
+  // Load mẫu thẻ và chi tiết đơn hàng
   useEffect(() => {
-    if (open) {
-      const fetchMauThe = async () => {
-        try {
-          const res = await api.get("/mau-the-bao-hanh");
-          if (res.data?.success) {
-            setMauTheList(res.data.data);
-            if (res.data.data.length > 0) {
-              setSelectedMauTheId(res.data.data[0]._id);
-            }
-          }
-        } catch (err) {
-          toast.error("Không thể tải danh sách mẫu thẻ");
-        }
-      };
-      fetchMauThe();
-    }
-  }, [open]);
+    if (!open) return;
 
-  useEffect(() => {
-    if (!open || !donHang?._id) return;
-
-    const loadDonHang = async () => {
+    const loadData = async () => {
       try {
-        const res = await api.get(`/donhang/${donHang._id}`);
-        const data = res.data?.data;
-        setFullDonHang(data);
-        setGeneratedQR(generateQRCode());
-        setProductWarrantyConfigs({});
-        setGhiChu("");
-        setNhakhoabh(data?.nhaKhoa?.tenGiaoDich || data?.nhaKhoa?.hoVaTen || "");
-        setBacsibh(data?.bacSi?.hoVaTen || "");
-        setBenhnhanbh(data?.benhNhan?.hoVaTen || "");
+        setLoading(true);
+        // 1. Fetch mẫu thẻ
+        const mauRes = await api.get("/mau-the-bao-hanh");
+        if (mauRes.data?.success) {
+          setMauTheList(mauRes.data.data);
+        }
+
+        // 2. Fetch thông tin đơn hàng
+        const orderId = donHang?._id || warranty?.donHang?._id || warranty?.donHang;
+        let orderData = null;
+        if (orderId) {
+          const res = await api.get(`/donhang/${orderId}`);
+          orderData = res.data?.data;
+          setFullDonHang(orderData);
+        }
+
+        // 3. Khởi tạo form dựa theo chế độ
+        if (warranty) {
+          setGhiChu(warranty.ghiChu || "");
+          setNhakhoabh(warranty.nhakhoabh || warranty.nhaKhoa?.tenGiaoDich || warranty.nhaKhoa?.hoVaTen || orderData?.nhaKhoa?.tenGiaoDich || orderData?.nhaKhoa?.hoVaTen || "");
+          setBacsibh(warranty.bacsibh || warranty.bacSi?.hoVaTen || orderData?.bacSi?.hoVaTen || "");
+          setBenhnhanbh(warranty.benhnhanbh || warranty.benhNhan?.hoVaTen || orderData?.benhNhan?.hoVaTen || "");
+
+          const attachedId = typeof warranty.mauThe === "object" ? warranty.mauThe?._id : warranty.mauThe;
+          setSelectedMauTheId(attachedId || (mauRes.data?.data?.[0]?._id || ""));
+
+          const initialConfigs = {};
+          (warranty.danhSachBaoHanh || []).forEach((wItem, idx) => {
+            const startDate = new Date(wItem.baoHanhTu);
+            const endDate = new Date(wItem.baoHanhDen);
+            const yearsDiff = endDate.getFullYear() - startDate.getFullYear();
+            const expectedEnd = addYearsToDate(wItem.baoHanhTu, yearsDiff);
+            const actualEndStr = endDate.toISOString().slice(0, 10);
+            const isExactYears = expectedEnd === actualEndStr;
+
+            initialConfigs[idx] = {
+              customEndDate: isExactYears ? "" : actualEndStr,
+              selectedYears: isExactYears ? yearsDiff : "",
+              tenSanPhamBaoHanh: wItem.tenSanPhamBaoHanh || wItem.sanPham?.tenSanPham || "",
+            };
+          });
+          setProductWarrantyConfigs(initialConfigs);
+        } else {
+          setGhiChu("");
+          setNhakhoabh(orderData?.nhaKhoa?.tenGiaoDich || orderData?.nhaKhoa?.hoVaTen || "");
+          setBacsibh(orderData?.bacSi?.hoVaTen || "");
+          setBenhnhanbh(orderData?.benhNhan?.hoVaTen || "");
+          setSelectedMauTheId(mauRes.data?.data?.[0]?._id || "");
+          setProductWarrantyConfigs({});
+          setGeneratedQR(generateQRCode());
+        }
       } catch (error) {
-        toast.error("Lỗi khi tải thông tin đơn hàng");
+        toast.error("Lỗi khi tải thông tin dữ liệu");
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadDonHang();
-  }, [open, donHang?._id]);
+    loadData();
+  }, [open, donHang?._id, warranty?._id]);
 
   const maDonHang = useMemo(() => {
     if (!fullDonHang) return "";
     return fullDonHang.maDonHang || `TAN${fullDonHang._id.substring(fullDonHang._id.length - 8).toUpperCase()}`;
   }, [fullDonHang]);
 
-  const productOptions = fullDonHang?.danhSachSanPham || [];
-
-  // Lọc sản phẩm đã có phiếu bảo hành từ database, chỉ hiển thị sản phẩm chưa có phiếu
+  // Lọc sản phẩm đã có phiếu bảo hành từ database
   const sanPhamDaCoPhieu = fullDonHang?.phieuBaoHanh?.danhSachBaoHanh?.map(item =>
     item.sanPham?._id || item.sanPham
   ) || [];
 
-  const availableProducts = productOptions.filter((sp) => {
-    const spId = sp.sanPham?._id || sp.sanPham;
-    const donGia = mapGia[spId] ?? sp.sanPham?.donGiaChung ?? 0;
-    return !sanPhamDaCoPhieu.includes(spId) && sp.loaiDon === "Mới" && donGia > 0;
-  });
+  const availableProducts = useMemo(() => {
+    if (warrantyState) {
+      return warrantyState.danhSachBaoHanh || [];
+    }
+    const productOptions = fullDonHang?.danhSachSanPham || [];
+    return productOptions.filter((sp) => {
+      const spId = sp.sanPham?._id || sp.sanPham;
+      const donGia = mapGia[spId] ?? sp.sanPham?.donGiaChung ?? 0;
+      return !sanPhamDaCoPhieu.includes(spId) && sp.loaiDon === "Mới" && donGia > 0;
+    });
+  }, [fullDonHang, warrantyState, mapGia, sanPhamDaCoPhieu]);
 
-  // Khởi tạo state cấu hình bảo hành cho từng sản phẩm
+  // Khởi tạo mặc định năm bảo hành cho tạo mới
   useEffect(() => {
-    if (availableProducts.length > 0 && Object.keys(productWarrantyConfigs).length === 0) {
+    if (availableProducts.length > 0 && Object.keys(productWarrantyConfigs).length === 0 && !warranty) {
       const initialConfigs = {};
       availableProducts.forEach((sp, idx) => {
         initialConfigs[idx] = {
@@ -133,7 +173,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
       });
       setProductWarrantyConfigs(initialConfigs);
     }
-  }, [availableProducts, productWarrantyConfigs]);
+  }, [availableProducts, warranty]);
 
   const handleConfigChange = (idx, field, value) => {
     setProductWarrantyConfigs(prev => ({
@@ -145,49 +185,134 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
     }));
   };
 
-  // Tính ngày kết thúc dựa trên lựa chọn của admin
   const getCalculatedEndDate = (sp, config) => {
     if (!config) return "";
     if (config.customEndDate) return config.customEndDate;
-    if (!fullDonHang?.ngayNhan) return "";
+    const baseDate = sp.baoHanhTu || fullDonHang?.ngayNhan;
+    if (!baseDate) return "";
     if (config.selectedYears !== null && config.selectedYears !== "") {
-      return addYearsToDate(fullDonHang.ngayNhan, config.selectedYears);
+      return addYearsToDate(baseDate, config.selectedYears);
     }
     const defaultYears = sp.sanPham?.baoHanhMacDinh || 0;
-    return addYearsToDate(fullDonHang.ngayNhan, defaultYears);
+    return addYearsToDate(baseDate, defaultYears);
+  };
+
+  const handleSyncFromOrder = async () => {
+    const orderId = fullDonHang?._id || donHang?._id || warranty?.donHang?._id || warranty?.donHang;
+    if (!orderId) {
+      toast.error("Không tìm thấy thông tin đơn hàng tương ứng");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await api.get(`/donhang/${orderId}`);
+      if (res.data?.success) {
+        const latestOrder = res.data.data;
+        setFullDonHang(latestOrder);
+
+        const nhaKhoaId = latestOrder.nhaKhoa?._id || latestOrder.nhaKhoa;
+        const bangGiaRes = await api.get(`/bang-gia/nha-khoa/${nhaKhoaId}`).catch(() => null);
+        const mapGiaLocal = {};
+        if (bangGiaRes?.data) {
+          bangGiaRes.data.forEach((item) => {
+            if (item.sanPhamId) {
+              mapGiaLocal[item.sanPhamId.toString()] = item.donGia || 0;
+            }
+          });
+        }
+
+        const formatViTri = (viTriArr) => {
+          if (!viTriArr || viTriArr.length === 0) return "";
+          return viTriArr
+            .map((v) =>
+              v.kieu === "Rời"
+                ? v.soRang.join(", ")
+                : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
+            )
+            .join("; ");
+        };
+
+        const orderProducts = (latestOrder.danhSachSanPham || [])
+          .filter((sp) => {
+            const spId = sp.sanPham?._id || sp.sanPham;
+            const donGia = mapGiaLocal[spId] ?? sp.sanPham?.donGiaChung ?? 0;
+            return sp.loaiDon === "Mới" && donGia > 0;
+          })
+          .map((sp) => ({
+            sanPham: sp.sanPham,
+            viTriRang: formatViTri(sp.viTri),
+            soLuong: Number(sp.soLuong) || 1,
+            mau: sp.mau || "",
+            baoHanhTu: latestOrder.ngayNhan ? new Date(latestOrder.ngayNhan).toISOString() : new Date().toISOString(),
+            baoHanhDen: addYearsToDate(latestOrder.ngayNhan || new Date(), sp.sanPham?.baoHanhMacDinh || 0),
+          }));
+
+        const newConfigs = {};
+        const newAvailableProducts = orderProducts.map((op, idx) => {
+          const existingIdx = Object.keys(productWarrantyConfigs).find((k) => {
+            const product = availableProducts[k];
+            const pId = product?.sanPham?._id || product?.sanPham;
+            const opId = op.sanPham?._id || op.sanPham;
+            const pViTri = product?.viTriRang || "";
+            return pId === opId && pViTri === op.viTriRang;
+          });
+
+          if (existingIdx !== undefined) {
+            newConfigs[idx] = productWarrantyConfigs[existingIdx];
+            return availableProducts[existingIdx];
+          }
+
+          newConfigs[idx] = {
+            customEndDate: "",
+            selectedYears: op.sanPham?.baoHanhMacDinh || 0,
+            tenSanPhamBaoHanh: op.sanPham?.tenSanPham || op.sanPham?.ten || "Sản phẩm",
+          };
+          return op;
+        });
+
+        toast.success("Đồng bộ dữ liệu đơn hàng thành công!");
+        setProductWarrantyConfigs(newConfigs);
+        if (warrantyState) {
+          setWarrantyState((prev) => ({
+            ...prev,
+            danhSachBaoHanh: newAvailableProducts,
+          }));
+        }
+      } else {
+        toast.error("Lỗi đồng bộ thông tin đơn hàng");
+      }
+    } catch (error) {
+      toast.error("Lỗi đồng bộ thông tin đơn hàng");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async () => {
+    if (!selectedMauTheId) {
+      toast.error("Vui lòng chọn mẫu thẻ trước khi lưu!");
+      return;
+    }
+
+    if (availableProducts.length === 0) {
+      toast.error("Không có sản phẩm nào để bảo hành");
+      return;
+    }
+
     try {
-
-      // Kiểm tra nếu chưa chọn sản phẩm
-      if (!selectedMauTheId) {
-        toast.error("Vui lòng chọn mẫu thẻ trước khi lưu!");
-        return;
-      }
-
-      if (availableProducts.length === 0) {
-        toast.error("Không có sản phẩm nào để bảo hành");
-        return;
-      }
-
-      if (!fullDonHang?._id) {
-        toast.error("Không tìm thấy đơn hàng");
-        return;
-      }
-
       setLoading(true);
 
       const danhSachBaoHanh = availableProducts.map((product, idx) => {
         const config = productWarrantyConfigs[idx] || {};
         const sanPhamId = product.sanPham?._id || product.sanPham;
         const endDate = getCalculatedEndDate(product, config);
-        const startDate = fullDonHang.ngayNhan ? new Date(fullDonHang.ngayNhan).toISOString() : new Date().toISOString();
+        const startDate = product.baoHanhTu || (fullDonHang?.ngayNhan ? new Date(fullDonHang.ngayNhan).toISOString() : new Date().toISOString());
         const finalEndDate = endDate ? new Date(endDate).toISOString() : new Date().toISOString();
 
         return {
           sanPham: sanPhamId,
-          viTriRang: product.viTri?.map((v) => {
+          viTriRang: product.viTriRang || product.viTri?.map((v) => {
             if (!v.soRang || v.soRang.length === 0) return "";
             if (v.kieu === "Rời" || v.soRang.length === 1) return v.soRang.join(", ");
             return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
@@ -201,220 +326,282 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
       });
 
       const payload = {
-        donHang: fullDonHang._id,
+        donHang: fullDonHang?._id,
         danhSachBaoHanh,
         mauTheId: selectedMauTheId,
+        mauThe: selectedMauTheId,
         ghiChu,
         nhakhoabh,
         bacsibh,
         benhnhanbh,
       };
 
-      const res = await api.post("/phieu-bao-hanh", payload);
-      if (res.data?.success) {
-        toast.success(`Tạo phiếu bảo hành thành công! Mã: ${res.data.data.maBaoHanh}`);
-
-        // Reload lại fullDonHang để cập nhật danh sách phiếu bảo hành
-        const reloadRes = await api.get(`/donhang/${fullDonHang._id}`);
-        if (reloadRes.data?.data) {
-          setFullDonHang(reloadRes.data.data);
+      if (warrantyState) {
+        // UPDATE MODE
+        const res = await api.put(`/phieu-bao-hanh/${warrantyState._id}`, payload);
+        if (res.data?.success) {
+          toast.success("Cập nhật phiếu bảo hành thành công!");
+          setProductWarrantyConfigs({});
+          onSuccess?.(res.data.data);
+          onClose(); // Đóng modal ở màn hình cập nhật khi lưu thành công
+        } else {
+          toast.error(res.data?.message || "Lỗi khi cập nhật");
         }
-
-        // Reset form
-        setProductWarrantyConfigs({});
-
-        onSuccess?.(res.data.data);
       } else {
-        toast.error(res.data?.message || "Lỗi khi tạo phiếu bảo hành");
+        // CREATE MODE
+        const res = await api.post("/phieu-bao-hanh", payload);
+        if (res.data?.success) {
+          toast.success(`Tạo phiếu bảo hành thành công! Mã: ${res.data.data.maBaoHanh}`);
+          setProductWarrantyConfigs({});
+          setWarrantyState(res.data.data); // Chuyển sang chế độ xem/in ấn
+          onSuccess?.(res.data.data);
+        } else {
+          toast.error(res.data?.message || "Lỗi khi tạo phiếu bảo hành");
+        }
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message || "Lỗi khi tạo phiếu bảo hành");
+      toast.error(error.response?.data?.message || error.message || "Lỗi khi lưu phiếu bảo hành");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!open || !donHang?._id || !fullDonHang) return null;
-
-  // Nếu không còn sản phẩm nào, tự động đóng modal
-  if (availableProducts.length === 0) {
-    onClose();
-    return null;
-  }
+  if (!open || !fullDonHang) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle className="bg-blue-600 text-white font-bold">
-        Thêm phiếu bảo hành
-      </DialogTitle>
+    <>
+      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+        <DialogTitle className="bg-blue-600 text-white font-bold">
+          {warrantyState ? "Cập nhật Phiếu Bảo Hành" : "Thêm phiếu bảo hành"}
+        </DialogTitle>
 
-      <DialogContent className="pt-6 flex flex-col gap-4 px-8">
-        {/* Hàng 1: Mã bảo hành | Mẫu thẻ */}
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <div>
-            <label className="text-xs text-gray-600 font-bold block mb-2">Mã bảo hành</label>
+        <DialogContent className="pt-6 flex flex-col gap-4 px-8">
+          {/* 1. Mã bảo hành | Mẫu thẻ ở trên cùng */}
+          <div className="grid grid-cols-2 gap-4 mt-6">
+            <div>
+              <label className="text-xs text-slate-600 font-bold block mb-2">Mã bảo hành</label>
+              <TextField
+                disabled
+                value={warrantyState ? warrantyState.maBaoHanh : maDonHang}
+                fullWidth
+                size="small"
+                inputProps={{ style: { fontSize: "14px", fontWeight: "bold" } }}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-600 font-bold block mb-2">Mẫu thẻ *</label>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                value={selectedMauTheId || ""}
+                onChange={(e) => setSelectedMauTheId(e.target.value)}
+              >
+                {mauTheList.map((mau) => (
+                  <MenuItem key={mau._id} value={mau._id}>
+                    {mau.tenMau}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </div>
+          </div>
+
+          {/* 2. Nha khoa, Bác sĩ, Bệnh nhân */}
+          <div className="grid grid-cols-3 gap-4">
             <TextField
-              disabled
-              value={maDonHang}
+              label="Tên nha khoa trên thẻ"
+              value={nhakhoabh}
+              onChange={(e) => setNhakhoabh(e.target.value)}
               fullWidth
               size="small"
-              inputProps={{ style: { fontSize: "14px", fontWeight: "bold" } }}
+            />
+            <TextField
+              label="Bác sĩ"
+              value={bacsibh}
+              onChange={(e) => setBacsibh(e.target.value)}
+              fullWidth
+              size="small"
+            />
+            <TextField
+              label="Tên bệnh nhân trên thẻ"
+              value={benhnhanbh}
+              onChange={(e) => setBenhnhanbh(e.target.value)}
+              fullWidth
+              size="small"
             />
           </div>
-          <div>
-            <label className="text-xs text-gray-600 font-bold block mb-2">Mẫu thẻ *</label>
+
+          {/* Điện thoại liên hệ */}
+          <div className="grid grid-cols-2 gap-4">
             <TextField
-              select
+              label="Điện thoại"
+              disabled
+              value={fullDonHang?.nhaKhoa?.soDienThoai || "---"}
               fullWidth
               size="small"
-              value={selectedMauTheId || ""}
-              onChange={(e) => setSelectedMauTheId(e.target.value)}
-            >
-              {mauTheList.map((mau) => (
-                <MenuItem key={mau._id} value={mau._id}>
-                  {mau.tenMau}
-                </MenuItem>
-              ))}
-            </TextField>
+            />
           </div>
-        </div>
 
-        {/* Danh sách sản phẩm */}
-        <div className="flex flex-col gap-3 my-2">
-          <label className="text-xs text-gray-600 font-bold block">Danh sách sản phẩm bảo hành</label>
-          {availableProducts.map((sp, idx) => {
-            const config = productWarrantyConfigs[idx] || {};
-            const calculatedEndDate = getCalculatedEndDate(sp, config);
-            return (
-              <div key={idx} className="border border-blue-100 rounded p-4 bg-blue-50/30 flex flex-col gap-3">
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-4 flex flex-col gap-1">
-                    <span className="font-bold text-sm text-blue-800">{sp.sanPham?.tenSanPham || `Sản phẩm ${idx + 1}`}</span>
-                    <span className="text-xs text-gray-600">
-                      Vị trí: {sp.viTri?.map((v) => {
-                        if (!v.soRang || v.soRang.length === 0) return "";
-                        if (v.kieu === "Rời" || v.soRang.length === 1) return v.soRang.join(", ");
-                        return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
-                      }).filter(Boolean).join("; ") || "---"} | SL: {sp.soLuong || 1}
-                    </span>
+          {/* 3. Danh sách sản phẩm + năm bảo hành */}
+          <div className="flex flex-col gap-4 my-2">
+            <label className="text-xs text-slate-600 font-bold block">Danh sách sản phẩm bảo hành</label>
+            {availableProducts.map((sp, idx) => {
+              const config = productWarrantyConfigs[idx] || {};
+              const calculatedEndDate = getCalculatedEndDate(sp, config);
+              return (
+                <div key={idx} className="border border-blue-100 rounded-xl p-4 bg-blue-50/10 flex flex-col gap-4 shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-sm text-slate-800">
+                        {idx + 1}. {sp.sanPham?.tenSanPham || `Sản phẩm ${idx + 1}`}
+                      </span>
+                      <span className="text-xs text-slate-500 font-medium">
+                        Vị trí: {sp.viTriRang || (sp.viTri?.map((v) => {
+                          if (!v.soRang || v.soRang.length === 0) return "";
+                          if (v.kieu === "Rời" || v.soRang.length === 1) return v.soRang.join(", ");
+                          return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+                        }).filter(Boolean).join("; ") || "---")} | Số lượng: {sp.soLuong || 1} {sp.mau ? ` | Màu: ${sp.mau}` : ""}
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        Ngày bắt đầu: <span className="font-semibold text-slate-600">{formatDateVN(sp.baoHanhTu || fullDonHang?.ngayNhan)}</span>
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="col-span-4 flex flex-col gap-1 text-xs text-gray-700">
-                    <span className="font-medium">Từ: <span className="font-normal">{formatDateVN(fullDonHang.ngayNhan)}</span></span>
-                    <span className="font-medium">Đến: <span className="text-blue-700 font-semibold">{formatDateVN(calculatedEndDate)}</span></span>
-                  </div>
-
-                  <div className="col-span-2">
+                  {/* Tên sản phẩm bảo hành */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                      Tên sản phẩm bảo hành:
+                    </label>
                     <TextField
-                      type="date"
-                      value={config.customEndDate || ""}
-                      onChange={(e) => handleConfigChange(idx, "customEndDate", e.target.value)}
+                      placeholder="Nhập tên sản phẩm bảo hành..."
+                      value={config.tenSanPhamBaoHanh ?? ""}
+                      onChange={(e) => handleConfigChange(idx, "tenSanPhamBaoHanh", e.target.value)}
                       fullWidth
                       size="small"
-                      inputProps={{ style: { fontSize: '13px' } }}
+                      InputProps={{ className: "bg-white rounded-lg text-sm" }}
                     />
                   </div>
-                  <div className="col-span-2">
-                    <TextField
-                      select
-                      value={config.selectedYears ?? (sp.sanPham?.baoHanhMacDinh || 0)}
-                      onChange={(e) => {
-                        handleConfigChange(idx, "selectedYears", e.target.value === "" ? null : Number(e.target.value));
-                        handleConfigChange(idx, "customEndDate", "");
-                      }}
-                      fullWidth
-                      size="small"
-                      inputProps={{ style: { fontSize: '13px' } }}
-                    >
-                      {Array.from({ length: 11 }, (_, i) => i).map((year) => (
-                        <MenuItem key={year} value={year}>
-                          {year} năm
-                        </MenuItem>
-                      ))}
-                    </TextField>
+
+                  {/* Controls for Year Select & Calendar Custom Date */}
+                  <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
+                    <div className="md:col-span-5">
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                        Theo số năm cố định:
+                      </label>
+                      <TextField
+                        select
+                        value={config.selectedYears ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          handleConfigChange(idx, "selectedYears", val === "" ? "" : Number(val));
+                          handleConfigChange(idx, "customEndDate", "");
+                        }}
+                        fullWidth
+                        size="small"
+                        InputProps={{ className: "rounded-lg text-sm bg-white" }}
+                      >
+                        <MenuItem value="">-- Chọn số năm --</MenuItem>
+                        {Array.from({ length: 10 }, (_, i) => i + 1).map((year) => (
+                          <MenuItem key={year} value={year}>
+                            {year} năm
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </div>
+
+                    <div className="md:col-span-1 flex items-center justify-center pt-2 md:pt-0">
+                      <span className="text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-md">
+                        hoặc
+                      </span>
+                    </div>
+
+                    <div className="md:col-span-5">
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                        Chọn ngày tùy chỉnh cụ thể:
+                      </label>
+                      <TextField
+                        type="date"
+                        value={config.customEndDate || ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          handleConfigChange(idx, "customEndDate", val);
+                          handleConfigChange(idx, "selectedYears", "");
+                        }}
+                        fullWidth
+                        size="small"
+                        InputProps={{ className: "rounded-lg text-sm bg-white" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Calculated Date Banner */}
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 flex items-center justify-between">
+                    <span className="font-bold text-xs text-emerald-800 uppercase tracking-wide">
+                      Thời hạn áp dụng mới:
+                    </span>
+                    <span className="text-sm font-bold text-emerald-700 bg-white border border-emerald-100 px-3 py-1 rounded shadow-sm">
+                      {formatDateVN(sp.baoHanhTu || fullDonHang?.ngayNhan)} <span className="mx-1 text-emerald-400">→</span> {formatDateVN(calculatedEndDate)}
+                    </span>
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
-                {/* Tên sản phẩm bảo hành */}
-                <div>
-                  <TextField
-                    label="Tên sản phẩm bảo hành"
-                    placeholder="Nhập chi tiết loại răng bảo hành..."
-                    value={config.tenSanPhamBaoHanh ?? ""}
-                    onChange={(e) => handleConfigChange(idx, "tenSanPhamBaoHanh", e.target.value)}
-                    fullWidth
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      className: "bg-white rounded-lg",
-                      style: { fontSize: '13px' }
-                    }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Thông tin nha khoa, bác sĩ, bệnh nhân */}
-        <div className="grid grid-cols-3 gap-4">
+          {/* 4. Ghi chú dưới cùng */}
           <TextField
-            label="Tên nha khoa trên thẻ"
-            value={nhakhoabh}
-            onChange={(e) => setNhakhoabh(e.target.value)}
+            label="Ghi chú"
+            value={ghiChu}
+            onChange={(e) => setGhiChu(e.target.value)}
             fullWidth
+            multiline
+            rows={2}
             size="small"
           />
-          <TextField
-            label="Bác sĩ"
-            value={bacsibh}
-            onChange={(e) => setBacsibh(e.target.value)}
-            fullWidth
-            size="small"
-          />
-          <TextField
-            label="Tên bệnh nhân trên thẻ"
-            value={benhnhanbh}
-            onChange={(e) => setBenhnhanbh(e.target.value)}
-            fullWidth
-            size="small"
-          />
-        </div>
+        </DialogContent>
 
-        {/* Thông tin liên hệ */}
-        <div className="grid grid-cols-2 gap-4">
-          <TextField
-            label="Điện thoại"
-            disabled
-            value={fullDonHang?.nhaKhoa?.soDienThoai || "---"}
-            fullWidth
-            size="small"
-          />
-        </div>
+        <DialogActions className="p-4 bg-white border-t border-slate-100 gap-2">
+          {warrantyState && (
+            <Button
+              onClick={handleSyncFromOrder}
+              variant="outlined"
+              color="primary"
+              disabled={loading}
+              style={{ marginRight: "auto" }}
+            >
+              Đồng bộ từ đơn hàng
+            </Button>
+          )}
+          <Button onClick={onClose}>Hủy</Button>
+          {warrantyState && (
+            <Button
+              onClick={() => setOpenPrint(true)}
+              variant="contained"
+              color="success"
+            >
+              In thẻ BH
+            </Button>
+          )}
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            color="primary"
+            disabled={loading || availableProducts.length === 0}
+          >
+            {loading ? "Đang lưu..." : "Lưu"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        {/* Hàng 7: Ghi chú */}
-        <TextField
-          label="Ghi chú"
-          value={ghiChu}
-          onChange={(e) => setGhiChu(e.target.value)}
-          fullWidth
-          multiline
-          rows={2}
-          size="small"
+      {openPrint && warrantyState && (
+        <WarrantyCardPrint
+          open={openPrint}
+          onClose={() => setOpenPrint(false)}
+          warranty={warrantyState}
         />
-      </DialogContent>
-
-      <DialogActions>
-        <Button onClick={onClose}>Hủy</Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading || availableProducts.length === 0}
-        >
-          {loading ? "Đang lưu..." : "Lưu"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+      )}
+    </>
   );
 };
 

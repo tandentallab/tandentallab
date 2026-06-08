@@ -2,10 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   Button,
   TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Table,
   TableBody,
   TableCell,
@@ -24,30 +20,19 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import CloseIcon from "@mui/icons-material/Close";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import PrintIcon from "@mui/icons-material/Print";
 import { api } from "../../config/api";
 import { toast } from "sonner";
-import FullScreenLoader from "../Loader/FullScreenLoader";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import ExportDateSelector from "../common/ExportDateSelector";
 import { toISODateRange } from "../../utils/exportDatePresets";
 import WarrantyCardPrint from "../DonHang/WarrantyCardPrint";
+import PhieuBaoHanhModal from "../DonHang/PhieuBaoHanhModal";
 
 // Helper functions (Giữ nguyên logic gốc)
-const addYearsToDate = (dateValue, years) => {
-  const start = new Date(dateValue);
-  const result = new Date(
-    start.getFullYear() + years,
-    start.getMonth(),
-    start.getDate()
-  );
-  return result.toISOString().slice(0, 10);
-};
 
 const formatDateVN = (dateValue) => {
   if (!dateValue) return "---";
@@ -73,10 +58,6 @@ const PhieuBaoHanhPage = () => {
 
   const [editingPhieu, setEditingPhieu] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({
-    ghiChu: "",
-    danhSachBaoHanh: [],
-  });
   const [printPhieu, setPrintPhieu] = useState(null);
 
   const navigate = useNavigate();
@@ -137,206 +118,10 @@ const PhieuBaoHanhPage = () => {
     setPage(0);
   };
 
-  // Mở modal edit (Giữ nguyên)
+  // Mở modal edit
   const handleOpenEdit = (phieu) => {
     setEditingPhieu(phieu);
-
-    const enrichedList = (phieu.danhSachBaoHanh || []).map((item) => {
-      const startDate = new Date(item.baoHanhTu);
-      const endDate = new Date(item.baoHanhDen);
-      const yearsDiff = endDate.getFullYear() - startDate.getFullYear();
-
-      const expectedEnd = addYearsToDate(item.baoHanhTu, yearsDiff);
-      const actualEndStr = new Date(item.baoHanhDen).toISOString().slice(0, 10);
-      const isExactYears = expectedEnd === actualEndStr;
-
-      const defaultName = item.sanPham?.tenSanPham || (typeof item.sanPham === 'string' ? item.sanPham : item.sanPham?.ten || "");
-
-      return {
-        ...item,
-        tenSanPhamBaoHanh: item.tenSanPhamBaoHanh || defaultName || "",
-        selectedYears: isExactYears ? yearsDiff : "",
-        customEndDate: isExactYears ? "" : actualEndStr,
-      };
-    });
-
-    setEditForm({
-      ghiChu: phieu.ghiChu || "",
-      nhakhoabh: phieu.nhakhoabh || phieu.nhaKhoa?.tenGiaoDich || phieu.nhaKhoa?.hoVaTen || "",
-      bacsibh: phieu.bacsibh || phieu.bacSi?.hoVaTen || "",
-      benhnhanbh: phieu.benhnhanbh || phieu.benhNhan?.hoVaTen || "",
-      danhSachBaoHanh: enrichedList,
-    });
     setIsEditModalOpen(true);
-  };
-
-  // Đồng bộ thông tin từ Đơn hàng hiện tại
-  const handleSyncFromOrder = async () => {
-    const orderId = editingPhieu.donHang?._id || editingPhieu.donHang;
-    if (!orderId) {
-      toast.error("Không tìm thấy thông tin đơn hàng tương ứng");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const res = await api.get(`/donhang/${orderId}`);
-      if (res.data?.success) {
-        const latestOrder = res.data.data;
-
-        // Hàm format vị trí răng
-        const formatViTri = (viTriArr) => {
-          if (!viTriArr || viTriArr.length === 0) return "";
-          return viTriArr
-            .map((v) =>
-              v.kieu === "Rời"
-                ? v.soRang.join(", ")
-                : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`
-            )
-            .join("; ");
-        };
-
-        const nhaKhoaId = latestOrder.nhaKhoa?._id || latestOrder.nhaKhoa;
-        // Fetch bảng giá nha khoa
-        const bangGiaRes = await api.get(`/bang-gia/nha-khoa/${nhaKhoaId}`).catch(() => null);
-        const mapGia = {};
-        if (bangGiaRes?.data) {
-          bangGiaRes.data.forEach((item) => {
-            if (item.sanPhamId) {
-              mapGia[item.sanPhamId.toString()] = item.donGia || 0;
-            }
-          });
-        }
-
-        // Chuẩn hóa danh sách sản phẩm từ đơn hàng mới nhất và có giá > 0
-        const orderProducts = (latestOrder.danhSachSanPham || [])
-          .filter((sp) => {
-            const spId = sp.sanPham?._id || sp.sanPham;
-            const donGia = mapGia[spId] ?? sp.sanPham?.donGiaChung ?? 0;
-            return sp.loaiDon === "Mới" && donGia > 0;
-          })
-          .map((sp) => ({
-            sanPhamId: sp.sanPham?._id || sp.sanPham,
-            tenSanPham: sp.sanPham?.tenSanPham || sp.sanPham?.ten || "Sản phẩm",
-            viTriRang: formatViTri(sp.viTri),
-            soLuong: Number(sp.soLuong) || 1,
-            mau: sp.mau || "",
-            baoHanhMacDinh: sp.sanPham?.baoHanhMacDinh || 0,
-          }));
-
-        // Chuẩn hóa danh sách sản phẩm hiện tại của phiếu bảo hành
-        const currentWarrantyProducts = (editForm.danhSachBaoHanh || []).map((w) => ({
-          sanPhamId: w.sanPham?._id || w.sanPham,
-          tenSanPham: w.sanPham?.tenSanPham || w.sanPham?.ten || "Sản phẩm",
-          viTriRang: w.viTriRang || "",
-          soLuong: Number(w.soLuong) || 1,
-          mau: w.mau || "",
-        }));
-
-        // Sắp xếp để so sánh không phụ thuộc thứ tự phần tử
-        const sortFn = (a, b) => {
-          const idA = (a.sanPhamId || "").toString();
-          const idB = (b.sanPhamId || "").toString();
-          if (idA !== idB) return idA.localeCompare(idB);
-          return (a.viTriRang || "").localeCompare(b.viTriRang || "");
-        };
-
-        const sortedOrder = [...orderProducts].sort(sortFn);
-        const sortedCurrent = [...currentWarrantyProducts].sort(sortFn);
-
-        const isSame = sortedOrder.length === sortedCurrent.length &&
-          sortedOrder.every((op, idx) => {
-            const cwp = sortedCurrent[idx];
-            return op.sanPhamId === cwp.sanPhamId &&
-              op.viTriRang === cwp.viTriRang &&
-              op.soLuong === cwp.soLuong &&
-              op.mau === cwp.mau;
-          });
-
-        if (isSame) {
-          toast.success("Dữ liệu đồng bộ");
-        } else {
-          // Xây dựng danh sách bảo hành mới dựa trên đơn hàng, bảo lưu ngày tháng của các sản phẩm khớp cũ
-          const newList = orderProducts.map((op) => {
-            const existingMatch = (editForm.danhSachBaoHanh || []).find((w) => {
-              const wId = w.sanPham?._id || w.sanPham;
-              return wId === op.sanPhamId && w.viTriRang === op.viTriRang;
-            });
-
-            if (existingMatch) {
-              return {
-                ...existingMatch,
-                soLuong: op.soLuong,
-                mau: op.mau,
-                tenSanPhamBaoHanh: existingMatch.tenSanPhamBaoHanh || op.tenSanPham || "",
-              };
-            }
-
-            const newBaoHanhTu = editingPhieu.createdAt
-              ? new Date(editingPhieu.createdAt).toISOString().slice(0, 10)
-              : new Date().toISOString().slice(0, 10);
-            const defaultYears = op.baoHanhMacDinh || 0;
-            const newBaoHanhDen = addYearsToDate(newBaoHanhTu, defaultYears);
-
-            return {
-              sanPham: {
-                _id: op.sanPhamId,
-                tenSanPham: op.tenSanPham,
-              },
-              viTriRang: op.viTriRang,
-              soLuong: op.soLuong,
-              mau: op.mau,
-              tenSanPhamBaoHanh: op.tenSanPham || "",
-              baoHanhTu: newBaoHanhTu,
-              baoHanhDen: newBaoHanhDen,
-              selectedYears: defaultYears > 0 ? defaultYears : "",
-              customEndDate: "",
-            };
-          });
-
-          setEditForm({
-            ...editForm,
-            danhSachBaoHanh: newList,
-          });
-          toast.success("Đã đồng bộ thông tin mới từ đơn hàng!");
-        }
-      } else {
-        toast.error(res.data?.message || "Lỗi khi lấy dữ liệu đơn hàng");
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Lỗi khi lấy dữ liệu đơn hàng");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Lưu chỉnh sửa (Giữ nguyên)
-  const handleSaveEdit = async () => {
-    try {
-      setLoading(true);
-      const cleanedDanhSach = editForm.danhSachBaoHanh.map(
-        ({ selectedYears, customEndDate, ...rest }) => rest
-      );
-
-      const res = await api.put(`/phieu-bao-hanh/${editingPhieu._id}`, {
-        ghiChu: editForm.ghiChu,
-        nhakhoabh: editForm.nhakhoabh,
-        bacsibh: editForm.bacsibh,
-        benhnhanbh: editForm.benhnhanbh,
-        danhSachBaoHanh: cleanedDanhSach,
-      });
-      if (res.data?.success) {
-        toast.success("Đã cập nhật Phiếu bảo hành");
-        setIsEditModalOpen(false);
-        loadPhieuList();
-      } else {
-        toast.error(res.data?.message || "Lỗi khi cập nhật");
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Lỗi khi cập nhật");
-    } finally {
-      setLoading(false);
-    }
   };
 
   // Xóa phiếu bảo hành (Giữ nguyên)
@@ -798,319 +583,20 @@ const PhieuBaoHanhPage = () => {
         </div>
       </div>
 
-      {/* Edit Modal */}
-      <Dialog
-        open={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{ className: "rounded-2xl overflow-hidden shadow-xl" }}
-      >
-        <DialogTitle className="bg-blue-500 text-white font-bold text-lg flex justify-between items-center px-6 py-4">
-          <span>Cập Nhật Phiếu Bảo Hành</span>
-          <IconButton
-            size="small"
-            onClick={() => setIsEditModalOpen(false)}
-            className="text-slate-400 hover:text-white transition-colors"
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent className="p-6 space-y-6 bg-slate-50/50">
-          {editingPhieu && (
-            <>
-              {/* Thông tin chung */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase block mb-0.5">
-                    Mã Bảo Hành
-                  </span>
-                  <span className="font-bold text-slate-800">
-                    {editingPhieu.maBaoHanh}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase block mb-0.5">
-                    Mã Đơn Hàng
-                  </span>
-                  <span className="font-semibold text-slate-700">
-                    {editingPhieu.donHang?.maDonHang || "---"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase block mb-0.5">
-                    Họ Tên Bệnh Nhân
-                  </span>
-                  <span className="font-bold text-blue-600">
-                    {editingPhieu.benhNhan?.hoVaTen || "---"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Danh sách sản phẩm bảo hành */}
-              <div>
-                <h3 className="font-bold text-sm text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                  <span className="w-1.5 h-3.5 bg-blue-600 rounded-full inline-block"></span>
-                  Cấu hình thời hạn sản phẩm
-                </h3>
-
-                <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2 py-1">
-                  {editForm.danhSachBaoHanh?.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm transition-all hover:border-slate-300"
-                    >
-                      <div className="mb-4 bg-slate-50/50 p-3 rounded-lg border border-slate-100">
-                        <div className="font-bold text-slate-900 text-sm mb-1">
-                          {idx + 1}. {item.sanPham?.tenSanPham || item.sanPham}
-                        </div>
-                        <div className="text-xs text-slate-500 flex flex-wrap gap-x-3 gap-y-1 font-medium">
-                          {item.viTriRang && (
-                            <span>Vị trí: {item.viTriRang}</span>
-                          )}
-                          {item.soLuong && (
-                            <span>Số lượng: {item.soLuong}</span>
-                          )}
-                          {item.mau && <span>Màu: {item.mau}</span>}
-                        </div>
-                        <div className="text-[11px] text-slate-400 mt-2 pt-2 border-t border-slate-200/60">
-                          Bắt đầu:{" "}
-                          <span className="text-slate-600 font-semibold">
-                            {formatDateVN(item.baoHanhTu)}
-                          </span>{" "}
-                          | Hạn hiện tại:{" "}
-                          <span className="text-slate-600 font-semibold">
-                            {formatDateVN(
-                              editingPhieu.danhSachBaoHanh?.[idx]?.baoHanhDen
-                            )}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Tên sản phẩm bảo hành */}
-                      <div className="mb-4">
-                        <label className="block text-xs font-bold text-slate-600 mb-1.5">
-                          Tên sản phẩm bảo hành:
-                        </label>
-                        <TextField
-                          placeholder="Nhập tên sản phẩm bảo hành..."
-                          value={item.tenSanPhamBaoHanh || ""}
-                          onChange={(e) => {
-                            const newDanhSach = [...editForm.danhSachBaoHanh];
-                            newDanhSach[idx] = {
-                              ...newDanhSach[idx],
-                              tenSanPhamBaoHanh: e.target.value,
-                            };
-                            setEditForm({
-                              ...editForm,
-                              danhSachBaoHanh: newDanhSach,
-                            });
-                          }}
-                          fullWidth
-                          size="small"
-                          InputProps={{
-                            className: "rounded-lg text-sm bg-white",
-                          }}
-                        />
-                      </div>
-
-                      {/* Các input thay đổi ngày (Giữ nguyên logic gốc) */}
-                      <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
-                        <div className="md:col-span-5">
-                          <label className="block text-xs font-bold text-slate-600 mb-1.5">
-                            Theo số năm cố định:
-                          </label>
-                          <TextField
-                            select
-                            value={item.selectedYears ?? ""}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const newDanhSach = [...editForm.danhSachBaoHanh];
-                              const newEndDateStr =
-                                val === ""
-                                  ? item.baoHanhTu
-                                  : addYearsToDate(item.baoHanhTu, Number(val));
-                              newDanhSach[idx] = {
-                                ...newDanhSach[idx],
-                                selectedYears: val === "" ? "" : Number(val),
-                                customEndDate: "",
-                                baoHanhDen: new Date(
-                                  newEndDateStr
-                                ).toISOString(),
-                              };
-                              setEditForm({
-                                ...editForm,
-                                danhSachBaoHanh: newDanhSach,
-                              });
-                            }}
-                            fullWidth
-                            size="small"
-                            InputProps={{
-                              className: "rounded-lg text-sm bg-slate-50/30",
-                            }}
-                          >
-                            <MenuItem value="">-- Chọn số năm --</MenuItem>
-                            {Array.from({ length: 11 }, (_, i) => i).map(
-                              (year) => (
-                                <MenuItem key={year} value={year}>
-                                  {year} năm bảo hành
-                                </MenuItem>
-                              )
-                            )}
-                          </TextField>
-                        </div>
-
-                        <div className="md:col-span-1 flex items-center justify-center pt-4 md:pt-0">
-                          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-md">
-                            hoặc
-                          </span>
-                        </div>
-
-                        <div className="md:col-span-5">
-                          <label className="block text-xs font-bold text-slate-600 mb-1.5">
-                            Chọn ngày tùy chỉnh cụ thể:
-                          </label>
-                          <TextField
-                            type="date"
-                            value={item.customEndDate || ""}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const newDanhSach = [...editForm.danhSachBaoHanh];
-                              newDanhSach[idx] = {
-                                ...newDanhSach[idx],
-                                customEndDate: val,
-                                selectedYears: "",
-                                baoHanhDen: val
-                                  ? new Date(val).toISOString()
-                                  : new Date(item.baoHanhTu).toISOString(),
-                              };
-                              setEditForm({
-                                ...editForm,
-                                danhSachBaoHanh: newDanhSach,
-                              });
-                            }}
-                            fullWidth
-                            size="small"
-                            InputProps={{
-                              className: "rounded-lg text-sm bg-slate-50/30",
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Banner kết quả trực quan hơn */}
-                      <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 flex items-center justify-between">
-                        <span className="font-bold text-xs text-emerald-800 uppercase tracking-wide">
-                          Thời hạn áp dụng mới:
-                        </span>
-                        <span className="text-sm font-bold text-emerald-700 bg-white border border-emerald-100 px-3 py-1 rounded shadow-xs">
-                          {formatDateVN(item.baoHanhTu)}{" "}
-                          <span className="mx-1 text-emerald-400">→</span>{" "}
-                          {formatDateVN(item.baoHanhDen)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Chỉnh sửa thông tin Nha khoa, Bác sĩ, Bệnh nhân */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
-                    Tên nha khoa trên thẻ:
-                  </label>
-                  <TextField
-                    value={editForm.nhakhoabh || ""}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, nhakhoabh: e.target.value })
-                    }
-                    fullWidth
-                    size="small"
-                    InputProps={{ className: "rounded-lg text-sm bg-white" }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
-                    Bác sĩ:
-                  </label>
-                  <TextField
-                    value={editForm.bacsibh || ""}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, bacsibh: e.target.value })
-                    }
-                    fullWidth
-                    size="small"
-                    InputProps={{ className: "rounded-lg text-sm bg-white" }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
-                    Tên bệnh nhân trên thẻ:
-                  </label>
-                  <TextField
-                    value={editForm.benhnhanbh || ""}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, benhnhanbh: e.target.value })
-                    }
-                    fullWidth
-                    size="small"
-                    InputProps={{ className: "rounded-lg text-sm bg-white" }}
-                  />
-                </div>
-              </div>
-
-              {/* Input ghi chú */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
-                  Ghi chú tổng quát
-                </label>
-                <TextField
-                  placeholder="Nhập các ghi chú, lưu ý đặc biệt liên quan tới phiếu bảo hành này..."
-                  value={editForm.ghiChu}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, ghiChu: e.target.value })
-                  }
-                  fullWidth
-                  multiline
-                  rows={3}
-                  size="small"
-                  InputProps={{ className: "rounded-xl text-sm bg-white" }}
-                />
-              </div>
-            </>
-          )}
-        </DialogContent>
-
-        <DialogActions className="p-4 bg-white border-t border-slate-100 gap-2">
-          <Button
-            onClick={handleSyncFromOrder}
-            variant="outlined"
-            color="primary"
-            disabled={loading}
-            style={{ marginRight: "auto" }}
-            className="text-blue-600 border-blue-600 font-semibold px-4 py-2 normal-case rounded-lg hover:bg-blue-50"
-          >
-            Cập nhật phiếu BH
-          </Button>
-          <Button
-            onClick={() => setIsEditModalOpen(false)}
-            className="text-slate-500 font-semibold px-4 py-2 normal-case rounded-lg hover:bg-slate-100"
-          >
-            Hủy thao tác
-          </Button>
-          <Button
-            onClick={handleSaveEdit}
-            variant="contained"
-            disableElevation
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 normal-case rounded-lg min-w-[100px]"
-          >
-            {loading ? "Đang lưu..." : "Lưu thay đổi"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Unified Edit Modal */}
+      {isEditModalOpen && editingPhieu && (
+        <PhieuBaoHanhModal
+          open={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingPhieu(null);
+          }}
+          warranty={editingPhieu}
+          onSuccess={() => {
+            loadPhieuList();
+          }}
+        />
+      )}
 
       {/* Dialog in thẻ bảo hành */}
       {printPhieu && (

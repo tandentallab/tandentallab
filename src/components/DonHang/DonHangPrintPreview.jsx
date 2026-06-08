@@ -177,7 +177,7 @@ const DonHangPrintPreview = () => {
                       {sp.soLuong || 1}
                     </td>
                     <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold" }}>
-                      {buildTeethText(sp.viTri) || ""}
+                      {sp.viTriText || buildTeethText(sp.viTri) || ""}
                     </td>
                     <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold" }}>
                       {sp.mau || ""}

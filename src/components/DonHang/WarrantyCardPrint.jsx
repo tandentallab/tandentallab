@@ -55,13 +55,13 @@ const WarrantyCardPrint = ({ open, onClose, warranty, donHang, initialMauTheId }
         return maBaoHanh.replace(/^TAN/, "") || "---";
 
       case "nhaKhoa":
-        return warranty?.nhaKhoa?.tenGiaoDich || warranty?.nhaKhoa?.hoVaTen || donHang?.nhaKhoa?.tenGiaoDich || donHang?.nhaKhoa?.hoVaTen || "---";
+        return warranty?.nhakhoabh || warranty?.nhaKhoa?.tenGiaoDich || warranty?.nhaKhoa?.hoVaTen || donHang?.nhaKhoa?.tenGiaoDich || donHang?.nhaKhoa?.hoVaTen || "---";
 
       case "bacSi":
-        return warranty?.bacSi?.hoVaTen || donHang?.bacSi?.hoVaTen || "---";
+        return warranty?.bacsibh || warranty?.bacSi?.hoVaTen || donHang?.bacSi?.hoVaTen || "---";
 
       case "benhNhan":
-        return warranty?.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen || "---";
+        return warranty?.benhnhanbh || warranty?.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen || "---";
 
       case "sanPham":
         return warranty?.danhSachBaoHanh?.[0]?.tenSanPhamBaoHanh || warranty?.danhSachBaoHanh?.[0]?.sanPham?.tenSanPham || donHang?.danhSachSanPham?.[0]?.sanPham?.tenSanPham || "---";

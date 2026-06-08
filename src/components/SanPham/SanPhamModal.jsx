@@ -44,6 +44,8 @@ export default function SanPhamModal({
   editData = null,
   open,
   handleClose,
+  initialName = "",
+  onCreated,
 }) {
   const dispatch = useDispatch();
   const { loading } = useSelector((state) => state.sanPham || {});
@@ -62,11 +64,11 @@ export default function SanPhamModal({
           baoHanhMacDinh: (editData.baoHanhMacDinh || 0).toString(),
         });
       } else {
-        setForm(INITIAL_FORM);
+        setForm({ ...INITIAL_FORM, tenSanPham: initialName || "" });
       }
       setErrors({});
     }
-  }, [isEdit, editData, open]);
+  }, [isEdit, editData, open, initialName]);
 
   const handlePriceChange = (e) => {
     const value = e.target.value.replace(/\D/g, "");
@@ -101,10 +103,12 @@ export default function SanPhamModal({
         await dispatch(
           updateSanPham({ id: editData._id, data: payload })
         ).unwrap();
+        handleClose();
       } else {
-        await dispatch(createSanPham(payload)).unwrap();
+        const result = await dispatch(createSanPham(payload)).unwrap();
+        if (onCreated) onCreated(result);
+        handleClose();
       }
-      handleClose();
     } catch (err) {
       toast.error(`Lỗi: ${err?.message || JSON.stringify(err)}`);
     }
@@ -288,20 +292,18 @@ export default function SanPhamModal({
                 className="flex flex-col items-center pt-2 md:pt-4 pl-0 md:pl-4"
               >
                 <Typography
-                  className={`font-bold text-[11px] mb-4 text-center ${
-                    errors.quyTrinh ? "text-red-500" : "text-[#f57c00]"
-                  }`}
+                  className={`font-bold text-[11px] mb-4 text-center ${errors.quyTrinh ? "text-red-500" : "text-[#f57c00]"
+                    }`}
                 >
                   {errors.quyTrinh
                     ? "* Chưa thiết lập quy trình!"
                     : "* Quy trình sản xuất"}
                 </Typography>
                 <Box
-                  className={`rounded-xl p-3 cursor-pointer border transition w-full ${
-                    errors.quyTrinh
+                  className={`rounded-xl p-3 cursor-pointer border transition w-full ${errors.quyTrinh
                       ? "bg-red-50 border-red-300"
                       : "bg-blue-50 hover:border-blue-400"
-                  }`}
+                    }`}
                   onClick={() => setOpenCD(true)}
                 >
                   <div className="flex justify-between items-center mb-2">

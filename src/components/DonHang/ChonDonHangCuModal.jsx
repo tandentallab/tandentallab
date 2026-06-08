@@ -33,7 +33,9 @@ const ChonDonHangCuModal = ({ isOpen, onClose, onSelect, patientId, nhaKhoaName,
         const tenSp = sp.sanPham?.tenSanPham || 'Sản phẩm';
         const sl = sp.soLuong || 0;
         let viTri = '';
-        if (sp.viTri && sp.viTri.length > 0) {
+        if (sp.viTriText) {
+            viTri = sp.viTriText;
+        } else if (sp.viTri && sp.viTri.length > 0) {
             viTri = sp.viTri.map(v => v.kieu === 'Rời' ? v.soRang.join(',') : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`).join('; ');
         }
         return `${sl} ${tenSp} ${viTri ? `(${viTri})` : ''}`;

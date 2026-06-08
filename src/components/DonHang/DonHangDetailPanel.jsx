@@ -217,7 +217,8 @@ const DonHangDetailPanel = (props) => {
     return null;
   };
 
-  const renderViTriText = (viTriArr) => {
+  const renderViTriText = (viTriArr, viTriText) => {
+    if (viTriText) return viTriText;
     if (!viTriArr || viTriArr.length === 0) return null;
     return viTriArr
       .map((v) =>
@@ -416,8 +417,8 @@ const DonHangDetailPanel = (props) => {
                         <div className="text-sm">{sp.soLuong}</div>
                         <div className="text-sm">{sp.sanPham?.tenSanPham || "N/A"}</div>
                       </div>
-                      {sp.viTri?.length > 0 && (
-                        <div className="text-sm text-gray-700">• Vị trí: {renderViTriText(sp.viTri)}</div>
+                      {(sp.viTri?.length > 0 || sp.viTriText) && (
+                        <div className="text-sm text-gray-700">• Vị trí: {renderViTriText(sp.viTri, sp.viTriText)}</div>
                       )}
                       {sp.mau && <div className="text-sm text-gray-700">• Màu: {sp.mau}</div>}
                       {sp.ghiChu && <div className="text-sm text-gray-700">• {sp.ghiChu}</div>}
@@ -495,9 +496,9 @@ const DonHangDetailPanel = (props) => {
                       <div className="font-semibold text-gray-800 text-sm">
                         {sp.sanPham?.tenSanPham || `Sản phẩm ${spIdx + 1}`}
                       </div>
-                      {(sp.viTri?.length > 0 || sp.mau) && (
+                      {(sp.viTri?.length > 0 || sp.viTriText || sp.mau) && (
                         <div className="text-sm text-gray-600 mt-0.5">
-                          {sp.viTri?.length > 0 && <><span className="font-medium text-black">{sp.soLuong}</span> răng: <span className="font-medium text-black">{renderViTriText(sp.viTri)}</span></>}
+                          {(sp.viTri?.length > 0 || sp.viTriText) && <><span className="font-medium text-black">{sp.soLuong}</span>{sp.viTri?.length > 0 ? " răng" : ""}: <span className="font-medium text-black">{renderViTriText(sp.viTri, sp.viTriText)}</span></>}
                           {sp.mau && <span className="ml-1">– Màu răng: <span className="font-medium text-black">{sp.mau}</span></span>}
                         </div>
                       )}

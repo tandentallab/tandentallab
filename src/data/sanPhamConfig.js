@@ -1,7 +1,7 @@
 // File: src/data/sanPhamConfig.js
 
 export const LOAI_TINH_OPTIONS = [
-    "Răng", "Răng (không đếm)", "Bán hàm", "Hàm trên dưới", "Hàm trên", "Hàm dưới", "Khác"
+    "Khác", "Răng", "Răng (không đếm)", "Bán hàm", "Hàm"
 ];
 
 export const LOAI_SAN_PHAM_OPTIONS = [

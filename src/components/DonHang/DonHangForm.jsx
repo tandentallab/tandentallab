@@ -11,6 +11,7 @@ import CustomDateRangePicker from "../common/CustomDateRangePicker";
 import { createDonHang, updateDonHang } from "../../redux/slices/donHangSlice";
 import DanhSachPhuKien from "./DanhSachPhuKien";
 import ChonViTriRangModal from "./ChonViTriRangModal";
+import ChonViTriHamModal from "./ChonViTriHamModal";
 import SanPhamModal from "../SanPham/SanPhamModal";
 import ChonDonHangCuModal from "./ChonDonHangCuModal";
 import DonHangDetailPanel from "./DonHangDetailPanel";
@@ -209,6 +210,9 @@ const DonHangForm = () => {
   const [isViTriModalOpen, setIsViTriModalOpen] = useState(false);
   const [editingSpIndex, setEditingSpIndex] = useState(null);
   const [isSanPhamModalOpen, setIsSanPhamModalOpen] = useState(false);
+  const [sanPhamModalIndex, setSanPhamModalIndex] = useState(null);
+  const [quickAddSanPhamName, setQuickAddSanPhamName] = useState("");
+  const [viTriHamModal, setViTriHamModal] = useState({ open: false, index: null });
   const [donHangGocView, setDonHangGocView] = useState(null); // { _id } để xem detail panel đơn gốc
 
   // <-- THÊM MỚI: State quản lý Modal Chọn Đơn Cũ
@@ -251,6 +255,7 @@ const DonHangForm = () => {
         loaiDon: "Mới",
         sanPham: "",
         viTri: [],
+        viTriText: "",
         soLuong: 1,
         mau: "",
         ghiChu: "",
@@ -347,6 +352,7 @@ const DonHangForm = () => {
               sanPham: sp.sanPham?._id || sp.sanPham || "",
               donHangCu: sp.donHangCu?._id || sp.donHangCu || null,
               yeuCauThu: sp.yeuCauThu || [],
+              viTriText: sp.viTriText || "",
             })),
           });
         })
@@ -454,6 +460,16 @@ const DonHangForm = () => {
     // FIX: Clone object con để tránh mutate state trực tiếp
     newDsSp[index] = { ...newDsSp[index], [field]: value };
 
+    // Khi đổi sản phẩm → reset các trường phụ thuộc
+    if (field === "sanPham") {
+      newDsSp[index].viTri = [];
+      newDsSp[index].viTriText = "";
+      newDsSp[index].soLuong = 1;
+      newDsSp[index].mau = "";
+      newDsSp[index].ghiChu = "";
+      newDsSp[index].yeuCauThu = [];
+    }
+
     // Nếu đổi loại đơn sang Sửa/Bảo hành/Làm lại
     if (field === "loaiDon" && ["Hàng sửa", "Hàng làm lại", "Hàng bảo hành"].includes(value)) {
       if (!formData.benhNhan) {
@@ -493,6 +509,7 @@ const DonHangForm = () => {
       donHangCu: oldOrder._id,             // Map ID đơn hàng gốc cho TẤT CẢ
       sanPham: sp.sanPham?._id || sp.sanPham || "",
       viTri: sp.viTri || [],
+      viTriText: sp.viTriText || "",
       soLuong: sp.soLuong || 1,
       mau: sp.mau || "",
       ghiChu: sp.ghiChu || "",
@@ -548,16 +565,18 @@ const DonHangForm = () => {
 
   const handleSaveViTri = (dataViTri) => {
     markDirty();
-    let totalTeeth = 0;
-    dataViTri.forEach((item) => {
-      totalTeeth += item.soRang.length;
-    });
-    if (totalTeeth > 32) totalTeeth = 32;
-    if (totalTeeth === 0) totalTeeth = 1;
-
     const newDsSp = [...formData.danhSachSanPham];
-    newDsSp[editingSpIndex].viTri = dataViTri;
-    newDsSp[editingSpIndex].soLuong = totalTeeth;
+    newDsSp[editingSpIndex] = { ...newDsSp[editingSpIndex], viTri: dataViTri };
+
+    const loaiTinh = getLoaiTinh(newDsSp[editingSpIndex].sanPham);
+    if (loaiTinh !== "Răng (không đếm)") {
+      let totalTeeth = 0;
+      dataViTri.forEach((item) => { totalTeeth += item.soRang.length; });
+      if (totalTeeth > 32) totalTeeth = 32;
+      if (totalTeeth === 0) totalTeeth = 1;
+      newDsSp[editingSpIndex].soLuong = totalTeeth;
+    }
+
     setFormData({ ...formData, danhSachSanPham: newDsSp });
     setIsViTriModalOpen(false);
   };
@@ -650,9 +669,15 @@ const DonHangForm = () => {
   const handleSaveRef = useRef(null);
   handleSaveRef.current = handleSave;
 
+  const getLoaiTinh = (sanPhamId) => {
+    if (!sanPhamId) return null;
+    const sp = sanPhamList.find((s) => s._id === sanPhamId);
+    return sp?.loaiTinh || null;
+  };
 
-
-  const renderViTriText = (viTriArr) => {
+  const renderViTriText = (spRow) => {
+    if (spRow?.viTriText) return spRow.viTriText;
+    const viTriArr = spRow?.viTri;
     if (!viTriArr || viTriArr.length === 0) return "";
     return viTriArr
       .map((v) =>
@@ -910,23 +935,56 @@ const DonHangForm = () => {
                               handleSanPhamChange(index, "sanPham", val)
                             }
                             showAddNew={true}
-                            onAddNew={() => setIsSanPhamModalOpen(true)}
+                            onAddNew={(term) => {
+                              setSanPhamModalIndex(index);
+                              setQuickAddSanPhamName(term || "");
+                              setIsSanPhamModalOpen(true);
+                            }}
                           />
                         </td>
                         <td className="p-2">
-                          <div
-                            onClick={() => {
-                              setEditingSpIndex(index);
-                              setIsViTriModalOpen(true);
-                            }}
-                            className="w-full border-b border-blue-200 p-1 bg-transparent cursor-pointer text-blue-600 hover:text-blue-800 min-h-[30px] flex items-center"
-                          >
-                            {renderViTriText(sp.viTri) || (
-                              <span className="text-blue-400 italic font-medium">
-                                Chọn răng...
-                              </span>
-                            )}
-                          </div>
+                          {(() => {
+                            const loaiTinh = getLoaiTinh(sp.sanPham);
+                            if (loaiTinh === "Bán hàm" || loaiTinh === "Hàm") {
+                              return (
+                                <div
+                                  onClick={() => setViTriHamModal({ open: true, index })}
+                                  className="w-full border-b border-blue-200 p-1 bg-transparent cursor-pointer text-blue-600 hover:text-blue-800 min-h-[30px] flex items-center"
+                                >
+                                  {sp.viTriText || (
+                                    <span className="text-blue-400 italic font-medium">Chọn vị trí...</span>
+                                  )}
+                                </div>
+                              );
+                            }
+                            if (loaiTinh === "Khác") {
+                              return (
+                                <input
+                                  type="text"
+                                  value={sp.viTriText || ""}
+                                  onChange={(e) => handleSanPhamChange(index, "viTriText", e.target.value)}
+                                  placeholder="Nhập vị trí..."
+                                  className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-sm"
+                                />
+                              );
+                            }
+                            // "Răng", "Răng (không đếm)", or null → open modal
+                            return (
+                              <div
+                                onClick={() => {
+                                  setEditingSpIndex(index);
+                                  setIsViTriModalOpen(true);
+                                }}
+                                className="w-full border-b border-blue-200 p-1 bg-transparent cursor-pointer text-blue-600 hover:text-blue-800 min-h-[30px] flex items-center"
+                              >
+                                {renderViTriText(sp) || (
+                                  <span className="text-blue-400 italic font-medium">
+                                    Chọn răng...
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="p-2">
                           <input
@@ -1011,6 +1069,7 @@ const DonHangForm = () => {
                                 loaiDon: "Mới",
                                 sanPham: "",
                                 viTri: [],
+                                viTriText: "",
                                 soLuong: 1,
                                 mau: "",
                                 ghiChu: "",
@@ -1172,9 +1231,21 @@ const DonHangForm = () => {
         {isSanPhamModalOpen && (
           <SanPhamModal
             open={isSanPhamModalOpen}
+            initialName={quickAddSanPhamName}
+            onCreated={(newProduct) => {
+              const newItem = { ...newProduct, nameDisplay: newProduct.tenSanPham };
+              setSanPhamList((prev) => [...prev, newItem]);
+              if (sanPhamModalIndex !== null) {
+                handleSanPhamChange(sanPhamModalIndex, "sanPham", newProduct._id);
+              }
+              setIsSanPhamModalOpen(false);
+              setQuickAddSanPhamName("");
+              setSanPhamModalIndex(null);
+            }}
             handleClose={() => {
               setIsSanPhamModalOpen(false);
-              fetchSanPhamData();
+              setQuickAddSanPhamName("");
+              setSanPhamModalIndex(null);
             }}
           />
         )}
@@ -1192,6 +1263,26 @@ const DonHangForm = () => {
             benhNhanList.find((b) => b._id === formData.benhNhan)?.nameDisplay
           }
           loaiDon={modalDonHangCuInfo.loaiDon}
+        />
+
+        <ChonViTriHamModal
+          open={viTriHamModal.open}
+          onClose={() => setViTriHamModal({ open: false, index: null })}
+          loaiTinh={viTriHamModal.index !== null ? getLoaiTinh(formData.danhSachSanPham[viTriHamModal.index]?.sanPham) : ""}
+          initialValue={viTriHamModal.index !== null ? (formData.danhSachSanPham[viTriHamModal.index]?.viTriText || "") : ""}
+          onSave={(val) => {
+            if (viTriHamModal.index !== null) {
+              markDirty();
+              const loaiTinh = getLoaiTinh(formData.danhSachSanPham[viTriHamModal.index]?.sanPham);
+              const newDsSp = [...formData.danhSachSanPham];
+              newDsSp[viTriHamModal.index] = { ...newDsSp[viTriHamModal.index], viTriText: val };
+              if (loaiTinh === "Bán hàm") {
+                const count = val ? val.split(", ").filter(Boolean).length : 0;
+                newDsSp[viTriHamModal.index].soLuong = count || 1;
+              }
+              setFormData({ ...formData, danhSachSanPham: newDsSp });
+            }
+          }}
         />
       </>
 

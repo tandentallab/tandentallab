@@ -33,7 +33,8 @@ const getFirstName = (fullName) => {
   return parts[parts.length - 1];
 };
 
-const renderViTriText = (viTriArr) => {
+const renderViTriText = (viTriArr, viTriText) => {
+  if (viTriText) return viTriText;
   if (!viTriArr || viTriArr.length === 0) return "-";
   return viTriArr
     .map((v) => v.kieu === "Rời" ? v.soRang.join(", ") : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`)
@@ -63,7 +64,7 @@ const RowComponent = React.memo(({ row, isSelected, cellStyles, onToggle, onNavi
     <TableCell sx={cellStyles.bacSi}>{getFirstName(row.bacSi)}</TableCell>
     <TableCell sx={cellStyles.benhNhan}>{row.benhNhan || "-"}</TableCell>
     <TableCell sx={cellStyles.sanPham_bold}>{row.sanPham}</TableCell>
-    <TableCell sx={cellStyles.viTri_mono}>{renderViTriText(row.viTri)}</TableCell>
+    <TableCell sx={cellStyles.viTri_mono}>{renderViTriText(row.viTri, row.viTriText)}</TableCell>
     <TableCell sx={cellStyles.loai}>{row.loai}</TableCell>
     <TableCell sx={cellStyles.soLuong_bold}>{row.soLuong}</TableCell>
     <TableCell sx={cellStyles.donGia}>{fmtVND(row.donGia)}</TableCell>

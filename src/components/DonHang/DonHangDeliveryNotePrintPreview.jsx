@@ -89,7 +89,7 @@ const DonHangDeliveryNotePrintPreview = () => {
       const ten = sp.sanPham?.tenSanPham || "";
 
       // 4. Vị trí răng (thêm chữ R vào trước)
-      const viTriText = buildTeethTextWithR(sp.viTri || sp.viTriRang);
+      const viTriText = sp.viTriText || buildTeethTextWithR(sp.viTri || sp.viTriRang);
 
       // 5. Màu sắc (đặt trong dấu ngoặc tròn)
       const mau = sp.mau ? `(${sp.mau})` : "";

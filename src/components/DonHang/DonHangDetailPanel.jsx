@@ -282,7 +282,13 @@ const DonHangDetailPanel = (props) => {
         customEndDate: isExactYears ? "" : actualEndStr,
       };
     });
-    setWarrantyEditForm({ ghiChu: warranty.ghiChu || "", danhSachBaoHanh: enriched });
+    setWarrantyEditForm({
+      ghiChu: warranty.ghiChu || "",
+      nhakhoabh: warranty.nhakhoabh || warranty.nhaKhoa?.tenGiaoDich || warranty.nhaKhoa?.hoVaTen || donHang?.nhaKhoa?.tenGiaoDich || donHang?.nhaKhoa?.hoVaTen || "",
+      bacsibh: warranty.bacsibh || warranty.bacSi?.hoVaTen || donHang?.bacSi?.hoVaTen || "",
+      benhnhanbh: warranty.benhnhanbh || warranty.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen || "",
+      danhSachBaoHanh: enriched
+    });
     setOpenWarrantyDialog(true);
   };
 
@@ -294,6 +300,9 @@ const DonHangDetailPanel = (props) => {
       );
       const res = await api.put(`/phieu-bao-hanh/${warranty._id}`, {
         ghiChu: warrantyEditForm.ghiChu,
+        nhakhoabh: warrantyEditForm.nhakhoabh,
+        bacsibh: warrantyEditForm.bacsibh,
+        benhnhanbh: warrantyEditForm.benhnhanbh,
         danhSachBaoHanh: cleanedDanhSach,
       });
       if (res.data?.success) {
@@ -825,6 +834,9 @@ const DonHangDetailPanel = (props) => {
               });
               setWarrantyEditForm({
                 ghiChu: newWarranty.ghiChu || "",
+                nhakhoabh: newWarranty.nhakhoabh || newWarranty.nhaKhoa?.tenGiaoDich || newWarranty.nhaKhoa?.hoVaTen || donHang?.nhaKhoa?.tenGiaoDich || donHang?.nhaKhoa?.hoVaTen || "",
+                bacsibh: newWarranty.bacsibh || newWarranty.bacSi?.hoVaTen || donHang?.bacSi?.hoVaTen || "",
+                benhnhanbh: newWarranty.benhnhanbh || newWarranty.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen || "",
                 danhSachBaoHanh: enriched,
               });
               setOpenWarrantyDialog(true);
@@ -869,8 +881,32 @@ const DonHangDetailPanel = (props) => {
                 <div className="text-sm space-y-1">
                   <div><span className="font-bold text-blue-900">Mã BH:</span> <span className="font-semibold">{warranty.maBaoHanh}</span></div>
                   <div><span className="font-bold text-blue-900">Đơn hàng:</span> <span className="font-semibold">{warranty.donHang?.maDonHang || donHang?.maDonHang}</span></div>
-                  <div><span className="font-bold text-blue-900">Bệnh nhân:</span> <span className="font-semibold text-blue-700">{warranty.benhNhan?.hoVaTen || donHang?.benhNhan?.hoVaTen}</span></div>
                 </div>
+              </div>
+
+              {/* Chỉnh sửa thông tin Nha khoa, Bác sĩ, Bệnh nhân */}
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <TextField
+                  label="Tên nha khoa trên thẻ"
+                  value={warrantyEditForm.nhakhoabh || ""}
+                  onChange={(e) => setWarrantyEditForm({ ...warrantyEditForm, nhakhoabh: e.target.value })}
+                  fullWidth
+                  size="small"
+                />
+                <TextField
+                  label="Bác sĩ"
+                  value={warrantyEditForm.bacsibh || ""}
+                  onChange={(e) => setWarrantyEditForm({ ...warrantyEditForm, bacsibh: e.target.value })}
+                  fullWidth
+                  size="small"
+                />
+                <TextField
+                  label="Tên bệnh nhân trên thẻ"
+                  value={warrantyEditForm.benhnhanbh || ""}
+                  onChange={(e) => setWarrantyEditForm({ ...warrantyEditForm, benhnhanbh: e.target.value })}
+                  fullWidth
+                  size="small"
+                />
               </div>
 
               <h3 className="font-semibold text-gray-700 mb-3">Danh sách sản phẩm &amp; bảo hành:</h3>

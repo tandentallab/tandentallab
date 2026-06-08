@@ -162,6 +162,9 @@ const PhieuBaoHanhPage = () => {
 
     setEditForm({
       ghiChu: phieu.ghiChu || "",
+      nhakhoabh: phieu.nhakhoabh || phieu.nhaKhoa?.tenGiaoDich || phieu.nhaKhoa?.hoVaTen || "",
+      bacsibh: phieu.bacsibh || phieu.bacSi?.hoVaTen || "",
+      benhnhanbh: phieu.benhnhanbh || phieu.benhNhan?.hoVaTen || "",
       danhSachBaoHanh: enrichedList,
     });
     setIsEditModalOpen(true);
@@ -317,6 +320,9 @@ const PhieuBaoHanhPage = () => {
 
       const res = await api.put(`/phieu-bao-hanh/${editingPhieu._id}`, {
         ghiChu: editForm.ghiChu,
+        nhakhoabh: editForm.nhakhoabh,
+        bacsibh: editForm.bacsibh,
+        benhnhanbh: editForm.benhnhanbh,
         danhSachBaoHanh: cleanedDanhSach,
       });
       if (res.data?.success) {
@@ -1006,6 +1012,52 @@ const PhieuBaoHanhPage = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Chỉnh sửa thông tin Nha khoa, Bác sĩ, Bệnh nhân */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
+                    Tên nha khoa trên thẻ:
+                  </label>
+                  <TextField
+                    value={editForm.nhakhoabh || ""}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, nhakhoabh: e.target.value })
+                    }
+                    fullWidth
+                    size="small"
+                    InputProps={{ className: "rounded-lg text-sm bg-white" }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
+                    Bác sĩ:
+                  </label>
+                  <TextField
+                    value={editForm.bacsibh || ""}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, bacsibh: e.target.value })
+                    }
+                    fullWidth
+                    size="small"
+                    InputProps={{ className: "rounded-lg text-sm bg-white" }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
+                    Tên bệnh nhân trên thẻ:
+                  </label>
+                  <TextField
+                    value={editForm.benhnhanbh || ""}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, benhnhanbh: e.target.value })
+                    }
+                    fullWidth
+                    size="small"
+                    InputProps={{ className: "rounded-lg text-sm bg-white" }}
+                  />
                 </div>
               </div>
 

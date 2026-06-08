@@ -33,6 +33,9 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
   const [generatedQR, setGeneratedQR] = useState("");
   const [productWarrantyConfigs, setProductWarrantyConfigs] = useState({});
   const [ghiChu, setGhiChu] = useState("");
+  const [nhakhoabh, setNhakhoabh] = useState("");
+  const [bacsibh, setBacsibh] = useState("");
+  const [benhnhanbh, setBenhnhanbh] = useState("");
   const [mauTheList, setMauTheList] = useState([]);
   const [selectedMauTheId, setSelectedMauTheId] = useState("");
   const [mapGia, setMapGia] = useState({});
@@ -88,6 +91,9 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
         setGeneratedQR(generateQRCode());
         setProductWarrantyConfigs({});
         setGhiChu("");
+        setNhakhoabh(data?.nhaKhoa?.tenGiaoDich || data?.nhaKhoa?.hoVaTen || "");
+        setBacsibh(data?.bacSi?.hoVaTen || "");
+        setBenhnhanbh(data?.benhNhan?.hoVaTen || "");
       } catch (error) {
         toast.error("Lỗi khi tải thông tin đơn hàng");
       }
@@ -199,6 +205,9 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
         danhSachBaoHanh,
         mauTheId: selectedMauTheId,
         ghiChu,
+        nhakhoabh,
+        bacsibh,
+        benhnhanbh,
       };
 
       const res = await api.post("/phieu-bao-hanh", payload);
@@ -351,22 +360,22 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, onSuccess }) => {
         <div className="grid grid-cols-3 gap-4">
           <TextField
             label="Tên nha khoa trên thẻ"
-            disabled
-            value={fullDonHang?.nhaKhoa?.tenGiaoDich || fullDonHang?.nhaKhoa?.hoVaTen || "---"}
+            value={nhakhoabh}
+            onChange={(e) => setNhakhoabh(e.target.value)}
             fullWidth
             size="small"
           />
           <TextField
             label="Bác sĩ"
-            disabled
-            value={fullDonHang?.bacSi?.hoVaTen || "---"}
+            value={bacsibh}
+            onChange={(e) => setBacsibh(e.target.value)}
             fullWidth
             size="small"
           />
           <TextField
             label="Tên bệnh nhân trên thẻ"
-            disabled
-            value={fullDonHang?.benhNhan?.hoVaTen || "---"}
+            value={benhnhanbh}
+            onChange={(e) => setBenhnhanbh(e.target.value)}
             fullWidth
             size="small"
           />

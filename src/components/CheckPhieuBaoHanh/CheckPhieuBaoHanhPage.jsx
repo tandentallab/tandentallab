@@ -191,16 +191,25 @@ const CheckPhieuBaoHanhPage = () => {
                 <div className="wc-section">
                   <div className="wc-row">
                     <span className="wc-label">👤 Khách hàng</span>
-                    <span className="wc-value">{warranty.benhNhan?.ten || 'Không rõ'}</span>
+                    <span className="wc-value">{warranty.benhnhanbh || warranty.benhNhan?.ten || 'Không rõ'}</span>
                   </div>
                 </div>
 
                 <div className="wc-section">
                   <div className="wc-row">
                     <span className="wc-label">🏥 Nha khoa</span>
-                    <span className="wc-value">{warranty.nhaKhoa?.ten || 'Không rõ'}</span>
+                    <span className="wc-value">{warranty.nhakhoabh || warranty.nhaKhoa?.ten || 'Không rõ'}</span>
                   </div>
                 </div>
+
+                {(warranty.bacsibh || warranty.bacSi?.ten) && (
+                  <div className="wc-section">
+                    <div className="wc-row">
+                      <span className="wc-label">🩺 Bác sĩ</span>
+                      <span className="wc-value">{warranty.bacsibh || warranty.bacSi?.ten || 'Không rõ'}</span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="wc-section-title">
                   ✨ DANH SÁCH SẢN PHẨM BẢO HÀNH

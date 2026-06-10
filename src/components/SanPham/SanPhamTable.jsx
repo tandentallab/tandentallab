@@ -146,7 +146,7 @@ export default function SanPhamTable() {
         </div>
 
         <div className="flex justify-end gap-2 w-full md:w-auto mt-2 md:mt-0">
-          <Tooltip title="Thêm nha khoa">
+          <Tooltip title="Thêm sản phẩm">
             <IconButton
               onClick={handleAdd}
               className="bg-green-500 text-white hover:bg-green-600"

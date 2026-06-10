@@ -21,7 +21,8 @@ const vndFormatter = new Intl.NumberFormat("vi-VN");
 const fmtVND = (v) => vndFormatter.format(Math.round(v || 0));
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }) : "-";
 const getFirstName = (fullName) => { if (!fullName) return ""; return fullName.trim().split(" ").pop(); };
-const renderViTriText = (viTriArr) => {
+const renderViTriText = (viTriArr, viTriText) => {
+  if (viTriText) return viTriText;
   if (!viTriArr || viTriArr.length === 0) return "-";
   return viTriArr.map((v) => v.kieu === "Rời" ? v.soRang.join(", ") : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`).join("; ");
 };
@@ -46,7 +47,7 @@ const RowComponent = React.memo(({ row, isSelected, cellStyles, onToggle }) => (
     <TableCell sx={cellStyles.bacSi}>{getFirstName(row.bacSi)}</TableCell>
     <TableCell sx={cellStyles.benhNhan}>{row.benhNhan || "-"}</TableCell>
     <TableCell sx={cellStyles.sanPham_bold}>{row.sanPham}</TableCell>
-    <TableCell sx={cellStyles.viTri_mono}>{renderViTriText(row.viTri)}</TableCell>
+    <TableCell sx={cellStyles.viTri_mono}>{renderViTriText(row.viTri, row.viTriText)}</TableCell>
     <TableCell sx={cellStyles.loai}>{row.loai}</TableCell>
     <TableCell sx={cellStyles.soLuong_bold}>{row.soLuong}</TableCell>
     <TableCell sx={cellStyles.donGia}>{fmtVND(row.donGia)}</TableCell>

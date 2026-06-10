@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { tinhLuong } from "../../utils/tinhLuong";
 import { useNavigate } from "react-router-dom";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { Tooltip } from "@mui/material";
 
 const inputClass =
   "text-center text-sm rounded-md border border-transparent bg-slate-50 hover:border-slate-300 focus:border-blue-400 focus:bg-white focus:outline-none transition-all";
@@ -49,7 +51,7 @@ const VndInput = ({ value, onChange }) => {
   );
 };
 
-const BangLuongRow = ({ item, onChange, isEven, onRowClick }) => {
+const BangLuongRow = ({ item, onChange, isEven, onRowClick, onDelete }) => {
   const { luongNgay, thanhTienCong, tongPhuCap, thucNhan } = tinhLuong({
     luongCoBan: item.luongCanBan,
     ngayCongThang: item.ngayCongThang,
@@ -213,6 +215,24 @@ const BangLuongRow = ({ item, onChange, isEven, onRowClick }) => {
         style={{ borderBottom: "1px solid #f1f5f9", color: "#059669" }}
       >
         {fmt(thucNhan)}
+      </td>
+
+      {/* Xóa */}
+      <td
+        className="px-4 py-2 text-center whitespace-nowrap"
+        style={{ borderBottom: "1px solid #f1f5f9" }}
+      >
+        <Tooltip title="Xóa dòng lương này">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete && onDelete(item);
+            }}
+            className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <DeleteIcon sx={{ fontSize: 17 }} />
+          </button>
+        </Tooltip>
       </td>
     </tr>
   );

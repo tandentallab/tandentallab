@@ -57,6 +57,7 @@ const COLUMNS = [
   "Ứng trước",
   "Tổng phụ cấp",
   "Thực nhận",
+  "",
 ];
 
 const BangLuongPage = () => {
@@ -168,6 +169,35 @@ const BangLuongPage = () => {
     try {
       await dispatch(deleteBangLuongByMonthYear({ thang, nam })).unwrap();
       setSalaryData([]);
+      dispatch(fetchBangLuong({ thang, nam }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteRow = async (item) => {
+    if (
+      !window.confirm(
+        `Reset bảng lương của ${item.hoVaTen} về 0 cho tháng ${thang}/${nam}?`
+      )
+    )
+      return;
+    try {
+      // Reset toàn bộ các trường nhập về 0, lưu lên server (nhân viên vẫn còn trong bảng)
+      await dispatch(
+        createBangLuong({
+          thang,
+          nam,
+          nhanVien: item._id,
+          soNgayCong: 0,
+          phuCapCom: 0,
+          phuCapDienThoai: 0,
+          thuong: 0,
+          phat: 0,
+          ungTruoc: 0,
+          ghiChu: "",
+        })
+      ).unwrap();
       dispatch(fetchBangLuong({ thang, nam }));
     } catch (err) {
       console.error(err);
@@ -740,20 +770,26 @@ const BangLuongPage = () => {
             {/* Save */}
             <button
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || !isDirty}
               className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all w-full sm:w-auto"
               style={{
-                background: isSaving ? "#1e40af" : "#2563eb",
-                color: "#fff",
+                background: isSaving
+                  ? "#1e40af"
+                  : !isDirty
+                  ? "#334155"
+                  : "#2563eb",
+                color: !isDirty ? "#64748b" : "#fff",
                 border: "none",
-                cursor: isSaving ? "not-allowed" : "pointer",
-                opacity: isSaving ? 0.75 : 1,
+                cursor: isSaving || !isDirty ? "not-allowed" : "pointer",
+                opacity: isSaving ? 0.75 : !isDirty ? 0.5 : 1,
               }}
               onMouseEnter={(e) => {
-                if (!isSaving) e.currentTarget.style.background = "#1d4ed8";
+                if (!isSaving && isDirty)
+                  e.currentTarget.style.background = "#1d4ed8";
               }}
               onMouseLeave={(e) => {
-                if (!isSaving) e.currentTarget.style.background = "#2563eb";
+                if (!isSaving && isDirty)
+                  e.currentTarget.style.background = "#2563eb";
               }}
             >
               {isSaving ? (
@@ -1168,6 +1204,7 @@ const BangLuongPage = () => {
                     onChange={handleChange}
                     isEven={idx % 2 === 0}
                     onRowClick={() => setSelectedEmployee(item)}
+                    onDelete={handleDeleteRow}
                   />
                 ))}
               </tbody>
@@ -1177,73 +1214,6 @@ const BangLuongPage = () => {
 
         {/* ── EMPLOYEE DETAIL DRAWER (portal) ── */}
         {drawerPortal}
-
-        {/* ── CHART ── */}
-        <div className="rounded-xl shadow p-5" style={{ background: "#fff" }}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-700">
-                Biểu đồ lương nhân viên
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Lương thực nhận — Tháng {thang}/{nam}
-              </p>
-            </div>
-            <span
-              className="text-xs font-bold px-3 py-1 rounded-full"
-              style={{
-                background: "linear-gradient(90deg,#0f172a,#1e3a5f)",
-                color: "#93c5fd",
-              }}
-            >
-              Tổng:{" "}
-              {(Math.round(tongLuong / 1000) * 1000).toLocaleString("vi-VN")}
-            </span>
-          </div>
-
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={chartData} barCategoryGap={25}>
-              <CartesianGrid
-                strokeDasharray="4 4"
-                vertical={false}
-                stroke="#f1f5f9"
-              />
-              <XAxis
-                dataKey="name"
-                angle={-8}
-                textAnchor="end"
-                height={64}
-                tick={{ fill: "#64748b", fontSize: 12, fontWeight: 600 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tickFormatter={(v) => `${(v / 1_000_000).toFixed(1)}tr`}
-                tick={{ fill: "#94a3b8", fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: 10,
-                  border: "none",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                  fontSize: 13,
-                }}
-                formatter={(v) => [
-                  `${(Math.round(v / 1000) * 1000).toLocaleString("vi-VN")}`,
-                  "Thực nhận",
-                ]}
-              />
-              <Bar
-                dataKey="luong"
-                radius={[8, 8, 0, 0]}
-                barSize={26}
-                fill="#3b82f6"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
       </div>
 
       {/* UNSAVED CHANGES WARNING (portal) */}

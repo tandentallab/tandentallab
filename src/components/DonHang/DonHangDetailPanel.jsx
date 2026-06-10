@@ -299,14 +299,14 @@ const DonHangDetailPanel = (props) => {
       {/* Backdrop */}
       <div
         className={`fixed left-0 right-0 bottom-0 bg-black/20 transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        style={{ zIndex: props.fullscreen ? 2998 : (isVerySmall ? 1499 : 1298), top: `${panelTop}px` }}
+        style={{ zIndex: props.fullscreen ? 2998 : (isVerySmall ? 1249 : 1199), top: `${panelTop}px` }}
         onClick={onClose}
       />
 
       {/* Slide-out panel */}
       <div
         className={`fixed right-0 flex flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
-        style={{ zIndex: props.fullscreen ? 2999 : (isVerySmall ? 1500 : 1300), top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight, paddingBottom: isMobile ? "80px" : "0" }}
+        style={{ zIndex: props.fullscreen ? 2999 : (isVerySmall ? 1250 : 1200), top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight, paddingBottom: isMobile ? "80px" : "0" }}
       >
         {/* Header */}
         <div className="bg-[#4fc3f7] border-b px-4 py-3 flex items-center justify-between shrink-0">
@@ -428,7 +428,6 @@ const DonHangDetailPanel = (props) => {
                   <div className="text-gray-400 text-sm italic">Chưa có sản phẩm</div>
                 )}
 
-                {/* --- KHU VỰC ĐÃ CẬP NHẬT GIAO DIỆN NÚT IN BẢO HÀNH --- */}
                 {(hasWarranty || donHang?.danhSachSanPham?.some((sp) => sp.loaiDon === "Mới")) && (
                   <div className="flex flex-wrap items-center gap-2 mt-3">
                     <button

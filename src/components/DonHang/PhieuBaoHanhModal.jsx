@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, useTheme, useMediaQuery, IconButton } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { api } from "../../config/api";
 import { toast } from "sonner";
 import WarrantyCardPrint from "./WarrantyCardPrint";
@@ -29,6 +30,9 @@ const formatDateVN = (dateValue) => {
 };
 
 const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const [loading, setLoading] = useState(false);
   const [fullDonHang, setFullDonHang] = useState(null);
   const [generatedQR, setGeneratedQR] = useState("");
@@ -370,12 +374,21 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle className="bg-blue-600 text-white font-bold">
-          {warrantyState ? "Cập nhật Phiếu Bảo Hành" : "Thêm phiếu bảo hành"}
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="md"
+        fullWidth
+        fullScreen={isMobile}
+      >
+        <DialogTitle className="bg-blue-600 text-white font-bold flex justify-between items-center">
+          <span>{warrantyState ? "Cập nhật Phiếu Bảo Hành" : "Thêm phiếu bảo hành"}</span>
+          <IconButton onClick={onClose} size="small" sx={{ color: "white" }} className="hover:bg-blue-700">
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
 
-        <DialogContent className="pt-6 flex flex-col gap-4 px-8">
+        <DialogContent className="pt-6 flex flex-col gap-4 px-4 md:px-8">
           {/* 1. Mã bảo hành | Mẫu thẻ ở trên cùng */}
           <div className="grid grid-cols-2 gap-4 mt-6">
             <div>
@@ -407,7 +420,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
           </div>
 
           {/* 2. Nha khoa, Bác sĩ, Bệnh nhân */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <TextField
               label="Tên nha khoa trên thẻ"
               value={nhakhoabh}
@@ -570,7 +583,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
               disabled={loading}
               style={{ marginRight: "auto" }}
             >
-              Đồng bộ từ đơn hàng
+              Cập nhật
             </Button>
           )}
           <Button onClick={onClose}>Hủy</Button>
@@ -580,7 +593,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
               variant="contained"
               color="success"
             >
-              In thẻ BH
+              In
             </Button>
           )}
           <Button

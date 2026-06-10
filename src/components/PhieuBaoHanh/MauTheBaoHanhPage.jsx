@@ -311,7 +311,7 @@ const MauTheBaoHanhPage = () => {
   return (
     <div className="p-4 bg-gray-100">
       {/* TOOLBAR SECTION */}
-      <div className="mb-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-end">
+      <div className="mb-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-row gap-3 items-center justify-between">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 max-w-md">
           <TextField
             placeholder="Tìm kiếm mẫu thẻ theo tên hoặc mô tả..."
@@ -331,33 +331,35 @@ const MauTheBaoHanhPage = () => {
           />
         </div>
 
-        <IconButton
-          onClick={loadMauTheList}
-          disabled={loading}
-          title="Làm mới"
-          className="text-slate-600 hover:bg-slate-100 transition-all shadow-sm shrink-0"
-          sx={{ width: 48, height: 48, borderRadius: "12px" }}
-        >
-          <RefreshIcon />
-        </IconButton>
+        <div className="flex items-center gap-2 shrink-0">
+          <IconButton
+            onClick={loadMauTheList}
+            disabled={loading}
+            title="Làm mới"
+            className="text-slate-600 hover:bg-slate-100 transition-all shadow-sm"
+            sx={{ width: 48, height: 48, borderRadius: "12px" }}
+          >
+            <RefreshIcon />
+          </IconButton>
 
-        <IconButton
-          onClick={handleOpenCreate}
-          title="Tạo mẫu mới"
-          className="bg-sky-600 text-white hover:bg-sky-700 transition-all shadow-md"
-          sx={{
-            width: 48,
-            height: 48,
-            borderRadius: "12px",
-            backgroundColor: "#0284c7",
-            color: "#ffffff",
-            "&:hover": {
-              backgroundColor: "#0369a1",
-            }
-          }}
-        >
-          <AddIcon />
-        </IconButton>
+          <IconButton
+            onClick={handleOpenCreate}
+            title="Tạo mẫu mới"
+            className="bg-sky-600 text-white hover:bg-sky-700 transition-all shadow-md"
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: "12px",
+              backgroundColor: "#0284c7",
+              color: "#ffffff",
+              "&:hover": {
+                backgroundColor: "#0369a1",
+              }
+            }}
+          >
+            <AddIcon />
+          </IconButton>
+        </div>
       </div>
 
       {/* DESKTOP: TABLE LAYOUT */}

@@ -146,10 +146,10 @@ const PhieuBaoHanhPage = () => {
 
   return (
     <div className="p-4 bg-gray-100">
-      {/* Filters & Search Bar */}
-      <div className="mb-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center">
-        <div className="flex items-center gap-3 w-full flex-1">
-          <div className="flex gap-4 w-full md:w-auto shrink-0 items-start">
+      <div className="mb-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-4">
+        {/* Hàng trên: Chọn ngày tạo & Tất cả nha khoa */}
+        <div className="flex flex-col sm:flex-row gap-4 w-full">
+          <div className="w-full sm:w-auto">
             <ExportDateSelector
               placeholder="Chọn ngày tạo"
               value={dateFilter}
@@ -158,29 +158,33 @@ const PhieuBaoHanhPage = () => {
                 setPage(0);
               }}
             />
-            <TextField
-              select
-              size="small"
-              value={nhaKhoaFilter}
-              onChange={(e) => {
-                setNhaKhoaFilter(e.target.value);
-                setPage(0);
-              }}
-              className="w-full md:w-48 bg-slate-50/50 rounded-lg"
-              SelectProps={{
-                displayEmpty: true,
-              }}
-            >
-              <MenuItem value="all">
-                <span className="text-slate-500">Tất cả nha khoa</span>
-              </MenuItem>
-              {nhaKhoaOptions.map((nk) => (
-                <MenuItem key={nk._id} value={nk._id}>
-                  {nk.tenNhaKhoa || nk.hoVaTen || "Không tên"}
-                </MenuItem>
-              ))}
-            </TextField>
           </div>
+          <TextField
+            select
+            size="small"
+            value={nhaKhoaFilter}
+            onChange={(e) => {
+              setNhaKhoaFilter(e.target.value);
+              setPage(0);
+            }}
+            className="w-full sm:w-64 bg-slate-50/50 rounded-lg"
+            SelectProps={{
+              displayEmpty: true,
+            }}
+          >
+            <MenuItem value="all">
+              <span className="text-slate-500">Tất cả nha khoa</span>
+            </MenuItem>
+            {nhaKhoaOptions.map((nk) => (
+              <MenuItem key={nk._id} value={nk._id}>
+                {nk.tenNhaKhoa || nk.hoVaTen || "Không tên"}
+              </MenuItem>
+            ))}
+          </TextField>
+        </div>
+
+        {/* Hàng dưới: Thanh tìm kiếm & Nút làm mới */}
+        <div className="flex items-center gap-3 w-full">
           <TextField
             placeholder="Tìm kiếm nhanh theo mã phiếu, mã đơn hàng, tên bệnh nhân..."
             value={searchTerm}

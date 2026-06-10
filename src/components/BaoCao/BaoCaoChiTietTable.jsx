@@ -15,8 +15,8 @@ const BG = {
     product: '#ffffff',   // Cấp 3 — Sản phẩm
     total: '#fef3c7',   // Hàng tổng cộng
 };
-
-const COL = { name: '32%', data: '13.6%' };
+// const COL = { name: '14%', data: '13.6%' };
+const COL = { name: '35%', data: '12%' };
 
 const headSx = (extra = {}) => ({
     bgcolor: '#e0f2fe',
@@ -39,7 +39,12 @@ const GroupRow = ({ group }) => {
                 sx={{ bgcolor: BG.group, cursor: 'pointer', '&:hover': { filter: 'brightness(0.97)' } }}
                 onClick={() => setOpen((v) => !v)}
             >
-                <TableCell sx={{ width: COL.name, pl: 2.5, py: 0.6, fontWeight: 600, fontSize: '12px', color: '#374151' }}>
+                <TableCell sx={{
+                    width: COL.name, pl: 2.5, py: 0.6, fontWeight: 600, fontSize: '12px', color: '#374151',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                }}>
                     <IconButton size="small" sx={{ mr: 0.5, p: 0.2 }} onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}>
                         {open ? <KeyboardArrowUp sx={{ fontSize: 16 }} /> : <KeyboardArrowDown sx={{ fontSize: 16 }} />}
                     </IconButton>
@@ -63,7 +68,19 @@ const GroupRow = ({ group }) => {
                                         key={pIdx}
                                         sx={{ bgcolor: BG.product, '&:hover': { bgcolor: '#f8fafc' } }}
                                     >
-                                        <TableCell sx={{ width: COL.name, pl: 7.5, py: 0.5, fontSize: '11.5px', color: '#475569' }}>
+                                        <TableCell
+                                            sx={{
+                                                width: COL.name,
+                                                pl: 7.5,
+                                                py: 0.5,
+                                                fontSize: '11.5px',
+                                                color: '#475569',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis'
+                                            }}
+                                            title={item.ten}
+                                        >
                                             {item.ten}
                                         </TableCell>
                                         <TableCell align="center" sx={{ width: COL.data, py: 0.5, fontSize: '11.5px' }}>{item.moi}</TableCell>
@@ -161,17 +178,17 @@ const BaoCaoChiTietTable = ({ startDate, endDate, dateType }) => {
                 sx={{ maxHeight: '100vh', overflowY: 'auto', overflowX: 'auto', scrollbarGutter: 'stable' }}
             >
                 {/* 🌟 Responsive: Thêm minWidth: 900 để kích hoạt scroll ngang trên mobile */}
-                <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', minWidth: 900 }}>
+                <Table stickyHeader size="small" sx={{ tableLayout: 'fixed' }}>
 
                     {/* ── HEADER ── */}
                     <TableHead>
                         <TableRow>
                             <TableCell sx={headSx({ width: COL.name, zIndex: 10 })}>SẢN PHẨM</TableCell>
-                            <TableCell align="center" sx={headSx({ width: COL.data })}>MỚI</TableCell>
-                            <TableCell align="center" sx={headSx({ width: COL.data })}>SỬA</TableCell>
-                            <TableCell align="center" sx={headSx({ width: COL.data })}>BẢO HÀNH</TableCell>
-                            <TableCell align="center" sx={headSx({ width: COL.data })}>LÀM LẠI</TableCell>
-                            <TableCell align="center" sx={headSx({ width: COL.data })}>TỔNG CỘNG</TableCell>
+                            <TableCell align="center" sx={headSx({ width: COL.data })}>M</TableCell>
+                            <TableCell align="center" sx={headSx({ width: COL.data })}>S</TableCell>
+                            <TableCell align="center" sx={headSx({ width: COL.data })}>BH</TableCell>
+                            <TableCell align="center" sx={headSx({ width: COL.data })}>LL</TableCell>
+                            <TableCell align="center" sx={headSx({ width: COL.data })}>TC</TableCell>
                         </TableRow>
                     </TableHead>
 

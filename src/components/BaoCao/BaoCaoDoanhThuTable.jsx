@@ -3,10 +3,12 @@ import {
     Box, Paper, Typography,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button,
+    useMediaQuery, useTheme, Divider,
 } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import EditNoteIcon from '@mui/icons-material/EditNote';
 import { useDispatch } from 'react-redux';
 import { upsertGhiChu } from '../../redux/slices/baoCaoSlice';
 
@@ -28,12 +30,14 @@ const SORT_COLS = [
     { label: 'Còn Nợ', key: 'conNo' },
 ];
 
-// ─── Memoized Row ────────────────────────────────────────────────────────────
+// ─── Memoized Desktop Row ────────────────────────────────────────────────────
 const MemoizedTableRow = memo(function MemoizedTableRow({ row, i, rowNote, onOpenNote }) {
     const hasDebt = row.conNo > 0;
+    const isZeroDebt = row.conNo === 0;
+    const rowBg = hasDebt ? '#fff5f5' : isZeroDebt ? '#dcedc8' : (i % 2 === 0 ? '#fff' : '#f8f9fc');
     return (
         <TableRow
-            sx={{ bgcolor: hasDebt ? '#fff8e1' : i % 2 === 0 ? '#fff' : '#f8f9fc', '&:hover': { bgcolor: '#e8eaf6' }, transition: 'background 0.15s' }}
+            sx={{ bgcolor: rowBg, '&:hover': { bgcolor: '#e8eaf6' }, transition: 'background 0.15s' }}
         >
             <TableCell align="center" sx={{ ...cellSx, color: '#9e9e9e', width: 44 }}>{row.stt}</TableCell>
 
@@ -46,10 +50,9 @@ const MemoizedTableRow = memo(function MemoizedTableRow({ row, i, rowNote, onOpe
             <TableCell align="right" sx={{ ...cellSx, minWidth: 110, fontWeight: 600, fontSize: '0.85rem', color: '#6a1b9a' }}>{fmt(row.thanhToan)}</TableCell>
             <TableCell align="right" sx={{ ...cellSx, minWidth: 110, fontWeight: hasDebt ? 800 : 600, fontSize: '0.85rem', color: hasDebt ? '#c62828' : row.conNo < 0 ? '#1565c0' : '#546e7a' }}>{fmtStrict(row.conNo)}</TableCell>
 
-            {/* 🔥 CỘT GHI CHÚ MỚI LÀM LẠI: Click là sửa, không tooltip gì nữa */}
             <TableCell
                 onClick={() => onOpenNote(row)}
-                title={rowNote || 'Nhấn để thêm ghi chú'} // Dùng title gốc của HTML để hiện full chữ khi hover lâu
+                title={rowNote || 'Nhấn để thêm ghi chú'}
                 sx={{ ...cellSx, minWidth: 180, maxWidth: 260, cursor: 'pointer', transition: 'background 0.2s', '&:hover': { bgcolor: '#e3f2fd' } }}
             >
                 <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: rowNote ? '#455a64' : '#b0bec5', fontStyle: rowNote ? 'normal' : 'italic' }}>
@@ -60,9 +63,140 @@ const MemoizedTableRow = memo(function MemoizedTableRow({ row, i, rowNote, onOpe
     );
 });
 
+// ─── Mobile Card Row ─────────────────────────────────────────────────────────
+const MobileCard = memo(function MobileCard({ row, i, rowNote, onOpenNote }) {
+    const hasDebt = row.conNo > 0;
+    const isZeroDebt = row.conNo === 0;
+
+    const borderColor = hasDebt ? '#ffcdd2' : isZeroDebt ? '#81c784' : '#e0e4f0';
+    const bgCard = hasDebt ? '#fff5f5' : isZeroDebt ? '#dcedc8' : '#fff';
+    const bgHeader = hasDebt ? '#fff0f0' : isZeroDebt ? '#c5e1a5' : '#f5f7ff';
+
+    return (
+        <Paper
+            elevation={0}
+            sx={{
+                border: `1px solid ${borderColor}`,
+                borderRadius: 2,
+                overflow: 'hidden',
+                bgcolor: bgCard,
+            }}
+        >
+            {/* Header card: STT + tên */}
+            <Box sx={{
+                px: 1.5, py: 1,
+                bgcolor: bgHeader,
+                borderBottom: `1px solid ${borderColor}`,
+                display: 'flex', alignItems: 'center', gap: 1,
+            }}>
+                <Typography sx={{ fontFamily: FONT, fontSize: '0.7rem', color: '#9e9e9e', minWidth: 20 }}>
+                    {row.stt}
+                </Typography>
+                <Typography sx={{ fontFamily: FONT, fontWeight: 700, fontSize: '0.88rem', color: '#1a237e', flex: 1 }}>
+                    {row.tenNhaKhoa}
+                </Typography>
+            </Box>
+
+            {/* Body: 4 chỉ số dạng 2x2 grid */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+                <StatCell
+                    label="Nợ Đầu Kỳ"
+                    value={fmtStrict(row.noDauKy)}
+                    borderRight
+                    borderBottom
+                />
+                <StatCell
+                    label="Phát Sinh"
+                    value={fmt(row.phatSinh)}
+                    borderBottom
+                />
+                <StatCell
+                    label="Thanh Toán"
+                    value={fmt(row.thanhToan)}
+                    borderRight
+                />
+                <StatCell
+                    label="Còn Nợ"
+                    value={fmtStrict(row.conNo)}
+                    bold={hasDebt}
+                />
+            </Box>
+
+            {/* Footer: ghi chú */}
+            <Box
+                onClick={() => onOpenNote(row)}
+                sx={{
+                    px: 1.5, py: 0.8,
+                    borderTop: `1px solid ${borderColor}`,
+                    display: 'flex', alignItems: 'center', gap: 0.8,
+                    cursor: 'pointer',
+                    bgcolor: bgHeader,
+                    '&:active': { bgcolor: '#e3f2fd' },
+                }}
+            >
+                <EditNoteIcon sx={{ fontSize: '0.95rem', color: '#b0bec5', flexShrink: 0 }} />
+                <Typography sx={{
+                    fontFamily: FONT,
+                    fontSize: '0.78rem',
+                    color: rowNote ? '#455a64' : '#b0bec5',
+                    fontStyle: rowNote ? 'normal' : 'italic',
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                }}>
+                    {rowNote || 'Thêm ghi chú...'}
+                </Typography>
+            </Box>
+        </Paper>
+    );
+});
+
+// ─── StatCell (dùng trong MobileCard) ───────────────────────────────────────
+function StatCell({ label, value, borderRight, borderBottom, bold }) {
+    return (
+        <Box sx={{
+            px: 1.5, py: 0.9,
+            borderRight: borderRight ? '1px solid #e0e0e0' : 'none',
+            borderBottom: borderBottom ? '1px solid #e0e0e0' : 'none',
+        }}>
+            <Typography sx={{ fontFamily: FONT, fontSize: '0.65rem', color: '#9e9e9e', mb: 0.2, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                {label}
+            </Typography>
+            <Typography sx={{ fontFamily: FONT, fontSize: '0.85rem', color: '#212121', fontWeight: bold ? 800 : 600 }}>
+                {value}
+            </Typography>
+        </Box>
+    );
+}
+
+// ─── Mobile Summary Bar ──────────────────────────────────────────────────────
+function MobileSummaryBar({ tongHop, thang, nam, count }) {
+    return (
+        <Paper elevation={0} sx={{ border: '1px solid #c5cae9', borderRadius: 2, overflow: 'hidden', bgcolor: '#e8eaf6' }}>
+            <Box sx={{ px: 1.5, py: 0.8, bgcolor: '#1a237e', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography sx={{ fontFamily: FONT, fontSize: '0.72rem', color: '#c5cae9', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    Tổng Cộng
+                </Typography>
+                <Typography sx={{ fontFamily: FONT, fontSize: '0.68rem', color: '#9fa8da' }}>
+                    {count} nha khoa · T{String(thang).padStart(2, '0')}/{nam}
+                </Typography>
+            </Box>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+                <StatCell label="Nợ Đầu Kỳ" value={fmtStrict(tongHop.noDauKy)} borderRight borderBottom />
+                <StatCell label="Phát Sinh" value={fmtStrict(tongHop.phatSinh)} borderBottom />
+                <StatCell label="Thanh Toán" value={fmtStrict(tongHop.thanhToan)} borderRight />
+                <StatCell label="Còn Nợ" value={fmtStrict(tongHop.conNo)} bold />
+            </Box>
+        </Paper>
+    );
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam }) {
     const dispatch = useDispatch();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const [sortConfig, setSortConfig] = useState({ key: null, dir: null });
     const [noteModal, setNoteModal] = useState(null);
@@ -120,6 +254,50 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam 
 
     if (!data?.chiTiet || !data?.tongHop) return null;
 
+    // ── Mobile View ───────────────────────────────────────────────────────────
+    if (isMobile) {
+        return (
+            <>
+                <Box sx={{
+                    overflowY: 'auto',
+                    overscrollBehavior: 'contain',
+                    WebkitOverflowScrolling: 'touch',
+                    flex: 1,
+                    minHeight: 0,
+                    px: 0.5,
+                }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pb: 3 }}>
+                        {/* Summary đặt trên cùng */}
+                        <MobileSummaryBar tongHop={data.tongHop} thang={thang} nam={nam} count={data.chiTiet.length} />
+
+                        {/* Danh sách card */}
+                        {sortedData.map((row, i) => (
+                            <MobileCard
+                                key={row.nhaKhoaId}
+                                row={row}
+                                i={i}
+                                rowNote={notes[row.nhaKhoaId]}
+                                onOpenNote={handleOpenNote}
+                            />
+                        ))}
+                    </Box>
+                </Box>
+
+                {/* Modal ghi chú — dùng chung */}
+                <NoteDialog
+                    noteModal={noteModal}
+                    noteInput={noteInput}
+                    setNoteInput={setNoteInput}
+                    noteError={noteError}
+                    savingNote={savingNote}
+                    onCancel={handleCancelNote}
+                    onSave={handleSaveNote}
+                />
+            </>
+        );
+    }
+
+    // ── Desktop View ──────────────────────────────────────────────────────────
     return (
         <>
             <Paper elevation={0} sx={{ display: 'flex', flexDirection: 'column', borderRadius: 2, border: '1px solid #e0e4f0', overflow: 'hidden', flex: 1, minHeight: 0 }}>
@@ -148,7 +326,6 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam 
                                         </TableCell>
                                     );
                                 })}
-                                {/* 🔥 THÊM HEADER CHO CỘT GHI CHÚ */}
                                 <TableCell align="left" sx={{ ...headerSx, minWidth: 180 }}>Ghi Chú</TableCell>
                             </TableRow>
                         </TableHead>
@@ -170,7 +347,6 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam 
                                 <TableCell align="right" sx={{ ...totalCellSx, color: "#2e7d32" }}>{fmtStrict(data.tongHop.phatSinh)}</TableCell>
                                 <TableCell align="right" sx={{ ...totalCellSx, color: "#6a1b9a" }}>{fmtStrict(data.tongHop.thanhToan)}</TableCell>
                                 <TableCell align="right" sx={{ ...totalCellSx, color: "#c62828" }}>{fmtStrict(data.tongHop.conNo)}</TableCell>
-                                {/* 🔥 Thêm ô trống cho dòng tổng cộng để cân bảng */}
                                 <TableCell sx={{ ...totalCellSx }}></TableCell>
                             </TableRow>
                         </TableBody>
@@ -184,30 +360,44 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam 
                 </Box>
             </Paper>
 
-            {/* ── Modal ghi chú ── */}
-            <Dialog open={!!noteModal} onClose={handleCancelNote} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2, fontFamily: FONT } }}>
-                <DialogTitle sx={{ fontFamily: FONT, fontWeight: 700, fontSize: '1rem', pb: 1 }}>
-                    📝 Ghi chú — {noteModal?.tenNhaKhoa}
-                </DialogTitle>
-                <DialogContent sx={{ pt: '8px !important' }}>
-                    <TextField
-                        autoFocus multiline minRows={3} maxRows={6} fullWidth
-                        placeholder="Nhập ghi chú..."
-                        value={noteInput}
-                        onChange={e => setNoteInput(e.target.value)}
-                        disabled={savingNote}
-                        size="small"
-                        sx={{ '& .MuiInputBase-root': { fontFamily: FONT, fontSize: '0.85rem' } }}
-                    />
-                    {noteError && <Typography sx={{ color: '#c62828', fontSize: '0.78rem', mt: 0.8, fontFamily: FONT }}>{noteError}</Typography>}
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-                    <Button onClick={handleCancelNote} disabled={savingNote} size="small" sx={{ fontFamily: FONT, color: '#757575', '&:hover': { bgcolor: '#f5f5f5' } }}>Hủy</Button>
-                    <Button onClick={handleSaveNote} variant="contained" size="small" disabled={savingNote} sx={{ fontFamily: FONT, fontWeight: 600, bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' }, borderRadius: 1.5 }}>
-                        {savingNote ? 'Đang lưu...' : 'Lưu'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <NoteDialog
+                noteModal={noteModal}
+                noteInput={noteInput}
+                setNoteInput={setNoteInput}
+                noteError={noteError}
+                savingNote={savingNote}
+                onCancel={handleCancelNote}
+                onSave={handleSaveNote}
+            />
         </>
+    );
+}
+
+// ─── Shared NoteDialog ────────────────────────────────────────────────────────
+function NoteDialog({ noteModal, noteInput, setNoteInput, noteError, savingNote, onCancel, onSave }) {
+    return (
+        <Dialog open={!!noteModal} onClose={onCancel} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2, fontFamily: FONT } }}>
+            <DialogTitle sx={{ fontFamily: FONT, fontWeight: 700, fontSize: '1rem', pb: 1 }}>
+                📝 Ghi chú — {noteModal?.tenNhaKhoa}
+            </DialogTitle>
+            <DialogContent sx={{ pt: '8px !important' }}>
+                <TextField
+                    autoFocus multiline minRows={3} maxRows={6} fullWidth
+                    placeholder="Nhập ghi chú..."
+                    value={noteInput}
+                    onChange={e => setNoteInput(e.target.value)}
+                    disabled={savingNote}
+                    size="small"
+                    sx={{ '& .MuiInputBase-root': { fontFamily: FONT, fontSize: '0.85rem' } }}
+                />
+                {noteError && <Typography sx={{ color: '#c62828', fontSize: '0.78rem', mt: 0.8, fontFamily: FONT }}>{noteError}</Typography>}
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+                <Button onClick={onCancel} disabled={savingNote} size="small" sx={{ fontFamily: FONT, color: '#757575', '&:hover': { bgcolor: '#f5f5f5' } }}>Hủy</Button>
+                <Button onClick={onSave} variant="contained" size="small" disabled={savingNote} sx={{ fontFamily: FONT, fontWeight: 600, bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' }, borderRadius: 1.5 }}>
+                    {savingNote ? 'Đang lưu...' : 'Lưu'}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 }

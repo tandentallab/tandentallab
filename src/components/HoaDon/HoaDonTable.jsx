@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 // ================= FORMATTERS =================
 const vndFormatter = new Intl.NumberFormat("vi-VN");
@@ -96,6 +97,162 @@ const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => {
   );
 });
 
+// ================= MOBILE CARD COMPONENT =================
+const MobileCard = React.memo(({ hd, onNavigate }) => {
+  const baseDate = hd.ngayXuatHoaDon || hd.createdAt;
+  let textDenHan = "";
+  let isTreHan = false;
+
+  if (baseDate) {
+    const ngayDenHan = dayjs(baseDate).add(20, "day").endOf("day");
+    textDenHan = ngayDenHan.format("DD/MM/YYYY");
+    if (dayjs().isAfter(ngayDenHan) && Number(hd.conLai || 0) > 0) {
+      isTreHan = true;
+    }
+  }
+
+  const statusClass = STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white";
+
+  return (
+    <div
+      onClick={() => onNavigate(`/hoa-don/${hd._id}/edit`)}
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 mx-3 mb-3 overflow-hidden active:scale-[0.98] transition-transform duration-150 cursor-pointer"
+    >
+      {/* Card Header */}
+      <div className="flex items-center justify-between px-4 pt-3.5 pb-2 border-b border-gray-50">
+        <div className="min-w-0">
+          <p className="text-[13px] font-bold text-gray-800 truncate leading-tight">
+            {hd.nhaKhoa?.hoVaTen || hd.nhaKhoa?.tenNhaKhoa || "—"}
+          </p>
+          <p className="text-[11px] text-gray-400 leading-tight mt-0.5">
+            #{hd.soHoaDon || "—"}
+          </p>
+        </div>
+        <span className={`shrink-0 inline-block px-2.5 py-1 text-[11px] font-semibold tracking-wide ${statusClass}`}>
+          {hd.trangThai || ""}
+        </span>
+      </div>
+
+      {/* Card Body: số tiền */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 px-4 py-3">
+        <div>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-0.5">Tổng cộng</p>
+          <p className="text-[13px] font-semibold text-gray-800">{fmtVND(hd.tongCong)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-0.5">Giảm giá</p>
+          <p className="text-[13px] font-semibold text-gray-800">{fmtVND(hd.chietKhau)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-0.5">Giá trị TT</p>
+          <p className="text-[13px] font-semibold text-gray-800">{fmtVND(hd.giaTriThanhToan)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-0.5">Đã thanh toán</p>
+          <p className="text-[13px] font-semibold text-gray-800">{fmtVND(hd.daThanhToan)}</p>
+        </div>
+        {Number(hd.conLai || 0) > 0 && (
+          <div>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-0.5">Còn lại</p>
+            <p className="text-[13px] font-semibold text-gray-800">{fmtVND(hd.conLai)}</p>
+          </div>
+        )}
+        {Number(hd.chiPhiKhac || 0) > 0 && (
+          <div>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-0.5">Chi phí khác</p>
+            <p className="text-[13px] font-semibold text-gray-800">{fmtVND(hd.chiPhiKhac)}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Card Footer: ngày xuất + đến hạn + ghi chú */}
+      <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50/70 border-t border-gray-100 gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-[11px] text-gray-400 shrink-0">
+            {fmtDate(hd.ngayXuatHoaDon || hd.createdAt)}
+          </span>
+          {textDenHan && (
+            <span className={`text-[11px] shrink-0 font-medium ${isTreHan ? "text-[#ef4444]" : "text-gray-400"}`}>
+              {isTreHan ? "⚠️ Trễ hạn " : "Đến hạn "}
+              {textDenHan}
+            </span>
+          )}
+        </div>
+        {hd.ghiChuChoKhachHang && (
+          <span className="text-[11px] text-gray-400 truncate ml-2 italic">
+            "{hd.ghiChuChoKhachHang}"
+          </span>
+        )}
+      </div>
+    </div>
+  );
+});
+
+// ================= MOBILE LIST =================
+const MobileCardList = ({ danhSachHoaDon, loading, onLoadMore, sortOrder, onToggleSort }) => {
+  const navigate = useNavigate();
+  const containerRef = useRef(null);
+
+  const onNavigate = useCallback((path) => navigate(path), [navigate]);
+
+  const handleScroll = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 300) {
+      if (onLoadMore) onLoadMore();
+    }
+  }, [onLoadMore]);
+
+  return (
+    <div
+      ref={containerRef}
+      onScroll={handleScroll}
+      className="flex-1 overflow-y-auto pt-2 pb-4"
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
+      {/* Sort bar */}
+      <div className="flex items-center justify-between px-4 pb-2">
+        <span className="text-[12px] text-gray-400 font-medium">
+          {danhSachHoaDon?.length ?? 0} hóa đơn
+        </span>
+        <button
+          onClick={onToggleSort}
+          className="flex items-center gap-1 text-[12px] text-[#00a8df] font-semibold"
+        >
+          Ngày xuất
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={`w-3.5 h-3.5 transition-transform duration-300 ${sortOrder === "desc" ? "rotate-180" : ""}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Cards */}
+      {!loading && (!danhSachHoaDon || danhSachHoaDon.length === 0) ? (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p className="text-sm">Không tìm thấy hóa đơn nào.</p>
+        </div>
+      ) : (
+        danhSachHoaDon.map((hd) => (
+          <MobileCard key={hd._id} hd={hd} onNavigate={onNavigate} />
+        ))
+      )}
+
+      {loading && (
+        <div className="flex justify-center py-6">
+          <CircularProgress size={26} sx={{ color: "#00a8df" }} />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ================= COMPONENT CHÍNH =================
 const ROW_HEIGHT = 45;
 const VISIBLE_ROWS = 25;
@@ -103,6 +260,7 @@ const OVERSCAN = 10;
 
 const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
   // ── Resizable columns ──
   const [columnWidths, setColumnWidths] = useState({
@@ -216,6 +374,21 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
   }, [columnWidths]);
 
   const onNavigate = useCallback((path) => navigate(path), [navigate]);
+
+  // ── Mobile: render card list ──
+  if (isMobile) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0 bg-[#f5f7fa]">
+        <MobileCardList
+          danhSachHoaDon={sortedDanhSachHoaDon}
+          loading={loading}
+          onLoadMore={onLoadMore}
+          sortOrder={sortOrder}
+          onToggleSort={handleToggleSort}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">

@@ -15,7 +15,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const SIDEBAR_EXPANDED = 220;
+const SIDEBAR_EXPANDED = 265;
 const SIDEBAR_COLLAPSED = 56;
 
 const REPORT_MENU = [
@@ -179,8 +179,8 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
                             {!collapsed && (
                                 <Box sx={{ flexShrink: 0, ml: 2 }}>
                                     <Box sx={{
-                                        width: 160,
-                                        whiteSpace: 'normal',
+                                        width: 200,
+                                        whiteSpace: 'nowrap',
                                         lineHeight: 1.4,
                                         fontSize: '0.95rem',
                                         fontWeight: isActive ? 700 : 500,

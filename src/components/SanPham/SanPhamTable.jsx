@@ -168,9 +168,95 @@ export default function SanPhamTable() {
         </div>
       </Box>
 
+      {/* ── MOBILE CARD VIEW ── */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {filteredData.length === 0 && !loading ? (
+          <div className="flex flex-col items-center py-10 text-gray-400 bg-white rounded-xl shadow-sm border border-gray-100">
+            <Search style={{ fontSize: 40 }} className="text-gray-300 mb-2" />
+            <Typography>Không tìm thấy sản phẩm nào phù hợp!</Typography>
+          </div>
+        ) : (
+          filteredData.map((item) => (
+            <div
+              key={item._id}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col gap-2"
+            >
+              {/* Tên + actions */}
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-semibold text-gray-800 text-sm leading-snug flex-1">
+                  {item.tenSanPham}
+                </span>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Tooltip title="Sửa">
+                    <IconButton size="small" onClick={() => handleEdit(item)}>
+                      <Edit className="text-blue-500" fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Xóa">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDelete(item._id)}
+                    >
+                      <Delete className="text-red-500" fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </div>
+              </div>
+
+              {/* Details grid */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs mt-1">
+                <div className="flex flex-col gap-0.5">
+                  <span
+                    className="text-gray-400 uppercase tracking-wide font-semibold"
+                    style={{ fontSize: 10 }}
+                  >
+                    Loại tính
+                  </span>
+                  <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium border border-blue-100 w-fit">
+                    {item.loaiTinh}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span
+                    className="text-gray-400 uppercase tracking-wide font-semibold"
+                    style={{ fontSize: 10 }}
+                  >
+                    Nhóm
+                  </span>
+                  <span className="text-gray-700">{item.nhomSanPham}</span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span
+                    className="text-gray-400 uppercase tracking-wide font-semibold"
+                    style={{ fontSize: 10 }}
+                  >
+                    Bảo hành
+                  </span>
+                  <span className="text-gray-700">
+                    {formatWarranty(item.baoHanhMacDinh)}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span
+                    className="text-gray-400 uppercase tracking-wide font-semibold"
+                    style={{ fontSize: 10 }}
+                  >
+                    Đơn giá
+                  </span>
+                  <span className="font-bold" style={{ color: "#f57c00" }}>
+                    {item.donGiaChung?.toLocaleString("vi-VN")} đ
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ── DESKTOP TABLE VIEW ── */}
       <TableContainer
         component={Paper}
-        className="rounded-xl shadow-md border border-gray-100 overflow-x-auto"
+        className="hidden md:block rounded-xl shadow-md border border-gray-100 overflow-x-auto"
       >
         <Table sx={{ minWidth: 800 }}>
           <TableHead className="bg-gray-50">

@@ -84,7 +84,7 @@ const MobileCard = memo(function MobileCard({ row, rowNote, onOpenNote }) {
     const isZeroDebt = row.conNo === 0;
 
     // Phối màu Mobile: Xanh lá 300 cho hết nợ, Đỏ nhạt cho có nợ
-    const cardBg = isZeroDebt ? '#95ed99' : '#ffebee';
+    const cardBg = isZeroDebt ? '#c2fcc5' : '#ffebee';
 
     // Đảm bảo tương phản text: Xanh lục đậm nếu nền xanh lá, xám đen nếu nền đỏ nhạt
     const textColor = isZeroDebt ? '#144a18' : '#212121';
@@ -95,10 +95,10 @@ const MobileCard = memo(function MobileCard({ row, rowNote, onOpenNote }) {
 
             {/* Header ko có viền phân cách */}
             <Box sx={{ px: 1.5, pt: 1.5, pb: 0.5, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                <Typography sx={{ fontFamily: FONT, fontSize: '0.85rem', fontWeight: 800, opacity: 0.7, minWidth: 20 }}>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, opacity: 0.7, minWidth: 20 }}>
                     {row.stt}
                 </Typography>
-                <Typography sx={{ fontFamily: FONT, fontWeight: 800, fontSize: '1.05rem', flex: 1, lineHeight: 1.3 }}>
+                <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', flex: 1, lineHeight: 1.3 }}>
                     {row.tenNhaKhoa}
                 </Typography>
             </Box>

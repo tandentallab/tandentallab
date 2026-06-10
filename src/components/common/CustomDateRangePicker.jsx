@@ -35,13 +35,15 @@ const CustomDateRangePicker = ({ open, anchorEl, onClose, initialDates, onApply 
 
     const daysInMonth = useMemo(() => {
         const start = currentMonth.startOf('month').startOf('week');
-        const end = currentMonth.endOf('month').endOf('week');
         const days = [];
         let d = start;
-        while (d.isBefore(end) || d.isSame(end, 'day')) {
+
+        // Cố định luôn tạo ra 42 ngày (6 dòng x 7 cột) để chống giật UI
+        for (let i = 0; i < 42; i++) {
             days.push(d);
             d = d.add(1, 'day');
         }
+
         return days;
     }, [currentMonth]);
 
@@ -104,13 +106,13 @@ const CustomDateRangePicker = ({ open, anchorEl, onClose, initialDates, onApply 
                         const isBetween = tempDates.start && tempDates.end && d.isAfter(dayjs(tempDates.start), 'day') && d.isBefore(dayjs(tempDates.end), 'day');
                         const isToday = d.isSame(dayjs(), 'day');
 
-                        // Ẩn các ngày không thuộc tháng hiện tại
+                        // Ẩn các ngày không thuộc tháng hiện tại nhưng vẫn giữ khung layout
                         if (!isCurrentMonth) {
-                            return <div key={i} className="p-0.5" />;
+                            return <div key={i} className="p-0.5 h-[36px]" />; // Thêm h-[36px] tương đương chiều cao của wrapClass bên dưới để giữ nguyên height
                         }
 
                         let bgClass = "bg-transparent hover:bg-gray-100 text-gray-800 rounded-lg cursor-pointer";
-                        let wrapClass = "p-0.5";
+                        let wrapClass = "p-0.5 h-[36px]"; // Gắn chiều cao cố định để không bị lệch với các ô rỗng
 
                         if (isStart) {
                             bgClass = "bg-blue-600 text-white font-bold rounded-lg cursor-pointer shadow-md";
@@ -120,7 +122,7 @@ const CustomDateRangePicker = ({ open, anchorEl, onClose, initialDates, onApply 
                             if (tempDates.start) wrapClass += " bg-blue-50 rounded-r-lg";
                         } else if (isBetween) {
                             bgClass = "text-blue-800 font-medium cursor-pointer";
-                            wrapClass = "py-0.5 bg-blue-50";
+                            wrapClass = "py-0.5 bg-blue-50 h-[36px]";
                         } else if (isToday && !isStart && !isEnd) {
                             bgClass = "text-blue-600 font-bold bg-blue-50 rounded-lg cursor-pointer";
                         }

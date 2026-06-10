@@ -121,7 +121,7 @@ const BaoCaoKhachHangTable = () => {
                                 Khách hàng
                             </ResizableHeaderCell>
 
-                            <ResizableHeaderCell initialWidth={120} isLast={true}>
+                            <ResizableHeaderCell initialWidth={100} isLast={true}>
                                 Số lượng
                             </ResizableHeaderCell>
                         </TableRow>

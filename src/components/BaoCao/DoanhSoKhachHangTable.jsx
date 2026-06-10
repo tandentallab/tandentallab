@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Box } from '@mui/material';
+import {
+    Table, TableBody, TableCell, TableContainer,
+    TableHead, TableRow, Paper, Box, useMediaQuery, useTheme
+} from '@mui/material';
 
-// 🔥 CSS KIỂU EXCEL CHO HEADER
 const headSx = {
     bgcolor: '#f1f5f9',
     color: '#1e293b',
@@ -14,7 +16,6 @@ const headSx = {
     borderBottom: '1px solid #cbd5e1',
 };
 
-// 🔥 CSS KIỂU EXCEL CHO CÁC Ô DỮ LIỆU
 const cellSx = {
     py: 0.5,
     px: 1.5,
@@ -22,7 +23,6 @@ const cellSx = {
     color: '#333',
     borderRight: '1px solid #e2e8f0',
     borderBottom: '1px solid #e2e8f0',
-    // Giúp chữ bị dài quá tự động thêm "..." thay vì đẩy bảng to ra
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap'
@@ -31,9 +31,9 @@ const cellSx = {
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN').format(val || 0);
 
 // =======================================================================
-// 🚀 COMPONENT CHUYÊN TRỊ KÉO DÃN CỘT (HOVER VÀO ĐƯỜNG BIÊN)
+// RESIZABLE HEADER — chỉ hoạt động trên desktop
 // =======================================================================
-const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) => {
+const ResizableHeaderCell = ({ children, initialWidth, mobileWidth, minWidth = 60, isLast, isMobile }) => {
     const [width, setWidth] = useState(initialWidth);
     const startX = useRef(null);
     const startWidth = useRef(null);
@@ -47,7 +47,6 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
 
     const handleMouseMove = (e) => {
         if (startX.current !== null) {
-            // Tính toán độ rộng mới khi di chuột
             const newWidth = Math.max(minWidth, startWidth.current + (e.clientX - startX.current));
             setWidth(newWidth);
         }
@@ -58,6 +57,26 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
     };
+
+    // Mobile: dùng % thay px, không render resize handle
+    if (isMobile) {
+        return (
+            <TableCell
+                sx={{
+                    ...headSx,
+                    width: mobileWidth,
+                    px: 1,
+                    fontSize: '12px',
+                    position: 'relative',
+                    borderRight: isLast ? 'none' : headSx.borderRight,
+                }}
+            >
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {children}
+                </div>
+            </TableCell>
+        );
+    }
 
     return (
         <TableCell
@@ -73,15 +92,13 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
             <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {children}
             </div>
-
-            {/* Thanh kéo vô hình nằm ngay trên đường biên */}
             {!isLast && (
                 <div
                     onMouseDown={handleMouseDown}
                     style={{
                         position: 'absolute',
                         top: 0,
-                        right: -3, // Lệch sang phải 3px để nằm đè lên đúng cái đường kẻ
+                        right: -3,
                         bottom: 0,
                         width: '6px',
                         cursor: 'col-resize',
@@ -89,7 +106,6 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
                         backgroundColor: 'transparent',
                         transition: 'background-color 0.2s'
                     }}
-                    // Hover vào thì sáng viền lên giống Excel/Google Sheets
                     onMouseEnter={(e) => e.target.style.backgroundColor = '#0ea5e9'}
                     onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                 />
@@ -102,37 +118,54 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
 // BẢNG CHÍNH
 // =======================================================================
 const DoanhSoKhachHangTable = () => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // < 600px
+
     const { doanhSoKhachHangData, doanhSoKhachHangLoading } = useSelector((state) => state.baoCao);
     const dataList = doanhSoKhachHangData?.data || [];
 
     const tongTatCaDoanhSo = dataList.reduce((sum, item) => sum + (item.tongDoanhSo || 0), 0);
     const tongTatCaSoLuong = dataList.reduce((sum, item) => sum + (item.tongSoLuong || 0), 0);
 
+    const mobileCellSx = { ...cellSx, px: 1, fontSize: '12px' };
+
     return (
-        // 🔥 Đã đổi sang fit-content để bảng không bị giãn full màn hình
-        <Box sx={{ width: 'fit-content', maxWidth: '100%' }}>
+        <Box sx={{ width: isMobile ? '100%' : 'fit-content', maxWidth: '100%' }}>
             <TableContainer
                 component={Paper}
                 className="shadow-sm border border-gray-300 overflow-hidden flex flex-col rounded-md"
-                sx={{ maxHeight: 900, overflowY: 'auto', overflowX: 'auto' }}
+                sx={{ maxHeight: 900, overflowY: 'auto', overflowX: isMobile ? 'hidden' : 'auto' }}
             >
-                {/* Thêm tableLayout: 'fixed' để bảng tuân thủ tuyệt đối kích thước tự setup */}
-                <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', width: 'fit-content' }}>
-
+                <Table
+                    stickyHeader
+                    size="small"
+                    sx={{
+                        tableLayout: 'fixed',
+                        width: isMobile ? '100%' : 'fit-content',
+                    }}
+                >
                     <TableHead>
                         <TableRow>
-                            {/* Cột khách hàng ban đầu để 250px */}
-                            <ResizableHeaderCell initialWidth={200}>
+                            <ResizableHeaderCell
+                                initialWidth={170}
+                                mobileWidth="55%"
+                                isMobile={isMobile}
+                            >
                                 Khách hàng
                             </ResizableHeaderCell>
-
-                            {/* Cột số lượng */}
-                            <ResizableHeaderCell initialWidth={100}>
-                                Số lượng
+                            <ResizableHeaderCell
+                                initialWidth={100}
+                                mobileWidth="20%"
+                                isMobile={isMobile}
+                            >
+                                {isMobile ? 'SL' : 'Số lượng'}
                             </ResizableHeaderCell>
-
-                            {/* Cột doanh số */}
-                            <ResizableHeaderCell initialWidth={130} isLast={true}>
+                            <ResizableHeaderCell
+                                initialWidth={110}
+                                mobileWidth="25%"
+                                isMobile={isMobile}
+                                isLast
+                            >
                                 Doanh số
                             </ResizableHeaderCell>
                         </TableRow>
@@ -153,13 +186,13 @@ const DoanhSoKhachHangTable = () => {
                             </TableRow>
                         ) : (
                             <>
-                                {/* 🔥 DÒNG TỔNG CỘNG */}
+                                {/* DÒNG TỔNG CỘNG */}
                                 <TableRow>
-                                    <TableCell sx={{ ...cellSx, fontWeight: 'bold' }}></TableCell>
-                                    <TableCell align="center" sx={{ ...cellSx, fontWeight: 'bold', bgcolor: '#fce7f3' }}>
+                                    <TableCell sx={{ ...(isMobile ? mobileCellSx : cellSx), fontWeight: 'bold' }}></TableCell>
+                                    <TableCell align="center" sx={{ ...(isMobile ? mobileCellSx : cellSx), fontWeight: 'bold', bgcolor: '#fce7f3' }}>
                                         {formatCurrency(tongTatCaSoLuong)}
                                     </TableCell>
-                                    <TableCell align="right" sx={{ ...cellSx, pr: 2, fontWeight: 'bold', bgcolor: '#fce7f3', borderRight: 'none' }}>
+                                    <TableCell align="right" sx={{ ...(isMobile ? mobileCellSx : cellSx), pr: isMobile ? 1 : 2, fontWeight: 'bold', bgcolor: '#fce7f3', borderRight: 'none' }}>
                                         {formatCurrency(tongTatCaDoanhSo)}
                                     </TableCell>
                                 </TableRow>
@@ -167,13 +200,13 @@ const DoanhSoKhachHangTable = () => {
                                 {/* DANH SÁCH CHI TIẾT */}
                                 {dataList.map((row) => (
                                     <TableRow key={row.nhaKhoaId} sx={{ '&:hover': { bgcolor: '#f1f5f9' } }}>
-                                        <TableCell sx={{ ...cellSx }}>
+                                        <TableCell sx={isMobile ? mobileCellSx : cellSx}>
                                             {row.tenNhaKhoa}
                                         </TableCell>
-                                        <TableCell align="center" sx={{ ...cellSx }}>
+                                        <TableCell align="center" sx={isMobile ? mobileCellSx : cellSx}>
                                             {formatCurrency(row.tongSoLuong)}
                                         </TableCell>
-                                        <TableCell align="right" sx={{ ...cellSx, pr: 2, borderRight: 'none' }}>
+                                        <TableCell align="right" sx={{ ...(isMobile ? mobileCellSx : cellSx), pr: isMobile ? 1 : 2, borderRight: 'none' }}>
                                             {formatCurrency(row.tongDoanhSo)}
                                         </TableCell>
                                     </TableRow>

@@ -116,7 +116,7 @@ const MobileCard = React.memo(({ hd, onNavigate }) => {
   return (
     <div
       onClick={() => onNavigate(`/hoa-don/${hd._id}/edit`)}
-      className="bg-white rounded-2xl shadow-sm border border-gray-100 mx-3 mb-3 overflow-hidden active:scale-[0.98] transition-transform duration-150 cursor-pointer"
+      className="bg-white rounded-2xl shadow-sm border border-[#999] mx-3 mb-3 overflow-hidden active:scale-[0.98] transition-transform duration-150 cursor-pointer"
     >
       {/* Card Header */}
       <div className="flex items-center justify-between px-4 pt-3.5 pb-2 border-b border-gray-50">
@@ -378,7 +378,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
   // ── Mobile: render card list ──
   if (isMobile) {
     return (
-      <div className="flex flex-col flex-1 min-h-0 bg-[#f5f7fa]">
+      <div className="flex flex-col flex-1 min-h-0 bg-[#f5f7fa] ">
         <MobileCardList
           danhSachHoaDon={sortedDanhSachHoaDon}
           loading={loading}

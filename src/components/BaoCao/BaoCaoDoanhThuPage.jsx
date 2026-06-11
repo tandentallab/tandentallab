@@ -2,16 +2,16 @@ import React, { useState, useCallback, useEffect } from 'react';
 import {
     Box, Paper, Typography, Button, CircularProgress,
     Select, MenuItem, FormControl, InputLabel, Alert,
+    TextField, InputAdornment
 } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import SearchIcon from '@mui/icons-material/Search';
-import EditNoteIcon from '@mui/icons-material/EditNote';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import ReportLayout from './shared/ReportLayout';
-import SoDuDauKyDialog from './SoDuDauKyDialog';
 import { fetchBaoCaoDoanhThuThang } from '../../redux/slices/baoCaoSlice';
 import BaoCaoDoanhThuTable from './BaoCaoDoanhThuTable';
+import { FaFileExcel } from "react-icons/fa6";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const FONT = "'Cambria', 'serif'";
@@ -22,15 +22,7 @@ const BASE_YEAR = 2026;
 const BASE_MONTH = 5;
 const NAM_LIST = Array.from({ length: currentYear - BASE_YEAR + 1 }, (_, i) => BASE_YEAR + i).reverse();
 
-// ─── Excel Icon ──────────────────────────────────────────────────────────────
-const ExcelSvgIcon = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="24" height="24" rx="3" fill="#217346" />
-        <path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4z" fill="#185C37" />
-        <path d="M14 3v4h4" fill="none" stroke="#fff" strokeWidth="1.2" strokeLinejoin="round" />
-        <text x="4" y="18" fill="white" fontSize="8" fontWeight="bold" fontFamily="Segoe UI,serif">XLS</text>
-    </svg>
-);
+
 
 // ─── Excel export ─────────────────────────────────────────────────────────────
 async function exportToExcel(data, notes, thang, nam) {
@@ -78,10 +70,6 @@ async function exportToExcel(data, notes, thang, nam) {
 
     data.chiTiet.forEach((row, i) => {
         const rowNote = notes[row.nhaKhoaId] || row.ghiChu || '';
-
-        // 🔥 Đã fix: 
-        // 1. Mặc định nền trắng (FFFFFFFF)
-        // 2. Nếu conNo == 0 (hết nợ) thì tô nền xanh nhạt (FFE8F5E9) để highlight dễ check
         const isHetNo = row.conNo === 0;
         const bgArgb = isHetNo ? 'FFE8F5E9' : 'FFFFFFFF';
 
@@ -95,7 +83,7 @@ async function exportToExcel(data, notes, thang, nam) {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
             cell.border = { top: { style: 'hair' }, bottom: { style: 'hair' }, left: { style: 'thin' }, right: { style: 'thin' } };
             cell.alignment = { vertical: 'middle', horizontal: col === 2 || col === 7 ? 'left' : col === 1 ? 'center' : 'right', wrapText: col === 7 };
-            cell.font = { size: 10, bold: isHetNo }; // In đậm luôn cho các dòng hết nợ
+            cell.font = { size: 10, bold: isHetNo };
             if (col >= 3 && col <= 6) cell.numFmt = numFmt;
         });
         ws.getRow(3 + i + 1).height = 20;
@@ -112,11 +100,10 @@ export default function BaoCaoDoanhThuPage() {
 
     const [nam, setNam] = useState(currentYear);
     const [thang, setThang] = useState(currentMonth);
-    const [dialogOpen, setDialogOpen] = useState(false);
     const [notes, setNotes] = useState({});
     const [showTable, setShowTable] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
-    // Sync notes từ API khi data thay đổi
     useEffect(() => {
         if (data?.chiTiet) {
             const initNotes = {};
@@ -150,102 +137,100 @@ export default function BaoCaoDoanhThuPage() {
 
     const handleExport = () => { if (data) exportToExcel(data, notes, thang, nam); };
 
+    const hasData = !!data?.chiTiet;
+
     return (
         <ReportLayout title="Doanh Thu">
             <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 1.5 }}>
 
+                {/* ─── Toolbar ─────────────────────────────────────────────── */}
                 <Paper elevation={0} sx={{
-                    px: { xs: 2, sm: 3 },
-                    py: 1.2,
+                    px: { xs: 1.5, sm: 3 },
+                    py: { xs: 1.25, sm: 1.2 },
                     border: '1px solid #e0e4f0',
                     borderRadius: 2,
                     display: 'flex',
-                    flexDirection: 'column',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
                     gap: 1,
                 }}>
-                    {/* Dòng 1: filter */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <FormControl size="small" sx={{ minWidth: 80 }}>
-                            <InputLabel sx={{ fontFamily: FONT }}>Năm</InputLabel>
-                            <Select value={nam} label="Năm" onChange={handleNamChange} sx={{ fontFamily: FONT }}>
-                                {NAM_LIST.map(y => <MenuItem key={y} value={y} sx={{ fontFamily: FONT }}>{y}</MenuItem>)}
-                            </Select>
-                        </FormControl>
-                        <FormControl size="small" sx={{ minWidth: 95 }}>
-                            <InputLabel sx={{ fontFamily: FONT }}>Tháng</InputLabel>
-                            <Select value={thang} label="Tháng" onChange={e => { setThang(Number(e.target.value)); setShowTable(false); }} sx={{ fontFamily: FONT }}>
-                                {availableMonths.map(t => <MenuItem key={t} value={t} sx={{ fontFamily: FONT }}>Tháng {t}</MenuItem>)}
-                            </Select>
-                        </FormControl>
-                        <Button variant="contained"
-                            startIcon={loading ? <CircularProgress size={15} color="inherit" /> : <SearchIcon fontSize="small" />}
-                            onClick={handleSearch} disabled={loading}
-                            sx={{ fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' }, px: 2, whiteSpace: 'nowrap' }}
+                    {/* Chọn năm */}
+                    <FormControl size="small" sx={{ minWidth: 80, flex: { xs: '1 1 0', sm: '0 0 auto' } }}>
+                        <InputLabel sx={{ fontFamily: FONT }}>Năm</InputLabel>
+                        <Select value={nam} label="Năm" onChange={handleNamChange} sx={{ fontFamily: FONT }}>
+                            {NAM_LIST.map(y => <MenuItem key={y} value={y} sx={{ fontFamily: FONT }}>{y}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+
+                    {/* Chọn tháng */}
+                    <FormControl size="small" sx={{ minWidth: 95, flex: { xs: '1 1 0', sm: '0 0 auto' } }}>
+                        <InputLabel sx={{ fontFamily: FONT }}>Tháng</InputLabel>
+                        <Select value={thang} label="Tháng" onChange={e => { setThang(Number(e.target.value)); setShowTable(false); }} sx={{ fontFamily: FONT }}>
+                            {availableMonths.map(t => <MenuItem key={t} value={t} sx={{ fontFamily: FONT }}>Tháng {t}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+
+                    {/* Nút Xem */}
+                    <Button variant="contained"
+                        startIcon={loading ? <CircularProgress size={15} color="inherit" /> : <SearchIcon fontSize="small" />}
+                        onClick={handleSearch} disabled={loading}
+                        sx={{
+                            fontFamily: FONT, fontWeight: 600, borderRadius: 1.5,
+                            bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' },
+                            px: { xs: 1.5, sm: 2 },
+                            height: 40,
+                            whiteSpace: 'nowrap',
+                            flex: '0 0 auto',
+                        }}
+                    >
+                        Xem
+                    </Button>
+
+                    {/* Spacer — đẩy search + excel về bên phải trên desktop */}
+                    <Box sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }} />
+
+                    {/* Ô tìm kiếm — chỉ hiện khi có data */}
+                    {hasData && (
+                        <TextField
+                            size="small"
+                            placeholder="Tìm nha khoa..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            sx={{
+                                flex: { xs: '1 1 auto', sm: '0 0 160px' },
+                                '& .MuiInputBase-root': { fontFamily: FONT, height: 40, fontSize: '0.85rem', borderRadius: 1.5 },
+                            }}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon fontSize="small" sx={{ opacity: 0.6 }} />
+                                    </InputAdornment>
+                                ),
+                            }}
+                        />
+                    )}
+
+                    {/* Nút xuất Excel — chỉ hiện khi có data */}
+                    {hasData && (
+                        <Button
+                            variant="contained"
+                            onClick={handleExport}
+                            size="small"
+                            title="Xuất Excel"
+                            sx={{
+                                bgcolor: '#217346',
+                                '&:hover': { bgcolor: '#185C37' },
+                                borderRadius: 1.5,
+                                minWidth: 40,
+                                width: 40,
+                                height: 40,
+                                p: 0,
+                            }}
                         >
-                            Xem
+                            <FaFileExcel size={20} />
                         </Button>
-
-                        {/* Desktop: title ở giữa */}
-                        <Typography fontWeight={800} sx={{
-                            display: { xs: 'none', sm: 'block' },
-                            flexGrow: 1,
-                            textAlign: 'center',
-                            fontFamily: FONT,
-                            fontSize: '1rem',
-                            background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            letterSpacing: '0.04em',
-                            whiteSpace: 'nowrap',
-                        }}>
-                            BÁO CÁO DOANH THU THÁNG {String(thang).padStart(2, '0')}/{nam}
-                        </Typography>
-
-                        {/* Desktop: actions */}
-                        <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1, ml: 'auto' }}>
-                            <Button variant="outlined" startIcon={<EditNoteIcon fontSize="small" />} onClick={() => setDialogOpen(true)} size="small"
-                                sx={{ fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, borderColor: '#1a237e', color: '#1a237e', '&:hover': { bgcolor: '#e8eaf6', borderColor: '#1a237e' }, px: 1.5, whiteSpace: 'nowrap' }}>
-                                Số dư đầu kỳ
-                            </Button>
-                            {data?.chiTiet && (
-                                <Button variant="contained" startIcon={<ExcelSvgIcon />} onClick={handleExport} size="small"
-                                    sx={{ bgcolor: '#217346', '&:hover': { bgcolor: '#185C37' }, fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, px: 1.5, whiteSpace: 'nowrap' }}>
-                                    Xuất Excel
-                                </Button>
-                            )}
-                        </Box>
-                    </Box>
-
-                    {/* Dòng 2: mobile only — title + actions */}
-                    <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', gap: 1 }}>
-                        <Typography fontWeight={800} sx={{
-                            flexGrow: 1,
-                            fontFamily: FONT,
-                            fontSize: '0.78rem',
-                            background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            letterSpacing: '0.04em',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                        }}>
-                            BÁO CÁO DOANH THU THÁNG {String(thang).padStart(2, '0')}/{nam}
-                        </Typography>
-                        <Button variant="outlined" startIcon={<EditNoteIcon fontSize="small" />} onClick={() => setDialogOpen(true)} size="small"
-                            sx={{ fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, borderColor: '#1a237e', color: '#1a237e', '&:hover': { bgcolor: '#e8eaf6', borderColor: '#1a237e' }, px: 1.5, whiteSpace: 'nowrap' }}>
-                            Số dư
-                        </Button>
-                        {data?.chiTiet && (
-                            <Button variant="contained" startIcon={<ExcelSvgIcon />} onClick={handleExport} size="small"
-                                sx={{ bgcolor: '#217346', '&:hover': { bgcolor: '#185C37' }, fontFamily: FONT, fontWeight: 600, borderRadius: 1.5, px: 1.5, whiteSpace: 'nowrap' }}>
-                                Excel
-                            </Button>
-                        )}
-                    </Box>
+                    )}
                 </Paper>
-
-                <SoDuDauKyDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
 
                 {error && <Alert severity="error" sx={{ fontFamily: FONT }}>{error}</Alert>}
 
@@ -272,6 +257,7 @@ export default function BaoCaoDoanhThuPage() {
                             setNotes={setNotes}
                             thang={thang}
                             nam={nam}
+                            searchTerm={searchTerm}
                         />
                     </div>
                 )}

@@ -67,8 +67,12 @@ const BangLuongPage = () => {
     (state) => state.bangLuong
   );
 
-  const [thang, setThang] = useState(new Date().getMonth() + 1);
-  const [nam, setNam] = useState(new Date().getFullYear());
+  const _now = new Date();
+  const _prevMonth = _now.getMonth() === 0 ? 12 : _now.getMonth(); // getMonth() trả 0-11, tháng trước = getMonth() (chưa +1)
+  const _prevYear =
+    _now.getMonth() === 0 ? _now.getFullYear() - 1 : _now.getFullYear();
+  const [thang, setThang] = useState(_prevMonth);
+  const [nam, setNam] = useState(_prevYear);
   const [salaryData, setSalaryData] = useState([]);
   const [openPrintModal, setOpenPrintModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);

@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Box } from '@mui/material';
+import {
+    Table, TableBody, TableCell, TableContainer,
+    TableHead, TableRow, Paper, Box, useMediaQuery, useTheme
+} from '@mui/material';
 
-// CSS KIỂU EXCEL CHO HEADER
 const headSx = {
     bgcolor: '#f1f5f9',
     color: '#1e293b',
@@ -13,7 +15,6 @@ const headSx = {
     borderBottom: '1px solid #cbd5e1',
 };
 
-// CSS KIỂU EXCEL CHO CÁC Ô DỮ LIỆU
 const cellSx = {
     py: 0.5,
     px: 1.5,
@@ -29,9 +30,9 @@ const cellSx = {
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN').format(val || 0);
 
 // =======================================================================
-// COMPONENT KÉO DÃN CỘT
+// RESIZABLE HEADER — chỉ hoạt động trên desktop
 // =======================================================================
-const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) => {
+const ResizableHeaderCell = ({ children, initialWidth, mobileWidth, minWidth = 60, isLast, isMobile }) => {
     const [width, setWidth] = useState(initialWidth);
     const startX = useRef(null);
     const startWidth = useRef(null);
@@ -56,6 +57,25 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
         document.removeEventListener('mouseup', handleMouseUp);
     };
 
+    if (isMobile) {
+        return (
+            <TableCell
+                sx={{
+                    ...headSx,
+                    width: mobileWidth,
+                    px: 1,
+                    fontSize: '12px',
+                    position: 'relative',
+                    borderRight: isLast ? 'none' : headSx.borderRight,
+                }}
+            >
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {children}
+                </div>
+            </TableCell>
+        );
+    }
+
     return (
         <TableCell
             sx={{
@@ -70,7 +90,6 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
             <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {children}
             </div>
-
             {!isLast && (
                 <div
                     onMouseDown={handleMouseDown}
@@ -94,30 +113,54 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
 };
 
 // =======================================================================
-// BẢNG CHÍNH — nhận data + loading qua props (vì filter ở Page)
+// BẢNG CHÍNH — nhận data + loading qua props
 // =======================================================================
 const DoanhSoSanPhamTable = ({ data = [], loading = false }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // < 600px
+
     const tongTatCaDoanhSo = data.reduce((sum, item) => sum + (item.tongDoanhSo || 0), 0);
     const tongTatCaSoLuong = data.reduce((sum, item) => sum + (item.tongSoLuong || 0), 0);
 
+    const mobileCellSx = { ...cellSx, px: 1, fontSize: '12px' };
+
     return (
-        <Box sx={{ width: 'fit-content', maxWidth: '100%' }}>
+        <Box sx={{ width: isMobile ? '100%' : 'fit-content', maxWidth: '100%' }}>
             <TableContainer
                 component={Paper}
                 className="shadow-sm border border-gray-300 overflow-hidden flex flex-col rounded-md"
-                sx={{ maxHeight: 900, overflowY: 'auto', overflowX: 'auto' }}
+                sx={{ maxHeight: 900, overflowY: 'auto', overflowX: isMobile ? 'hidden' : 'auto' }}
             >
-                <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', width: 'fit-content' }}>
-
+                <Table
+                    stickyHeader
+                    size="small"
+                    sx={{
+                        tableLayout: 'fixed',
+                        width: isMobile ? '100%' : 'fit-content',
+                    }}
+                >
                     <TableHead>
                         <TableRow>
-                            <ResizableHeaderCell initialWidth={220}>
+                            <ResizableHeaderCell
+                                initialWidth={220}
+                                mobileWidth="55%"
+                                isMobile={isMobile}
+                            >
                                 Sản phẩm
                             </ResizableHeaderCell>
-                            <ResizableHeaderCell initialWidth={100}>
-                                Số lượng
+                            <ResizableHeaderCell
+                                initialWidth={100}
+                                mobileWidth="18%"
+                                isMobile={isMobile}
+                            >
+                                {isMobile ? 'SL' : 'Số lượng'}
                             </ResizableHeaderCell>
-                            <ResizableHeaderCell initialWidth={130} isLast={true}>
+                            <ResizableHeaderCell
+                                initialWidth={130}
+                                mobileWidth="27%"
+                                isMobile={isMobile}
+                                isLast
+                            >
                                 Doanh số
                             </ResizableHeaderCell>
                         </TableRow>
@@ -140,11 +183,11 @@ const DoanhSoSanPhamTable = ({ data = [], loading = false }) => {
                             <>
                                 {/* DÒNG TỔNG CỘNG */}
                                 <TableRow>
-                                    <TableCell sx={{ ...cellSx, fontWeight: 'bold' }}></TableCell>
-                                    <TableCell align="center" sx={{ ...cellSx, fontWeight: 'bold', bgcolor: '#fce7f3' }}>
+                                    <TableCell sx={{ ...(isMobile ? mobileCellSx : cellSx), fontWeight: 'bold' }}></TableCell>
+                                    <TableCell align="center" sx={{ ...(isMobile ? mobileCellSx : cellSx), fontWeight: 'bold', bgcolor: '#fce7f3' }}>
                                         {formatCurrency(tongTatCaSoLuong)}
                                     </TableCell>
-                                    <TableCell align="right" sx={{ ...cellSx, pr: 2, fontWeight: 'bold', bgcolor: '#fce7f3', borderRight: 'none' }}>
+                                    <TableCell align="right" sx={{ ...(isMobile ? mobileCellSx : cellSx), pr: isMobile ? 1 : 2, fontWeight: 'bold', bgcolor: '#fce7f3', borderRight: 'none' }}>
                                         {formatCurrency(tongTatCaDoanhSo)}
                                     </TableCell>
                                 </TableRow>
@@ -152,13 +195,13 @@ const DoanhSoSanPhamTable = ({ data = [], loading = false }) => {
                                 {/* DANH SÁCH CHI TIẾT */}
                                 {data.map((row, index) => (
                                     <TableRow key={row.sanPhamId || index} sx={{ '&:hover': { bgcolor: '#f1f5f9' } }}>
-                                        <TableCell sx={{ ...cellSx }}>
+                                        <TableCell sx={isMobile ? mobileCellSx : cellSx}>
                                             {row.tenSanPham}
                                         </TableCell>
-                                        <TableCell align="center" sx={{ ...cellSx }}>
+                                        <TableCell align="center" sx={isMobile ? mobileCellSx : cellSx}>
                                             {formatCurrency(row.tongSoLuong)}
                                         </TableCell>
-                                        <TableCell align="right" sx={{ ...cellSx, pr: 2, borderRight: 'none' }}>
+                                        <TableCell align="right" sx={{ ...(isMobile ? mobileCellSx : cellSx), pr: isMobile ? 1 : 2, borderRight: 'none' }}>
                                             {formatCurrency(row.tongDoanhSo)}
                                         </TableCell>
                                     </TableRow>

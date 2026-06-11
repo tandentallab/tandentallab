@@ -3,6 +3,11 @@ import ReactDOM from "react-dom";
 import {
   useMediaQuery,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -604,6 +609,46 @@ const DonHangDetailPanel = (props) => {
           }}
         />
       )}
+
+      {/* Delete confirm dialog */}
+      <Dialog
+        open={showDeleteConfirm}
+        sx={{ zIndex: 9999 }}
+        onClose={() => setShowDeleteConfirm(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: "bold" }}>
+          Xác nhận xóa đơn hàng
+        </DialogTitle>
+
+        <DialogContent>
+          <p>
+            Bạn có chắc chắn muốn xóa đơn hàng <strong>{maDonHang}</strong>?
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            Hành động này không thể hoàn tác.
+          </p>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            onClick={() => setShowDeleteConfirm(false)}
+            variant="outlined"
+            color="inherit"
+          >
+            Hủy
+          </Button>
+
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+          >
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

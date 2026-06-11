@@ -377,19 +377,22 @@ const HoaDonPage = () => {
       </div>
 
       <div className="shrink-0 rounded-t-lg bg-white shadow-sm relative z-30 border-b border-gray-100">
-        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 px-4 py-2 min-h-[56px]">
-          <div className="flex flex-wrap items-center gap-3 flex-1 w-full xl:w-auto">
-            <div className="relative" ref={filterContainerRef}>
+        <div className="flex flex-col gap-2 px-3 py-2 min-h-[50px] justify-center">
+
+          {/* HÀNG 1: LUÔN NẰM TRÊN 1 DÒNG */}
+          <div className="flex items-center gap-2 w-full">
+            {/* 1. Nút Bộ Lọc */}
+            <div className="relative shrink-0" ref={filterContainerRef}>
               <Tooltip title="Bộ lọc">
                 <IconButton
                   onClick={() => setOpenFilter(!openFilter)}
                   size="small"
                   className={`transition-colors ${openFilter ? "bg-blue-50" : ""}`}
-                  sx={{ color: isFiltered ? "#1976d2" : "#555", p: "8px", position: "relative" }}
+                  sx={{ color: isFiltered ? "#1976d2" : "#555", p: "6px", position: "relative" }}
                 >
                   <FilterListIcon fontSize="small" />
                   {isFiltered && (
-                    <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-blue-500 border border-white" style={{ pointerEvents: "none" }} />
+                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500 border border-white" style={{ pointerEvents: "none" }} />
                   )}
                 </IconButton>
               </Tooltip>
@@ -417,55 +420,105 @@ const HoaDonPage = () => {
               />
             </div>
 
-            {isFiltered && (
-              <div className="flex flex-wrap items-center gap-3 border-l-2 border-gray-100 pl-3">
-                {appliedNgayXuat.preset && (
-                  <div className="flex items-center bg-blue-50 border border-blue-200 rounded-lg pl-3 pr-1 py-1 gap-2 shadow-sm">
-                    <div className="flex items-center gap-1.5 text-[13px] font-semibold text-blue-800">
-                      <CalendarTodayIcon sx={{ fontSize: 16 }} />
-                      {appliedNgayXuat.preset === "custom"
-                        ? `${appliedNgayXuat.customFrom || "?"} → ${appliedNgayXuat.customTo || "?"}`
-                        : DATE_PRESETS.find((p) => p.key === appliedNgayXuat.preset)?.label || appliedNgayXuat.preset}
-                    </div>
-                    <button onClick={() => { setAppliedNgayXuat(EMPTY_DATE); setPage(0); }} className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-blue-200 text-blue-500 hover:text-red-600 transition-colors" title="Xóa bộ lọc ngày">
-                      <CloseIcon sx={{ fontSize: 16 }} />
-                    </button>
-                  </div>
-                )}
+            {/* 2. Ô Tìm Kiếm (Cho tự động co giãn chiếm phần trống) */}
+            <div className="flex-1 min-w-0">
+              <TextField
+                size="small"
+                placeholder="Tìm kiếm..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{
+                  width: "100%", // Chiếm 100% không gian còn lại
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "20px",
+                    bgcolor: "#f5f5f5",
+                    fontSize: "0.85rem",
+                    height: "36px", // Hạ chiều cao xuống cho thon gọn
+                    "& fieldset": { border: "none" },
+                  },
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon size={15} style={{ color: "#9e9e9e" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm && (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearchTerm("")}>
+                        <ClearIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </div>
 
-                {appliedNhaKhoa && (
-                  <div className="flex items-center bg-indigo-50 border border-indigo-200 rounded-lg pl-3 pr-1 py-1 gap-2 shadow-sm">
-                    <div className="flex items-center gap-1.5 text-[13px] font-semibold text-indigo-800">
-                      <StoreIcon sx={{ fontSize: 16 }} />
-                      {appliedNhaKhoa.name}
-                    </div>
-                    <button onClick={() => { setAppliedNhaKhoa(null); setPage(0); }} className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-indigo-200 text-indigo-500 hover:text-red-600 transition-colors" title="Xóa bộ lọc nha khoa">
-                      <CloseIcon sx={{ fontSize: 16 }} />
-                    </button>
-                  </div>
-                )}
-
-                {appliedTrangThai.length > 0 && (
-                  <div className="flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-full pl-3 pr-1 py-1 shadow-sm">
-                    <span className="text-[13px] text-gray-700">
-                      <span className="font-semibold">Trạng thái:</span> {appliedTrangThai.join(", ")}
-                    </span>
-                    <button onClick={() => { setAppliedTrangThai([]); setActiveTabThongKe(""); setPage(0); }} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-300 text-gray-500 hover:text-gray-700 transition-colors ml-1" title="Xóa bộ lọc trạng thái">
-                      <CloseIcon sx={{ fontSize: 14 }} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* 3. Nhóm nút chức năng */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Tooltip title="Tạo hóa đơn">
+                <IconButton
+                  onClick={() => navigate("/cho-xuat-hoa-don")}
+                  className="bg-[#4CAF50] text-white hover:bg-[#388E3C] flex items-center justify-center rounded-full"
+                  sx={{ width: 32, height: 32 }}
+                >
+                  <AddIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Xuất Excel">
+                <IconButton onClick={() => setOpenExport(true)} size="small" sx={{ p: '6px' }}>
+                  <ExcelIcon sx={{ fontSize: 20, color: "#1b7a34" }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Làm mới">
+                <IconButton onClick={() => dispatch(fetchAllHoaDonAdmin())} size="small" sx={{ color: "#555", p: '6px' }}>
+                  <RefreshIcon sx={{ fontSize: 20 }} />
+                </IconButton>
+              </Tooltip>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
-            <TextField size="small" placeholder="Tìm kiếm..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} sx={{ width: 220, "& .MuiOutlinedInput-root": { borderRadius: "20px", bgcolor: "#f5f5f5", fontSize: "0.85rem", "& fieldset": { border: "none" } } }} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon size={15} style={{ color: "#9e9e9e" }} /></InputAdornment>), endAdornment: searchTerm && (<InputAdornment position="end"><IconButton size="small" onClick={() => setSearchTerm("")}><ClearIcon sx={{ fontSize: 14 }} /></IconButton></InputAdornment>) }} />
-            <Tooltip title="Tạo hóa đơn"><IconButton onClick={() => navigate("/cho-xuat-hoa-don")} className="bg-[#4CAF50] text-white w-8 h-8 hover:bg-[#388E3C] flex items-center justify-center rounded-full"><AddIcon sx={{ fontSize: 20 }} /></IconButton></Tooltip>
-            <Tooltip title="Xuất Excel"><IconButton onClick={() => setOpenExport(true)} size="small"><ExcelIcon sx={{ fontSize: 22, color: "#1b7a34" }} /></IconButton></Tooltip>
-            <Tooltip title="Làm mới"><IconButton onClick={() => dispatch(fetchAllHoaDonAdmin())} size="small" sx={{ color: "#555" }}><RefreshIcon fontSize="small" /></IconButton></Tooltip>
-            <IconButton size="small" sx={{ color: "#555" }}><MoreVertIcon fontSize="small" /></IconButton>
-          </div>
+          {/* HÀNG 2: CHỈ HIỂN THỊ KHI CÓ LỌC (TỰ ĐỘNG XUỐNG DÒNG) */}
+          {isFiltered && (
+            <div className="flex flex-wrap items-center gap-2 w-full pb-1 pt-1">
+              {appliedNgayXuat.preset && (
+                <div className="flex items-center bg-blue-50 border border-blue-200 rounded-lg pl-2 pr-1 py-0.5 gap-1.5 shadow-sm">
+                  <div className="flex items-center gap-1 text-[12px] font-semibold text-blue-800 whitespace-nowrap">
+                    <CalendarTodayIcon sx={{ fontSize: 14 }} />
+                    {appliedNgayXuat.preset === "custom"
+                      ? `${appliedNgayXuat.customFrom || "?"} → ${appliedNgayXuat.customTo || "?"}`
+                      : DATE_PRESETS.find((p) => p.key === appliedNgayXuat.preset)?.label || appliedNgayXuat.preset}
+                  </div>
+                  <button onClick={() => { setAppliedNgayXuat(EMPTY_DATE); setPage(0); }} className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-blue-200 text-blue-500 hover:text-red-600 transition-colors">
+                    <CloseIcon sx={{ fontSize: 14 }} />
+                  </button>
+                </div>
+              )}
+
+              {appliedNhaKhoa && (
+                <div className="flex items-center bg-indigo-50 border border-indigo-200 rounded-lg pl-2 pr-1 py-0.5 gap-1.5 shadow-sm">
+                  <div className="flex items-center gap-1 text-[12px] font-semibold text-indigo-800 whitespace-nowrap">
+                    <StoreIcon sx={{ fontSize: 14 }} />
+                    {appliedNhaKhoa.name}
+                  </div>
+                  <button onClick={() => { setAppliedNhaKhoa(null); setPage(0); }} className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-indigo-200 text-indigo-500 hover:text-red-600 transition-colors">
+                    <CloseIcon sx={{ fontSize: 14 }} />
+                  </button>
+                </div>
+              )}
+
+              {appliedTrangThai.length > 0 && (
+                <div className="flex items-center gap-1 bg-gray-100 border border-gray-200 rounded-full pl-2 pr-1 py-0.5 shadow-sm">
+                  <span className="text-[12px] text-gray-700 whitespace-nowrap">
+                    <span className="font-semibold">Trạng thái:</span> {appliedTrangThai.join(", ")}
+                  </span>
+                  <button onClick={() => { setAppliedTrangThai([]); setActiveTabThongKe(""); setPage(0); }} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-300 text-gray-500 hover:text-gray-700 transition-colors">
+                    <CloseIcon sx={{ fontSize: 12 }} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -523,8 +576,6 @@ const HoaDonPage = () => {
                             if (!p.isCalendar) {
                               setOpenExportDateDropdown(false);
                             } else {
-                              // 🔥 SỬA Ở ĐÂY: Dùng exportDateRef.current thay vì e.currentTarget
-                              // Mỏ neo giờ đây là cái khung to bên ngoài, cực kỳ ổn định
                               setExportDateAnchorEl(exportDateRef.current);
                             }
                           }}
@@ -534,7 +585,6 @@ const HoaDonPage = () => {
                           {p.label}
                         </button>
 
-                        {/* 🔥 BỔ SUNG LẠI KHỐI SUB-BUTTON (Giống hệt bên FilterDrawer) */}
                         {p.isCalendar && exportDateFilter?.preset === "custom" && (
                           <div className="px-4 py-3 bg-blue-50/30 border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
                             <button
@@ -553,7 +603,6 @@ const HoaDonPage = () => {
                   </div>
                 )}
 
-                {/* POP-UP LỊCH CHO EXCEL */}
                 <CustomDateRangePicker
                   open={Boolean(exportDateAnchorEl)}
                   anchorEl={exportDateAnchorEl}

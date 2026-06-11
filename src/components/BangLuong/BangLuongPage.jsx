@@ -75,6 +75,8 @@ const BangLuongPage = () => {
   const [nam, setNam] = useState(_prevYear);
   const [salaryData, setSalaryData] = useState([]);
   const [openPrintModal, setOpenPrintModal] = useState(false);
+  const [searchTen, setSearchTen] = useState("");
+  const [filterChucVu, setFilterChucVu] = useState("all");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -241,10 +243,35 @@ const BangLuongPage = () => {
     [salaryData, tongLuong]
   );
 
-  const chartData = salaryData.map((item) => ({
-    name: item.hoVaTen,
-    luong: item.thucNhan || 0,
-  }));
+  const chucVuList = useMemo(() => {
+    const set = new Set();
+    (nhanVienData || []).forEach((nv) => {
+      if (nv?.chucVu) set.add(nv.chucVu.trim());
+    });
+    return Array.from(set).sort();
+  }, [nhanVienData]);
+
+  // Map nhanVien._id -> chucVu để tra nhanh
+  const chucVuMap = useMemo(() => {
+    const map = {};
+    (nhanVienData || []).forEach((nv) => {
+      if (nv?._id) map[nv._id] = nv.chucVu?.trim() || "";
+    });
+    return map;
+  }, [nhanVienData]);
+
+  const displayData = useMemo(() => {
+    return salaryData.filter((item) => {
+      const matchTen =
+        !searchTen ||
+        (item.hoVaTen || "")
+          .toLowerCase()
+          .includes(searchTen.toLowerCase().trim());
+      const matchChucVu =
+        filterChucVu === "all" || (chucVuMap[item._id] || "") === filterChucVu;
+      return matchTen && matchChucVu;
+    });
+  }, [salaryData, searchTen, filterChucVu, chucVuMap]);
 
   const handleSave = async () => {
     if (isSaving) return;
@@ -966,10 +993,84 @@ const BangLuongPage = () => {
           ))}
         </div>
 
+        {/* ── SEARCH & FILTER BAR ── */}
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Search theo tên */}
+          <div className="relative flex-1 min-w-[200px]">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Tìm theo tên nhân viên…"
+              value={searchTen}
+              onChange={(e) => setSearchTen(e.target.value)}
+              className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all"
+              style={{ color: "#1e293b" }}
+            />
+            {searchTen && (
+              <button
+                onClick={() => setSearchTen("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Filter theo chức vụ */}
+          <div className="relative">
+            <select
+              value={filterChucVu}
+              onChange={(e) => setFilterChucVu(e.target.value)}
+              className="appearance-none pl-3 pr-8 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all cursor-pointer"
+              style={{ color: filterChucVu === "all" ? "#94a3b8" : "#1e293b" }}
+            >
+              <option value="all">Tất cả chức vụ</option>
+              {chucVuList.map((cv) => (
+                <option key={cv} value={cv}>
+                  {cv}
+                </option>
+              ))}
+            </select>
+            <svg
+              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+
+          {/* Result count when filtering */}
+          {(searchTen || filterChucVu !== "all") && (
+            <span className="text-xs text-slate-400 whitespace-nowrap">
+              {displayData.length} / {salaryData.length} nhân viên
+            </span>
+          )}
+        </div>
+
         {/* ── TABLE ── */}
         {/* Mobile card view */}
         <div className="block md:hidden space-y-3">
-          {salaryData.map((item, idx) => {
+          {displayData.map((item, idx) => {
             const fmt = (n) =>
               (Math.round((n || 0) / 1000) * 1000).toLocaleString("vi-VN") +
               " đ";
@@ -1201,7 +1302,7 @@ const BangLuongPage = () => {
                   })()}
               </thead>
               <tbody>
-                {salaryData.map((item, idx) => (
+                {displayData.map((item, idx) => (
                   <BangLuongRow
                     key={item._id}
                     item={item}

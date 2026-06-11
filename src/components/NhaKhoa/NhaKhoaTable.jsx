@@ -279,7 +279,7 @@ export default function NhaKhoaTable() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell colSpan={8} align="left">
+                <TableCell colSpan={9} align="left">
                   <Typography variant="caption" color="text.secondary">
                     Tổng số {data?.length} nha khoa
                   </Typography>
@@ -303,6 +303,9 @@ export default function NhaKhoaTable() {
                   <b>Mô tả</b>
                 </TableCell>
                 <TableCell>
+                  <b>Công nợ</b>
+                </TableCell>
+                <TableCell>
                   <b>Ngày tạo</b>
                 </TableCell>
                 <TableCell align="center">
@@ -314,7 +317,7 @@ export default function NhaKhoaTable() {
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={9} align="center">
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
@@ -322,7 +325,7 @@ export default function NhaKhoaTable() {
 
               {!loading && filteredData.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={9} align="center">
                     Không có dữ liệu
                   </TableCell>
                 </TableRow>
@@ -380,6 +383,16 @@ export default function NhaKhoaTable() {
                   </TableCell>
 
                   <TableCell>
+                    {(item.tongCongNo ?? 0) > 0 ? (
+                      <span className="font-semibold text-red-500">
+                        {item.tongCongNo.toLocaleString("vi-VN")}đ
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    )}
+                  </TableCell>
+
+                  <TableCell>
                     <Chip
                       label={new Date(item.createdAt).toLocaleDateString(
                         "vi-VN"
@@ -409,7 +422,7 @@ export default function NhaKhoaTable() {
                 </TableRow>
               ))}
               <TableRow>
-                <TableCell colSpan={8} align="right">
+                <TableCell colSpan={9} align="right">
                   <Typography variant="caption" color="text.secondary">
                     Tổng số {data?.length} nha khoa
                   </Typography>
@@ -443,104 +456,145 @@ export default function NhaKhoaTable() {
 
         {!loading &&
           filteredData.map((item) => (
-            <Card
-              key={item._id}
-              sx={{
-                borderRadius: "18px",
-                boxShadow: 3,
-              }}
-            >
-              <CardContent>
-                <Box className="flex justify-between items-start">
-                  <Box>
-                    <Typography fontWeight={700}>{item.hoVaTen}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      ID: {item._id.slice(-6)}
+            <Card key={item._id} sx={{ borderRadius: "16px", boxShadow: 2 }}>
+              <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+                {/* HEADER */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    px: 2,
+                    pt: 1.5,
+                    pb: 1,
+                  }}
+                >
+                  {/* Avatar chữ cái */}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "50%",
+                        bgcolor: "#9e9e9e",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {(item.hoVaTen || item.tenGiaoDich || "?")
+                        .split(" ")
+                        .slice(-2)
+                        .map((w) => w[0])
+                        .join("")
+                        .toUpperCase()}
+                    </Box>
+                  </Box>
+
+                  {/* Tên nha khoa + favorite */}
+                  <Box sx={{ flex: 1, textAlign: "right" }}>
+                    <Typography fontWeight={700} fontSize={14} lineHeight={1.3}>
+                      {item.hoVaTen || item.tenGiaoDich}
                     </Typography>
                   </Box>
 
                   <IconButton
                     size="small"
                     onClick={() => toggleFavorite(item._id)}
+                    sx={{ ml: 0.5, mt: -0.5 }}
                   >
                     {favorites.includes(item._id) ? (
-                      <Star className="text-yellow-400" />
+                      <Star sx={{ fontSize: 20, color: "#facc15" }} />
                     ) : (
-                      <StarBorder className="text-gray-400" />
+                      <StarBorder sx={{ fontSize: 20, color: "#9ca3af" }} />
                     )}
                   </IconButton>
                 </Box>
 
-                <Divider sx={{ my: 1.5 }} />
+                <Divider />
 
-                <Box mb={1}>
-                  <Typography variant="body2" fontWeight={600}>
-                    Liên hệ
-                  </Typography>
-                  <Typography variant="body2">{item.soDienThoai}</Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#1976d2", wordBreak: "break-word" }}
+                {/* ROWS */}
+                {[
+                  { label: "CLINIC", value: item.hoVaTen || item.tenGiaoDich },
+                  { label: "Địa chỉ", value: item.diaChiCuThe || "" },
+                  { label: "Quận/Huyện", value: item.quanHuyen || "" },
+                  { label: "Tỉnh", value: item.tinh || "" },
+                  { label: "Điện thoại", value: item.soDienThoai || "" },
+                  {
+                    label: "Số di động",
+                    value: item.soDiDong || item.soDienThoai || "",
+                  },
+                  {
+                    label: "Công nợ",
+                    value:
+                      (item.tongCongNo ?? 0) > 0
+                        ? item.tongCongNo.toLocaleString("vi-VN")
+                        : "0",
+                    valueColor:
+                      (item.tongCongNo ?? 0) > 0 ? "#ef4444" : undefined,
+                  },
+                  { label: "Tiền tệ", value: item.tienTe || "VND" },
+                  { label: "Email", value: item.email || "" },
+                ].map((row, idx) => (
+                  <Box
+                    key={idx}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      px: 2,
+                      py: 0.9,
+                      borderBottom: "1px solid #f3f4f6",
+                      "&:last-of-type": { borderBottom: "none" },
+                    }}
                   >
-                    {item.email}
-                  </Typography>
-                </Box>
-
-                <Box mb={1}>
-                  <Typography variant="body2" fontWeight={600}>
-                    Địa chỉ
-                  </Typography>
-                  <Typography variant="body2">{item.diaChiCuThe}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {item.tinh}, {item.quocGia}
-                  </Typography>
-                </Box>
-
-                <Box mb={1}>
-                  <Typography variant="body2" fontWeight={600}>
-                    Website
-                  </Typography>
-                  <a
-                    href={`https://${item.website}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 break-all"
-                  >
-                    {item.website}
-                  </a>
-                </Box>
-
-                <Box mb={2}>
-                  <Typography variant="body2" fontWeight={600}>
-                    Mô tả
-                  </Typography>
-                  <Typography variant="body2">
-                    {item.moTa || "Không có mô tả"}
-                  </Typography>
-                </Box>
-
-                <Box className="flex justify-between items-center flex-wrap gap-2">
-                  <Chip
-                    label={new Date(item.createdAt).toLocaleDateString("vi-VN")}
-                    color="success"
-                    size="small"
-                  />
-
-                  <Box className="flex items-center">
-                    <Tooltip title="Chỉnh sửa">
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setSelectedRow(item);
-                          setOpenEdit(true);
-                        }}
-                      >
-                        <Edit className="text-blue-500" />
-                      </IconButton>
-                    </Tooltip>
-
-                    <NhaKhoaDetailModal nhaKhoaData={item} />
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ minWidth: 100 }}
+                    >
+                      {row.label}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      fontWeight={row.valueColor ? 600 : 400}
+                      sx={{
+                        color: row.valueColor || "text.primary",
+                        textAlign: "right",
+                      }}
+                    >
+                      {row.value}
+                    </Typography>
                   </Box>
+                ))}
+
+                {/* FOOTER ACTIONS */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    alignItems: "center",
+                    px: 1,
+                    py: 0.5,
+                    borderTop: "1px solid #f3f4f6",
+                  }}
+                >
+                  <Tooltip title="Chỉnh sửa">
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setSelectedRow(item);
+                        setOpenEdit(true);
+                      }}
+                    >
+                      <Edit sx={{ fontSize: 18, color: "#3b82f6" }} />
+                    </IconButton>
+                  </Tooltip>
+                  <NhaKhoaDetailModal nhaKhoaData={item} />
                 </Box>
               </CardContent>
             </Card>

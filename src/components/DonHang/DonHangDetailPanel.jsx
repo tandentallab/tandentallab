@@ -119,6 +119,14 @@ const DonHangDetailPanel = (props) => {
   };
 
   const handleDelete = () => {
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+    const currentRole = currentUser?.quyenSuDung?.ten;
+
+    if (currentRole !== "Admin") {
+      toast.error("Không có quyền xóa");
+      return;
+    }
+
     if (isLocked) {
       toast.error("Đơn hàng đã xuất hóa đơn / đã giao, không thể xóa");
       return;

@@ -3,6 +3,11 @@ import ReactDOM from "react-dom";
 import {
   useMediaQuery,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -217,8 +222,7 @@ const DonHangDetailPanel = (props) => {
     return null;
   };
 
-  const renderViTriText = (viTriArr, viTriText) => {
-    if (viTriText) return viTriText;
+  const renderViTriText = (viTriArr) => {
     if (!viTriArr || viTriArr.length === 0) return null;
     return viTriArr
       .map((v) =>
@@ -299,14 +303,14 @@ const DonHangDetailPanel = (props) => {
       {/* Backdrop */}
       <div
         className={`fixed left-0 right-0 bottom-0 bg-black/20 transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        style={{ zIndex: props.fullscreen ? 2998 : (isVerySmall ? 1249 : 1199), top: `${panelTop}px` }}
+        style={{ zIndex: props.fullscreen ? 2998 : (isVerySmall ? 1499 : 1298), top: `${panelTop}px` }}
         onClick={onClose}
       />
 
       {/* Slide-out panel */}
       <div
         className={`fixed right-0 flex flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
-        style={{ zIndex: props.fullscreen ? 2999 : (isVerySmall ? 1250 : 1200), top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight, paddingBottom: isMobile ? "80px" : "0" }}
+        style={{ zIndex: props.fullscreen ? 2999 : (isVerySmall ? 1500 : 1300), top: `${panelTop}px`, width: panelWidth, height: panelHeight, maxHeight: panelHeight, paddingBottom: isMobile ? "80px" : "0" }}
       >
         {/* Header */}
         <div className="bg-[#4fc3f7] border-b px-4 py-3 flex items-center justify-between shrink-0">
@@ -417,8 +421,8 @@ const DonHangDetailPanel = (props) => {
                         <div className="text-sm">{sp.soLuong}</div>
                         <div className="text-sm">{sp.sanPham?.tenSanPham || "N/A"}</div>
                       </div>
-                      {(sp.viTri?.length > 0 || sp.viTriText) && (
-                        <div className="text-sm text-gray-700">• Vị trí: {renderViTriText(sp.viTri, sp.viTriText)}</div>
+                      {sp.viTri?.length > 0 && (
+                        <div className="text-sm text-gray-700">• Vị trí: {renderViTriText(sp.viTri)}</div>
                       )}
                       {sp.mau && <div className="text-sm text-gray-700">• Màu: {sp.mau}</div>}
                       {sp.ghiChu && <div className="text-sm text-gray-700">• {sp.ghiChu}</div>}
@@ -428,6 +432,7 @@ const DonHangDetailPanel = (props) => {
                   <div className="text-gray-400 text-sm italic">Chưa có sản phẩm</div>
                 )}
 
+                {/* --- KHU VỰC ĐÃ CẬP NHẬT GIAO DIỆN NÚT IN BẢO HÀNH --- */}
                 {(hasWarranty || donHang?.danhSachSanPham?.some((sp) => sp.loaiDon === "Mới")) && (
                   <div className="flex flex-wrap items-center gap-2 mt-3">
                     <button
@@ -495,9 +500,9 @@ const DonHangDetailPanel = (props) => {
                       <div className="font-semibold text-gray-800 text-sm">
                         {sp.sanPham?.tenSanPham || `Sản phẩm ${spIdx + 1}`}
                       </div>
-                      {(sp.viTri?.length > 0 || sp.viTriText || sp.mau) && (
+                      {(sp.viTri?.length > 0 || sp.mau) && (
                         <div className="text-sm text-gray-600 mt-0.5">
-                          {(sp.viTri?.length > 0 || sp.viTriText) && <><span className="font-medium text-black">{sp.soLuong}</span>{sp.viTri?.length > 0 ? " răng" : ""}: <span className="font-medium text-black">{renderViTriText(sp.viTri, sp.viTriText)}</span></>}
+                          {sp.viTri?.length > 0 && <><span className="font-medium text-black">{sp.soLuong}</span> răng: <span className="font-medium text-black">{renderViTriText(sp.viTri)}</span></>}
                           {sp.mau && <span className="ml-1">– Màu răng: <span className="font-medium text-black">{sp.mau}</span></span>}
                         </div>
                       )}
@@ -604,6 +609,46 @@ const DonHangDetailPanel = (props) => {
           }}
         />
       )}
+
+      {/* Delete confirm dialog */}
+      <Dialog
+        open={showDeleteConfirm}
+        sx={{ zIndex: 9999 }}
+        onClose={() => setShowDeleteConfirm(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: "bold" }}>
+          Xác nhận xóa đơn hàng
+        </DialogTitle>
+
+        <DialogContent>
+          <p>
+            Bạn có chắc chắn muốn xóa đơn hàng <strong>{maDonHang}</strong>?
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            Hành động này không thể hoàn tác.
+          </p>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            onClick={() => setShowDeleteConfirm(false)}
+            variant="outlined"
+            color="inherit"
+          >
+            Hủy
+          </Button>
+
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+          >
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

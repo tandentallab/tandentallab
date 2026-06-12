@@ -55,8 +55,6 @@ const BaoCaoPage = () => {
         dateType: 'ngayNhan'
     });
 
-    console.log('Applied Filters:', appliedFilters);
-
     const formatDate = (from, to) => {
         if (from === to) {
             return `${dayjs(from).format('DD/MM/YY')}`;

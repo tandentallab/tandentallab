@@ -67,10 +67,16 @@ const BangLuongPage = () => {
     (state) => state.bangLuong
   );
 
-  const [thang, setThang] = useState(new Date().getMonth() + 1);
-  const [nam, setNam] = useState(new Date().getFullYear());
+  const _now = new Date();
+  const _prevMonth = _now.getMonth() === 0 ? 12 : _now.getMonth(); // getMonth() trả 0-11, tháng trước = getMonth() (chưa +1)
+  const _prevYear =
+    _now.getMonth() === 0 ? _now.getFullYear() - 1 : _now.getFullYear();
+  const [thang, setThang] = useState(_prevMonth);
+  const [nam, setNam] = useState(_prevYear);
   const [salaryData, setSalaryData] = useState([]);
   const [openPrintModal, setOpenPrintModal] = useState(false);
+  const [searchTen, setSearchTen] = useState("");
+  const [filterChucVu, setFilterChucVu] = useState("all");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -237,10 +243,35 @@ const BangLuongPage = () => {
     [salaryData, tongLuong]
   );
 
-  const chartData = salaryData.map((item) => ({
-    name: item.hoVaTen,
-    luong: item.thucNhan || 0,
-  }));
+  const chucVuList = useMemo(() => {
+    const set = new Set();
+    (nhanVienData || []).forEach((nv) => {
+      if (nv?.chucVu) set.add(nv.chucVu.trim());
+    });
+    return Array.from(set).sort();
+  }, [nhanVienData]);
+
+  // Map nhanVien._id -> chucVu để tra nhanh
+  const chucVuMap = useMemo(() => {
+    const map = {};
+    (nhanVienData || []).forEach((nv) => {
+      if (nv?._id) map[nv._id] = nv.chucVu?.trim() || "";
+    });
+    return map;
+  }, [nhanVienData]);
+
+  const displayData = useMemo(() => {
+    return salaryData.filter((item) => {
+      const matchTen =
+        !searchTen ||
+        (item.hoVaTen || "")
+          .toLowerCase()
+          .includes(searchTen.toLowerCase().trim());
+      const matchChucVu =
+        filterChucVu === "all" || (chucVuMap[item._id] || "") === filterChucVu;
+      return matchTen && matchChucVu;
+    });
+  }, [salaryData, searchTen, filterChucVu, chucVuMap]);
 
   const handleSave = async () => {
     if (isSaving) return;
@@ -343,7 +374,7 @@ const BangLuongPage = () => {
         {
           label: "Lương căn bản",
           value: fmt(emp.luongCanBan),
-          color: "#3b82f6",
+          color: "#0284c7",
         },
         {
           label: "Ngày công / tháng",
@@ -354,13 +385,13 @@ const BangLuongPage = () => {
         {
           label: "Thành tiền công",
           value: fmt(thanhTienCong),
-          color: "#1d4ed8",
+          color: "#0369a1",
         },
-        { label: "Phụ cấp cơm", value: fmt(emp.com), color: "#0891b2" },
+        { label: "Phụ cấp cơm", value: fmt(emp.com), color: "#0284c7" },
         {
           label: "Phụ cấp điện thoại",
           value: fmt(emp.dienThoai),
-          color: "#0891b2",
+          color: "#0284c7",
         },
         { label: "Thưởng", value: fmt(emp.thuong), color: "#16a34a" },
         { label: "Phạt", value: fmt(emp.phat), color: "#dc2626" },
@@ -375,7 +406,7 @@ const BangLuongPage = () => {
                 (emp.phat || 0) -
                 (emp.ungTruoc || 0)
           ),
-          color: "#7c3aed",
+          color: "#0369a1",
         },
       ];
       return ReactDOM.createPortal(
@@ -410,7 +441,7 @@ const BangLuongPage = () => {
             {/* Header */}
             <div
               style={{
-                background: "#0f172a",
+                background: "#0284c7",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -422,16 +453,16 @@ const BangLuongPage = () => {
                 <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>
                   {emp.hoVaTen}
                 </div>
-                <div style={{ color: "#94a3b8", fontSize: 11, marginTop: 2 }}>
+                <div style={{ color: "#bae6fd", fontSize: 11, marginTop: 2 }}>
                   Bảng lương tháng {thang}/{nam}
                 </div>
               </div>
               <button
                 onClick={() => setSelectedEmployee(null)}
                 style={{
-                  background: "rgba(255,255,255,0.08)",
+                  background: "rgba(255,255,255,0.12)",
                   border: "none",
-                  color: "#94a3b8",
+                  color: "#bae6fd",
                   cursor: "pointer",
                   width: 32,
                   height: 32,
@@ -443,7 +474,7 @@ const BangLuongPage = () => {
                   justifyContent: "center",
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#94a3b8")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#bae6fd")}
               >
                 ×
               </button>
@@ -578,7 +609,7 @@ const BangLuongPage = () => {
               style={{
                 fontWeight: 700,
                 fontSize: 16,
-                color: "#0f172a",
+                color: "#0284c7",
                 marginBottom: 8,
               }}
             >
@@ -607,7 +638,7 @@ const BangLuongPage = () => {
                   borderRadius: 10,
                   border: "1px solid #e2e8f0",
                   background: "#f8fafc",
-                  color: "#334155",
+                  color: "#075985",
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: "pointer",
@@ -647,7 +678,7 @@ const BangLuongPage = () => {
       <div
         className="shrink-0 flex flex-col md:flex-row md:items-center justify-between px-4 py-4 md:px-5 md:py-3 shadow-md gap-4 md:gap-2"
         style={{
-          background: "linear-gradient(90deg, #0f172a 0%, #1e3a5f 100%)",
+          background: "linear-gradient(90deg, #0284c7 0%, #0ea5e9 100%)",
           minHeight: 60,
         }}
       >
@@ -658,7 +689,7 @@ const BangLuongPage = () => {
               size="small"
               onClick={() => safeNavigate(-1)}
               sx={{
-                color: "#94a3b8",
+                color: "#bae6fd",
                 "&:hover": {
                   color: "#fff",
                   background: "rgba(255,255,255,0.08)",
@@ -677,7 +708,7 @@ const BangLuongPage = () => {
               >
                 BẢNG LƯƠNG
               </div>
-              <div className="text-slate-400 text-xs">
+              <div className="text-sky-200 text-xs">
                 Tháng {thang} / {nam}
               </div>
             </div>
@@ -741,7 +772,7 @@ const BangLuongPage = () => {
                     "&:hover .MuiOutlinedInput-notchedOutline": {
                       borderColor: "rgba(255,255,255,0.35)",
                     },
-                    "& .MuiSvgIcon-root": { color: "#94a3b8" },
+                    "& .MuiSvgIcon-root": { color: "#bae6fd" },
                   }}
                 >
                   {items.map(({ val, label: lbl }) => (
@@ -774,22 +805,22 @@ const BangLuongPage = () => {
               className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all w-full sm:w-auto"
               style={{
                 background: isSaving
-                  ? "#1e40af"
+                  ? "#075985"
                   : !isDirty
-                  ? "#334155"
-                  : "#2563eb",
-                color: !isDirty ? "#64748b" : "#fff",
-                border: "none",
+                  ? "rgba(255,255,255,0.08)"
+                  : "#0284c7",
+                color: !isDirty ? "#94a3b8" : "#fff",
+                border: !isDirty ? "1px solid rgba(255,255,255,0.13)" : "none",
                 cursor: isSaving || !isDirty ? "not-allowed" : "pointer",
-                opacity: isSaving ? 0.75 : !isDirty ? 0.5 : 1,
+                opacity: isSaving ? 0.75 : !isDirty ? 0.6 : 1,
               }}
               onMouseEnter={(e) => {
                 if (!isSaving && isDirty)
-                  e.currentTarget.style.background = "#1d4ed8";
+                  e.currentTarget.style.background = "#0369a1";
               }}
               onMouseLeave={(e) => {
                 if (!isSaving && isDirty)
-                  e.currentTarget.style.background = "#2563eb";
+                  e.currentTarget.style.background = "#0284c7";
               }}
             >
               {isSaving ? (
@@ -849,16 +880,16 @@ const BangLuongPage = () => {
                 onClick={handleExport}
                 className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all w-full sm:w-auto"
                 style={{
-                  background: "#065f46",
-                  color: "#6ee7b7",
-                  border: "1px solid #065f46",
+                  background: "rgba(255,255,255,0.1)",
+                  color: "#e0f2fe",
+                  border: "1px solid rgba(255,255,255,0.25)",
                   cursor: "pointer",
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#047857")
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.18)")
                 }
                 onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "#065f46")
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.1)")
                 }
               >
                 <DownloadIcon sx={{ fontSize: 16 }} />
@@ -872,16 +903,16 @@ const BangLuongPage = () => {
                 onClick={() => setOpenPrintModal(true)}
                 className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all w-full sm:w-auto"
                 style={{
-                  background: "#14b8a6",
+                  background: "rgba(255,255,255,0.15)",
                   color: "#fff",
-                  border: "none",
+                  border: "1px solid rgba(255,255,255,0.3)",
                   cursor: "pointer",
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#0d9488")
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.22)")
                 }
                 onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "#14b8a6")
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.15)")
                 }
               >
                 <PrintIcon sx={{ fontSize: 16 }} />
@@ -923,7 +954,7 @@ const BangLuongPage = () => {
             {
               label: "Số nhân viên",
               value: salaryData.length,
-              accent: "#3b82f6",
+              accent: "#0284c7",
             },
             {
               label: "Tổng quỹ lương",
@@ -962,10 +993,84 @@ const BangLuongPage = () => {
           ))}
         </div>
 
+        {/* ── SEARCH & FILTER BAR ── */}
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Search theo tên */}
+          <div className="relative flex-1 min-w-[200px]">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Tìm theo tên nhân viên…"
+              value={searchTen}
+              onChange={(e) => setSearchTen(e.target.value)}
+              className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all"
+              style={{ color: "#1e293b" }}
+            />
+            {searchTen && (
+              <button
+                onClick={() => setSearchTen("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Filter theo chức vụ */}
+          <div className="relative">
+            <select
+              value={filterChucVu}
+              onChange={(e) => setFilterChucVu(e.target.value)}
+              className="appearance-none pl-3 pr-8 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all cursor-pointer"
+              style={{ color: filterChucVu === "all" ? "#94a3b8" : "#1e293b" }}
+            >
+              <option value="all">Tất cả chức vụ</option>
+              {chucVuList.map((cv) => (
+                <option key={cv} value={cv}>
+                  {cv}
+                </option>
+              ))}
+            </select>
+            <svg
+              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+
+          {/* Result count when filtering */}
+          {(searchTen || filterChucVu !== "all") && (
+            <span className="text-xs text-slate-400 whitespace-nowrap">
+              {displayData.length} / {salaryData.length} nhân viên
+            </span>
+          )}
+        </div>
+
         {/* ── TABLE ── */}
         {/* Mobile card view */}
         <div className="block md:hidden space-y-3">
-          {salaryData.map((item, idx) => {
+          {displayData.map((item, idx) => {
             const fmt = (n) =>
               (Math.round((n || 0) / 1000) * 1000).toLocaleString("vi-VN") +
               " đ";
@@ -983,7 +1088,7 @@ const BangLuongPage = () => {
               <div
                 key={item._id}
                 className="rounded-xl shadow p-4 cursor-pointer"
-                style={{ background: "#fff", borderLeft: "4px solid #3b82f6" }}
+                style={{ background: "#fff", borderLeft: "4px solid #0284c7" }}
                 onClick={() => setSelectedEmployee(item)}
               >
                 <div className="flex items-center justify-between mb-3">
@@ -1042,7 +1147,7 @@ const BangLuongPage = () => {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <span className="font-medium text-slate-600">Tổng LCB:</span>{" "}
-                  <span className="font-bold text-blue-700">
+                  <span className="font-bold" style={{ color: "#0284c7" }}>
                     {(
                       Math.round((colTotals.luongCanBan || 0) / 1000) * 1000
                     ).toLocaleString("vi-VN")}{" "}
@@ -1079,7 +1184,7 @@ const BangLuongPage = () => {
               <thead>
                 <tr
                   style={{
-                    background: "#0f172a",
+                    background: "#0284c7",
                     position: "sticky",
                     top: 0,
                     zIndex: 10,
@@ -1090,9 +1195,9 @@ const BangLuongPage = () => {
                       key={col}
                       className="px-4 py-3 text-left whitespace-nowrap text-xs font-bold uppercase tracking-wider"
                       style={{
-                        color: "#94a3b8",
-                        borderBottom: "2px solid #1e293b",
-                        background: "#0f172a",
+                        color: "#e0f2fe",
+                        borderBottom: "2px solid #0369a1",
+                        background: "#0284c7",
                         ...(col === "Nhân viên" && {
                           position: "sticky",
                           left: 0,
@@ -1136,7 +1241,7 @@ const BangLuongPage = () => {
                         {/* LCB */}
                         <td
                           className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
-                          style={{ color: "#1d4ed8" }}
+                          style={{ color: "#0284c7" }}
                         >
                           {fmt(colTotals.luongCanBan)}
                         </td>
@@ -1149,28 +1254,28 @@ const BangLuongPage = () => {
                         {/* Thành tiền */}
                         <td
                           className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
-                          style={{ color: "#1d4ed8" }}
+                          style={{ color: "#0284c7" }}
                         >
                           {fmt(colTotals.thanhTienCong)}
                         </td>
                         {/* Cơm */}
                         <td
                           className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
-                          style={{ color: "#1d4ed8" }}
+                          style={{ color: "#0284c7" }}
                         >
                           {fmt(colTotals.com)}
                         </td>
                         {/* Điện thoại */}
                         <td
                           className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
-                          style={{ color: "#1d4ed8" }}
+                          style={{ color: "#0284c7" }}
                         >
                           {fmt(colTotals.dienThoai)}
                         </td>
                         {/* Thưởng */}
                         <td
                           className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
-                          style={{ color: "#1d4ed8" }}
+                          style={{ color: "#0284c7" }}
                         >
                           {fmt(colTotals.thuong)}
                         </td>
@@ -1197,7 +1302,7 @@ const BangLuongPage = () => {
                   })()}
               </thead>
               <tbody>
-                {salaryData.map((item, idx) => (
+                {displayData.map((item, idx) => (
                   <BangLuongRow
                     key={item._id}
                     item={item}

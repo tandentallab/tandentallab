@@ -15,6 +15,18 @@ export const fetchChartData = createAsyncThunk(
     }
 );
 
+export const fetchOrderByMonth = createAsyncThunk(
+    'dashboard/fetchOrderByMonth',
+    async (params, { rejectWithValue }) => {
+        try {
+            const response = await api.get('/dashboard/don-hang-thang', { params });
+            return response.data.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Error fetching monthly orders');
+        }
+    }
+);
+
 // Default Filter theo yêu cầu: 7 ngày, nhóm theo ngày, bật legend, tắt label
 const defaultFilter = {
     timeRange: 'Trong vòng 7 ngày',
@@ -30,6 +42,7 @@ const dashboardSlice = createSlice({
         chart2: { data: [], loading: false, config: { ...defaultFilter } },
         chart3: { data: [], loading: false, config: { ...defaultFilter, showDataLabels: true } },
         chart4: { data: [], loading: false, config: { ...defaultFilter, showDataLabels: false, showLegend: true } },
+        orders: { data: [], loading: false, error: null }
     },
     reducers: {
         updateChartConfig: (state, action) => {
@@ -42,6 +55,7 @@ const dashboardSlice = createSlice({
             state.chart2 = { data: [], loading: false, config: { ...defaultFilter } };
             state.chart3 = { data: [], loading: false, config: { ...defaultFilter, showDataLabels: true } };
             state.chart4 = { data: [], loading: false, config: { ...defaultFilter, showDataLabels: false, showLegend: true } };
+            state.orders = { data: [], loading: false, error: null };
         }
     },
     extraReducers: (builder) => {
@@ -58,6 +72,18 @@ const dashboardSlice = createSlice({
             .addCase(fetchChartData.rejected, (state, action) => {
                 const { chartId } = action.meta.arg;
                 state[chartId].loading = false;
+            })
+            .addCase(fetchOrderByMonth.pending, (state) => {
+                state.orders.loading = true;
+                state.orders.error = null;
+            })
+            .addCase(fetchOrderByMonth.fulfilled, (state, action) => {
+                state.orders.loading = false;
+                state.orders.data = action.payload || [];
+            })
+            .addCase(fetchOrderByMonth.rejected, (state, action) => {
+                state.orders.loading = false;
+                state.orders.error = action.payload || 'Error fetching monthly orders';
             });
     }
 });

@@ -12,6 +12,8 @@ import PrintPreviewDialog from './PrintPreviewDialog';
 import PrintTemplate from './PrintTemplate';
 import { fetchTopProductsBaoCao } from '../../redux/slices/baoCaoSlice';
 
+import { fetchOrderByMonth } from '../../redux/slices/dashboardSlice';
+
 const computeDateRange = (filter, customDates) => {
     if (filter === 'custom') return { startDate: customDates.start, endDate: customDates.end };
     const now = dayjs();
@@ -42,6 +44,7 @@ const BaoCaoPage = () => {
     const [openPreview, setOpenPreview] = useState(false);
 
     const { detailedData, data: topProducts, loading, error } = useSelector((state) => state.baoCao);
+    const { orders } = useSelector((state) => state.dashboard);
 
     const draftDates = useMemo(() => computeDateRange(selectedFilter, customDates), [selectedFilter, customDates]);
 
@@ -52,6 +55,15 @@ const BaoCaoPage = () => {
         dateType: 'ngayNhan'
     });
 
+    console.log('Applied Filters:', appliedFilters);
+
+    const formatDate = (from, to) => {
+        if (from === to) {
+            return `${dayjs(from).format('DD/MM/YY')}`;
+        }
+        return `${dayjs(from).format('DD/MM/YY')} - ${dayjs(to).format('DD/MM/YY')}`;
+    };
+
     const handleView = () => {
         const newFilters = {
             startDate: draftDates.startDate,
@@ -61,9 +73,20 @@ const BaoCaoPage = () => {
         setAppliedFilters(newFilters);
         setHasSearched(true);
         dispatch(fetchTopProductsBaoCao(newFilters));
+        dispatch(fetchOrderByMonth(newFilters));
     };
 
     const handlePrintAction = () => { setOpenPreview(false); setTimeout(() => window.print(), 300); };
+
+    const mapOrderType = (type) => {
+        switch (type) {
+            case 'Mới': return 'Mới';
+            case 'Hàng sửa': return 'Sửa';
+            case 'Hàng làm lại': return 'Làm lại';
+            case 'Hàng bảo hành': return 'Bảo hành';
+            default: return type;
+        }
+    };
 
     return (
         <ReportLayout title="Sản lượng theo thời gian">
@@ -102,8 +125,30 @@ const BaoCaoPage = () => {
                 <div className="print-only">
                     <PrintTemplate data={detailedData} startDate={appliedFilters.startDate} endDate={appliedFilters.endDate} />
                 </div>
-            </Box>
-        </ReportLayout>
+
+                {hasSearched && <div className='p-4 mt-6 flex flex-col gap-4 justify-between bg-sky-900 text-white rounded-lg shadow'>
+                    <div className='flex flex-wrap items-center gap-3'>
+                        <p className='font-bold tracking-wide'>TỈ LỆ ĐƠN HÀNG</p>
+                        <p className='text-gray-200'>({formatDate(appliedFilters.startDate, appliedFilters.endDate)})</p>
+                    </div>
+
+                    <div>
+                        {orders?.loading && <p>Đang tải đơn hàng...</p>}
+                        {orders?.error && <p className="text-red-500">Lỗi: {orders.error}</p>}
+                        {!orders?.loading && !orders?.error && (
+                            <div>
+                                {Object.entries(orders?.data?.donHang || {}).map(([label, value]) => (
+                                    <div key={label} className="flex">
+                                        <p className='w-28'>{mapOrderType(label)}</p>
+                                        <p className='font-bold'>{value}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>}
+            </Box >
+        </ReportLayout >
     );
 };
 

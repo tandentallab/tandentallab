@@ -232,16 +232,31 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
     return orders;
   }, [displayedData]);
 
-  useEffect(() => { setVisibleCount(25); }, [displayedData]);
+  const displayedDataLengthRef = useRef(displayedData.length);
+  useEffect(() => {
+    // Only reset when the actual data set changes (new clinic, new filter, etc.)
+    if (displayedDataLengthRef.current !== displayedData.length) {
+      displayedDataLengthRef.current = displayedData.length;
+      setVisibleCount(25);
+    }
+  }, [displayedData.length]);
+
+  // Reset on selectedClinic or date filter change
+  useEffect(() => { setVisibleCount(25); }, [selectedClinic, dateFilter, fromDate, toDate, searchMaDon]);
 
   useEffect(() => {
     const container = containerRef.current; const sentinel = sentinelRef.current;
     if (!container || !sentinel) return;
+    if (visibleCount >= displayedData.length) return; // Nothing more to load
+
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) { setVisibleCount((prev) => Math.min(prev + 25, displayedData.length)); }
-    }, { root: container, threshold: 0.1 });
-    observer.observe(sentinel); return () => observer.disconnect();
-  }, [displayedData.length]);
+      if (entries[0].isIntersecting) {
+        setVisibleCount((prev) => Math.min(prev + 25, displayedData.length));
+      }
+    }, { root: container, rootMargin: '200px', threshold: 0 });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [displayedData.length, visibleCount]);
 
   const visibleRows = displayedData.slice(0, visibleCount);
 

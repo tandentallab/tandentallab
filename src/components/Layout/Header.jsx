@@ -189,18 +189,40 @@ const Header = ({ onToggleSidebar }) => {
   };
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      sessionStorage.removeItem("has_shown_initial_toast");
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
     if (isAuthenticated && hasRouteAccess(user, "/ghi-chu")) {
       fetchTodos();
 
-      // Chạy lần đầu tiên sau khi đăng nhập 2 giây (tránh đè lên các toast chào mừng)
+      // 🔥 Hiển thị thông báo ngay lập tức khi mới đăng nhập hoặc mới mở website lên (lần đầu tiên của session)
+      const hasShownInitial = sessionStorage.getItem("has_shown_initial_toast");
+      if (!hasShownInitial) {
+        runTodoToastFlow();
+        sessionStorage.setItem("has_shown_initial_toast", "true");
+      }
+
+      // Tính số mili-giây đến phút tròn chục gần nhất (xx:00, xx:10, xx:20, xx:30, xx:40, xx:50)
+      const now = new Date();
+      const currentMinutes = now.getMinutes();
+      const currentSeconds = now.getSeconds();
+      const currentMs = now.getMilliseconds();
+      const minutesPastRound = currentMinutes % 10;
+      const minutesToNextRound = minutesPastRound === 0 ? 10 : (10 - minutesPastRound);
+      const msUntilNextRound = (minutesToNextRound * 60 - currentSeconds) * 1000 - currentMs;
+
+      // Đợi đến phút tròn chục gần nhất rồi mới bắt đầu đẩy thông báo
       const initialTimeout = setTimeout(() => {
         runTodoToastFlow();
-      }, 2000);
 
-      // Thiết lập kiểm tra và đẩy định kỳ sau mỗi 10 phút
-      checkIntervalRef.current = setInterval(() => {
-        runTodoToastFlow();
-      }, 10 * 60 * 1000);
+        // Sau đó cứ đúng mỗi 10 phút thì đẩy tiếp (đã căn chỉnh theo đồng hồ)
+        checkIntervalRef.current = setInterval(() => {
+          runTodoToastFlow();
+        }, 10 * 60 * 1000);
+      }, msUntilNextRound);
 
       return () => {
         clearTimeout(initialTimeout);

@@ -10,7 +10,7 @@ import {
   Button,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   deleteDonHang,
   updateCongDoanTrangThai,
@@ -27,6 +27,10 @@ import PrintIcon from '@mui/icons-material/Print';
 import CheckIcon from '@mui/icons-material/Check';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
+import { getAuthSelector } from "../../redux/selector";
+import { hasRouteAccess } from "../../config/permissions";
+import GhiChuAddModal from "../GhiChu/GhiChuAddModal";
 
 const DonHangDetailPanel = (props) => {
   const { donHang, onClose } = props;
@@ -36,8 +40,10 @@ const DonHangDetailPanel = (props) => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user } = useSelector(getAuthSelector);
   const [activeTab, setActiveTab] = useState("chitiet");
   const [isPhieuBaoHanhOpen, setIsPhieuBaoHanhOpen] = useState(false);
+  const [isAddTodoOpen, setIsAddTodoOpen] = useState(false);
   const [warranty, setWarranty] = useState(null);
   const [selectedProductIndex, setSelectedProductIndex] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null); // { spIndex, thuTu, top, right }
@@ -441,14 +447,24 @@ const DonHangDetailPanel = (props) => {
                   <div className="text-gray-400 text-sm italic">Chưa có sản phẩm</div>
                 )}
 
-                {(hasWarranty || donHang?.danhSachSanPham?.some((sp) => sp.loaiDon === "Mới")) && (
+                {((hasWarranty || donHang?.danhSachSanPham?.some((sp) => sp.loaiDon === "Mới")) || hasRouteAccess(user, "/ghi-chu")) && (
                   <div className="flex flex-wrap items-center gap-2 mt-3">
-                    <button
-                      onClick={() => setIsPhieuBaoHanhOpen(true)}
-                      className={`font-medium text-sm px-3 py-1.5 rounded-full text-white flex items-center gap-2 transition-colors ${hasWarranty ? "bg-teal-500 hover:bg-teal-600" : "bg-slate-500 hover:bg-slate-600"}`}
-                    >
-                      <ReceiptIcon sx={{ fontSize: 18 }} /> Thẻ bảo hành
-                    </button>
+                    {(hasWarranty || donHang?.danhSachSanPham?.some((sp) => sp.loaiDon === "Mới")) && (
+                      <button
+                        onClick={() => setIsPhieuBaoHanhOpen(true)}
+                        className={`font-medium text-sm px-3 py-1.5 rounded-full text-white flex items-center gap-2 transition-colors ${hasWarranty ? "bg-teal-500 hover:bg-teal-600" : "bg-slate-500 hover:bg-slate-600"}`}
+                      >
+                        <ReceiptIcon sx={{ fontSize: 18 }} /> Thẻ bảo hành
+                      </button>
+                    )}
+                    {hasRouteAccess(user, "/ghi-chu") && (
+                      <button
+                        onClick={() => setIsAddTodoOpen(true)}
+                        className="font-medium text-sm px-3 py-1.5 rounded-full text-white flex items-center transition-colors bg-blue-500 hover:bg-blue-600"
+                      >
+                        Thêm ghi chú
+                      </button>
+                    )}
                   </div>
                 )}
                 {/* --------------------------------------------------- */}
@@ -615,6 +631,15 @@ const DonHangDetailPanel = (props) => {
           onSuccess={(newWarranty) => {
             setWarranty(newWarranty);
           }}
+        />
+      )}
+
+      {donHang && isAddTodoOpen && (
+        <GhiChuAddModal
+          open={isAddTodoOpen}
+          onClose={() => setIsAddTodoOpen(false)}
+          initialMaDonHang={maDonHang}
+          initialDonHangId={donHang._id}
         />
       )}
 

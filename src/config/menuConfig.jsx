@@ -54,6 +54,12 @@ export const SETTING_MENU = [
 export const ALL_MENUS = [
   { title: "Menu Chính", items: MAIN_MENU },
   { title: "Khách Hàng", items: CUSTOMER_MENU },
-  { title: "Khác", items: OTHER_MENU },
+  { 
+    title: "Khác", 
+    items: [
+      ...OTHER_MENU,
+      { name: "Ghi chú", router: "/ghi-chu", icon: <Assignment /> }
+    ]
+  },
   { title: "Thiết Lập", items: SETTING_MENU },
 ];

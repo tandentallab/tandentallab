@@ -26,12 +26,15 @@ import { getAuthSelector } from "../../redux/selector";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../config/api";
 import debounce from "lodash/debounce";
+import NoteAddIcon from "@mui/icons-material/NoteAdd";
+import { hasRouteAccess } from "../../config/permissions";
+import { toast } from "sonner";
 
 // Import trang Tìm kiếm nâng cao vào đây
 import TimKiemNangCaoPage from "./TimKiemNangCaoPage";
 
 const Header = ({ onToggleSidebar }) => {
-  const { isAuthenticated } = useSelector(getAuthSelector);
+  const { isAuthenticated, user } = useSelector(getAuthSelector);
   const navigate = useNavigate();
 
   // States
@@ -47,6 +50,10 @@ const Header = ({ onToggleSidebar }) => {
 
   // State quản lý bật/tắt Tìm kiếm nâng cao
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [openTodoPopover, setOpenTodoPopover] = useState(false);
+  const [todoList, setTodoList] = useState([]);
+  const [checkedTodoIds, setCheckedTodoIds] = useState([]);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const searchContainerRef = useRef(null);
 
@@ -98,6 +105,143 @@ const Header = ({ onToggleSidebar }) => {
     setSearchQuery(value);
     setIsDropdownOpen(true);
     fetchSearchResults(value);
+  };
+
+  const fetchTodos = async () => {
+    try {
+      const res = await api.get("/ghi-chu");
+      if (res.data?.success) {
+        setTodoList(res.data.data);
+      }
+    } catch (error) {
+      console.error("Lỗi lấy danh sách ghi chú:", error);
+    }
+  };
+
+  const toastIntervalRef = useRef(null);
+  const checkIntervalRef = useRef(null);
+
+  const runTodoToastFlow = async () => {
+    try {
+      const res = await api.get("/ghi-chu");
+      if (res.data?.success && res.data.data?.length > 0) {
+        const todos = res.data.data;
+        
+        // Dọn dẹp hàng đợi cũ nếu đang chạy dở
+        if (toastIntervalRef.current) {
+          clearInterval(toastIntervalRef.current);
+          toastIntervalRef.current = null;
+        }
+
+        let currentIndex = 0;
+        
+        const showNextTodo = () => {
+          if (currentIndex >= todos.length) {
+            if (toastIntervalRef.current) {
+              clearInterval(toastIntervalRef.current);
+              toastIntervalRef.current = null;
+            }
+            return;
+          }
+
+          const note = todos[currentIndex];
+          const labelText = note.maDonHang 
+            ? `[Mã ĐH: ${note.maDonHang}] Ghi chú cần xử lý:`
+            : "Ghi chú công việc chung:";
+
+          // Đẩy toast hiển thị với duration: Infinity để tự kiểm soát đóng
+          const toastId = toast.info(labelText, {
+            description: note.noiDung,
+            duration: Infinity,
+            action: {
+              label: "Xem",
+              onClick: () => {
+                if (note.donHang) {
+                  navigate(`/donhang/${note.donHang._id}/edit`);
+                } else {
+                  navigate("/ghi-chu");
+                }
+                toast.dismiss(toastId);
+              }
+            }
+          });
+
+          // Tự động tắt sau đúng 15 giây
+          setTimeout(() => {
+            toast.dismiss(toastId);
+          }, 15000);
+
+          currentIndex++;
+        };
+
+        // Hiện ghi chú đầu tiên ngay lập tức
+        showNextTodo();
+
+        // Cứ mỗi 5 giây thì hiện ghi chú tiếp theo (staggered display)
+        // Với thời gian sống 15s của mỗi toast, trên màn hình sẽ hiển thị tối đa 3 toast cùng lúc
+        toastIntervalRef.current = setInterval(() => {
+          showNextTodo();
+        }, 5000);
+      }
+    } catch (error) {
+      console.error("Lỗi khi chạy luồng toast ghi chú:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && hasRouteAccess(user, "/ghi-chu")) {
+      fetchTodos();
+
+      // Chạy lần đầu tiên sau khi đăng nhập 2 giây (tránh đè lên các toast chào mừng)
+      const initialTimeout = setTimeout(() => {
+        runTodoToastFlow();
+      }, 2000);
+
+      // Thiết lập kiểm tra và đẩy định kỳ sau mỗi 10 phút
+      checkIntervalRef.current = setInterval(() => {
+        runTodoToastFlow();
+      }, 10 * 60 * 1000);
+
+      return () => {
+        clearTimeout(initialTimeout);
+        if (checkIntervalRef.current) {
+          clearInterval(checkIntervalRef.current);
+        }
+        if (toastIntervalRef.current) {
+          clearInterval(toastIntervalRef.current);
+        }
+      };
+    }
+  }, [isAuthenticated, user]);
+
+  const handleToggleTodoPopover = () => {
+    if (!openTodoPopover) {
+      fetchTodos();
+    }
+    setOpenTodoPopover(!openTodoPopover);
+  };
+
+  const handleToggleCheckTodo = (id) => {
+    setCheckedTodoIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleConfirmComplete = async () => {
+    if (checkedTodoIds.length === 0) return;
+    setIsCompleting(true);
+    try {
+      await Promise.all(
+        checkedTodoIds.map((id) => api.delete(`/ghi-chu/${id}`))
+      );
+      toast.success("Đã hoàn thành và xóa các ghi chú được chọn!");
+      setCheckedTodoIds([]);
+      fetchTodos();
+    } catch (error) {
+      toast.error("Lỗi khi hoàn thành ghi chú: " + error.message);
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
   return (
@@ -349,6 +493,123 @@ const Header = ({ onToggleSidebar }) => {
 
             {isAuthenticated ? (
               <>
+                {hasRouteAccess(user, "/ghi-chu") && (
+                  <div className="relative">
+                    <button
+                      onClick={handleToggleTodoPopover}
+                      title="Lưu ý cần xử lý"
+                      className="flex items-center justify-center w-10 h-10 bg-white text-blue-600 rounded-lg border border-gray-200 hover:bg-gray-50 transition shadow-sm relative shrink-0"
+                    >
+                      <NoteAddIcon className="!w-6 !h-6" />
+                      {todoList.length > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center font-bold animate-pulse shadow-sm">
+                          {todoList.length}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Popover overlay click to close */}
+                    {openTodoPopover && (
+                      <div
+                        className="fixed inset-0 z-[1190]"
+                        onClick={() => setOpenTodoPopover(false)}
+                      />
+                    )}
+
+                    {/* Todo Popover */}
+                    {openTodoPopover && (
+                      <Paper
+                        className="absolute right-[-100px] sm:right-0 mt-2 w-[calc(100vw-32px)] sm:w-80 max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 z-[1200] flex flex-col overflow-hidden text-gray-800"
+                        style={{
+                          top: "45px",
+                          maxHeight: "450px",
+                        }}
+                      >
+                        {/* Header */}
+                        <div className="bg-blue-50 px-4 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
+                          <span className="font-bold text-blue-900 text-sm">
+                            Ghi chú cần xử lý ({todoList.length})
+                          </span>
+                        </div>
+
+                        {/* List */}
+                        <div className="flex-grow overflow-y-auto divide-y divide-gray-100 p-2 max-h-[300px]">
+                          {todoList.length > 0 ? (
+                            todoList.map((todo) => (
+                              <div
+                                key={todo._id}
+                                className="p-2 flex items-start gap-2.5 hover:bg-gray-50 transition rounded-lg"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checkedTodoIds.includes(todo._id)}
+                                  onChange={() => handleToggleCheckTodo(todo._id)}
+                                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                                />
+                                <div className="flex-1 min-w-0 text-left">
+                                  <p className="text-gray-800 font-medium text-xs whitespace-pre-wrap leading-relaxed">
+                                    {todo.noiDung}
+                                  </p>
+                                  <div className="flex items-center justify-between mt-1.5 text-[10px] text-gray-400">
+                                    <span>Người tạo: {todo.nguoiGhiChu}</span>
+                                    {todo.donHang ? (
+                                      <span
+                                        onClick={() => {
+                                          setOpenTodoPopover(false);
+                                          navigate(`/donhang/${todo.donHang._id}/edit`);
+                                        }}
+                                        className="font-bold text-blue-600 hover:underline cursor-pointer"
+                                      >
+                                        {todo.maDonHang}
+                                      </span>
+                                    ) : (
+                                      todo.maDonHang && (
+                                        <span className="font-bold text-gray-500">
+                                          {todo.maDonHang}
+                                        </span>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="py-10 text-center text-gray-400 italic text-xs">
+                              Không có ghi chú nào cần xử lý
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-2.5 bg-gray-50 border-t border-gray-100 flex gap-2 justify-end shrink-0">
+                          <Button
+                            size="small"
+                            onClick={() => {
+                              setOpenTodoPopover(false);
+                              navigate("/ghi-chu");
+                            }}
+                            variant="outlined"
+                            className="text-gray-600 border-gray-300 hover:bg-gray-100 font-bold text-[11px] px-3 py-1 rounded-lg lowercase first-letter:uppercase"
+                            style={{ textTransform: "none" }}
+                          >
+                            Mở rộng
+                          </Button>
+                          <Button
+                            size="small"
+                            disabled={checkedTodoIds.length === 0 || isCompleting}
+                            onClick={handleConfirmComplete}
+                            variant="contained"
+                            color="success"
+                            className="bg-green-600 hover:bg-green-700 text-white font-bold text-[11px] px-3 py-1 rounded-lg disabled:opacity-50"
+                            style={{ textTransform: "none" }}
+                          >
+                            {isCompleting ? "Đang xử lý..." : "Hoàn thành"}
+                          </Button>
+                        </div>
+                      </Paper>
+                    )}
+                  </div>
+                )}
                 <QuickAddMenu />
                 <IconButton color="inherit">
                   <NotificationsIcon />
@@ -366,6 +627,7 @@ const Header = ({ onToggleSidebar }) => {
       {showAdvancedSearch && (
         <TimKiemNangCaoPage onClose={() => setShowAdvancedSearch(false)} />
       )}
+
     </>
   );
 };

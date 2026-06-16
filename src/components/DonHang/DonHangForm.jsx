@@ -19,6 +19,9 @@ import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 import PhieuBaoHanhList from "./PhieuBaoHanhList";
 import WarrantyCardPrint from "./WarrantyCardPrint";
 import { toast } from "sonner";
+import { hasRouteAccess } from "../../config/permissions";
+import GhiChuAddModal from "../GhiChu/GhiChuAddModal";
+import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
 
 // ===== QUICK ADD MODALS =====
 const QuickAddModal = ({ open, onClose, title, children, onSubmit, loading }) => {
@@ -227,6 +230,8 @@ const DonHangForm = () => {
   const [phieuBaoHanhList, setPhieuBaoHanhList] = useState([]);
   const [openPrintWarranty, setOpenPrintWarranty] = useState(false);
   const [selectedWarranty, setSelectedWarranty] = useState(null);
+  const [isAddTodoOpen, setIsAddTodoOpen] = useState(false);
+  const [tempGhiChuIds, setTempGhiChuIds] = useState([]);
 
   // Date picker anchor elements
   const [ngayNhanAnchor, setNgayNhanAnchor] = useState(null);
@@ -637,6 +642,7 @@ const DonHangForm = () => {
       ...(isEditMode
         ? { nhatKyLogEntry: { nguoiThuc: nguoiThuc, hanhDong: "Chỉnh sửa đơn hàng" } }
         : { nguoiThucDuyet: nguoiThuc }),
+      ...(!isEditMode && tempGhiChuIds.length > 0 ? { ghiChuIds: tempGhiChuIds } : {}),
     };
 
     setIsSubmitting(true);
@@ -1208,6 +1214,15 @@ const DonHangForm = () => {
               In thẻ bảo hành
             </button>
           )}
+          {!isViewOnly && hasRouteAccess(user, "/ghi-chu") && (
+            <button
+              type="button"
+              onClick={() => setIsAddTodoOpen(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded text-sm flex items-center"
+            >
+              Thêm ghi chú
+            </button>
+          )}
 
         </div>
         <button
@@ -1221,6 +1236,20 @@ const DonHangForm = () => {
       </div>
 
       <>
+        {isAddTodoOpen && (
+          <GhiChuAddModal
+            open={isAddTodoOpen}
+            onClose={() => setIsAddTodoOpen(false)}
+            initialMaDonHang={formData.maDonHang || (id ? `TAN${id.substring(id.length - 8).toUpperCase()}` : "")}
+            initialDonHangId={id}
+            onSuccess={(newGhiChu) => {
+              if (!isEditMode && newGhiChu && newGhiChu._id) {
+                setTempGhiChuIds((prev) => [...prev, newGhiChu._id]);
+              }
+            }}
+          />
+        )}
+
         <ChonViTriRangModal
           isOpen={isViTriModalOpen}
           onClose={() => setIsViTriModalOpen(false)}

@@ -7,6 +7,7 @@ import {
   Upload,
   Business,
   Add,
+  NoteAdd,
 } from "@mui/icons-material";
 import NguoiLienHeModal from "../NguoiLienHe/NguoiLienHeModal";
 import NhaKhoaModal from "../NhaKhoa/NhaKhoaModal";
@@ -17,6 +18,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchAllPhieuThu } from "../../redux/slices/phieuThuSlice";
 import StaffModal from "../Staff/StaffModal";
 import { hasRouteAccess } from "../../config/permissions";
+import GhiChuAddModal from "../GhiChu/GhiChuAddModal";
 
 const QuickAddMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,6 +30,7 @@ const QuickAddMenu = () => {
   const [page, setPage] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
+  const [isGhiChuModalOpen, setIsGhiChuModalOpen] = useState(false);
 
   const dispatch = useDispatch();
   const auth = useSelector((state) => state.auth);
@@ -102,27 +105,34 @@ const QuickAddMenu = () => {
             {hasRouteAccess(currentUser, "/nguoi-lien-he") && <NguoiLienHeModal isQuickMenu={true}></NguoiLienHeModal>}
             {hasRouteAccess(currentUser, "/benh-nhan") && <BenhNhanModal isQuickMenu={true}></BenhNhanModal>}
             {hasRouteAccess(currentUser, "/nhan-vien") && <StaffModal isQuickMenu={true}></StaffModal>}
-            {/* {menuItems.map((item) => (
+            {hasRouteAccess(currentUser, "/ghi-chu") && (
               <button
-                key={item.id}
                 className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 border-b last:border-0"
                 onClick={() => {
-                  console.log("Thêm:", item.label);
+                  setIsGhiChuModalOpen(true);
                   setIsOpen(false);
                 }}
               >
-                <span className="mr-3 text-gray-500">{item.icon}</span>
-                <span className="font-medium">{item.label}</span>
+                <span className="mr-3 text-gray-500">
+                  <NoteAdd fontSize="small" />
+                </span>
+                <span className="font-medium">Thêm Ghi Chú</span>
               </button>
-            ))} */}
-            <PhieuThuModal
-              open={openModal}
-              onClose={() => setOpenModal(false)}
-              onSuccess={loadData}
-            />
+            )}
           </div>
         </>
       )}
+
+      <PhieuThuModal
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        onSuccess={loadData}
+      />
+
+      <GhiChuAddModal
+        open={isGhiChuModalOpen}
+        onClose={() => setIsGhiChuModalOpen(false)}
+      />
     </div>
   );
 };

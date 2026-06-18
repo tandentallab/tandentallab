@@ -17,8 +17,10 @@ export const exportDanhSachVatLieuToExcel = async (vatLieuList = []) => {
     pageSetup: { paperSize: 9, orientation: "landscape" },
   });
 
+  const COLS = 13;
+
   // ===== TIÊU ĐỀ =====
-  sheet.mergeCells("A1:H1");
+  sheet.mergeCells(`A1:M1`);
   const titleCell = sheet.getCell("A1");
   titleCell.value = "DANH SÁCH VẬT LIỆU KHO";
   titleCell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
@@ -27,7 +29,7 @@ export const exportDanhSachVatLieuToExcel = async (vatLieuList = []) => {
   sheet.getRow(1).height = 32;
 
   // Ngày xuất
-  sheet.mergeCells("A2:H2");
+  sheet.mergeCells("A2:M2");
   const dateCell = sheet.getCell("A2");
   dateCell.value = `Ngày xuất: ${dayjs().format("DD/MM/YYYY HH:mm")}`;
   dateCell.font = { italic: true, size: 10, color: { argb: "FF555555" } };
@@ -38,9 +40,15 @@ export const exportDanhSachVatLieuToExcel = async (vatLieuList = []) => {
     "STT",
     "Mã vật liệu",
     "Tên vật liệu",
+    "Nhóm vật liệu",
+    "Loại vật liệu",
+    "Form răng",
+    "Màu răng",
     "Nhà cung cấp",
     "Số lượng tồn",
     "Tồn kho tối thiểu",
+    "Tồn kho tối đa",
+    "Giá mua (VNĐ)",
     "Đơn vị tính",
     "Ghi chú",
   ]);
@@ -67,9 +75,15 @@ export const exportDanhSachVatLieuToExcel = async (vatLieuList = []) => {
       idx + 1,
       vl.maVatLieu,
       vl.tenVatLieu,
+      vl.nhomVatLieu || "",
+      vl.loaiVatLieu || "",
+      vl.formRang || "",
+      vl.mauRang || "",
       vl.nhaCungCap?.ten || "",
       vl.soLuong ?? 0,
       vl.tonKhoToiThieu ?? 0,
+      vl.tonKhoToiDa ?? 0,
+      vl.giaMua ?? 0,
       vl.donViTinh || "",
       vl.ghiChu || "",
     ]);
@@ -90,15 +104,21 @@ export const exportDanhSachVatLieuToExcel = async (vatLieuList = []) => {
       row.eachCell((cell) => {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3CD" } };
       });
-      row.getCell(5).font = { bold: true, color: { argb: "FFDC3545" } };
+      row.getCell(9).font = { bold: true, color: { argb: "FFDC3545" } };
     } else if (idx % 2 === 1) {
       row.eachCell((cell) => {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF5F5F5" } };
       });
     }
-    // Căn phải số lượng
-    row.getCell(5).alignment = { horizontal: "center", vertical: "middle" };
-    row.getCell(6).alignment = { horizontal: "center", vertical: "middle" };
+
+    // Căn giữa số lượng / tồn kho
+    row.getCell(9).alignment = { horizontal: "center", vertical: "middle" };
+    row.getCell(10).alignment = { horizontal: "center", vertical: "middle" };
+    row.getCell(11).alignment = { horizontal: "center", vertical: "middle" };
+
+    // Format giá mua
+    row.getCell(12).numFmt = '#,##0';
+    row.getCell(12).alignment = { horizontal: "right", vertical: "middle" };
   });
 
   // ===== FOOTER =====
@@ -109,23 +129,35 @@ export const exportDanhSachVatLieuToExcel = async (vatLieuList = []) => {
     "",
     "",
     "",
+    "",
+    "",
+    "",
+    "",
     `Thiếu hàng: ${soHangThieuHang}`,
+    "",
+    "",
     "",
     "",
   ]);
   footerRow.getCell(2).font = { bold: true, italic: true };
-  footerRow.getCell(6).font = { bold: true, color: { argb: "FFDC3545" } };
+  footerRow.getCell(10).font = { bold: true, color: { argb: "FFDC3545" } };
 
   // ===== ĐỘ RỘNG CỘT =====
   sheet.columns = [
-    { key: "stt", width: 6 },
-    { key: "ma", width: 16 },
-    { key: "ten", width: 32 },
-    { key: "ncc", width: 24 },
-    { key: "sl", width: 14 },
-    { key: "min", width: 18 },
-    { key: "dvt", width: 12 },
-    { key: "ghichu", width: 28 },
+    { key: "stt",   width: 6 },
+    { key: "ma",    width: 16 },
+    { key: "ten",   width: 30 },
+    { key: "nhom",  width: 20 },
+    { key: "loai",  width: 18 },
+    { key: "form",  width: 16 },
+    { key: "mau",   width: 12 },
+    { key: "ncc",   width: 24 },
+    { key: "sl",    width: 14 },
+    { key: "min",   width: 18 },
+    { key: "max",   width: 16 },
+    { key: "gia",   width: 16 },
+    { key: "dvt",   width: 12 },
+    { key: "ghichu",width: 28 },
   ];
 
   // ===== XUẤT FILE =====

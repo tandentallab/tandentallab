@@ -1,4 +1,3 @@
-// pages/Kho/VatLieuTable.jsx
 import React, {
   useState,
   useMemo,
@@ -7,7 +6,7 @@ import React, {
   useEffect,
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchVatLieu } from "../../redux/slices/khoSlice";
+import { fetchVatLieu, fetchNhaCungCap } from "../../redux/slices/khoSlice";
 import { api } from "../../config/api";
 import { toast } from "sonner";
 import { exportDanhSachVatLieuToExcel } from "./exportKhoToExcel";
@@ -63,6 +62,7 @@ function SelectWithAdd({
   options,
   onAddNew,
   placeholder,
+  addNewMode = "inline", // "inline" | "modal"
 }) {
   const [open, setOpen] = useState(false);
   const [addingNew, setAddingNew] = useState(false);
@@ -268,7 +268,12 @@ function SelectWithAdd({
               <Box
                 onClick={(e) => {
                   e.stopPropagation();
-                  setAddingNew(true);
+                  if (addNewMode === "modal") {
+                    onAddNew();
+                    setOpen(false);
+                  } else {
+                    setAddingNew(true);
+                  }
                 }}
                 sx={{
                   px: 2,
@@ -287,6 +292,281 @@ function SelectWithAdd({
                 Thêm mới
               </Box>
             )}
+          </Box>
+        )}
+      </Box>
+    </ClickAwayListener>
+  );
+}
+
+// =====================================================
+// NccCombobox — select nhà cung cấp có ô nhập để lọc nhanh
+// =====================================================
+function NccCombobox({
+  label,
+  value,
+  onChange,
+  options,
+  onAddNew,
+  placeholder,
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef(null);
+  const containerRef = useRef(null);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return options;
+    const q = query.toLowerCase();
+    return options.filter((opt) => opt.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const handleOpen = () => {
+    setOpen(true);
+    setQuery("");
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setQuery("");
+  };
+
+  const handleSelect = (val) => {
+    onChange(val);
+    handleClose();
+  };
+
+  const handleClear = (e) => {
+    e.stopPropagation();
+    onChange("");
+    handleClose();
+  };
+
+  return (
+    <ClickAwayListener onClickAway={handleClose}>
+      <Box ref={containerRef} sx={{ position: "relative", width: "100%" }}>
+        {/* Trigger */}
+        <Box
+          onClick={open ? undefined : handleOpen}
+          sx={{
+            border: "1px solid",
+            borderColor: open ? "#1976d2" : "#c4c4c4",
+            borderRadius: "4px",
+            px: 1.5,
+            cursor: open ? "default" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            minHeight: 40,
+            backgroundColor: "#fff",
+            "&:hover": { borderColor: open ? "#1976d2" : "#000" },
+            transition: "border-color 0.15s",
+            gap: 1,
+          }}
+        >
+          {open ? (
+            /* Input tìm kiếm khi mở */
+            <>
+              <SearchIcon
+                sx={{ fontSize: 16, color: "#9ca3af", flexShrink: 0 }}
+              />
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") handleClose();
+                  if (e.key === "Enter" && filtered.length === 1)
+                    handleSelect(filtered[0]);
+                }}
+                placeholder="Nhập để tìm nhà cung cấp..."
+                style={{
+                  flex: 1,
+                  border: "none",
+                  outline: "none",
+                  fontSize: 14,
+                  fontFamily: "inherit",
+                  background: "transparent",
+                  color: "#1a1a1a",
+                  padding: "6px 0",
+                }}
+              />
+              {query && (
+                <Box
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setQuery("");
+                    inputRef.current?.focus();
+                  }}
+                  sx={{
+                    cursor: "pointer",
+                    color: "#9ca3af",
+                    fontSize: 14,
+                    lineHeight: 1,
+                    px: 0.5,
+                    "&:hover": { color: "#555" },
+                  }}
+                >
+                  ✕
+                </Box>
+              )}
+            </>
+          ) : (
+            /* Hiển thị giá trị đã chọn */
+            <>
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: "block",
+                    color: "#757575",
+                    fontSize: 11,
+                    lineHeight: 1,
+                    mb: 0.3,
+                  }}
+                >
+                  {label}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: 14,
+                    color: value ? "#1a1a1a" : "#9ca3af",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {value || placeholder || "— Chọn nhà cung cấp —"}
+                </Typography>
+              </Box>
+              {value && (
+                <Box
+                  onClick={handleClear}
+                  sx={{
+                    cursor: "pointer",
+                    color: "#9ca3af",
+                    fontSize: 14,
+                    lineHeight: 1,
+                    px: 0.5,
+                    "&:hover": { color: "#ef4444" },
+                  }}
+                >
+                  ✕
+                </Box>
+              )}
+              <KeyboardArrowDownIcon sx={{ fontSize: 18, color: "#9ca3af" }} />
+            </>
+          )}
+        </Box>
+
+        {/* Dropdown */}
+        {open && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: "calc(100% + 4px)",
+              left: 0,
+              right: 0,
+              zIndex: 1400,
+              backgroundColor: "#fff",
+              border: "1px solid #e0e0e0",
+              borderRadius: "8px",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
+              overflow: "hidden",
+            }}
+          >
+            <Box sx={{ maxHeight: 240, overflowY: "auto" }}>
+              {/* Option xóa chọn */}
+              {value && (
+                <Box
+                  onClick={() => handleSelect("")}
+                  sx={{
+                    px: 2,
+                    py: 1.2,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    color: "#9ca3af",
+                    fontStyle: "italic",
+                    "&:hover": { backgroundColor: "#f5f5f5" },
+                  }}
+                >
+                  — Bỏ chọn —
+                </Box>
+              )}
+
+              {filtered.length === 0 && (
+                <Box sx={{ px: 2, py: 1.5, color: "#9ca3af", fontSize: 13 }}>
+                  {query
+                    ? `Không tìm thấy "${query}"`
+                    : "Chưa có nhà cung cấp nào"}
+                </Box>
+              )}
+
+              {filtered.map((opt) => (
+                <Box
+                  key={opt}
+                  onClick={() => handleSelect(opt)}
+                  sx={{
+                    px: 2,
+                    py: 1.2,
+                    fontSize: 14,
+                    cursor: "pointer",
+                    backgroundColor: value === opt ? "#e3f2fd" : "transparent",
+                    color: value === opt ? "#1976d2" : "#1a1a1a",
+                    fontWeight: value === opt ? 600 : 400,
+                    "&:hover": {
+                      backgroundColor: value === opt ? "#e3f2fd" : "#f5f5f5",
+                    },
+                  }}
+                >
+                  {/* Highlight phần khớp query */}
+                  {query
+                    ? (() => {
+                        const idx = opt
+                          .toLowerCase()
+                          .indexOf(query.toLowerCase());
+                        if (idx === -1) return opt;
+                        return (
+                          <>
+                            {opt.slice(0, idx)}
+                            <span
+                              style={{
+                                backgroundColor: "#fff9c4",
+                                borderRadius: 2,
+                              }}
+                            >
+                              {opt.slice(idx, idx + query.length)}
+                            </span>
+                            {opt.slice(idx + query.length)}
+                          </>
+                        );
+                      })()
+                    : opt}
+                </Box>
+              ))}
+            </Box>
+
+            {/* Thêm mới */}
+            <Box sx={{ borderTop: "1px solid #f0f0f0" }} />
+            <Box
+              onClick={() => {
+                onAddNew();
+                setOpen(false);
+              }}
+              sx={{
+                px: 2,
+                py: 1.2,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                cursor: "pointer",
+                color: "#2e7d32",
+                fontWeight: 600,
+                fontSize: 14,
+                "&:hover": { backgroundColor: "#f1f8e9" },
+              }}
+            >
+              <AddIcon sx={{ fontSize: 17 }} />
+              Thêm nhà cung cấp mới
+            </Box>
           </Box>
         )}
       </Box>
@@ -344,6 +624,44 @@ export default function VatLieuTable() {
   // Modal xóa
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Modal thêm nhà cung cấp nhanh (từ bên trong modal vật liệu)
+  const [openNccModal, setOpenNccModal] = useState(false);
+  const [nccForm, setNccForm] = useState({
+    ten: "",
+    diaChi: "",
+    soDienThoai: "",
+    email: "",
+    ghiChu: "",
+  });
+  const [savingNcc, setSavingNcc] = useState(false);
+
+  const handleSaveNcc = async () => {
+    if (!nccForm.ten.trim()) {
+      toast.error("Vui lòng nhập tên nhà cung cấp");
+      return;
+    }
+    setSavingNcc(true);
+    try {
+      const res = await api.post("/kho/nha-cung-cap", nccForm);
+      toast.success("Đã thêm nhà cung cấp mới");
+      await dispatch(fetchNhaCungCap());
+      // Auto-select NCC vừa tạo vào form vật liệu
+      onChange("nhaCungCap", res.data._id);
+      setOpenNccModal(false);
+      setNccForm({
+        ten: "",
+        diaChi: "",
+        soDienThoai: "",
+        email: "",
+        ghiChu: "",
+      });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Có lỗi xảy ra");
+    } finally {
+      setSavingNcc(false);
+    }
+  };
 
   // Danh sách options cho các SelectWithAdd — mở rộng được trong session
   const [optLoai, setOptLoai] = useState(DEFAULT_LOAI);
@@ -618,7 +936,6 @@ export default function VatLieuTable() {
           </button>
         </Box>
       </Box>
-
       {/* ===== TABLE ===== */}
       <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 1 }}>
         <Table size="small">
@@ -813,7 +1130,6 @@ export default function VatLieuTable() {
           </TableBody>
         </Table>
       </TableContainer>
-
       {/* ===== MODAL THÊM / SỬA ===== */}
       <Dialog
         open={openModal}
@@ -939,7 +1255,7 @@ export default function VatLieuTable() {
               Tồn kho & Giá
             </Typography>
 
-            <SelectWithAdd
+            <NccCombobox
               label="Nhà cung cấp"
               value={
                 (nhaCungCap || []).find((n) => n._id === form.nhaCungCap)
@@ -947,9 +1263,7 @@ export default function VatLieuTable() {
               }
               onChange={(ten) => onChange("nhaCungCap", nccIdByTen[ten] || "")}
               options={nccOptions}
-              onAddNew={() =>
-                toast.info("Vui lòng thêm nhà cung cấp trong tab Nhà cung cấp")
-              }
+              onAddNew={() => setOpenNccModal(true)}
               placeholder="Chọn nhà cung cấp..."
             />
 
@@ -988,10 +1302,22 @@ export default function VatLieuTable() {
               label="Giá mua (VNĐ)"
               size="small"
               fullWidth
-              type="number"
-              inputProps={{ min: 0 }}
-              value={form.giaMua}
-              onChange={(e) => onChange("giaMua", e.target.value)}
+              value={
+                form.giaMua > 0
+                  ? Number(form.giaMua).toLocaleString("vi-VN")
+                  : ""
+              }
+              onChange={(e) => {
+                const raw = e.target.value
+                  .replace(/\./g, "")
+                  .replace(/[^0-9]/g, "");
+                onChange("giaMua", raw ? Number(raw) : 0);
+              }}
+              placeholder="0"
+              InputProps={{
+                endAdornment: <InputAdornment position="end">₫</InputAdornment>,
+              }}
+              inputProps={{ inputMode: "numeric" }}
             />
 
             <TextField
@@ -1019,7 +1345,87 @@ export default function VatLieuTable() {
           </Button>
         </DialogActions>
       </Dialog>
-
+      {/* ===== MODAL THÊM NHANH NHÀ CUNG CẤP ===== */}
+      <Dialog
+        open={openNccModal}
+        onClose={() => setOpenNccModal(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ fontWeight: "bold", fontSize: 16 }}>
+          Thêm nhà cung cấp mới
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+            <TextField
+              label="Tên nhà cung cấp *"
+              size="small"
+              fullWidth
+              value={nccForm.ten}
+              onChange={(e) =>
+                setNccForm((p) => ({ ...p, ten: e.target.value }))
+              }
+              autoFocus
+            />
+            <TextField
+              label="Địa chỉ"
+              size="small"
+              fullWidth
+              value={nccForm.diaChi}
+              onChange={(e) =>
+                setNccForm((p) => ({ ...p, diaChi: e.target.value }))
+              }
+            />
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                label="Số điện thoại"
+                size="small"
+                fullWidth
+                value={nccForm.soDienThoai}
+                onChange={(e) =>
+                  setNccForm((p) => ({ ...p, soDienThoai: e.target.value }))
+                }
+              />
+              <TextField
+                label="Email"
+                size="small"
+                fullWidth
+                value={nccForm.email}
+                onChange={(e) =>
+                  setNccForm((p) => ({ ...p, email: e.target.value }))
+                }
+              />
+            </Box>
+            <TextField
+              label="Ghi chú"
+              size="small"
+              fullWidth
+              multiline
+              rows={2}
+              value={nccForm.ghiChu}
+              onChange={(e) =>
+                setNccForm((p) => ({ ...p, ghiChu: e.target.value }))
+              }
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setOpenNccModal(false)} color="inherit">
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={handleSaveNcc}
+            disabled={savingNcc}
+            startIcon={
+              savingNcc ? <CircularProgress size={14} color="inherit" /> : null
+            }
+          >
+            Thêm nhà cung cấp
+          </Button>
+        </DialogActions>
+      </Dialog>
       {/* ===== MODAL XÓA ===== */}
       <Dialog
         open={!!deleteId}

@@ -44,12 +44,9 @@ import PhieuBaoHanhPage from "../PhieuBaoHanh";
 import MauTheBaoHanhPage from "../PhieuBaoHanh/MauTheBaoHanhPage";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import NhanVienDetail from "../NhanVien/NhanVienDetail";
-<<<<<<< HEAD
 import GhiChuPage from "../GhiChu/GhiChuPage";
-=======
 import NhaCungCapPage from "../NhaCungCap/NhaCungCapPage";
 import KhoPage from "../Kho/KhoPage";
->>>>>>> 7b5e18c4cea585b9162f24516eaf1987fbd0f1a0
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -332,16 +329,13 @@ const Dashboard = () => {
             )}
           ></Route>
           <Route
-<<<<<<< HEAD
             path="/ghi-chu"
             element={renderProtected(
               "/ghi-chu",
               <GhiChuPage></GhiChuPage>
             )}
-=======
             path="/kho"
             element={renderProtected("/kho", <KhoPage></KhoPage>)}
->>>>>>> 7b5e18c4cea585b9162f24516eaf1987fbd0f1a0
           ></Route>
           <Route path="*" element={<Navigate to={fallbackPath} replace />} />
         </Routes>

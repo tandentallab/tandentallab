@@ -18,18 +18,36 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import BadgeIcon from "@mui/icons-material/Badge";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
 
 export const MAIN_MENU = [
   { name: "Thống kê", router: "/", icon: <Dashboard /> },
   { name: "Đơn Hàng", router: "/don-hang", icon: <ShoppingCart /> },
-  { name: "Kế Hoạch Giao Hàng", router: "/ke-hoach-giao-hang", icon: <Assignment /> },
-  { name: "Chờ xuất hóa đơn", router: "/cho-xuat-hoa-don", icon: <ReceiptLong /> },
+  {
+    name: "Kế Hoạch Giao Hàng",
+    router: "/ke-hoach-giao-hang",
+    icon: <Assignment />,
+  },
+  {
+    name: "Chờ xuất hóa đơn",
+    router: "/cho-xuat-hoa-don",
+    icon: <ReceiptLong />,
+  },
   { name: "Hóa Đơn", router: "/hoa-don", icon: <RequestQuoteIcon /> },
-  { name: "Phiếu Thu", router: "/phieu-thu", icon: <AccountBalanceWalletIcon /> },
+  {
+    name: "Phiếu Thu",
+    router: "/phieu-thu",
+    icon: <AccountBalanceWalletIcon />,
+  },
   { name: "Phiếu Bảo Hành", router: "/phieu-bao-hanh", icon: <Receipt /> },
-  { name: "Mẫu Thẻ Bảo Hành", router: "/mau-the-bao-hanh", icon: <CreditCard /> },
+  {
+    name: "Mẫu Thẻ Bảo Hành",
+    router: "/mau-the-bao-hanh",
+    icon: <CreditCard />,
+  },
   { name: "Sản Phẩm", router: "/san-pham", icon: <Category /> },
   { name: "Công Đoạn", router: "/cong-doan", icon: <AccountTree /> },
+  { name: "Kho", router: "/kho", icon: <Inventory2Icon /> },
 ];
 
 export const CUSTOMER_MENU = [

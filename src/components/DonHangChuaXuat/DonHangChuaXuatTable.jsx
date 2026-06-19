@@ -156,16 +156,6 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
     };
   }, [columnWidths]);
 
-  useEffect(() => {
-    if (!selectedClinic) return;
-    if (selectedClinic === "all") {
-      dispatch(fetchDonHangChuaHoaDonAll());
-      dispatch(fetchAllBangGia());
-    } else {
-      dispatch(fetchDonHangChuaHoaDon(selectedClinic));
-      dispatch(fetchBangGiaByNhaKhoa(selectedClinic));
-    }
-  }, [selectedClinic, dispatch]);
 
   const activeDateRange = useMemo(() => {
     const now = new Date();
@@ -185,8 +175,16 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   }, [dateFilter, fromDate, toDate]);
 
   const filteredDonHangs = useMemo(() => {
-    return donHangs.filter((o) => isWithinInterval(new Date(o.ngayNhan), { start: activeDateRange.start, end: activeDateRange.end }));
-  }, [donHangs, activeDateRange]);
+    return donHangs.filter((o) => {
+      // 1. Lọc theo nha khoa đang chọn
+      const isMatchClinic = selectedClinic === "all" || (o.nhaKhoa?._id || o.nhaKhoa) === selectedClinic;
+
+      // 2. Lọc theo ngày
+      const isMatchDate = o.ngayNhan && isWithinInterval(new Date(o.ngayNhan), { start: activeDateRange.start, end: activeDateRange.end });
+
+      return isMatchClinic && isMatchDate;
+    });
+  }, [donHangs, activeDateRange, selectedClinic]);
 
   const mapTen = useMemo(() => buildProductNameMap(bangGia), [bangGia]);
 
@@ -290,7 +288,7 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
       setSelectedOrders([]);
       dispatch(fetchCountDonHangChuaXuat());
       dispatch(fetchNgayXuatHoaDonGanNhatAll());
-      if (selectedClinic === "all") { dispatch(fetchDonHangChuaHoaDonAll()); } else { dispatch(fetchDonHangChuaHoaDon(selectedClinic)); }
+      dispatch(fetchDonHangChuaHoaDonAll());
     } catch (err) {
       toast.error(err?.message || "Tạo hóa đơn thất bại");
     }

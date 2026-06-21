@@ -38,7 +38,7 @@ const renderViTriText = (viTriArr, viTriText) => {
   if (!viTriArr || viTriArr.length === 0) return "-";
   return viTriArr
     .map((v) => v.kieu === "Rời" ? v.soRang.join(", ") : `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`)
-    .join("; ");
+    .join(", ");
 };
 
 const NUMERIC_KEYS = new Set(["soLuong", "donGia", "tongCong"]);
@@ -69,7 +69,7 @@ const RowComponent = React.memo(({ row, isSelected, cellStyles, onToggle, onNavi
     <TableCell sx={cellStyles.soLuong_bold}>{row.soLuong}</TableCell>
     <TableCell sx={cellStyles.donGia}>{fmtVND(row.donGia)}</TableCell>
     <TableCell sx={cellStyles.tongCong_bold}>{fmtVND(row.tongCong)}</TableCell>
-    <TableCell sx={cellStyles.ghiChuTaiChinh_ellipsis} title={row.ghiChuTaiChinh}>{row.ghiChuTaiChinh || "-"}</TableCell>
+    <TableCell sx={cellStyles.ghiChuTaiChinh_ellipsis} title={row.ghiChuTaiChinh}>{row.ghiChuTaiChinh || " "}</TableCell>
     <TableCell sx={{ padding: 0, borderBottom: "1px solid #cbd5e1", width: "auto", minWidth: 0 }} />
   </TableRow>
 ));
@@ -103,7 +103,7 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   const [columnWidths, setColumnWidths] = useState({
     maDonHang: 110, ngayNhan: 95, bacSi: 75, benhNhan: 140,
     sanPham: 120, viTri: 220, loai: 80, soLuong: 60,
-    donGia: 115, tongCong: 120, ghiChuTaiChinh: 160,
+    donGia: 115, tongCong: 120, ghiChuTaiChinh: 180,
   });
 
   const columnWidthsRef = useRef(columnWidths);
@@ -366,7 +366,7 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
         {selectedOrders.length > 0 && (
           <div className="w-full xl:w-auto flex justify-end">
             <Button variant="contained" color="primary" size="small" onClick={handleCreateHoaDon} sx={{ width: { xs: "100%", xl: "auto" }, height: '40px', px: 4 }}>
-              Tạo hóa đơn ({selectedOrders.length} đơn)
+              Tạo hóa đơn
             </Button>
           </div>
         )}
@@ -390,7 +390,7 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
                 <ResizableHeaderCell label="S.L" columnKey="soLuong" style={cellStyles.soLuong_h} onResize={handleResize} />
                 <ResizableHeaderCell label="Đơn giá" columnKey="donGia" style={cellStyles.donGia_h} onResize={handleResize} />
                 <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" style={cellStyles.tongCong_h} onResize={handleResize} />
-                <ResizableHeaderCell label="Ghi chú TC" columnKey="ghiChuTaiChinh" style={cellStyles.ghiChuTaiChinh_h} onResize={handleResize} isLast />
+                <ResizableHeaderCell label="Ghi chú tài chính" columnKey="ghiChuTaiChinh" style={cellStyles.ghiChuTaiChinh_h} onResize={handleResize} isLast />
                 <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff", }} />
               </TableRow >
             </TableHead >

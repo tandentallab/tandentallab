@@ -246,13 +246,13 @@ const DonHangForm = () => {
     yeuCauHoanThanh: (() => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(14, 0, 0, 0);
+      tomorrow.setHours(0, 0, 0, 0);
       return toLocalDT(tomorrow);
     })(),
     henGiao: (() => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(14, 0, 0, 0);
+      tomorrow.setHours(0, 0, 0, 0);
       return toLocalDT(tomorrow);
     })(),
     danhSachSanPham: [

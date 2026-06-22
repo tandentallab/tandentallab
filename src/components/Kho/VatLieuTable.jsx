@@ -520,25 +520,25 @@ function NccCombobox({
                   {/* Highlight phần khớp query */}
                   {query
                     ? (() => {
-                        const idx = opt
-                          .toLowerCase()
-                          .indexOf(query.toLowerCase());
-                        if (idx === -1) return opt;
-                        return (
-                          <>
-                            {opt.slice(0, idx)}
-                            <span
-                              style={{
-                                backgroundColor: "#fff9c4",
-                                borderRadius: 2,
-                              }}
-                            >
-                              {opt.slice(idx, idx + query.length)}
-                            </span>
-                            {opt.slice(idx + query.length)}
-                          </>
-                        );
-                      })()
+                      const idx = opt
+                        .toLowerCase()
+                        .indexOf(query.toLowerCase());
+                      if (idx === -1) return opt;
+                      return (
+                        <>
+                          {opt.slice(0, idx)}
+                          <span
+                            style={{
+                              backgroundColor: "#fff9c4",
+                              borderRadius: 2,
+                            }}
+                          >
+                            {opt.slice(idx, idx + query.length)}
+                          </span>
+                          {opt.slice(idx + query.length)}
+                        </>
+                      );
+                    })()
                     : opt}
                 </Box>
               ))}
@@ -732,8 +732,8 @@ export default function VatLieuTable() {
         filterTrangThai === "thieu"
           ? thieuHang
           : filterTrangThai === "du"
-          ? !thieuHang
-          : true;
+            ? !thieuHang
+            : true;
 
       return matchSearch && matchNCC && matchTT && matchNhom;
     });
@@ -995,8 +995,8 @@ export default function VatLieuTable() {
                       backgroundColor: thieuHang
                         ? "#fff3e0"
                         : idx % 2 === 0
-                        ? "#fff"
-                        : "#fafafa",
+                          ? "#fff"
+                          : "#fafafa",
                       "&:hover": { backgroundColor: "#e3f2fd40" },
                     }}
                   >

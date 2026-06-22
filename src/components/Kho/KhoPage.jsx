@@ -3,11 +3,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchVatLieu, fetchNhaCungCap } from "../../redux/slices/khoSlice";
 import VatLieuTable from "./VatLieuTable";
+import NhapXuatTable from "./NhapXuatTable";
 import NhaCungCapTable from "./NhaCungCapTable";
 import { Box, Tab, Tabs } from "@mui/material";
-import InventoryIcon from "@mui/icons-material/Inventory";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import CategoryIcon from '@mui/icons-material/Category';
 
 export default function KhoPage() {
   const dispatch = useDispatch();
@@ -38,7 +40,7 @@ export default function KhoPage() {
           className="rounded-xl px-6 py-4 flex items-center gap-4"
           style={{ backgroundColor: "#1976d2" }}
         >
-          <InventoryIcon sx={{ fontSize: 36, color: "rgba(255,255,255,0.8)" }} />
+          <CategoryIcon sx={{ fontSize: 36, color: "rgba(255,255,255,0.8)" }} />
           <div>
             <div className="text-white text-2xl font-bold">{tongVatLieu}</div>
             <div className="text-white text-sm mt-0.5">Vật liệu trong kho</div>
@@ -68,9 +70,14 @@ export default function KhoPage() {
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)}>
           <Tab
-            icon={<InventoryIcon sx={{ fontSize: 18 }} />}
+            icon={<CategoryIcon sx={{ fontSize: 18 }} />}
             iconPosition="start"
             label="Vật liệu"
+          />
+          <Tab
+            icon={<AssignmentIcon sx={{ fontSize: 18 }} />}
+            iconPosition="start"
+            label="Phiếu Nhập - Xuất"
           />
           <Tab
             icon={<StorefrontIcon sx={{ fontSize: 18 }} />}
@@ -81,7 +88,8 @@ export default function KhoPage() {
       </Box>
 
       {tab === 0 && <VatLieuTable />}
-      {tab === 1 && <NhaCungCapTable />}
+      {tab === 1 && <NhapXuatTable />}
+      {tab === 2 && <NhaCungCapTable />}
     </div>
   );
 }

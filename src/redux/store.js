@@ -17,6 +17,8 @@ import dashboardReducer from "./slices/dashboardSlice"
 import nhanVienReducer from "./slices/nhanVienSlice";
 import bangLuongReducer from "./slices/bangLuongSlice";
 import khoReducer from "./slices/khoSlice"
+import phieuNhapKhoReducer from "./slices/phieuNhapKhoSlice"
+
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -36,6 +38,7 @@ export const store = configureStore({
     dashboard: dashboardReducer,
     nhanVien: nhanVienReducer,
     bangLuong: bangLuongReducer,
-    kho: khoReducer
+    kho: khoReducer,
+    phieuNhapKho: phieuNhapKhoReducer,
   },
 });

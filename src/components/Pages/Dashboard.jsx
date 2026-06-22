@@ -30,11 +30,11 @@ import DonHangChuaXuatPage from "../DonHangChuaXuat/DonHangChuaXuatPage";
 import HoaDonDetail from "../HoaDon/HoaDonDetail";
 import KeHoachGiaoHangTable from "../KeHoachGiaoHang/KeHoachGiaoHangTable";
 import HoaDonPrintPreview from "../HoaDon/HoaDonPrintPreview";
-import BaoCaoDoanhThuPage from "../BaoCao/BaoCaoDoanhThuPage"
-import BaoCaoKhachHangPage from "../BaoCao/BaoCaoKhachHangPage"
-import DoanhSoKhachHangPage from '../BaoCao/DoanhSoKhachHangPage';
-import DoanhSoSanPhamPage from '../BaoCao/DoanhSoSanPhamPage';
-import DoanhSoThoiGianPage from '../BaoCao/DoanhSoThoiGianPage';
+import BaoCaoDoanhThuPage from "../BaoCao/BaoCaoDoanhThuPage";
+import BaoCaoKhachHangPage from "../BaoCao/BaoCaoKhachHangPage";
+import DoanhSoKhachHangPage from "../BaoCao/DoanhSoKhachHangPage";
+import DoanhSoSanPhamPage from "../BaoCao/DoanhSoSanPhamPage";
+import DoanhSoThoiGianPage from "../BaoCao/DoanhSoThoiGianPage";
 import BaoCaoPage from "../BaoCao/BaoCaoPage";
 import PhieuThuPage from "../PhieuThu/PhieuThuPage";
 import PhieuThuPrintPreview from "../PhieuThu/PhieuThuPrintPreview";
@@ -45,6 +45,8 @@ import MauTheBaoHanhPage from "../PhieuBaoHanh/MauTheBaoHanhPage";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import NhanVienDetail from "../NhanVien/NhanVienDetail";
 import GhiChuPage from "../GhiChu/GhiChuPage";
+import NhaCungCapPage from "../NhaCungCap/NhaCungCapPage";
+import KhoPage from "../Kho/KhoPage";
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -198,7 +200,10 @@ const Dashboard = () => {
             path="/bao-cao/doanh-thu"
             element={renderProtected("/bao-cao", <BaoCaoDoanhThuPage />)}
           />
-          <Route path="/bao-cao/khach-hang" element={renderProtected("/bao-cao", <BaoCaoKhachHangPage />)} />
+          <Route
+            path="/bao-cao/khach-hang"
+            element={renderProtected("/bao-cao", <BaoCaoKhachHangPage />)}
+          />
           <Route
             path="/bao-cao/doanh-so"
             element={renderProtected("/bao-cao", <DoanhSoKhachHangPage />)}
@@ -207,7 +212,10 @@ const Dashboard = () => {
             path="/bao-cao/doanh-so-san-pham"
             element={renderProtected("/bao-cao", <DoanhSoSanPhamPage />)}
           />
-          <Route path="/bao-cao/doanh-so-thoi-gian" element={renderProtected("/bao-cao", <DoanhSoThoiGianPage />)} />
+          <Route
+            path="/bao-cao/doanh-so-thoi-gian"
+            element={renderProtected("/bao-cao", <DoanhSoThoiGianPage />)}
+          />
           <Route
             path="/bao-cao"
             element={renderProtected("/bao-cao", <BaoCaoPage />)}
@@ -326,6 +334,8 @@ const Dashboard = () => {
               "/ghi-chu",
               <GhiChuPage></GhiChuPage>
             )}
+            path="/kho"
+            element={renderProtected("/kho", <KhoPage></KhoPage>)}
           ></Route>
           <Route path="*" element={<Navigate to={fallbackPath} replace />} />
         </Routes>

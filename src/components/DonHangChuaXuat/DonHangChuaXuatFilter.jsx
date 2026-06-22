@@ -2,33 +2,28 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Typography, CircularProgress } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
-import {
-  fetchCountDonHangChuaXuat,
-  fetchNgayXuatHoaDonGanNhatAll,
-} from "../../redux/slices/hoaDonSlice";
+import { fetchNgayXuatHoaDonGanNhatAll } from "../../redux/slices/hoaDonSlice";
 
 export default function DonHangChuaXuatFilter({
   selectedClinic,
   setSelectedClinic,
 }) {
-  const [searchText, setSearchText] = useState(""); // ✅ thêm state search
+  const [searchText, setSearchText] = useState("");
 
   const dispatch = useDispatch();
-  const { data = [], loading: loadingNhaKhoa } = useSelector(
-    (state) => state.nhaKhoa
-  );
+  const { data = [], loading: loadingNhaKhoa } = useSelector((state) => state.nhaKhoa);
+
+  // Dùng trực tiếp donHangs từ Redux do Page đã fetch
   const {
-    countDonHangChuaXuat = [],
+    donHangs = [],
     ngayXuatHoaDonGanNhatAll = [],
-    loading: loadingHoaDon,
+    loading: loadingHoaDon
   } = useSelector((state) => state.hoaDon);
 
-  // Gộp trạng thái loading của cả 2 luồng dữ liệu
   const isGlobalLoading = loadingNhaKhoa || loadingHoaDon;
 
   useEffect(() => {
     dispatch(fetchNhaKhoa());
-    dispatch(fetchCountDonHangChuaXuat());
     dispatch(fetchNgayXuatHoaDonGanNhatAll());
   }, [dispatch]);
 
@@ -36,41 +31,35 @@ export default function DonHangChuaXuatFilter({
   const infoMap = useMemo(() => {
     const map = {};
 
-    // 1. Map số lượng đơn hàng chưa xuất hóa đơn trước
-    countDonHangChuaXuat.forEach((item) => {
-      map[item.nhaKhoaId] = {
-        count: item.soDonHangChuaXuatHoaDon || 0,
-        ngayXuatHoaDonCuoi: null, // Giá trị mặc định ban đầu
-      };
-    });
-
-    // 2. 🔥 Trộn dữ liệu ngày xuất hóa đơn gần nhất dựa trên cấu trúc JSON thực tế
-    ngayXuatHoaDonGanNhatAll.forEach((item) => {
-      const clinicId = item.nhaKhoaId;
-
+    donHangs.forEach((order) => {
+      const clinicId = order.nhaKhoa?._id || order.nhaKhoa;
       if (clinicId) {
         if (!map[clinicId]) {
           map[clinicId] = { count: 0, ngayXuatHoaDonCuoi: null };
         }
-        // Truy cập chính xác vào: item.hoaDonGanNhat.ngayXuatHoaDon
-        map[clinicId].ngayXuatHoaDonCuoi =
-          item.hoaDonGanNhat?.ngayXuatHoaDon || null;
+        // Đếm số lượng sản phẩm (bất chấp ngày tháng)
+        map[clinicId].count += (order.danhSachSanPham?.length || 0);
+      }
+    });
+
+    ngayXuatHoaDonGanNhatAll.forEach((item) => {
+      const clinicId = item.nhaKhoaId;
+      if (clinicId) {
+        if (!map[clinicId]) {
+          map[clinicId] = { count: 0, ngayXuatHoaDonCuoi: null };
+        }
+        map[clinicId].ngayXuatHoaDonCuoi = item.hoaDonGanNhat?.ngayXuatHoaDon || null;
       }
     });
 
     return map;
-  }, [countDonHangChuaXuat, ngayXuatHoaDonGanNhatAll]);
+  }, [donHangs, ngayXuatHoaDonGanNhatAll]);
 
   const formatDate = (date) => {
     if (!date) return "Chưa xuất";
-    return new Date(date).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    return new Date(date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
-  // Sắp xếp theo số đơn giảm dần
   const sortedData = useMemo(() => {
     return [...data].sort((a, b) => {
       const countA = infoMap[a._id]?.count || 0;
@@ -84,11 +73,9 @@ export default function DonHangChuaXuatFilter({
   const filteredData = useMemo(() => {
     return sortedData
       .filter((nk) => (infoMap[nk._id]?.count || 0) > 0)
-      .filter((nk) =>
-        !searchText.trim() ||
-        nk.hoVaTen?.toLowerCase().includes(searchText.toLowerCase().trim())
-      );
+      .filter((nk) => !searchText.trim() || nk.hoVaTen?.toLowerCase().includes(searchText.toLowerCase().trim()));
   }, [sortedData, searchText, infoMap]);
+
 
   return (
     <div className="w-52 md:w-52 w-full flex-shrink-0 border-r flex flex-col bg-white overflow-hidden">

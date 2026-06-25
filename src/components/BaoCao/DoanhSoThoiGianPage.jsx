@@ -54,7 +54,6 @@ const DoanhSoThoiGianPage = () => {
             endDate: draftDates.endDate
         }));
         // Reset Dropdown về "Tất cả" để tránh lỗi đang chọn nha khoa A mà qua tháng sau nha khoa A không có data
-        setSelectedNhaKhoa("");
     }, [dispatch, draftDates]);
 
 

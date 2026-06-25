@@ -56,7 +56,6 @@ const DoanhSoSanPhamPage = () => {
             startDate: draftDates.startDate,
             endDate: draftDates.endDate
         }));
-        setSelectedNhaKhoa("");
     }, [dispatch, draftDates]);
 
     const handleView = () => {

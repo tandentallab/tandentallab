@@ -1,50 +1,44 @@
 import React, { useState } from 'react';
 import {
     Box, Drawer, IconButton, Typography, Tooltip,
-    List, ListItem, ListItemButton, ListItemIcon, ListItemText,
+    List, ListItem, ListItemButton,
     useMediaQuery, useTheme
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const SIDEBAR_EXPANDED = 265;
 const SIDEBAR_COLLAPSED = 56;
 
+// Đã tách "Báo cáo doanh thu" ra khỏi menu này
 const REPORT_MENU = [
     { path: '/bao-cao', label: 'Sản lượng theo thời gian', icon: <BarChartIcon fontSize="small" /> },
     { path: '/bao-cao/khach-hang', label: 'Sản lượng theo khách hàng', icon: <PeopleAltIcon fontSize="small" /> },
     { path: '/bao-cao/doanh-so', label: 'Doanh số theo khách hàng', icon: <StorefrontIcon fontSize="small" /> },
     { path: '/bao-cao/doanh-so-san-pham', label: 'Doanh số theo sản phẩm', icon: <Inventory2Icon fontSize="small" /> },
     { path: '/bao-cao/doanh-so-thoi-gian', label: 'Doanh số theo thời gian', icon: <TimelineIcon fontSize="small" /> },
-    { path: '/bao-cao/doanh-thu', label: 'Doanh thu theo tháng', icon: <AttachMoneyIcon fontSize="small" /> },
 ];
 
 const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const theme = useTheme();
 
     const TRANSITION = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
 
-    // Màu riêng cho từng item
     const ITEM_COLORS = [
-        { bg: '#ede9fe', border: '#a78bfa', icon: '#7c3aed' }, // tím
-        { bg: '#dbeafe', border: '#60a5fa', icon: '#1d4ed8' }, // xanh dương
-        { bg: '#dcfce7', border: '#4ade80', icon: '#15803d' }, // xanh lá
-        { bg: '#fef9c3', border: '#facc15', icon: '#a16207' }, // vàng
-        { bg: '#ffedd5', border: '#fdba74', icon: '#ea580c' }, // cam
-        { bg: '#fee2e2', border: '#f87171', icon: '#b91c1c' }, // đỏ
+        { bg: '#ede9fe', border: '#a78bfa', icon: '#7c3aed' },
+        { bg: '#dbeafe', border: '#60a5fa', icon: '#1d4ed8' },
+        { bg: '#dcfce7', border: '#4ade80', icon: '#15803d' },
+        { bg: '#fef9c3', border: '#facc15', icon: '#a16207' },
+        { bg: '#ffedd5', border: '#fdba74', icon: '#ea580c' },
     ];
 
-    // Style nhất quán ở cả 2 trạng thái — giống Sidebar.jsx
     const getItemSx = (active) => ({
         justifyContent: 'flex-start',
         width: 'calc(100% - 12px)',
@@ -63,8 +57,7 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
 
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-            {/* Header */}
+            {/* Header Sidebar Nhỏ */}
             <Box sx={{
                 px: 1.5,
                 bgcolor: '#FFF',
@@ -74,7 +67,6 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
                 minHeight: 48,
                 overflow: 'hidden',
             }}>
-                {/* Nút collapse — chỉ hiện trên desktop */}
                 {!onNavigate && (
                     <Tooltip title={collapsed ? 'Mở rộng' : 'Thu gọn'} placement="right" arrow>
                         <IconButton
@@ -92,37 +84,15 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
                         </IconButton>
                     </Tooltip>
                 )}
-
-                {/* Nút đóng — chỉ hiện trên mobile, góc trên bên phải */}
-                {onNavigate && (
-                    <Box sx={{ display: 'flex', width: '100%', justifyContent: 'flex-end' }}>
-                        <Tooltip title="Đóng" placement="left" arrow>
-                            <IconButton
-                                onClick={onNavigate}
-                                size="small"
-                                sx={{
-                                    color: 'white',
-                                    flexShrink: 0,
-                                    bgcolor: '#0EA5A4',
-                                    transition: TRANSITION,
-                                    '&:hover': { bgcolor: '#0D9488', color: 'white' },
-                                }}
-                            >
-                                <ChevronLeftIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-                    </Box>
-                )}
             </Box>
 
             {/* Menu items */}
             <List sx={{ pt: 1, flex: 1 }}>
-                {REPORT_MENU.map((item) => {
+                {REPORT_MENU.map((item, idx) => {
                     const isActive =
                         location.pathname === item.path ||
                         (item.path === '/bao-cao' && location.pathname === '/bao-cao/san-luong');
 
-                    const idx = REPORT_MENU.indexOf(item);
                     const colors = ITEM_COLORS[idx];
 
                     const button = (
@@ -130,7 +100,6 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
                             onClick={() => { navigate(item.path); onNavigate?.(); }}
                             sx={getItemSx(isActive)}
                         >
-                            {/* Icon — LUÔN có vòng tròn màu ở cả 2 trạng thái */}
                             <Box sx={{
                                 width: 34,
                                 height: 34,
@@ -147,12 +116,9 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
                             }}>
                                 {item.icon}
                             </Box>
-
-                            {/* Label — trượt mờ dần khi collapsed, không unmount */}
                             <Box sx={{
                                 ml: 1.5,
                                 overflow: 'hidden',
-                                // Thu width + opacity thay vì unmount để transition mượt
                                 maxWidth: collapsed ? 0 : 200,
                                 opacity: collapsed ? 0 : 1,
                                 transition: TRANSITION,
@@ -188,7 +154,10 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
 };
 
 const ReportLayout = ({ children, title }) => {
-    const [drawerOpen, setDrawerOpen] = useState(false);
+    const location = useLocation();
+    const [drawerOpen, setDrawerOpen] = useState(() => {
+        return location.state?.isFromMainSidebar === true;
+    });
     const [collapsed, setCollapsed] = useState(() => {
         try { return localStorage.getItem('sidebar-collapsed') === 'true'; }
         catch { return false; }
@@ -207,7 +176,6 @@ const ReportLayout = ({ children, title }) => {
     return (
         <Box sx={{ display: 'flex', height: '100%', width: '100%', bgcolor: '#f9fafb' }}>
 
-            {/* ── DESKTOP: Drawer permanent có collapse trượt mượt ── */}
             {!isMobile && (
                 <Drawer
                     className="no-print"
@@ -243,10 +211,9 @@ const ReportLayout = ({ children, title }) => {
                 </Drawer>
             )}
 
-            {/* ── MOBILE: Drawer trượt ── */}
             {isMobile && (
                 <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-                    <Box sx={{ width: SIDEBAR_EXPANDED, pt: '68px' }} role="presentation">
+                    <Box sx={{ width: '100vw', pt: '24px' }} role="presentation">
                         <SidebarContent
                             collapsed={false}
                             onCollapse={() => { }}
@@ -259,37 +226,45 @@ const ReportLayout = ({ children, title }) => {
             {/* ── Content area ── */}
             <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-                {/* Header */}
+                {/* Header (Đã tinh chỉnh khoảng trống dư thừa) */}
                 <Box
                     className="no-print"
                     sx={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: 1.5,
-                        px: 3,
-                        py: 1.5,
-                        minHeight: 40,
-                        maxHeight: 48,
+                        px: { xs: 2, md: 3 },
+                        // GIẢM pt TRÊN MOBILE: xs (mobile) cho pt: 1 (8px), md (desktop) giữ pt: 2 (16px)
+                        pt: { xs: 1, md: 2 },
+                        pb: 2,
                     }}
                 >
                     {isMobile && (
                         <IconButton
                             onClick={() => setDrawerOpen(true)}
-                            sx={{ bgcolor: '#f3f4f6', '&:hover': { bgcolor: '#e5e7eb' } }}
+                            // Có thể thêm size="small" ở đây để icon button bớt to trên mobile
+                            size="small"
+                            sx={{ bgcolor: '#f3f4f6', '&:hover': { bgcolor: '#e5e7eb' }, mr: 1 }}
                         >
-                            <MenuIcon sx={{ color: '#1e3a8a' }} />
+                            <ChevronRightIcon sx={{ color: '#1e3a8a' }} />
                         </IconButton>
                     )}
                     <Typography
                         variant="h6"
-                        sx={{ fontWeight: 700, color: "black" }}
+                        sx={{
+                            fontWeight: 700,
+                            color: "black",
+                            lineHeight: 1,
+                            // GIẢM FONT CHỮ TRÊN MOBILE: xs là mobile (cỡ 1.1rem), md là desktop (cỡ 1.25rem là mặc định của h6)
+                            fontSize: { xs: '1.1rem', md: '1.25rem' }
+                        }}
                     >
                         {title || 'Báo Cáo Thống Kê'}
                     </Typography>
                 </Box>
 
-                {/* Page content */}
-                <Box sx={{ flex: 1, overflow: 'auto', p: { xs: 2, md: 3 } }}>
+                {/* Page content (Đã giảm pt xuống để đẩy nội dung lên sát hơn) */}
+                <Box sx={{ flex: 1, overflow: 'auto', px: { xs: 2, md: 3 }, pb: { xs: 2, md: 3 }, pt: 0 }}>
                     {children}
                 </Box>
             </Box>

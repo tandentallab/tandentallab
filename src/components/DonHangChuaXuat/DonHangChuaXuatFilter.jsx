@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Typography, CircularProgress } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
-import { fetchNgayXuatHoaDonGanNhatAll } from "../../redux/slices/hoaDonSlice";
+import { useEffect } from "react";
 
 export default function DonHangChuaXuatFilter({
   selectedClinic,
@@ -11,71 +11,74 @@ export default function DonHangChuaXuatFilter({
   const [searchText, setSearchText] = useState("");
 
   const dispatch = useDispatch();
-  const { data = [], loading: loadingNhaKhoa } = useSelector((state) => state.nhaKhoa);
+  const { data: nhaKhoaList = [], loading: loadingNhaKhoa } = useSelector((state) => state.nhaKhoa);
 
-  // Dùng trực tiếp donHangs từ Redux do Page đã fetch
+  // Đọc metadata đã được fetch từ Page (không tự fetch lại)
   const {
-    donHangs = [],
+    countDonHangChuaXuat = [],
     ngayXuatHoaDonGanNhatAll = [],
-    loading: loadingHoaDon
+    loadingMeta,
   } = useSelector((state) => state.hoaDon);
 
-  const isGlobalLoading = loadingNhaKhoa || loadingHoaDon;
+  const isLoading = loadingNhaKhoa || loadingMeta;
 
   useEffect(() => {
     dispatch(fetchNhaKhoa());
-    dispatch(fetchNgayXuatHoaDonGanNhatAll());
   }, [dispatch]);
 
-  /* ================= MAP DATA ================= */
+  /* ================= BUILD INFO MAP TỪ BACKEND DATA ================= */
+  // countDonHangChuaXuat đã có: nhaKhoaId, soDonHangChuaXuatHoaDon, hoaDonGanNhat
+  // ngayXuatHoaDonGanNhatAll đã có: nhaKhoaId, hoaDonGanNhat.ngayXuatHoaDon
+  // Không cần tự tính từ donHangs nữa
   const infoMap = useMemo(() => {
     const map = {};
 
-    donHangs.forEach((order) => {
-      const clinicId = order.nhaKhoa?._id || order.nhaKhoa;
-      if (clinicId) {
-        if (!map[clinicId]) {
-          map[clinicId] = { count: 0, ngayXuatHoaDonCuoi: null };
-        }
-        // Đếm số lượng sản phẩm (bất chấp ngày tháng)
-        map[clinicId].count += (order.danhSachSanPham?.length || 0);
-      }
+    countDonHangChuaXuat.forEach((item) => {
+      map[item.nhaKhoaId] = {
+        count: item.soDonHangChuaXuatHoaDon || 0,
+        ngayXuatHoaDonCuoi: null, // sẽ được ghi đè bên dưới
+      };
     });
 
     ngayXuatHoaDonGanNhatAll.forEach((item) => {
-      const clinicId = item.nhaKhoaId;
-      if (clinicId) {
-        if (!map[clinicId]) {
-          map[clinicId] = { count: 0, ngayXuatHoaDonCuoi: null };
-        }
-        map[clinicId].ngayXuatHoaDonCuoi = item.hoaDonGanNhat?.ngayXuatHoaDon || null;
+      if (!map[item.nhaKhoaId]) {
+        map[item.nhaKhoaId] = { count: 0, ngayXuatHoaDonCuoi: null };
       }
+      map[item.nhaKhoaId].ngayXuatHoaDonCuoi =
+        item.hoaDonGanNhat?.ngayXuatHoaDon || null;
     });
 
     return map;
-  }, [donHangs, ngayXuatHoaDonGanNhatAll]);
+  }, [countDonHangChuaXuat, ngayXuatHoaDonGanNhatAll]);
 
   const formatDate = (date) => {
     if (!date) return "Chưa xuất";
-    return new Date(date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return new Date(date).toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   const sortedData = useMemo(() => {
-    return [...data].sort((a, b) => {
+    return [...nhaKhoaList].sort((a, b) => {
       const countA = infoMap[a._id]?.count || 0;
       const countB = infoMap[b._id]?.count || 0;
       return countB - countA;
     });
-  }, [data, infoMap]);
+  }, [nhaKhoaList, infoMap]);
 
-  const selectedNhaKhoa = data.find((nk) => nk._id === selectedClinic);
+  const selectedNhaKhoa = nhaKhoaList.find((nk) => nk._id === selectedClinic);
 
   const filteredData = useMemo(() => {
     return sortedData
       .filter((nk) => (infoMap[nk._id]?.count || 0) > 0)
-      .filter((nk) => !searchText.trim() || nk.hoVaTen?.toLowerCase().includes(searchText.toLowerCase().trim()));
+      .filter(
+        (nk) =>
+          !searchText.trim() ||
+          nk.hoVaTen?.toLowerCase().includes(searchText.toLowerCase().trim())
+      );
   }, [sortedData, searchText, infoMap]);
-
 
   return (
     <div className="w-52 md:w-52 w-full flex-shrink-0 border-r flex flex-col bg-white overflow-hidden">
@@ -120,7 +123,8 @@ export default function DonHangChuaXuatFilter({
           )}
         </div>
       </div>
-      {/* SELECTED CLINIC CHIP ở trên cùng */}
+
+      {/* SELECTED CLINIC CHIP */}
       {selectedClinic && selectedNhaKhoa && (
         <div className="px-3 pt-3 pb-2 border-b bg-gray-50 flex items-center gap-2">
           <div
@@ -173,12 +177,11 @@ export default function DonHangChuaXuatFilter({
           scrollbarColor: "#d1d5db transparent",
         }}
       >
-        {isGlobalLoading ? (
+        {isLoading ? (
           <div className="flex justify-center py-8">
             <CircularProgress size={20} />
           </div>
         ) : filteredData.length === 0 ? (
-          // ✅ Hiển thị khi không tìm thấy
           <div className="flex flex-col items-center justify-center py-10 text-gray-400">
             <svg
               width="32"
@@ -194,7 +197,7 @@ export default function DonHangChuaXuatFilter({
             <p className="text-xs mt-2">Không tìm thấy nha khoa</p>
           </div>
         ) : (
-          filteredData.map((nk, idx) => {
+          filteredData.map((nk) => {
             const info = infoMap[nk._id] || {
               count: 0,
               ngayXuatHoaDonCuoi: null,

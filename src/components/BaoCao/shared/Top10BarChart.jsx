@@ -82,6 +82,16 @@ const Top10BarChart = ({ data, loading, error, title, subTitle, isCurrency = fal
         return Math.min(calcWidth, maxWidth);
     }, [data, isMobile, chartWidth]);
 
+    // 🚀 TÍNH TOÁN CHIỀU CAO ĐỘNG CHO CHART
+    const chartHeight = useMemo(() => {
+        if (loading || !data || data.length === 0) return 150; // Chiều cao mặc định khi đang tải hoặc không có dữ liệu
+
+        const itemHeight = isMobile ? 32 : 36; // Cấp phát 32px-36px cho mỗi thanh ngang
+        const calculatedHeight = data.length * itemHeight + 20; // +20px padding/margin bù trừ
+
+        return Math.max(80, calculatedHeight); // Chiều cao tối thiểu không dưới 80px để tránh bị méo
+    }, [data, loading, isMobile]);
+
     if (error) {
         return <div className="p-4 bg-red-50 text-red-700 rounded-lg text-sm">Lỗi: {error}</div>;
     }
@@ -97,8 +107,12 @@ const Top10BarChart = ({ data, loading, error, title, subTitle, isCurrency = fal
                     {subTitle || '10 mục có số lượng cao nhất'}
                 </p>
 
-                {/* Thêm overflow-hidden để khi Sidebar đẩy ra, biểu đồ chưa kịp thu nhỏ không bị tràn khung */}
-                <div className="h-[300px] w-full overflow-hidden flex items-center justify-center" ref={chartRef}>
+                {/* 🚀 ĐÃ BỎ `h-[300px]` VÀ THAY BẰNG `style={{ height: chartHeight }}` */}
+                <div
+                    className="w-full overflow-hidden flex items-center justify-center transition-all duration-300"
+                    style={{ height: chartHeight }}
+                    ref={chartRef}
+                >
                     {loading ? (
                         <div className="animate-pulse text-blue-400 font-bold italic text-sm">
                             Đang tải biểu đồ...
@@ -108,8 +122,15 @@ const Top10BarChart = ({ data, loading, error, title, subTitle, isCurrency = fal
                             Không có dữ liệu trong khoảng thời gian này
                         </div>
                     ) : chartWidth > 0 ? (
-                        // 🔥 ĐÃ TĂNG MARGIN RIGHT CHO BIỂU ĐỒ TIỀN (tránh bị cắt mất dãy số dài)
-                        <BarChart width={chartWidth} height={300} layout="vertical" data={data} barCategoryGap="15%" margin={{ top: 0, right: isCurrency ? 80 : 30, left: 0, bottom: 0 }}>
+                        // 🚀 THAY ĐỔI `height` THEO BIẾN `chartHeight` BÊN TRONG BARCHART
+                        <BarChart
+                            width={chartWidth}
+                            height={chartHeight}
+                            layout="vertical"
+                            data={data}
+                            barCategoryGap="15%"
+                            margin={{ top: 0, right: isCurrency ? 80 : 30, left: 0, bottom: 0 }}
+                        >
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                             <XAxis type="number" hide domain={[0, (dataMax) => Math.round(dataMax * 1.25)]} />
                             <YAxis
@@ -123,16 +144,13 @@ const Top10BarChart = ({ data, loading, error, title, subTitle, isCurrency = fal
                                 tick={<CustomYAxisTick axisWidth={yAxisWidth} isMobile={isMobile} />}
                             />
 
-                            {/* 🚀 ĐÃ THÊM FORMATTER CHO TOOLTIP (Hiển thị khi di chuột vào) */}
                             <Tooltip
                                 cursor={{ fill: '#f8fafc' }}
                                 contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
                                 formatter={(value) => isCurrency ? new Intl.NumberFormat('vi-VN').format(value) : value}
                             />
 
-                            {/* Tắt animation mặc định để không tốn tài nguyên lúc chớp width */}
                             <Bar dataKey="quantity" fill="#00a3e0" radius={[0, 4, 4, 0]} barSize={isMobile ? 12 : 14} isAnimationActive={false}>
-                                {/* 🚀 ĐÃ THÊM FORMATTER CHO LABELLIST (Chữ hiển thị trên cột) */}
                                 <LabelList
                                     dataKey="quantity"
                                     position="right"

@@ -8,7 +8,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import SearchIcon from '@mui/icons-material/Search';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import ReportLayout from './shared/ReportLayout';
 import { fetchBaoCaoDoanhThuThang } from '../../redux/slices/baoCaoSlice';
 import BaoCaoDoanhThuTable from './BaoCaoDoanhThuTable';
 import { FaFileExcel } from "react-icons/fa6";
@@ -140,129 +139,128 @@ export default function BaoCaoDoanhThuPage() {
     const hasData = !!data?.chiTiet;
 
     return (
-        <ReportLayout title="Doanh Thu">
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 1.5 }}>
 
-                {/* ─── Toolbar ─────────────────────────────────────────────── */}
-                <Paper elevation={0} sx={{
-                    px: { xs: 1.5, sm: 3 },
-                    py: { xs: 1.25, sm: 1.2 },
-                    border: '1px solid #e0e4f0',
-                    borderRadius: 2,
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    gap: 1,
-                }}>
-                    {/* Chọn năm */}
-                    <FormControl size="small" sx={{ minWidth: 80, flex: { xs: '1 1 0', sm: '0 0 auto' } }}>
-                        <InputLabel sx={{ fontFamily: FONT }}>Năm</InputLabel>
-                        <Select value={nam} label="Năm" onChange={handleNamChange} sx={{ fontFamily: FONT }}>
-                            {NAM_LIST.map(y => <MenuItem key={y} value={y} sx={{ fontFamily: FONT }}>{y}</MenuItem>)}
-                        </Select>
-                    </FormControl>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 1.5 }}>
 
-                    {/* Chọn tháng */}
-                    <FormControl size="small" sx={{ minWidth: 95, flex: { xs: '1 1 0', sm: '0 0 auto' } }}>
-                        <InputLabel sx={{ fontFamily: FONT }}>Tháng</InputLabel>
-                        <Select value={thang} label="Tháng" onChange={e => { setThang(Number(e.target.value)); setShowTable(false); }} sx={{ fontFamily: FONT }}>
-                            {availableMonths.map(t => <MenuItem key={t} value={t} sx={{ fontFamily: FONT }}>Tháng {t}</MenuItem>)}
-                        </Select>
-                    </FormControl>
+            {/* ─── Toolbar ─────────────────────────────────────────────── */}
+            <Paper elevation={0} sx={{
+                px: { xs: 1.5, sm: 3 },
+                py: { xs: 1.25, sm: 1.2 },
+                border: '1px solid #e0e4f0',
+                borderRadius: 2,
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 1,
+            }}>
+                {/* Chọn năm */}
+                <FormControl size="small" sx={{ minWidth: 80, flex: { xs: '1 1 0', sm: '0 0 auto' } }}>
+                    <InputLabel sx={{ fontFamily: FONT }}>Năm</InputLabel>
+                    <Select value={nam} label="Năm" onChange={handleNamChange} sx={{ fontFamily: FONT }}>
+                        {NAM_LIST.map(y => <MenuItem key={y} value={y} sx={{ fontFamily: FONT }}>{y}</MenuItem>)}
+                    </Select>
+                </FormControl>
 
-                    {/* Nút Xem */}
-                    <Button variant="contained"
-                        startIcon={loading ? <CircularProgress size={15} color="inherit" /> : <SearchIcon fontSize="small" />}
-                        onClick={handleSearch} disabled={loading}
+                {/* Chọn tháng */}
+                <FormControl size="small" sx={{ minWidth: 95, flex: { xs: '1 1 0', sm: '0 0 auto' } }}>
+                    <InputLabel sx={{ fontFamily: FONT }}>Tháng</InputLabel>
+                    <Select value={thang} label="Tháng" onChange={e => { setThang(Number(e.target.value)); setShowTable(false); }} sx={{ fontFamily: FONT }}>
+                        {availableMonths.map(t => <MenuItem key={t} value={t} sx={{ fontFamily: FONT }}>Tháng {t}</MenuItem>)}
+                    </Select>
+                </FormControl>
+
+                {/* Nút Xem */}
+                <Button variant="contained"
+                    startIcon={loading ? <CircularProgress size={15} color="inherit" /> : <SearchIcon fontSize="small" />}
+                    onClick={handleSearch} disabled={loading}
+                    sx={{
+                        fontFamily: FONT, fontWeight: 600, borderRadius: 1.5,
+                        bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' },
+                        px: { xs: 1.5, sm: 2 },
+                        height: 40,
+                        whiteSpace: 'nowrap',
+                        flex: '0 0 auto',
+                    }}
+                >
+                    Xem
+                </Button>
+
+                {/* Spacer — đẩy search + excel về bên phải trên desktop */}
+                <Box sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }} />
+
+                {/* Ô tìm kiếm — chỉ hiện khi có data */}
+                {hasData && (
+                    <TextField
+                        size="small"
+                        placeholder="Tìm nha khoa..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         sx={{
-                            fontFamily: FONT, fontWeight: 600, borderRadius: 1.5,
-                            bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' },
-                            px: { xs: 1.5, sm: 2 },
+                            flex: { xs: '1 1 auto', sm: '0 0 160px' },
+                            '& .MuiInputBase-root': { fontFamily: FONT, height: 40, fontSize: '0.85rem', borderRadius: 1.5 },
+                        }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" sx={{ opacity: 0.6 }} />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+                )}
+
+                {/* Nút xuất Excel — chỉ hiện khi có data */}
+                {hasData && (
+                    <Button
+                        variant="contained"
+                        onClick={handleExport}
+                        size="small"
+                        title="Xuất Excel"
+                        sx={{
+                            bgcolor: '#217346',
+                            '&:hover': { bgcolor: '#185C37' },
+                            borderRadius: 1.5,
+                            minWidth: 40,
+                            width: 40,
                             height: 40,
-                            whiteSpace: 'nowrap',
-                            flex: '0 0 auto',
+                            p: 0,
                         }}
                     >
-                        Xem
+                        <FaFileExcel size={20} />
                     </Button>
-
-                    {/* Spacer — đẩy search + excel về bên phải trên desktop */}
-                    <Box sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }} />
-
-                    {/* Ô tìm kiếm — chỉ hiện khi có data */}
-                    {hasData && (
-                        <TextField
-                            size="small"
-                            placeholder="Tìm nha khoa..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            sx={{
-                                flex: { xs: '1 1 auto', sm: '0 0 160px' },
-                                '& .MuiInputBase-root': { fontFamily: FONT, height: 40, fontSize: '0.85rem', borderRadius: 1.5 },
-                            }}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <SearchIcon fontSize="small" sx={{ opacity: 0.6 }} />
-                                    </InputAdornment>
-                                ),
-                            }}
-                        />
-                    )}
-
-                    {/* Nút xuất Excel — chỉ hiện khi có data */}
-                    {hasData && (
-                        <Button
-                            variant="contained"
-                            onClick={handleExport}
-                            size="small"
-                            title="Xuất Excel"
-                            sx={{
-                                bgcolor: '#217346',
-                                '&:hover': { bgcolor: '#185C37' },
-                                borderRadius: 1.5,
-                                minWidth: 40,
-                                width: 40,
-                                height: 40,
-                                p: 0,
-                            }}
-                        >
-                            <FaFileExcel size={20} />
-                        </Button>
-                    )}
-                </Paper>
-
-                {error && <Alert severity="error" sx={{ fontFamily: FONT }}>{error}</Alert>}
-
-                {loading && (
-                    <div className="flex-1 flex items-center justify-center">
-                        <CircularProgress sx={{ color: '#1a237e' }} />
-                    </div>
                 )}
+            </Paper>
 
-                {!loading && !showTable && (
-                    <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3 pb-20">
-                        <SearchIcon sx={{ fontSize: 48, opacity: 0.3 }} />
-                        <Typography sx={{ fontFamily: FONT, fontSize: '0.95rem', fontWeight: 500 }}>
-                            Vui lòng chọn thời gian và bấm "Xem báo cáo"
-                        </Typography>
-                    </div>
-                )}
+            {error && <Alert severity="error" sx={{ fontFamily: FONT }}>{error}</Alert>}
 
-                {showTable && data && !loading && data.chiTiet && data.tongHop && (
-                    <div className="flex-1 min-h-0 flex flex-col overflow-hidden animate-in fade-in duration-300">
-                        <BaoCaoDoanhThuTable
-                            data={data}
-                            notes={notes}
-                            setNotes={setNotes}
-                            thang={thang}
-                            nam={nam}
-                            searchTerm={searchTerm}
-                        />
-                    </div>
-                )}
+            {loading && (
+                <div className="flex-1 flex items-center justify-center">
+                    <CircularProgress sx={{ color: '#1a237e' }} />
+                </div>
+            )}
 
-            </Box>
-        </ReportLayout>
+            {!loading && !showTable && (
+                <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3 pb-20">
+                    <SearchIcon sx={{ fontSize: 48, opacity: 0.3 }} />
+                    <Typography sx={{ fontFamily: FONT, fontSize: '0.95rem', fontWeight: 500 }}>
+                        Vui lòng chọn thời gian và bấm "Xem báo cáo"
+                    </Typography>
+                </div>
+            )}
+
+            {showTable && data && !loading && data.chiTiet && data.tongHop && (
+                <div className="flex-1 min-h-0 flex flex-col overflow-hidden animate-in fade-in duration-300">
+                    <BaoCaoDoanhThuTable
+                        data={data}
+                        notes={notes}
+                        setNotes={setNotes}
+                        thang={thang}
+                        nam={nam}
+                        searchTerm={searchTerm}
+                    />
+                </div>
+            )}
+
+        </Box>
     );
 }

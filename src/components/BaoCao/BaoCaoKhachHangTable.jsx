@@ -63,9 +63,10 @@ const ResizableHeaderCell = ({ children, initialWidth, minWidth = 60, isLast }) 
         <TableCell
             sx={{
                 ...headSx,
-                width: width,
-                minWidth: width,
-                maxWidth: width,
+                // 🔥 Đã chỉnh sửa Responsive: Mobile tự động giãn, Desktop giữ nguyên cố định
+                width: { xs: 'auto', md: width },
+                minWidth: { xs: initialWidth, md: width },
+                maxWidth: isLast ? 'none' : { xs: 'none', md: width },
                 position: 'relative',
                 borderRight: isLast ? 'none' : headSx.borderRight
             }}
@@ -106,17 +107,21 @@ const BaoCaoKhachHangTable = () => {
     const dataList = sanLuongKhachHangData?.data || [];
 
     return (
-        <Box sx={{ width: 'fit-content', maxWidth: '100%' }}>
+        // 🔥 Đã chỉnh sửa Width: 100% trên Mobile, fit-content trên Desktop
+        <Box sx={{ width: { xs: '100%', md: 'fit-content' }, maxWidth: '100%' }}>
             <TableContainer
                 component={Paper}
                 className="shadow-sm border border-gray-300 overflow-hidden flex flex-col rounded-md"
                 sx={{ maxHeight: 900, overflowY: 'auto', overflowX: 'auto' }}
             >
-                <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', width: 'fit-content' }}>
-
+                <Table
+                    stickyHeader
+                    size="small"
+                    // 🔥 Đã chỉnh sửa tableLayout và width cho tương thích với Box bên ngoài
+                    sx={{ tableLayout: { xs: 'auto', md: 'fixed' }, width: { xs: '100%', md: 'fit-content' } }}
+                >
                     <TableHead>
                         <TableRow>
-                            {/* Bảng này chỉ có 2 cột nên mình set width cho thoải mái */}
                             <ResizableHeaderCell initialWidth={250}>
                                 Khách hàng
                             </ResizableHeaderCell>

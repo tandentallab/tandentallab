@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchVatLieu, fetchNhaCungCap } from "../../redux/slices/khoSlice";
 import VatLieuTable from "./VatLieuTable";
-import NhapXuatTable from "./NhapXuatTable";
+import NhapXuatTable from "./NhapXuatKho/NhapXuatTable";
 import NhaCungCapTable from "./NhaCungCapTable";
 import { Box, Tab, Tabs } from "@mui/material";
 import StorefrontIcon from "@mui/icons-material/Storefront";

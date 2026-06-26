@@ -19,7 +19,7 @@ import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import BadgeIcon from "@mui/icons-material/Badge";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
-
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 export const MAIN_MENU = [
   { name: "Thống kê", router: "/", icon: <Dashboard /> },
   { name: "Đơn Hàng", router: "/don-hang", icon: <ShoppingCart /> },
@@ -58,6 +58,11 @@ export const CUSTOMER_MENU = [
 
 export const OTHER_MENU = [
   { name: "Báo Cáo", router: "/bao-cao", icon: <BarChart /> },
+  {
+    name: 'Báo cáo doanh thu',
+    router: '/bao-cao/doanh-thu',
+    icon: <AttachMoneyIcon />
+  },
   { name: "Nhân viên", router: "/nhan-vien", icon: <BadgeIcon /> },
   { name: "Bảng lương", router: "/bang-luong", icon: <PaymentsIcon /> },
 ];
@@ -72,8 +77,8 @@ export const SETTING_MENU = [
 export const ALL_MENUS = [
   { title: "Menu Chính", items: MAIN_MENU },
   { title: "Khách Hàng", items: CUSTOMER_MENU },
-  { 
-    title: "Khác", 
+  {
+    title: "Khác",
     items: [
       ...OTHER_MENU,
       { name: "Ghi chú", router: "/ghi-chu", icon: <Assignment /> }

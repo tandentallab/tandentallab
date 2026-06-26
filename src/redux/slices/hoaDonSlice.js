@@ -293,6 +293,10 @@ const slice = createSlice({
 
     loading: false,
 
+    // Loading riêng cho từng nhóm — tránh spinner chéo giữa Table và Sidebar
+    loadingDonHangs: false,   // fetchDonHangChuaHoaDon (per-clinic, on demand)
+    loadingMeta: false,       // fetchCountDonHangChuaXuat + fetchNgayXuatHoaDonGanNhatAll
+
     error: null,
   },
 
@@ -321,14 +325,14 @@ const slice = createSlice({
       .addCase(
         fetchDonHangChuaHoaDon.pending,
         (state) => {
-          state.loading = true;
+          state.loadingDonHangs = true;
         }
       )
 
       .addCase(
         fetchDonHangChuaHoaDon.fulfilled,
         (state, action) => {
-          state.loading = false;
+          state.loadingDonHangs = false;
 
           state.donHangs =
             action.payload;
@@ -338,7 +342,7 @@ const slice = createSlice({
       .addCase(
         fetchDonHangChuaHoaDon.rejected,
         (state, action) => {
-          state.loading = false;
+          state.loadingDonHangs = false;
 
           state.error =
             action.payload?.message ||
@@ -654,14 +658,14 @@ const slice = createSlice({
       .addCase(
         fetchCountDonHangChuaXuat.pending,
         (state) => {
-          state.loading = true;
+          state.loadingMeta = true;
         }
       )
 
       .addCase(
         fetchCountDonHangChuaXuat.fulfilled,
         (state, action) => {
-          state.loading = false;
+          state.loadingMeta = false;
 
           state.countDonHangChuaXuat =
             action.payload;
@@ -671,7 +675,7 @@ const slice = createSlice({
       .addCase(
         fetchCountDonHangChuaXuat.rejected,
         (state, action) => {
-          state.loading = false;
+          state.loadingMeta = false;
 
           state.error =
             action.payload?.message ||
@@ -680,15 +684,15 @@ const slice = createSlice({
       )
 
       .addCase(fetchNgayXuatHoaDonGanNhatAll.pending, (state) => {
-        state.loading = true;
+        state.loadingMeta = true;
         state.error = null;
       })
       .addCase(fetchNgayXuatHoaDonGanNhatAll.fulfilled, (state, action) => {
-        state.loading = false;
-        state.ngayXuatHoaDonGanNhatAll = action.payload.data; // Lưu mảng kết quả từ API vào state
+        state.loadingMeta = false;
+        state.ngayXuatHoaDonGanNhatAll = action.payload.data;
       })
       .addCase(fetchNgayXuatHoaDonGanNhatAll.rejected, (state, action) => {
-        state.loading = false;
+        state.loadingMeta = false;
         state.error = action.payload?.message || action.error.message;
       })
   },

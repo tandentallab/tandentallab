@@ -1,31 +1,28 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Checkbox, Typography, CircularProgress, Button, MenuItem,
-  Select, FormControl, InputLabel,
+  Paper, Checkbox, Typography, CircularProgress, Button,
 } from "@mui/material";
 import {
-  startOfDay, endOfDay, subDays, startOfWeek, endOfWeek,
-  startOfMonth, endOfMonth, subWeeks, subMonths, isWithinInterval,
+  startOfDay, endOfDay, isWithinInterval,
 } from "date-fns";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  fetchDonHangChuaHoaDon, fetchDonHangChuaHoaDonAll, createHoaDon,
+  fetchDonHangChuaHoaDon, createHoaDon,
   fetchCountDonHangChuaXuat, fetchNgayXuatHoaDonGanNhatAll,
 } from "../../redux/slices/hoaDonSlice";
-import { fetchBangGiaByNhaKhoa, fetchAllBangGia } from "../../redux/slices/bangGiaSlice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { buildProductNameMap } from "../../utils/hoaDonUtils";
 import dayjs from "dayjs";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import CustomDateRangePicker from "../common/CustomDateRangePicker"; // 🔥 IMPORT LỊCH XỊN
+import CustomDateRangePicker from "../common/DateRangePicker";
 
 const vndFormatter = new Intl.NumberFormat("vi-VN");
 const fmtVND = (v) => vndFormatter.format(Math.round(v || 0));
 
 const fmtDate = (d) =>
-  d ? new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", }) : "-";
+  d ? new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }) : "-";
 
 const getFirstName = (fullName) => {
   if (!fullName) return "";
@@ -78,10 +75,9 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { donHangs = [], loading } = useSelector((state) => state.hoaDon) || {};
+  const { donHangs = [], loadingDonHangs } = useSelector((state) => state.hoaDon) || {};
   const { data: bangGia = [] } = useSelector((state) => state.bangGia) || {};
 
-  const [dateFilter, setDateFilter] = useState("custom");
   const [searchMaDon, setSearchMaDon] = useState("");
   const [visibleCount, setVisibleCount] = useState(25);
   const containerRef = useRef(null);
@@ -96,8 +92,7 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   })();
   const [fromDate, setFromDate] = useState(defaultFrom);
   const [toDate, setToDate] = useState(today);
-
-  // 🔥 STATE NEO LỊCH
+  const [dateLabel, setDateLabel] = useState("📅 Chọn trên lịch");
   const [anchorElCustomDate, setAnchorElCustomDate] = useState(null);
 
   const [columnWidths, setColumnWidths] = useState({
@@ -156,35 +151,40 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
     };
   }, [columnWidths]);
 
+  useEffect(() => {
+    if (!selectedClinic) return;
+    dispatch(fetchDonHangChuaHoaDon(selectedClinic));
+  }, [selectedClinic, dispatch]);
+
+  useEffect(() => {
+    setVisibleCount(25);
+    setSearchMaDon("");
+    if (containerRef.current) {
+      containerRef.current.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+  }, [selectedClinic]);
+
+  useEffect(() => { setVisibleCount(25); }, [fromDate, toDate, searchMaDon]);
 
   const activeDateRange = useMemo(() => {
-    const now = new Date();
-    let start = startOfMonth(now); let end = endOfDay(now);
+    let start = startOfDay(new Date());
+    let end = endOfDay(new Date());
 
-    switch (dateFilter) {
-      case "today": start = startOfDay(now); end = endOfDay(now); break;
-      case "yesterday": { const y = subDays(now, 1); start = startOfDay(y); end = endOfDay(y); break; }
-      case "thisWeek": start = startOfWeek(now, { weekStartsOn: 1 }); end = endOfWeek(now, { weekStartsOn: 1 }); break;
-      case "lastWeek": { const lw = subWeeks(now, 1); start = startOfWeek(lw, { weekStartsOn: 1 }); end = endOfWeek(lw, { weekStartsOn: 1 }); break; }
-      case "thisMonth": start = startOfMonth(now); end = endOfMonth(now); break;
-      case "lastMonth": { const lm = subMonths(now, 1); start = startOfMonth(lm); end = endOfMonth(lm); break; }
-      case "custom": if (fromDate && toDate) { start = startOfDay(new Date(fromDate)); end = endOfDay(new Date(toDate)); } break;
-      default: break;
+    if (fromDate && toDate) {
+      start = startOfDay(new Date(fromDate));
+      end = endOfDay(new Date(toDate));
     }
     return { start, end };
-  }, [dateFilter, fromDate, toDate]);
+  }, [fromDate, toDate]);
 
   const filteredDonHangs = useMemo(() => {
     return donHangs.filter((o) => {
-      // 1. Lọc theo nha khoa đang chọn
-      const isMatchClinic = selectedClinic === "all" || (o.nhaKhoa?._id || o.nhaKhoa) === selectedClinic;
-
-      // 2. Lọc theo ngày
-      const isMatchDate = o.ngayNhan && isWithinInterval(new Date(o.ngayNhan), { start: activeDateRange.start, end: activeDateRange.end });
-
-      return isMatchClinic && isMatchDate;
+      return o.ngayNhan && isWithinInterval(new Date(o.ngayNhan), {
+        start: activeDateRange.start,
+        end: activeDateRange.end,
+      });
     });
-  }, [donHangs, activeDateRange, selectedClinic]);
+  }, [donHangs, activeDateRange]);
 
   const mapTen = useMemo(() => buildProductNameMap(bangGia), [bangGia]);
 
@@ -224,34 +224,26 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
 
   const totalCost = useMemo(() => displayedData.reduce((s, r) => s + r.tongCong, 0), [displayedData]);
   const selectedSet = useMemo(() => new Set(selectedOrders.map((o) => o._id)), [selectedOrders]);
+  const selectedRowsCount = useMemo(() => {
+    return displayedData.filter((row) => selectedSet.has(row.orderId)).length;
+  }, [displayedData, selectedSet]);
+
   const uniqueOrdersInDisplay = useMemo(() => {
     const seen = new Set(); const orders = [];
     displayedData.forEach((row) => { if (!seen.has(row.orderId)) { seen.add(row.orderId); orders.push(row.rawOrder); } });
     return orders;
   }, [displayedData]);
 
-  const displayedDataLengthRef = useRef(displayedData.length);
-  useEffect(() => {
-    // Only reset when the actual data set changes (new clinic, new filter, etc.)
-    if (displayedDataLengthRef.current !== displayedData.length) {
-      displayedDataLengthRef.current = displayedData.length;
-      setVisibleCount(25);
-    }
-  }, [displayedData.length]);
-
-  // Reset on selectedClinic or date filter change
-  useEffect(() => { setVisibleCount(25); }, [selectedClinic, dateFilter, fromDate, toDate, searchMaDon]);
-
   useEffect(() => {
     const container = containerRef.current; const sentinel = sentinelRef.current;
     if (!container || !sentinel) return;
-    if (visibleCount >= displayedData.length) return; // Nothing more to load
+    if (visibleCount >= displayedData.length) return;
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
         setVisibleCount((prev) => Math.min(prev + 25, displayedData.length));
       }
-    }, { root: container, rootMargin: '200px', threshold: 0 });
+    }, { root: container, rootMargin: "200px", threshold: 0 });
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [displayedData.length, visibleCount]);
@@ -271,24 +263,20 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
 
   const handleCreateHoaDon = async () => {
     if (selectedOrders.length === 0) { toast.error("Vui lòng chọn ít nhất 1 đơn hàng"); return; }
-    let nhaKhoaId = selectedClinic;
-    if (selectedClinic === "all") {
-      const ids = new Set(selectedOrders.map((o) => o.nhaKhoa?._id || o.nhaKhoa));
-      if (ids.size > 1) { toast.error("Các đơn hàng phải từ cùng 1 nha khoa. Vui lòng chọn lại!"); return; }
-      nhaKhoaId = selectedOrders[0].nhaKhoa?._id || selectedOrders[0].nhaKhoa;
-      if (!nhaKhoaId) { toast.error("Không xác định được nha khoa của đơn hàng"); return; }
-    }
 
     try {
       await dispatch(createHoaDon({
-        nhaKhoaId, danhSachDonHangIds: selectedOrders.map((o) => o._id),
-        tuNgay: activeDateRange.start.toISOString(), denNgay: new Date().toISOString(),
+        nhaKhoaId: selectedClinic,
+        danhSachDonHangIds: selectedOrders.map((o) => o._id),
+        tuNgay: activeDateRange.start.toISOString(),
+        denNgay: new Date().toISOString(),
       })).unwrap();
       toast.success("Tạo hóa đơn thành công!");
       setSelectedOrders([]);
+
       dispatch(fetchCountDonHangChuaXuat());
       dispatch(fetchNgayXuatHoaDonGanNhatAll());
-      dispatch(fetchDonHangChuaHoaDonAll());
+      dispatch(fetchDonHangChuaHoaDon(selectedClinic));
     } catch (err) {
       toast.error(err?.message || "Tạo hóa đơn thất bại");
     }
@@ -309,50 +297,53 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0 h-full w-full relative">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 px-4 py-2 border-b bg-white flex-shrink-0">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto flex-1">
-          <FormControl size="small" sx={{ minWidth: 160, width: { xs: "100%", sm: "auto" } }}>
-            <InputLabel>Lọc bảng theo ngày</InputLabel>
-            <Select value={dateFilter} label="Lọc bảng theo ngày" onChange={(e) => setDateFilter(e.target.value)}>
-              <MenuItem value="custom">Chọn khoảng ngày</MenuItem>
-              <MenuItem value="today">Hôm nay</MenuItem>
-              <MenuItem value="yesterday">Hôm qua</MenuItem>
-              <MenuItem value="thisWeek">Tuần này</MenuItem>
-              <MenuItem value="lastWeek">Tuần trước</MenuItem>
-              <MenuItem value="thisMonth">Tháng này</MenuItem>
-              <MenuItem value="lastMonth">Tháng trước</MenuItem>
-            </Select>
-          </FormControl>
 
-          {/* 🔥 THAY ĐỔI Ở ĐÂY: GỌI LỊCH CUSTOM THAY VÌ DATEPICKER MUI */}
-          {dateFilter === "custom" && (
-            <div className="flex items-center gap-2 relative">
-              <button
-                onClick={(e) => setAnchorElCustomDate(e.currentTarget)}
-                className="h-10 px-3 flex items-center justify-center gap-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors shadow-sm min-w-[220px]"
-              >
-                <CalendarTodayIcon sx={{ fontSize: 18 }} />
-                {fromDate && toDate
-                  ? `${dayjs(fromDate).format('DD/MM/YYYY')} - ${dayjs(toDate).format('DD/MM/YYYY')}`
-                  : "Chọn khoảng ngày..."}
-              </button>
-              <CustomDateRangePicker
-                open={Boolean(anchorElCustomDate)}
-                anchorEl={anchorElCustomDate}
-                onClose={() => setAnchorElCustomDate(null)}
-                initialDates={{
-                  start: fromDate,
-                  end: toDate,
-                }}
-                onApply={(dates) => {
-                  setFromDate(dates.start);
-                  setToDate(dates.end);
-                  setAnchorElCustomDate(null);
-                }}
-              />
-            </div>
+        {/* NỬA TRÁI: Bộ lọc ngày + Text số lượng đã chọn */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto">
+          <div className="flex items-center flex-shrink-0">
+            <button
+              onClick={(e) => setAnchorElCustomDate(e.currentTarget)}
+              className="h-10 px-3 flex items-center gap-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors whitespace-nowrap"
+            >
+              <CalendarTodayIcon sx={{ fontSize: 14 }} />
+              {dateLabel === '📅 Chọn trên lịch' ? (
+                fromDate && toDate
+                  ? `${dayjs(fromDate).format("DD/MM/YY")} – ${dayjs(toDate).format("DD/MM/YY")}`
+                  : "Chọn ngày..."
+              ) : (
+                dateLabel
+              )}
+            </button>
+            <CustomDateRangePicker
+              open={Boolean(anchorElCustomDate)}
+              anchorEl={anchorElCustomDate}
+              onClose={() => setAnchorElCustomDate(null)}
+              initialDates={{ start: fromDate, end: toDate }}
+              onApply={(dates) => {
+                setFromDate(dates.start);
+                setToDate(dates.end);
+                setDateLabel(dates.label || '📅 Chọn trên lịch');
+                setAnchorElCustomDate(null);
+              }}
+            />
+          </div>
+
+          {selectedOrders.length > 0 && (
+            <Typography variant="body2" sx={{ color: "#00a8df", fontWeight: 600, fontSize: "15px" }}>
+              {selectedRowsCount} được chọn
+            </Typography>
+          )}
+        </div>
+
+        {/* NỬA PHẢI: Nút Tạo hóa đơn + Input tìm kiếm (bên ngoài cùng) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 w-full xl:w-auto">
+          {selectedOrders.length > 0 && (
+            <Button variant="contained" color="primary" size="small" onClick={handleCreateHoaDon} sx={{ width: { xs: "100%", sm: "auto" }, height: "38px", px: 3 }}>
+              Tạo hóa đơn
+            </Button>
           )}
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 focus-within:border-blue-400 focus-within:bg-white transition-all w-full sm:w-auto" style={{ minWidth: 180 }}>
+          <div className="flex items-center gap-1.5 px-2.5 rounded-lg border border-gray-200 bg-gray-50 focus-within:border-blue-400 focus-within:bg-white transition-all w-full sm:w-auto" style={{ minWidth: 200, height: "38px" }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" className="flex-shrink-0"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
             <input type="text" placeholder="Tìm mã đơn hàng..." value={searchMaDon} onChange={(e) => setSearchMaDon(e.target.value)} className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400 w-full" />
             {searchMaDon && (
@@ -362,23 +353,15 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
             )}
           </div>
         </div>
-
-        {selectedOrders.length > 0 && (
-          <div className="w-full xl:w-auto flex justify-end">
-            <Button variant="contained" color="primary" size="small" onClick={handleCreateHoaDon} sx={{ width: { xs: "100%", xl: "auto" }, height: '40px', px: 4 }}>
-              Tạo hóa đơn
-            </Button>
-          </div>
-        )}
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 px-4 pt-3 pb-0">
-        <TableContainer ref={containerRef} component={Paper} elevation={0} sx={{ borderRadius: "12px 12px 0 0", flex: 1, minHeight: 0, overflowX: "auto", overflowY: "auto", backgroundColor: "#ffffff", border: "none !important", boxShadow: "none !important", "&::-webkit-scrollbar": { height: 10, width: 10 }, "&::-webkit-scrollbar-track": { background: "transparent" }, "&::-webkit-scrollbar-thumb": { backgroundColor: "#cbd5e1", borderRadius: 8, border: "2px solid #ffffff", }, "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "#94a3b8" }, }}>
-          <Table sx={{ tableLayout: "fixed", width: "100%", minWidth: `${totalTableWidth}px`, borderCollapse: "collapse", bgcolor: "white", }}>
-            <TableHead sx={{ position: "sticky", top: 0, zIndex: 20, bgcolor: "#e6f7ff", }}>
+        <TableContainer ref={containerRef} component={Paper} elevation={0} sx={{ borderRadius: "12px 12px 0 0", flex: 1, minHeight: 0, overflowX: "auto", overflowY: "auto", backgroundColor: "#ffffff", border: "none !important", boxShadow: "none !important", "&::-webkit-scrollbar": { height: 10, width: 10 }, "&::-webkit-scrollbar-track": { background: "transparent" }, "&::-webkit-scrollbar-thumb": { backgroundColor: "#cbd5e1", borderRadius: 8, border: "2px solid #ffffff" }, "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "#94a3b8" } }}>
+          <Table sx={{ tableLayout: "fixed", width: "100%", minWidth: `${totalTableWidth}px`, borderCollapse: "collapse", bgcolor: "white" }}>
+            <TableHead sx={{ position: "sticky", top: 0, zIndex: 20, bgcolor: "#e6f7ff" }}>
               <TableRow className="group" sx={{ border: "none !important" }}>
-                <TableCell padding="checkbox" sx={{ width: 48, minWidth: 48, bgcolor: "#e6f7ff", borderBottom: "1px solid #e6f7ff", borderTopLeftRadius: "12px", position: "sticky", left: 0, zIndex: 21, }}>
-                  <Checkbox size="small" sx={{ color: "#00a8df", "&.Mui-checked": { color: "#00a8df" }, }} indeterminate={someDisplaySelected} checked={allDisplaySelected} onChange={toggleAll} />
+                <TableCell padding="checkbox" sx={{ width: 48, minWidth: 48, bgcolor: "#e6f7ff", borderBottom: "1px solid #e6f7ff", borderTopLeftRadius: "12px", position: "sticky", left: 0, zIndex: 21 }}>
+                  <Checkbox size="small" sx={{ color: "#00a8df", "&.Mui-checked": { color: "#00a8df" } }} indeterminate={someDisplaySelected} checked={allDisplaySelected} onChange={toggleAll} />
                 </TableCell>
                 <ResizableHeaderCell label="Đơn hàng" columnKey="maDonHang" style={cellStyles.maDonHang_h} onResize={handleResize} />
                 <ResizableHeaderCell label="Ngày nhận" columnKey="ngayNhan" style={cellStyles.ngayNhan_h} onResize={handleResize} />
@@ -391,32 +374,34 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
                 <ResizableHeaderCell label="Đơn giá" columnKey="donGia" style={cellStyles.donGia_h} onResize={handleResize} />
                 <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" style={cellStyles.tongCong_h} onResize={handleResize} />
                 <ResizableHeaderCell label="Ghi chú tài chính" columnKey="ghiChuTaiChinh" style={cellStyles.ghiChuTaiChinh_h} onResize={handleResize} isLast />
-                <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff", }} />
-              </TableRow >
-            </TableHead >
+                <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff" }} />
+              </TableRow>
+            </TableHead>
             <TableBody>
-              {loading ? (
+              {loadingDonHangs ? (
                 <TableRow><TableCell colSpan={13} align="center" sx={{ py: 8, borderBottom: "none" }}><CircularProgress size={24} sx={{ color: "#00a8df" }} /></TableCell></TableRow>
               ) : displayedData.length === 0 ? (
-                <TableRow><TableCell colSpan={13} align="center" sx={{ py: 8, color: "text.secondary", borderBottom: "none", }}>Không có đơn hàng nào</TableCell></TableRow>
+                <TableRow><TableCell colSpan={13} align="center" sx={{ py: 8, color: "text.secondary", borderBottom: "none" }}>Không có đơn hàng nào</TableCell></TableRow>
               ) : (
                 visibleRows.map((row) => (<RowComponent key={row.rowId} row={row} isSelected={selectedSet.has(row.orderId)} cellStyles={cellStyles} onToggle={toggleOrder} onNavigate={onNavigate} />))
               )}
-              {!loading && visibleCount < displayedData.length && (
+              {!loadingDonHangs && visibleCount < displayedData.length && (
                 <TableRow ref={sentinelRef}><TableCell colSpan={13} align="center" sx={{ py: 2, borderBottom: "none" }}><CircularProgress size={18} sx={{ color: "#00a8df" }} /></TableCell></TableRow>
               )}
             </TableBody>
-          </Table >
-        </TableContainer >
-      </div >
-      < div className="px-4 py-2 border-t bg-white flex-shrink-0 flex justify-between items-center relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" >
+          </Table>
+        </TableContainer>
+      </div>
+
+      {/* FOOTER: Đã dọn gọn phần text số lượng được chọn lên trên */}
+      <div className="px-4 py-2 border-t bg-white flex-shrink-0 flex justify-between items-center relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <Typography variant="caption" color="text.secondary" fontSize={12}>
           {visibleCount < displayedData.length ? `${visibleCount} / ${displayedData.length} dòng` : `${displayedData.length} dòng`}
         </Typography>
         <Typography variant="caption" color="text.secondary" fontSize={12}>
           Tổng: <strong>{fmtVND(totalCost)}</strong>
         </Typography>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 }

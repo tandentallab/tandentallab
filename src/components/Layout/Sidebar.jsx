@@ -88,6 +88,9 @@ const Sidebar = ({ collapsed }) => {
   /* ===== ACTIVE STATE & ĐIỀU HƯỚNG ===== */
   const checkActive = (path) => {
     if (path === "/") return location.pathname === "/";
+    if (path === "/bao-cao" && location.pathname.startsWith("/bao-cao/doanh-thu")) {
+      return false;
+    }
     return location.pathname.startsWith(path);
   };
 
@@ -102,7 +105,8 @@ const Sidebar = ({ collapsed }) => {
   }, [location.pathname]);
 
   const handleNavigate = (router) => {
-    navigate(router);
+    // 🔥 FIX: Truyền thêm state báo hiệu click từ Sidebar chính
+    navigate(router, { state: { isFromMainSidebar: true } });
     if (isMobileSize) setMobileOpen(false);
   };
 

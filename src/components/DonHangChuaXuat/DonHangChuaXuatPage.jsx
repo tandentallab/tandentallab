@@ -1,28 +1,47 @@
 import React, { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { CircularProgress } from "@mui/material";
 import DonHangChuaXuatTable from "./DonHangChuaXuatTable";
 import DonHangChuaXuatSidebar from "./DonHangChuaXuatFilter";
-import { fetchDonHangChuaHoaDonAll } from "../../redux/slices/hoaDonSlice";
+import {
+  fetchCountDonHangChuaXuat,
+  fetchNgayXuatHoaDonGanNhatAll,
+} from "../../redux/slices/hoaDonSlice";
 import { fetchAllBangGia } from "../../redux/slices/bangGiaSlice";
 
 export default function DonHangChuaXuatPage() {
   const dispatch = useDispatch();
 
+  const { loadingMeta } = useSelector((state) => state.hoaDon);
+  const { loading: loadingBangGia } = useSelector((state) => state.bangGia);
+  const isInitialLoading = loadingMeta || loadingBangGia;
+
   const [selectedClinic, setSelectedClinic] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
 
-  // FETCH ALL DATA 1 LẦN DUY NHẤT CHO CẢ FILTER VÀ TABLE DÙNG CHUNG
+  // Chỉ fetch metadata cho sidebar + bảng giá
+  // Đơn hàng sẽ được fetch lazy khi user click vào từng nha khoa
   useEffect(() => {
-    dispatch(fetchDonHangChuaHoaDonAll());
+    dispatch(fetchCountDonHangChuaXuat());
+    dispatch(fetchNgayXuatHoaDonGanNhatAll());
     dispatch(fetchAllBangGia());
   }, [dispatch]);
 
   return (
-    <div className="flex flex-col md:flex-row bg-white md:h-screen md:overflow-hidden">
+    <div className="flex flex-col md:flex-row bg-white md:h-screen md:overflow-hidden relative">
+      {isInitialLoading && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm gap-3">
+          <CircularProgress size={32} sx={{ color: "#00a8df" }} />
+          <span className="text-sm text-gray-500">Đang tải dữ liệu...</span>
+        </div>
+      )}
       <div className="w-full md:w-auto md:h-full max-h-[35vh] md:max-h-none flex-shrink-0 border-b md:border-b-0 md:border-r overflow-y-auto">
         <DonHangChuaXuatSidebar
           selectedClinic={selectedClinic}
-          setSelectedClinic={setSelectedClinic}
+          setSelectedClinic={(clinicId) => {
+            setSelectedClinic(clinicId);
+            setSelectedOrders([]); // Reset selection khi đổi clinic
+          }}
         />
       </div>
 

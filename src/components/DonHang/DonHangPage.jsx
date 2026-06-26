@@ -568,11 +568,15 @@ const DonHangPage = () => {
         ).toLowerCase();
         const bs = (dh.bacSi?.hoVaTen || "").toLowerCase();
         const bn = (dh.benhNhan?.hoVaTen || "").toLowerCase();
+        const spMatch = (dh.danhSachSanPham || []).some((item) =>
+          (item.sanPham?.tenSanPham || "").toLowerCase().includes(term)
+        );
         if (
           !ma.includes(term) &&
           !nk.includes(term) &&
           !bs.includes(term) &&
-          !bn.includes(term)
+          !bn.includes(term) &&
+          !spMatch
         )
           return false;
       }

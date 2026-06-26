@@ -1,4 +1,3 @@
-// redux/slices/khoSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "../../config/api";
 
@@ -11,6 +10,18 @@ export const fetchNhaCungCap = createAsyncThunk(
       return res.data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Lỗi tải nhà cung cấp");
+    }
+  }
+);
+
+export const addNhaCungCap = createAsyncThunk(
+  "kho/addNhaCungCap",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/kho/nha-cung-cap", payload);
+      return res.data; // { data: { _id, ten, ... } }
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Lỗi thêm nhà cung cấp");
     }
   }
 );
@@ -38,9 +49,9 @@ const khoSlice = createSlice({
   },
   reducers: {},
   extraReducers: (builder) => {
-    // NhaCungCap
+    // NhaCungCap - fetch
     builder
-      .addCase(fetchNhaCungCap.pending, (state) => { state.loading = true; })
+      .addCase(fetchNhaCungCap.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(fetchNhaCungCap.fulfilled, (state, action) => {
         state.loading = false;
         state.nhaCungCap = action.payload;
@@ -49,9 +60,23 @@ const khoSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       });
+
+    // NhaCungCap - add (thêm vào đầu danh sách, không cần fetch lại)
+    builder
+      .addCase(addNhaCungCap.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(addNhaCungCap.fulfilled, (state, action) => {
+        state.loading = false;
+        const newNcc = action.payload?.data || action.payload;
+        if (newNcc?._id) state.nhaCungCap = [newNcc, ...state.nhaCungCap];
+      })
+      .addCase(addNhaCungCap.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
     // VatLieu
     builder
-      .addCase(fetchVatLieu.pending, (state) => { state.loading = true; })
+      .addCase(fetchVatLieu.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(fetchVatLieu.fulfilled, (state, action) => {
         state.loading = false;
         state.vatLieu = action.payload;

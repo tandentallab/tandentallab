@@ -885,7 +885,7 @@ const DonHangForm = () => {
             </div>
 
             {/* Section 2: Products table */}
-            <div className="w-full bg-white shadow-sm border-t border-b border-gray-200">
+            <div className="w-full bg-white shadow-sm border-t border-b border-gray-200 overflow-y-scroll md:overflow-y-visible">
               <table className="w-full min-w-[600px] text-sm text-left">
                 <thead className="bg-[#f0f9ff] text-gray-600 border-b">
                   <tr>

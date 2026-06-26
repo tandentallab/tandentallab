@@ -1,54 +1,47 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import {
-    fetchAllPhieuNhapKho,
-    fetchPhieuNhapKhoById,
-    updatePhieuNhapKho,
-    deletePhieuNhapKho,
-    clearSelected,
-} from "../../../redux/slices/phieuNhapKhoSlice";
+    fetchAllPhieuXuatKho,
+    fetchPhieuXuatKhoById,
+    updatePhieuXuatKho,
+    deletePhieuXuatKho,
+    clearSelectedXuat,
+} from "../../../redux/slices/phieuXuatKhoSlice";
+import { fetchVatLieu } from "../../../redux/slices/khoSlice";
 
-import NhapKhoModal from "./NhapKhoModal";
-import XuatKhoTable from "./XuatKhoTable";
+import XuatKhoModal from "./XuatKhoModal";
 
-const STATUS_OPTIONS = ["", "Chưa nhận", "Đã nhận"];
+const STATUS_OPTIONS = ["", "Chưa xuất", "Đã xuất"];
 
-export default function NhapXuatTable() {
+export default function XuatKhoTable() {
     const dispatch = useDispatch();
-    const { phieuNhapKhos, selected, loading, loadingDetail, error, total, limit } =
-        useSelector((state) => state.phieuNhapKho);
+    const { phieuXuatKhos, selected, loading, loadingDetail, error, total, limit } =
+        useSelector((state) => state.phieuXuatKho);
 
-    // ── Sub-tab: 0 = Nhập kho, 1 = Xuất kho ──────────────────────────────
-    const [subTab, setSubTab] = useState(0);
-
-    // ── Modal state ────────────────────────────────────────────────────────
-    const [modal, setModal] = useState(""); // "Nhap" | "NhapEdit" | ""
+    const [modal, setModal] = useState(""); // "Xuat" | "XuatEdit" | ""
     const [currentPage, setCurrentPage] = useState(1);
 
-    // ── Filter state ───────────────────────────────────────────────────────
     const [filters, setFilters] = useState({
         soPhieu: "",
         trangThai: "",
+        boPhan: "",
         tuNgay: "",
         denNgay: "",
     });
     const [appliedFilters, setAppliedFilters] = useState({});
-
-    // ── Delete confirm ─────────────────────────────────────────────────────
     const [confirmId, setConfirmId] = useState(null);
 
     const totalPages = Math.ceil(total / limit);
 
     const fetchPage = (p, extra = appliedFilters) => {
         setCurrentPage(p);
-        dispatch(fetchAllPhieuNhapKho({ page: p, limit, ...extra }));
+        dispatch(fetchAllPhieuXuatKho({ page: p, limit, ...extra }));
     };
 
     useEffect(() => {
         fetchPage(1, {});
     }, [dispatch]);
 
-    // ── Handlers ──────────────────────────────────────────────────────────
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
         setFilters((prev) => ({ ...prev, [name]: value }));
@@ -56,7 +49,6 @@ export default function NhapXuatTable() {
 
     const handleSearch = (e) => {
         e.preventDefault();
-        // Loại bỏ key rỗng trước khi gửi
         const cleaned = Object.fromEntries(
             Object.entries(filters).filter(([, v]) => v !== "")
         );
@@ -65,14 +57,14 @@ export default function NhapXuatTable() {
     };
 
     const handleReset = () => {
-        setFilters({ soPhieu: "", trangThai: "", tuNgay: "", denNgay: "" });
+        setFilters({ soPhieu: "", trangThai: "", boPhan: "", tuNgay: "", denNgay: "" });
         setAppliedFilters({});
         fetchPage(1, {});
     };
 
     const handleEdit = async (id) => {
-        await dispatch(fetchPhieuNhapKhoById(id));
-        setModal("NhapEdit");
+        await dispatch(fetchPhieuXuatKhoById(id));
+        setModal("XuatEdit");
     };
 
     const handleConfirmDelete = (id) => setConfirmId(id);
@@ -80,7 +72,7 @@ export default function NhapXuatTable() {
     const handleDelete = async () => {
         if (!confirmId) return;
         try {
-            await dispatch(deletePhieuNhapKho(confirmId)).unwrap();
+            await dispatch(deletePhieuXuatKho(confirmId)).unwrap();
         } catch (err) {
             alert("Lỗi xóa: " + (err?.message || err));
         } finally {
@@ -89,16 +81,16 @@ export default function NhapXuatTable() {
     };
 
     const handleXacNhan = async (phieu) => {
-        if (phieu.trangThai === "Đã nhận") return;
-        if (!window.confirm(`Xác nhận đã nhận phiếu ${phieu.soPhieu}?\nTồn kho sẽ được cộng ngay.`)) return;
+        if (phieu.trangThai === "Đã xuất") return;
+        if (!window.confirm(`Xác nhận xuất kho phiếu ${phieu.soPhieu}?\nTồn kho sẽ bị trừ ngay.`)) return;
         try {
-            await dispatch(updatePhieuNhapKho({ id: phieu._id, trangThai: "Đã nhận" })).unwrap();
+            await dispatch(updatePhieuXuatKho({ id: phieu._id, trangThai: "Đã xuất" })).unwrap();
+            dispatch(fetchVatLieu());
         } catch (err) {
             alert("Lỗi: " + (err?.message || err));
         }
     };
 
-    // ── Format helpers ─────────────────────────────────────────────────────
     const fmtDate = (v) => {
         if (!v) return "";
         return new Date(v).toLocaleString("vi-VN", {
@@ -107,97 +99,60 @@ export default function NhapXuatTable() {
         });
     };
 
-    const fmtCurrency = (v) =>
-        new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v || 0);
-
     const statusBadge = (s) =>
-        s === "Đã nhận"
-            ? "bg-green-100 text-green-700"
+        s === "Đã xuất"
+            ? "bg-orange-100 text-orange-700"
             : "bg-yellow-100 text-yellow-700";
 
-    // ── Tách dòng theo NCC ─────────────────────────────────────────────────
-    const rows = phieuNhapKhos.flatMap((phieu) => {
-        const uniqueNCCs = [
-            ...new Map(
-                phieu.danhSachVatLieu
-                    .filter((i) => i.nhaCungCap)
-                    .map((i) => [i.nhaCungCap._id, i.nhaCungCap])
-            ).values(),
-        ];
-        if (uniqueNCCs.length === 0) return [{ phieu, ncc: null }];
-        return uniqueNCCs.map((ncc) => ({ phieu, ncc }));
-    });
-
     return (
-        <div className="space-y-4">
-
-            {/* ── Sub-tabs ── */}
-            <div className="flex border-b">
-                <button
-                    onClick={() => setSubTab(0)}
-                    className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                        subTab === 0
-                            ? "border-green-600 text-green-700"
-                            : "border-transparent text-gray-500 hover:text-gray-700"
-                    }`}>
-                    Phiếu nhập kho
-                </button>
-                <button
-                    onClick={() => setSubTab(1)}
-                    className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                        subTab === 1
-                            ? "border-orange-500 text-orange-600"
-                            : "border-transparent text-gray-500 hover:text-gray-700"
-                    }`}>
-                    Phiếu xuất kho
-                </button>
-            </div>
-
-            {subTab === 1 ? (
-                <XuatKhoTable />
-            ) : (
         <div className="p-4 space-y-4">
 
             {/* ── Toolbar ── */}
             <div className="flex items-center gap-2 flex-wrap">
-                <button onClick={() => setModal("Nhap")}
-                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded shadow transition-colors">
-                    + Nhập kho
+                <button onClick={() => setModal("Xuat")}
+                    className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded shadow transition-colors">
+                    + Xuất kho
                 </button>
                 {total > 0 && (
-                    <span className="ml-auto text-sm text-gray-500">{total} phiếu nhập</span>
+                    <span className="ml-auto text-sm text-gray-500">{total} phiếu xuất</span>
                 )}
             </div>
 
             {/* ── Bộ lọc ── */}
             <form onSubmit={handleSearch}
-                className="bg-gray-50 border rounded-lg px-4 py-3 grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+                className="bg-gray-50 border rounded-lg px-4 py-3 grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
                 <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Số phiếu</label>
                     <input name="soPhieu" value={filters.soPhieu} onChange={handleFilterChange}
-                        placeholder="TAN2506..."
-                        className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-green-500" />
+                        placeholder="XUAT2506..."
+                        className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-orange-400" />
                 </div>
                 <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Trạng thái</label>
                     <select name="trangThai" value={filters.trangThai} onChange={handleFilterChange}
-                        className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-green-500">
+                        className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-orange-400">
                         {STATUS_OPTIONS.map((s) => (
                             <option key={s} value={s}>{s || "— Tất cả —"}</option>
                         ))}
                     </select>
                 </div>
                 <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Bộ phận</label>
+                    <input name="boPhan" value={filters.boPhan} onChange={handleFilterChange}
+                        placeholder="Phòng khám..."
+                        className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                </div>
+                <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Từ ngày</label>
                     <input type="date" name="tuNgay" value={filters.tuNgay} onChange={handleFilterChange}
-                        className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-green-500" />
+                        className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-orange-400" />
                 </div>
                 <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Đến ngày</label>
                     <input type="date" name="denNgay" value={filters.denNgay} onChange={handleFilterChange}
-                        className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-green-500" />
+                        className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-orange-400" />
                 </div>
-                <div className="col-span-2 md:col-span-4 flex gap-2 justify-end">
+                <div className="col-span-2 md:col-span-5 flex gap-2 justify-end">
                     <button type="button" onClick={handleReset}
                         className="px-3 py-1.5 border rounded text-sm text-gray-600 hover:bg-gray-100 transition-colors">
                         Xóa lọc
@@ -210,14 +165,14 @@ export default function NhapXuatTable() {
             </form>
 
             {/* ── Modals ── */}
-            <NhapKhoModal
-                open={modal === "Nhap"}
+            <XuatKhoModal
+                open={modal === "Xuat"}
                 onClose={() => { setModal(""); fetchPage(1); }}
             />
-            <NhapKhoModal
-                open={modal === "NhapEdit"}
+            <XuatKhoModal
+                open={modal === "XuatEdit"}
                 editData={selected}
-                onClose={() => { setModal(""); dispatch(clearSelected()); fetchPage(currentPage); }}
+                onClose={() => { setModal(""); dispatch(clearSelectedXuat()); fetchPage(currentPage); }}
             />
 
             {/* ── Error ── */}
@@ -232,13 +187,12 @@ export default function NhapXuatTable() {
                 <table className="w-full text-sm border-collapse">
                     <thead className="bg-gray-50 border-b">
                         <tr>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-600 w-36">Số phiếu</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-600 w-40">Số phiếu</th>
                             <th className="text-left px-4 py-3 font-semibold text-gray-600 w-36">Ngày tạo</th>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-600">Nhà cung cấp</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-600">Bộ phận</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-600">Nhân viên</th>
                             <th className="text-center px-4 py-3 font-semibold text-gray-600 w-16">Số VL</th>
-                            <th className="text-right px-4 py-3 font-semibold text-gray-600 w-36">Tổng tiền</th>
                             <th className="text-center px-4 py-3 font-semibold text-gray-600 w-28">Trạng thái</th>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-600 w-28">Người tạo</th>
                             <th className="text-center px-4 py-3 font-semibold text-gray-600 w-36">Thao tác</th>
                         </tr>
                     </thead>
@@ -246,57 +200,49 @@ export default function NhapXuatTable() {
                     <tbody className="divide-y divide-gray-100">
                         {loading ? (
                             <tr>
-                                <td colSpan={8} className="text-center py-12 text-gray-400">
-                                    <div className="inline-block w-5 h-5 border-2 border-gray-300 border-t-green-600 rounded-full animate-spin mr-2 align-middle" />
+                                <td colSpan={7} className="text-center py-12 text-gray-400">
+                                    <div className="inline-block w-5 h-5 border-2 border-gray-300 border-t-orange-500 rounded-full animate-spin mr-2 align-middle" />
                                     Đang tải...
                                 </td>
                             </tr>
-                        ) : rows.length === 0 ? (
+                        ) : phieuXuatKhos.length === 0 ? (
                             <tr>
-                                <td colSpan={8} className="text-center py-12 text-gray-400">
-                                    Không có phiếu nhập kho nào.
+                                <td colSpan={7} className="text-center py-12 text-gray-400">
+                                    Không có phiếu xuất kho nào.
                                 </td>
                             </tr>
                         ) : (
-                            rows.map(({ phieu, ncc }, idx) => {
-                                const isDaНhan = phieu.trangThai === "Đã nhận";
+                            phieuXuatKhos.map((phieu) => {
+                                const isDaXuat = phieu.trangThai === "Đã xuất";
                                 return (
-                                    <tr key={`${phieu._id}-${ncc?._id ?? idx}`}
-                                        className="hover:bg-gray-50 transition-colors">
+                                    <tr key={phieu._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-4 py-3 font-mono font-medium text-gray-800">
                                             {phieu.soPhieu}
                                         </td>
                                         <td className="px-4 py-3 text-gray-600 text-xs">
                                             {fmtDate(phieu.ngayTao)}
                                         </td>
-                                        <td className="px-4 py-3 text-gray-700">
-                                            {ncc ? ncc.ten : <span className="text-gray-400 italic">Không có NCC</span>}
-                                        </td>
+                                        <td className="px-4 py-3 text-gray-700">{phieu.boPhan}</td>
+                                        <td className="px-4 py-3 text-gray-700 text-xs">{phieu.nhanVien}</td>
                                         <td className="px-4 py-3 text-center text-gray-600">
                                             {phieu.danhSachVatLieu?.length ?? 0}
-                                        </td>
-                                        <td className="px-4 py-3 text-right font-medium text-gray-800">
-                                            {fmtCurrency(phieu.tongTien)}
                                         </td>
                                         <td className="px-4 py-3 text-center">
                                             <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(phieu.trangThai)}`}>
                                                 {phieu.trangThai}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-gray-600 text-xs">{phieu.nguoiTao}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-1">
-                                                {/* Xác nhận nhận hàng */}
-                                                {!isDaНhan && (
+                                                {!isDaXuat && (
                                                     <button
                                                         onClick={() => handleXacNhan(phieu)}
-                                                        title="Xác nhận đã nhận"
-                                                        className="px-2 py-1 text-xs rounded bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition-colors">
-                                                        ✓ Nhận
+                                                        title="Xác nhận đã xuất"
+                                                        className="px-2 py-1 text-xs rounded bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 transition-colors">
+                                                        ✓ Xuất
                                                     </button>
                                                 )}
-                                                {/* Sửa — chỉ khi chưa nhận */}
-                                                {!isDaНhan && (
+                                                {!isDaXuat && (
                                                     <button
                                                         onClick={() => handleEdit(phieu._id)}
                                                         disabled={loadingDetail}
@@ -305,8 +251,7 @@ export default function NhapXuatTable() {
                                                         ✎
                                                     </button>
                                                 )}
-                                                {/* Xóa — chỉ khi chưa nhận */}
-                                                {!isDaНhan && (
+                                                {!isDaXuat && (
                                                     <button
                                                         onClick={() => handleConfirmDelete(phieu._id)}
                                                         title="Xóa phiếu"
@@ -345,7 +290,7 @@ export default function NhapXuatTable() {
                                     <span key={`d${i}`} className="px-2 py-1">…</span>
                                 ) : (
                                     <button key={p} onClick={() => fetchPage(p)}
-                                        className={`px-3 py-1 border rounded transition-colors ${p === currentPage ? "bg-green-600 text-white border-green-600" : "hover:bg-gray-50"}`}>
+                                        className={`px-3 py-1 border rounded transition-colors ${p === currentPage ? "bg-orange-500 text-white border-orange-500" : "hover:bg-gray-50"}`}>
                                         {p}
                                     </button>
                                 )
@@ -378,8 +323,6 @@ export default function NhapXuatTable() {
                         </div>
                     </div>
                 </div>
-            )}
-        </div>
             )}
         </div>
     );

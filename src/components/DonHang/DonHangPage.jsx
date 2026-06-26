@@ -650,7 +650,7 @@ const DonHangPage = () => {
                   const el = e.currentTarget; 
                   setDatePickerAnchor((prev) => ({ ...prev, [dateKey]: el }));
                 }}
-                className="w-full flex items-center justify-between px-3 py-2 ..."
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-blue-200 bg-white text-xs text-gray-700 hover:bg-blue-50 transition"
               >
                 <span>
                   {cf.customFrom && cf.customTo

@@ -645,7 +645,10 @@ const DonHangPage = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                onClick={(e) => setDatePickerAnchor((prev) => ({ ...prev, [dateKey]: e.currentTarget }))}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDatePickerAnchor((prev) => ({ ...prev, [dateKey]: e.currentTarget }));
+                }}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-blue-200 bg-white text-xs text-gray-700 hover:bg-blue-50 transition"
               >
                 <span>

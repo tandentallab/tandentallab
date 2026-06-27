@@ -4,8 +4,52 @@ import {
     createPhieuXuatKho,
     updatePhieuXuatKho,
     clearSelectedXuat,
+    fetchXuatKhoOptions,
 } from "../../../redux/slices/phieuXuatKhoSlice";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+function ComboboxInput({ value, onChange, options, placeholder }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+
+    const filtered = (options || []).filter(
+        (o) => !value || o.toLowerCase().includes(value.toLowerCase())
+    );
+
+    useEffect(() => {
+        function handleOutside(e) {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        }
+        document.addEventListener("mousedown", handleOutside);
+        return () => document.removeEventListener("mousedown", handleOutside);
+    }, []);
+
+    return (
+        <div ref={ref} className="relative">
+            <input
+                type="text"
+                value={value}
+                onFocus={() => setOpen(true)}
+                onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+                placeholder={placeholder}
+                className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-orange-400"
+            />
+            {open && filtered.length > 0 && (
+                <ul className="absolute z-50 left-0 right-0 mt-0.5 bg-white border border-gray-200 rounded shadow-lg max-h-40 overflow-y-auto">
+                    {filtered.map((opt) => (
+                        <li
+                            key={opt}
+                            onMouseDown={(e) => { e.preventDefault(); onChange(opt); setOpen(false); }}
+                            className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-orange-50 hover:text-orange-700 ${value === opt ? "bg-orange-50 text-orange-700 font-medium" : "text-slate-700"}`}
+                        >
+                            {opt}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
 
 /**
  * Props:
@@ -17,7 +61,7 @@ export default function XuatKhoModal({ open, onClose, editData = null }) {
     const dispatch = useDispatch();
     const kho = useSelector((state) => state.kho);
     const { user } = useSelector((state) => state.auth);
-    const { loading: submitting } = useSelector((state) => state.phieuXuatKho);
+    const { loading: submitting, boPhanList, nhanVienList } = useSelector((state) => state.phieuXuatKho);
 
     const isEdit = !!editData;
 
@@ -29,7 +73,7 @@ export default function XuatKhoModal({ open, onClose, editData = null }) {
     // ── Fetch master data ────────────────────────────────────────────────
     useEffect(() => {
         if (!open) return;
-        dispatch(fetchVatLieu());
+        dispatch(fetchVatLieu()); dispatch(fetchXuatKhoOptions());
     }, [open, dispatch]);
 
     // ── Init items ───────────────────────────────────────────────────────
@@ -93,11 +137,11 @@ export default function XuatKhoModal({ open, onClose, editData = null }) {
         e.preventDefault();
 
         if (!boPhan.trim()) {
-            alert("Vui lòng nhập bộ phận nhận hàng.");
+            alert("Vui lòng nhập bộ phận.");
             return;
         }
         if (!nhanVien.trim()) {
-            alert("Vui lòng nhập tên nhân viên nhận hàng.");
+            alert("Vui lòng nhập tên nhân viên.");
             return;
         }
 
@@ -168,26 +212,24 @@ export default function XuatKhoModal({ open, onClose, editData = null }) {
                     <div className="px-6 py-3 bg-orange-50 border-b shrink-0 grid grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Bộ phận nhận <span className="text-red-500">*</span>
+                                Bộ phận <span className="text-red-500">*</span>
                             </label>
-                            <input
-                                type="text"
+                            <ComboboxInput
                                 value={boPhan}
-                                onChange={(e) => setBoPhan(e.target.value)}
-                                placeholder="Phòng khám A, Labo..."
-                                className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-orange-400"
+                                onChange={setBoPhan}
+                                options={boPhanList}
+                                placeholder="Phòng khám, Labo..."
                             />
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Nhân viên nhận <span className="text-red-500">*</span>
+                                Nhân viên <span className="text-red-500">*</span>
                             </label>
-                            <input
-                                type="text"
+                            <ComboboxInput
                                 value={nhanVien}
-                                onChange={(e) => setNhanVien(e.target.value)}
+                                onChange={setNhanVien}
+                                options={nhanVienList}
                                 placeholder="Tên nhân viên..."
-                                className="border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-orange-400"
                             />
                         </div>
                     </div>
@@ -199,7 +241,7 @@ export default function XuatKhoModal({ open, onClose, editData = null }) {
                             className="w-4 h-4 accent-orange-500 cursor-pointer" title="Chọn tất cả" />
                         <div>Vật liệu</div>
                         <div>Tồn kho</div>
-                        <div>Số lượng xuất</div>
+                        <div>SL Xuất</div>
                         <div>Mô tả</div>
                     </div>
 
@@ -215,11 +257,10 @@ export default function XuatKhoModal({ open, onClose, editData = null }) {
                                 if (!item) return null;
                                 const on = item.checked;
                                 const overStock = on && Number(item.soLuong) > vl.soLuong;
-                                const inputCls = `border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 ${
-                                    overStock
-                                        ? "border-red-400 focus:ring-red-400"
-                                        : "focus:ring-orange-400"
-                                } ${!on ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-white"}`;
+                                const inputCls = `border rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 ${overStock
+                                    ? "border-red-400 focus:ring-red-400"
+                                    : "focus:ring-orange-400"
+                                    } ${!on ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-white"}`;
 
                                 return (
                                     <div key={vl._id}

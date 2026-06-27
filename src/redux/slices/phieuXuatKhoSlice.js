@@ -63,6 +63,18 @@ export const deletePhieuXuatKho = createAsyncThunk(
     }
 );
 
+export const fetchXuatKhoOptions = createAsyncThunk(
+    "phieuXuatKho/fetchOptions",
+    async (_, thunkAPI) => {
+        try {
+            const response = await api.get("/phieu-xuat-kho/options");
+            return response.data;
+        } catch (error) {
+            return thunkAPI.rejectWithValue(error.response?.data);
+        }
+    }
+);
+
 // ── Slice ─────────────────────────────────────────────────────────────────────
 
 const phieuXuatKhoSlice = createSlice({
@@ -76,6 +88,8 @@ const phieuXuatKhoSlice = createSlice({
         loading: false,
         loadingDetail: false,
         error: null,
+        boPhanList: [],
+        nhanVienList: [],
     },
 
     reducers: {
@@ -154,7 +168,13 @@ const phieuXuatKhoSlice = createSlice({
                 );
                 state.total -= 1;
             })
-            .addCase(deletePhieuXuatKho.rejected, rejected);
+            .addCase(deletePhieuXuatKho.rejected, rejected)
+
+            // fetchOptions
+            .addCase(fetchXuatKhoOptions.fulfilled, (state, action) => {
+                state.boPhanList = action.payload.data?.boPhanList || [];
+                state.nhanVienList = action.payload.data?.nhanVienList || [];
+            });
     },
 });
 

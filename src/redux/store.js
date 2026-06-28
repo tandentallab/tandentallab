@@ -19,6 +19,7 @@ import bangLuongReducer from "./slices/bangLuongSlice";
 import khoReducer from "./slices/khoSlice"
 import phieuNhapKhoReducer from "./slices/phieuNhapKhoSlice"
 import chiPhiReducer from "./slices/chiPhiSlice";
+import phieuXuatKhoReducer from "./slices/phieuXuatKhoSlice"
 
 export const store = configureStore({
   reducer: {
@@ -42,5 +43,7 @@ export const store = configureStore({
     kho: khoReducer,
     phieuNhapKho: phieuNhapKhoReducer,
     chiPhi: chiPhiReducer,
+    phieuXuatKho: phieuXuatKhoReducer,
+
   },
 });

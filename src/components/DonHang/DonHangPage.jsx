@@ -645,7 +645,11 @@ const DonHangPage = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                onClick={(e) => setDatePickerAnchor((prev) => ({ ...prev, [dateKey]: e.currentTarget }))}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const el = e.currentTarget;
+                  setDatePickerAnchor((prev) => ({ ...prev, [dateKey]: el }));
+                }}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-blue-200 bg-white text-xs text-gray-700 hover:bg-blue-50 transition"
               >
                 <span>
@@ -728,7 +732,7 @@ const DonHangPage = () => {
           >
             <button
               onClick={handleOpenFilter}
-              title="Xuất Excel"
+              title="Lọc"
               className="text-gray-700 rounded-full h-10 w-10 flex items-center justify-center bg-white shadow hover:bg-gray-50 transition"
             >
               <FilterAltIcon sx={{ fontSize: 20 }} />
@@ -1088,6 +1092,7 @@ const DonHangPage = () => {
           </div>
           <button
             onClick={handleOpenAdd}
+            title="Tạo đơn hàng"
             className="text-gray-700 rounded-full h-10 w-10 flex items-center justify-center bg-white shadow hover:bg-gray-50 transition"
           >
             <AddIcon sx={{ fontSize: 20 }} />

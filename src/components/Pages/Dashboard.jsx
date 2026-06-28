@@ -47,6 +47,7 @@ import NhanVienDetail from "../NhanVien/NhanVienDetail";
 import GhiChuPage from "../GhiChu/GhiChuPage";
 import NhaCungCapPage from "../NhaCungCap/NhaCungCapPage";
 import KhoPage from "../Kho/KhoPage";
+import ChiPhiPage from "../ChiPhi/ChiPhiPage.jsx";
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -221,6 +222,10 @@ const Dashboard = () => {
             element={renderProtected("/bao-cao", <BaoCaoPage />)}
           />
 
+          <Route
+            path="/chi-phi"
+            element={renderProtected("/chi-phi", <ChiPhiPage />)}
+          />
           <Route
             path="/phieu-bao-hanh"
             element={renderProtected("/phieu-bao-hanh", <PhieuBaoHanhPage />)}

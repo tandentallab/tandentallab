@@ -12,3 +12,4 @@ export const getBaoCaoSelector = state => state.baoCao
 export const getDashboardSelecor = state => state.dashboard
 export const getNhanVienSelector = state => state.getNhanVienSelector
 export const getBangLuongSelector = state => state.getBangLuongSelector
+export const getChiPhiSelector = state => state.chiPhi

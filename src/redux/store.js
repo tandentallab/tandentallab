@@ -18,6 +18,7 @@ import nhanVienReducer from "./slices/nhanVienSlice";
 import bangLuongReducer from "./slices/bangLuongSlice";
 import khoReducer from "./slices/khoSlice"
 import phieuNhapKhoReducer from "./slices/phieuNhapKhoSlice"
+import chiPhiReducer from "./slices/chiPhiSlice";
 import phieuXuatKhoReducer from "./slices/phieuXuatKhoSlice"
 
 export const store = configureStore({
@@ -41,6 +42,8 @@ export const store = configureStore({
     bangLuong: bangLuongReducer,
     kho: khoReducer,
     phieuNhapKho: phieuNhapKhoReducer,
+    chiPhi: chiPhiReducer,
     phieuXuatKho: phieuXuatKhoReducer,
+
   },
 });

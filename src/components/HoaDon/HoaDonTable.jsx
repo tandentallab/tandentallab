@@ -18,7 +18,7 @@ const vndFormatter = new Intl.NumberFormat("vi-VN");
 const dateFormatter = new Intl.DateTimeFormat("vi-VN");
 
 const fmtVND = (v) => vndFormatter.format(v || 0);
-const fmtDate = (d) => d ? dateFormatter.format(new Date(d)) : "";
+const fmtDate = (d) => (d ? dateFormatter.format(new Date(d)) : "");
 
 // ================= CONSTANTS =================
 const NUMERIC_KEYS = new Set([
@@ -30,7 +30,7 @@ const STATUS_CLASS = {
   "Chưa thanh toán": "bg-[#f44336] text-white",
   "Thanh toán một phần": "bg-[#ff9800] text-white",
   "Đã thanh toán": "bg-[#4CAF50] text-white",
-  "Lưu tạm": "bg-blue-500 text-white"
+  "Lưu tạm": "bg-blue-500 text-white",
 };
 
 // ================= RESIZABLE HEADER CELL =================
@@ -53,9 +53,8 @@ const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => {
   let isTreHan = false;
 
   if (baseDate) {
-    const ngayDenHan = dayjs(baseDate).add(20, 'day').endOf('day');
-    textDenHan = ngayDenHan.format('DD/MM/YYYY');
-
+    const ngayDenHan = dayjs(baseDate).add(20, "day").endOf("day");
+    textDenHan = ngayDenHan.format("DD/MM/YYYY");
     if (dayjs().isAfter(ngayDenHan) && Number(hd.conLai || 0) > 0) {
       isTreHan = true;
     }
@@ -77,7 +76,7 @@ const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => {
       <TableCell sx={cellStyles.conLai}>{fmtVND(hd.conLai)}</TableCell>
       <TableCell sx={cellStyles.chiPhiKhac}>{fmtVND(hd.chiPhiKhac)}</TableCell>
       <TableCell sx={cellStyles.trangThai}>
-        <span className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide  ${STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"}`}>
+        <span className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide ${STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"}`}>
           {hd.trangThai || ""}
         </span>
       </TableCell>
@@ -85,8 +84,8 @@ const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => {
       <TableCell
         sx={{
           ...cellStyles.ngayDenHan,
-          color: isTreHan ? '#ef4444' : '#6b7280',
-          fontWeight: isTreHan ? 600 : 400
+          color: isTreHan ? "#ef4444" : "#6b7280",
+          fontWeight: isTreHan ? 600 : 400,
         }}
       >
         {textDenHan}
@@ -133,7 +132,7 @@ const MobileCard = React.memo(({ hd, onNavigate }) => {
         </span>
       </div>
 
-      {/* Card Body: số tiền */}
+      {/* Card Body */}
       <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 px-4 py-3">
         <div>
           <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-0.5">Tổng cộng</p>
@@ -165,7 +164,7 @@ const MobileCard = React.memo(({ hd, onNavigate }) => {
         )}
       </div>
 
-      {/* Card Footer: ngày xuất + đến hạn + ghi chú */}
+      {/* Card Footer */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50/70 border-t border-gray-100 gap-2">
         <div className="flex items-center gap-3 min-w-0">
           <span className="text-[11px] text-gray-400 shrink-0">
@@ -195,6 +194,7 @@ const MobileCardList = ({ danhSachHoaDon, loading, onLoadMore, sortOrder, onTogg
 
   const onNavigate = useCallback((path) => navigate(path), [navigate]);
 
+  // Mobile scroll: đọc scrollTop trực tiếp, không cần rAF
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -277,9 +277,12 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
     [columnWidths]
   );
 
-  // 🔥 ── Sắp xếp ── 🔥
+  // ── Sắp xếp ──
   const [sortOrder, setSortOrder] = useState("desc");
-  const handleToggleSort = () => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
+  const handleToggleSort = useCallback(
+    () => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc")),
+    []
+  );
 
   const sortedDanhSachHoaDon = useMemo(() => {
     if (!danhSachHoaDon) return [];
@@ -287,30 +290,30 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
       const timeA = new Date(a.ngayXuatHoaDon || a.createdAt || 0).getTime();
       const timeB = new Date(b.ngayXuatHoaDon || b.createdAt || 0).getTime();
       if (timeA !== timeB) return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
-
       const createdA = new Date(a.createdAt || 0).getTime();
       const createdB = new Date(b.createdAt || 0).getTime();
       return sortOrder === "asc" ? createdA - createdB : createdB - createdA;
     });
   }, [danhSachHoaDon, sortOrder]);
 
-  // 🔥 ── VIRTUAL SCROLLING ── 🔥
+  // ── VIRTUAL SCROLLING (fix: đọc scrollTop trực tiếp, không wrap rAF) ──
   const [scrollTop, setScrollTop] = useState(0);
   const loadingRef = useRef(false);
 
   useEffect(() => { loadingRef.current = loading; }, [loading]);
 
-  const handleScroll = (e) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.target;
-    requestAnimationFrame(() => setScrollTop(scrollTop));
+  const handleScroll = useCallback((e) => {
+    const { scrollTop: st, scrollHeight, clientHeight } = e.currentTarget;
+    // Fix từ file 1: đọc giá trị từ currentTarget ngay lập tức, KHÔNG dùng rAF
+    setScrollTop(st);
 
-    if (scrollHeight - scrollTop - clientHeight < 200) {
+    if (scrollHeight - st - clientHeight < 200) {
       if (onLoadMore && !loadingRef.current) {
         loadingRef.current = true;
         onLoadMore();
       }
     }
-  };
+  }, [onLoadMore]);
 
   const totalRows = sortedDanhSachHoaDon.length;
   const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
@@ -354,7 +357,8 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
       width: columnWidths[key], minWidth: columnWidths[key], maxWidth: columnWidths[key],
       boxSizing: "border-box", fontSize: "0.91rem", color: "#333", overflow: "hidden",
       whiteSpace: "nowrap", textOverflow: "clip", borderBottom: "1px solid #d1d5db",
-      py: 0.75, pl: 2, pr: NUMERIC_KEYS.has(key) ? 3 : 2, textAlign: NUMERIC_KEYS.has(key) ? "right" : "left",
+      py: 0.75, pl: 2, pr: NUMERIC_KEYS.has(key) ? 3 : 2,
+      textAlign: NUMERIC_KEYS.has(key) ? "right" : "left",
     });
 
     const baseHeader = (key) => ({
@@ -375,10 +379,10 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
 
   const onNavigate = useCallback((path) => navigate(path), [navigate]);
 
-  // ── Mobile: render card list ──
+  // ── Mobile ──
   if (isMobile) {
     return (
-      <div className="flex flex-col flex-1 min-h-0 bg-[#f5f7fa] ">
+      <div className="flex flex-col flex-1 min-h-0 bg-[#f5f7fa]">
         <MobileCardList
           danhSachHoaDon={sortedDanhSachHoaDon}
           loading={loading}
@@ -390,6 +394,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
     );
   }
 
+  // ── Desktop ──
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <TableContainer
@@ -437,8 +442,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
               <ResizableHeaderCell label="Trạng thái" columnKey="trangThai" style={cellStyles.hdr.trangThai} onResize={handleResize} />
               <ResizableHeaderCell label="Ghi chú" columnKey="ghiChu" style={cellStyles.hdr.ghiChu} onResize={handleResize} />
               <ResizableHeaderCell label="Đến hạn" columnKey="ngayDenHan" style={cellStyles.hdr.ngayDenHan} onResize={handleResize} />
-
-              {/* 🔥 CỘT ẢO DÀNH CHO HEADER CHỐNG TRÙNG LẶP */}
+              {/* CỘT ẢO HEADER */}
               <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", backgroundColor: "#e6f7ff" }} />
             </TableRow>
           </TableHead>
@@ -446,7 +450,6 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
           <TableBody>
             {totalRows === 0 && !loading ? (
               <TableRow>
-                {/* Đổi colSpan từ 12 thành 13 để đếm luôn cả cột ảo */}
                 <TableCell colSpan={13} align="center" className="py-20 text-gray-500">
                   Không tìm thấy dữ liệu hóa đơn nào.
                 </TableCell>
@@ -455,7 +458,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
               <>
                 {paddingTop > 0 && (
                   <TableRow style={{ height: paddingTop }}>
-                    <TableCell colSpan={13} style={{ padding: 0, border: 'none' }} />
+                    <TableCell colSpan={13} style={{ padding: 0, border: "none" }} />
                   </TableRow>
                 )}
 
@@ -470,13 +473,13 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
 
                 {paddingBottom > 0 && (
                   <TableRow style={{ height: paddingBottom }}>
-                    <TableCell colSpan={13} style={{ padding: 0, border: 'none' }} />
+                    <TableCell colSpan={13} style={{ padding: 0, border: "none" }} />
                   </TableRow>
                 )}
 
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={13} align="center" sx={{ py: 3, border: 'none' }}>
+                    <TableCell colSpan={13} align="center" sx={{ py: 3, border: "none" }}>
                       <CircularProgress size={26} sx={{ color: "#00a8df" }} />
                     </TableCell>
                   </TableRow>

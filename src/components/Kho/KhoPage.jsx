@@ -8,8 +8,8 @@ import NhaCungCapTable from "./NhaCungCapTable";
 import { Box, Tab, Tabs } from "@mui/material";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import CategoryIcon from '@mui/icons-material/Category';
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import CategoryIcon from "@mui/icons-material/Category";
 
 export default function KhoPage() {
   const dispatch = useDispatch();
@@ -54,9 +54,13 @@ export default function KhoPage() {
             backgroundColor: soHangThieuHang > 0 ? "#ef4444" : "#22c55e",
           }}
         >
-          <WarningAmberIcon sx={{ fontSize: 36, color: "rgba(255,255,255,0.85)" }} />
+          <WarningAmberIcon
+            sx={{ fontSize: 36, color: "rgba(255,255,255,0.85)" }}
+          />
           <div>
-            <div className="text-white text-2xl font-bold">{soHangThieuHang}</div>
+            <div className="text-white text-2xl font-bold">
+              {soHangThieuHang}
+            </div>
             <div className="text-white text-sm mt-0.5">
               {soHangThieuHang > 0
                 ? "Vật liệu dưới mức tồn kho tối thiểu"
@@ -68,7 +72,13 @@ export default function KhoPage() {
 
       {/* ===== TABS ===== */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)}>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+        >
           <Tab
             icon={<CategoryIcon sx={{ fontSize: 18 }} />}
             iconPosition="start"

@@ -520,25 +520,25 @@ function NccCombobox({
                   {/* Highlight phần khớp query */}
                   {query
                     ? (() => {
-                      const idx = opt
-                        .toLowerCase()
-                        .indexOf(query.toLowerCase());
-                      if (idx === -1) return opt;
-                      return (
-                        <>
-                          {opt.slice(0, idx)}
-                          <span
-                            style={{
-                              backgroundColor: "#fff9c4",
-                              borderRadius: 2,
-                            }}
-                          >
-                            {opt.slice(idx, idx + query.length)}
-                          </span>
-                          {opt.slice(idx + query.length)}
-                        </>
-                      );
-                    })()
+                        const idx = opt
+                          .toLowerCase()
+                          .indexOf(query.toLowerCase());
+                        if (idx === -1) return opt;
+                        return (
+                          <>
+                            {opt.slice(0, idx)}
+                            <span
+                              style={{
+                                backgroundColor: "#fff9c4",
+                                borderRadius: 2,
+                              }}
+                            >
+                              {opt.slice(idx, idx + query.length)}
+                            </span>
+                            {opt.slice(idx + query.length)}
+                          </>
+                        );
+                      })()
                     : opt}
                 </Box>
               ))}
@@ -571,6 +571,100 @@ function NccCombobox({
         )}
       </Box>
     </ClickAwayListener>
+  );
+}
+
+// =====================================================
+// SearchableDropdown — giống NhapXuatTable, dùng cho filter bar
+// =====================================================
+function SearchableDropdown({
+  options,
+  value,
+  onChange,
+  placeholder = "Tìm kiếm...",
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef(null);
+
+  const filtered = options.filter((o) =>
+    o.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="h-9 min-w-[150px] px-3 text-sm text-left bg-white border border-gray-300 rounded flex items-center justify-between gap-2 hover:border-gray-400 transition"
+      >
+        <span className={value ? "text-slate-700" : "text-gray-400"}>
+          {value || placeholder}
+        </span>
+        <KeyboardArrowDownIcon
+          sx={{ fontSize: 20 }}
+          className="text-gray-400 shrink-0"
+        />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full min-w-[200px] bg-white border border-gray-200 rounded shadow-lg">
+          <div className="p-2 border-b border-gray-100">
+            <input
+              autoFocus
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={`Tìm ${placeholder.toLowerCase()}...`}
+              className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded outline-none focus:border-sky-400"
+            />
+          </div>
+          <ul className="max-h-48 overflow-y-auto py-1">
+            <li
+              onClick={() => {
+                onChange("");
+                setSearch("");
+                setOpen(false);
+              }}
+              className="px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-50 cursor-pointer"
+            >
+              Tất cả
+            </li>
+            {filtered.length > 0 ? (
+              filtered.map((opt) => (
+                <li
+                  key={opt}
+                  onClick={() => {
+                    onChange(opt);
+                    setSearch("");
+                    setOpen(false);
+                  }}
+                  className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-sky-50 hover:text-sky-700 ${
+                    value === opt
+                      ? "bg-sky-50 text-sky-700 font-medium"
+                      : "text-slate-700"
+                  }`}
+                >
+                  {opt}
+                </li>
+              ))
+            ) : (
+              <li className="px-3 py-2 text-sm text-gray-400 text-center">
+                Không tìm thấy
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -732,8 +826,8 @@ export default function VatLieuTable() {
         filterTrangThai === "thieu"
           ? thieuHang
           : filterTrangThai === "du"
-            ? !thieuHang
-            : true;
+          ? !thieuHang
+          : true;
 
       return matchSearch && matchNCC && matchTT && matchNhom;
     });
@@ -843,293 +937,496 @@ export default function VatLieuTable() {
   return (
     <Box>
       {/* ===== FILTER BAR ===== */}
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 2,
-          mb: 3,
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", flex: 1 }}>
-          <TextField
-            size="small"
-            placeholder="Tìm vật liệu..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{ minWidth: 220 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon className="text-gray-400" />
-                </InputAdornment>
-              ),
+      <div className="flex flex-col gap-2 mb-4">
+        {/* Hàng 1: search + action buttons */}
+        <div className="flex gap-2 items-center">
+          <div className="relative flex-1">
+            <SearchIcon
+              sx={{ fontSize: 18 }}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            />
+            <input
+              type="text"
+              placeholder="Tìm vật liệu..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-9 pl-8 pr-3 text-sm border border-gray-300 rounded outline-none focus:border-sky-400 hover:border-gray-400 transition bg-white"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Tooltip title="Làm mới">
+              <IconButton size="small" onClick={() => dispatch(fetchVatLieu())}>
+                <RefreshIcon sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Tooltip>
+            <button
+              onClick={() => exportDanhSachVatLieuToExcel(filteredData)}
+              className="h-9 px-3 text-sm font-medium text-white bg-[#29b6f6] hover:bg-[#0091ea] rounded flex items-center gap-1 transition"
+            >
+              <DownloadIcon sx={{ fontSize: 17 }} />
+              <span className="hidden sm:inline">Xuất Excel</span>
+            </button>
+            <button
+              onClick={openAdd}
+              className="h-9 px-3 text-sm font-medium text-white bg-[#1976d2] hover:bg-[#1565c0] rounded flex items-center gap-1 transition"
+            >
+              <AddIcon sx={{ fontSize: 17 }} />
+              <span className="hidden sm:inline">Thêm vật liệu</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Hàng 2: filter dropdowns */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <SearchableDropdown
+            options={(nhaCungCap || []).map((n) => n.ten)}
+            value={
+              (nhaCungCap || []).find((n) => n._id === filterNCC)?.ten || ""
+            }
+            onChange={(ten) => {
+              const found = (nhaCungCap || []).find((n) => n.ten === ten);
+              setFilterNCC(found?._id || "");
             }}
+            placeholder="Nhà cung cấp"
           />
-          <TextField
-            select
-            size="small"
-            label="Nhà cung cấp"
-            value={filterNCC}
-            onChange={(e) => setFilterNCC(e.target.value)}
-            sx={{ minWidth: 160 }}
-            InputLabelProps={{ shrink: true }}
-          >
-            <MenuItem value="">Tất cả</MenuItem>
-            {(nhaCungCap || []).map((ncc) => (
-              <MenuItem key={ncc._id} value={ncc._id}>
-                {ncc.ten}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            size="small"
-            label="Nhóm vật liệu"
+          <SearchableDropdown
+            options={danhSachNhom}
             value={filterNhom}
-            onChange={(e) => setFilterNhom(e.target.value)}
-            sx={{ minWidth: 150 }}
-            InputLabelProps={{ shrink: true }}
-          >
-            <MenuItem value="">Tất cả</MenuItem>
-            {danhSachNhom.map((nhom) => (
-              <MenuItem key={nhom} value={nhom}>
-                {nhom}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            size="small"
-            label="Tồn kho"
+            onChange={setFilterNhom}
+            placeholder="Nhóm vật liệu"
+          />
+          <select
             value={filterTrangThai}
             onChange={(e) => setFilterTrangThai(e.target.value)}
-            sx={{ minWidth: 140 }}
-            InputLabelProps={{ shrink: true }}
+            className="h-9 px-3 text-sm text-slate-700 bg-white border border-gray-300 rounded hover:border-gray-400 outline-none focus:border-sky-400 transition cursor-pointer"
           >
-            <MenuItem value="">Tất cả</MenuItem>
-            <MenuItem value="du">Đủ hàng</MenuItem>
-            <MenuItem value="thieu">Thiếu hàng</MenuItem>
-          </TextField>
-        </Box>
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-          <Tooltip title="Làm mới">
-            <IconButton onClick={() => dispatch(fetchVatLieu())}>
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-          <button
-            onClick={() => exportDanhSachVatLieuToExcel(filteredData)}
-            className="px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1 transition"
-          >
-            <DownloadIcon sx={{ fontSize: 17 }} />
-            <span className="hidden sm:inline">Xuất Excel</span>
-          </button>
-          <button
-            onClick={openAdd}
-            className="px-3 py-1.5 rounded-lg bg-[#1976d2] hover:bg-[#1565c0] text-white text-sm font-medium flex items-center gap-1 transition"
-          >
-            <AddIcon sx={{ fontSize: 17 }} />
-            <span>Thêm vật liệu</span>
-          </button>
-        </Box>
-      </Box>
-      {/* ===== TABLE ===== */}
-      <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 1 }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ backgroundColor: "#e3f2fd" }}>
-              {[
-                "STT",
-                "Mã VL",
-                "Tên vật liệu",
-                "Nhóm / Loại",
-                "Form răng",
-                "Màu răng",
-                "Nhà cung cấp",
-                "Tồn kho",
-                "Tối thiểu",
-                "Tối đa",
-                "Giá mua",
-                "ĐVT",
-                "Ghi chú",
-                "",
-              ].map((h) => (
-                <TableCell
-                  key={h}
-                  sx={{ fontWeight: 700, fontSize: 12, whiteSpace: "nowrap" }}
-                >
-                  {h}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading && (
-              <TableRow>
-                <TableCell colSpan={14} align="center" sx={{ py: 4 }}>
-                  <CircularProgress size={28} />
-                </TableCell>
+            <option value="">Tất cả tồn kho</option>
+            <option value="du">Đủ hàng</option>
+            <option value="thieu">Thiếu hàng</option>
+          </select>
+
+          {(filterNCC || filterNhom || filterTrangThai) && (
+            <button
+              onClick={() => {
+                setFilterNCC("");
+                setFilterNhom("");
+                setFilterTrangThai("");
+              }}
+              className="h-9 px-3 text-sm text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100 transition"
+            >
+              Xóa lọc
+            </button>
+          )}
+        </div>
+      </div>
+      {/* ===== TABLE (ẩn trên mobile) ===== */}
+      <Box sx={{ display: { xs: "none", md: "block" } }}>
+        <TableContainer
+          component={Paper}
+          sx={{ borderRadius: 2, boxShadow: 1 }}
+        >
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ backgroundColor: "#e3f2fd" }}>
+                {[
+                  "STT",
+                  "Mã VL",
+                  "Tên vật liệu",
+                  "Nhóm / Loại",
+                  "Form răng",
+                  "Màu răng",
+                  "Nhà cung cấp",
+                  "Tồn kho",
+                  "Tối thiểu",
+                  "Tối đa",
+                  "Giá mua",
+                  "ĐVT",
+                  "Ghi chú",
+                  "",
+                ].map((h) => (
+                  <TableCell
+                    key={h}
+                    sx={{ fontWeight: 700, fontSize: 12, whiteSpace: "nowrap" }}
+                  >
+                    {h}
+                  </TableCell>
+                ))}
               </TableRow>
-            )}
-            {!loading && filteredData.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={14}
-                  align="center"
-                  sx={{ py: 4, color: "#9ca3af" }}
-                >
-                  Không có dữ liệu
-                </TableCell>
-              </TableRow>
-            )}
-            {!loading &&
-              filteredData.map((vl, idx) => {
-                const thieuHang = (vl.soLuong ?? 0) < (vl.tonKhoToiThieu ?? 0);
-                return (
-                  <TableRow
-                    key={vl._id}
-                    sx={{
-                      backgroundColor: thieuHang
-                        ? "#fff3e0"
-                        : idx % 2 === 0
+            </TableHead>
+            <TableBody>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={14} align="center" sx={{ py: 4 }}>
+                    <CircularProgress size={28} />
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && filteredData.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={14}
+                    align="center"
+                    sx={{ py: 4, color: "#9ca3af" }}
+                  >
+                    Không có dữ liệu
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading &&
+                filteredData.map((vl, idx) => {
+                  const thieuHang =
+                    (vl.soLuong ?? 0) < (vl.tonKhoToiThieu ?? 0);
+                  return (
+                    <TableRow
+                      key={vl._id}
+                      sx={{
+                        backgroundColor: thieuHang
+                          ? "#fff3e0"
+                          : idx % 2 === 0
                           ? "#fff"
                           : "#fafafa",
-                      "&:hover": { backgroundColor: "#e3f2fd40" },
-                    }}
-                  >
-                    <TableCell sx={{ color: "#9ca3af", fontSize: 12 }}>
-                      {idx + 1}
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">
-                        {vl.maVatLieu}
-                      </span>
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, minWidth: 140 }}>
-                      {vl.tenVatLieu}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 12, minWidth: 120 }}>
-                      {vl.nhomVatLieu && (
-                        <div className="text-xs font-medium text-blue-700">
-                          {vl.nhomVatLieu}
-                        </div>
-                      )}
-                      {vl.loaiVatLieu && (
-                        <div className="text-xs text-gray-500">
-                          {vl.loaiVatLieu}
-                        </div>
-                      )}
-                      {!vl.nhomVatLieu && !vl.loaiVatLieu && (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 13, color: "#555" }}>
-                      {vl.formRang || <span className="text-gray-300">—</span>}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 13, color: "#555" }}>
-                      {vl.mauRang || <span className="text-gray-300">—</span>}
-                    </TableCell>
-                    <TableCell sx={{ color: "#555", fontSize: 13 }}>
-                      {vl.nhaCungCap?.ten || (
-                        <span className="text-gray-400 italic text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 0.5,
-                          justifyContent: "center",
-                        }}
-                      >
-                        {thieuHang && (
-                          <WarningAmberIcon
-                            sx={{ fontSize: 15, color: "#ef4444" }}
-                          />
+                        "&:hover": { backgroundColor: "#e3f2fd40" },
+                      }}
+                    >
+                      <TableCell sx={{ color: "#9ca3af", fontSize: 12 }}>
+                        {idx + 1}
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                          {vl.maVatLieu}
+                        </span>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, minWidth: 140 }}>
+                        {vl.tenVatLieu}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 12, minWidth: 120 }}>
+                        {vl.nhomVatLieu && (
+                          <div className="text-xs font-medium text-blue-700">
+                            {vl.nhomVatLieu}
+                          </div>
                         )}
-                        <span
-                          style={{
-                            fontWeight: 700,
-                            color: thieuHang ? "#ef4444" : "#1976d2",
+                        {vl.loaiVatLieu && (
+                          <div className="text-xs text-gray-500">
+                            {vl.loaiVatLieu}
+                          </div>
+                        )}
+                        {!vl.nhomVatLieu && !vl.loaiVatLieu && (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 13, color: "#555" }}>
+                        {vl.formRang || (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 13, color: "#555" }}>
+                        {vl.mauRang || <span className="text-gray-300">—</span>}
+                      </TableCell>
+                      <TableCell sx={{ color: "#555", fontSize: 13 }}>
+                        {vl.nhaCungCap?.ten || (
+                          <span className="text-gray-400 italic text-xs">
+                            —
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            justifyContent: "center",
                           }}
                         >
-                          {vl.soLuong ?? 0}
-                        </span>
-                      </Box>
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{ color: "#555", fontSize: 13 }}
-                    >
-                      {vl.tonKhoToiThieu ?? 0}
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{ color: "#555", fontSize: 13 }}
-                    >
-                      {vl.tonKhoToiDa > 0 ? (
-                        vl.tonKhoToiDa
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{ fontSize: 13, whiteSpace: "nowrap" }}
-                    >
-                      {vl.giaMua > 0 ? (
-                        <span className="text-green-700 font-medium">
-                          {vl.giaMua.toLocaleString("vi-VN")}₫
-                        </span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ color: "#6b7280", fontSize: 13 }}>
-                      {vl.donViTinh || "—"}
-                    </TableCell>
-                    <TableCell
-                      sx={{ color: "#9ca3af", fontSize: 12, maxWidth: 120 }}
-                    >
-                      <span className="line-clamp-1">{vl.ghiChu || ""}</span>
-                    </TableCell>
-                    <TableCell align="right">
-                      <div className="flex items-center gap-1 justify-end">
-                        <Tooltip title="Chỉnh sửa">
-                          <IconButton size="small" onClick={() => openEdit(vl)}>
-                            <EditIcon sx={{ fontSize: 17, color: "#3b82f6" }} />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Xóa">
-                          <IconButton
-                            size="small"
-                            onClick={() => setDeleteId(vl._id)}
-                          >
-                            <DeleteIcon
-                              sx={{ fontSize: 17, color: "#ef4444" }}
+                          {thieuHang && (
+                            <WarningAmberIcon
+                              sx={{ fontSize: 15, color: "#ef4444" }}
                             />
-                          </IconButton>
-                        </Tooltip>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            <TableRow>
-              <TableCell colSpan={14} align="right">
-                <Typography variant="caption" color="text.secondary">
-                  Hiển thị {filteredData.length} / {vatLieu?.length ?? 0} vật
-                  liệu
-                </Typography>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
+                          )}
+                          <span
+                            style={{
+                              fontWeight: 700,
+                              color: thieuHang ? "#ef4444" : "#1976d2",
+                            }}
+                          >
+                            {vl.soLuong ?? 0}
+                          </span>
+                        </Box>
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{ color: "#555", fontSize: 13 }}
+                      >
+                        {vl.tonKhoToiThieu ?? 0}
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{ color: "#555", fontSize: 13 }}
+                      >
+                        {vl.tonKhoToiDa > 0 ? (
+                          vl.tonKhoToiDa
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ fontSize: 13, whiteSpace: "nowrap" }}
+                      >
+                        {vl.giaMua > 0 ? (
+                          <span className="text-green-700 font-medium">
+                            {vl.giaMua.toLocaleString("vi-VN")}₫
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ color: "#6b7280", fontSize: 13 }}>
+                        {vl.donViTinh || "—"}
+                      </TableCell>
+                      <TableCell
+                        sx={{ color: "#9ca3af", fontSize: 12, maxWidth: 120 }}
+                      >
+                        <span className="line-clamp-1">{vl.ghiChu || ""}</span>
+                      </TableCell>
+                      <TableCell align="right">
+                        <div className="flex items-center gap-1 justify-end">
+                          <Tooltip title="Chỉnh sửa">
+                            <IconButton
+                              size="small"
+                              onClick={() => openEdit(vl)}
+                            >
+                              <EditIcon
+                                sx={{ fontSize: 17, color: "#3b82f6" }}
+                              />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Xóa">
+                            <IconButton
+                              size="small"
+                              onClick={() => setDeleteId(vl._id)}
+                            >
+                              <DeleteIcon
+                                sx={{ fontSize: 17, color: "#ef4444" }}
+                              />
+                            </IconButton>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              <TableRow>
+                <TableCell colSpan={14} align="right">
+                  <Typography variant="caption" color="text.secondary">
+                    Hiển thị {filteredData.length} / {vatLieu?.length ?? 0} vật
+                    liệu
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+
+      {/* ===== CARD LIST (chỉ hiện trên mobile) ===== */}
+      <Box
+        sx={{
+          display: { xs: "flex", md: "none" },
+          flexDirection: "column",
+          gap: 1.5,
+        }}
+      >
+        {loading && (
+          <Box sx={{ py: 4, display: "flex", justifyContent: "center" }}>
+            <CircularProgress size={28} />
+          </Box>
+        )}
+        {!loading && filteredData.length === 0 && (
+          <Box sx={{ py: 4, textAlign: "center", color: "#9ca3af" }}>
+            Không có dữ liệu
+          </Box>
+        )}
+        {!loading &&
+          filteredData.map((vl) => {
+            const thieuHang = (vl.soLuong ?? 0) < (vl.tonKhoToiThieu ?? 0);
+            return (
+              <Paper
+                key={vl._id}
+                sx={{
+                  borderRadius: 2,
+                  p: 2,
+                  boxShadow: 1,
+                  borderLeft: "4px solid",
+                  borderColor: thieuHang ? "#ef4444" : "#1976d2",
+                  backgroundColor: thieuHang ? "#fff8f8" : "#fff",
+                }}
+              >
+                {/* Header: mã + tên + actions */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <Box sx={{ flex: 1, pr: 1 }}>
+                    <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded mr-2">
+                      {vl.maVatLieu}
+                    </span>
+                    <Typography
+                      component="span"
+                      sx={{ fontWeight: 700, fontSize: 15 }}
+                    >
+                      {vl.tenVatLieu}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", gap: 0.5, flexShrink: 0 }}>
+                    <IconButton size="small" onClick={() => openEdit(vl)}>
+                      <EditIcon sx={{ fontSize: 18, color: "#3b82f6" }} />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => setDeleteId(vl._id)}
+                    >
+                      <DeleteIcon sx={{ fontSize: 18, color: "#ef4444" }} />
+                    </IconButton>
+                  </Box>
+                </Box>
+
+                {/* Tags: nhóm, loại */}
+                {(vl.nhomVatLieu || vl.loaiVatLieu) && (
+                  <Box
+                    sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}
+                  >
+                    {vl.nhomVatLieu && (
+                      <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                        {vl.nhomVatLieu}
+                      </span>
+                    )}
+                    {vl.loaiVatLieu && (
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                        {vl.loaiVatLieu}
+                      </span>
+                    )}
+                    {vl.formRang && (
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                        {vl.formRang}
+                      </span>
+                    )}
+                    {vl.mauRang && (
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                        {vl.mauRang}
+                      </span>
+                    )}
+                  </Box>
+                )}
+
+                {/* Info grid */}
+                <Box
+                  sx={{
+                    mt: 1.5,
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 1,
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      sx={{
+                        fontSize: 11,
+                        color: "#9ca3af",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      Tồn kho
+                    </Typography>
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    >
+                      {thieuHang && (
+                        <WarningAmberIcon
+                          sx={{ fontSize: 14, color: "#ef4444" }}
+                        />
+                      )}
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          color: thieuHang ? "#ef4444" : "#1976d2",
+                          fontSize: 15,
+                        }}
+                      >
+                        {vl.soLuong ?? 0}
+                        {vl.donViTinh && (
+                          <span
+                            style={{
+                              fontWeight: 400,
+                              fontSize: 12,
+                              color: "#6b7280",
+                              marginLeft: 2,
+                            }}
+                          >
+                            {vl.donViTinh}
+                          </span>
+                        )}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ fontSize: 11, color: "#9ca3af" }}>
+                      Min: {vl.tonKhoToiThieu ?? 0}{" "}
+                      {vl.tonKhoToiDa > 0 ? `/ Max: ${vl.tonKhoToiDa}` : ""}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography
+                      sx={{
+                        fontSize: 11,
+                        color: "#9ca3af",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      Giá mua
+                    </Typography>
+                    <Typography
+                      sx={{ fontWeight: 600, fontSize: 14, color: "#16a34a" }}
+                    >
+                      {vl.giaMua > 0
+                        ? `${vl.giaMua.toLocaleString("vi-VN")}₫`
+                        : "—"}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* NCC + ghi chú */}
+                {(vl.nhaCungCap?.ten || vl.ghiChu) && (
+                  <Box sx={{ mt: 1, pt: 1, borderTop: "1px solid #f0f0f0" }}>
+                    {vl.nhaCungCap?.ten && (
+                      <Typography sx={{ fontSize: 12, color: "#555" }}>
+                        🏭 {vl.nhaCungCap.ten}
+                      </Typography>
+                    )}
+                    {vl.ghiChu && (
+                      <Typography
+                        sx={{ fontSize: 12, color: "#9ca3af", mt: 0.25 }}
+                      >
+                        {vl.ghiChu}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+              </Paper>
+            );
+          })}
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ textAlign: "right", display: "block" }}
+        >
+          Hiển thị {filteredData.length} / {vatLieu?.length ?? 0} vật liệu
+        </Typography>
+      </Box>
+
       {/* ===== MODAL THÊM / SỬA ===== */}
       <Dialog
         open={openModal}

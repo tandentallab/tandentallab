@@ -156,7 +156,7 @@ export default function NhapKhoModal({ open, onClose, editData = null }) {
             if (isEdit) {
                 await dispatch(updatePhieuNhapKho({ id: editData._id, danhSachVatLieu, ghiChu })).unwrap();
             } else {
-                await dispatch(createPhieuNhapKho({ danhSachVatLieu, ghiChu, nguoiTao: user?.hoTen || "Admin" })).unwrap();
+                await dispatch(createPhieuNhapKho({ danhSachVatLieu, ghiChu, nguoiTao: user?.HoTenNV || user?.quyenSuDung.ten })).unwrap();
             }
             dispatch(clearSelected());
             onClose();

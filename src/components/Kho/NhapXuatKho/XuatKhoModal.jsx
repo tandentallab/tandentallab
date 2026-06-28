@@ -1,4 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
 import { fetchVatLieu } from "../../../redux/slices/khoSlice";
 import {
     createPhieuXuatKho,
@@ -137,11 +138,11 @@ export default function XuatKhoModal({ open, onClose, editData = null }) {
         e.preventDefault();
 
         if (!boPhan.trim()) {
-            alert("Vui lòng nhập bộ phận.");
+            toast.error("Vui lòng nhập bộ phận.");
             return;
         }
         if (!nhanVien.trim()) {
-            alert("Vui lòng nhập tên nhân viên.");
+            toast.error("Vui lòng nhập tên nhân viên.");
             return;
         }
 
@@ -154,7 +155,7 @@ export default function XuatKhoModal({ open, onClose, editData = null }) {
             }));
 
         if (danhSachVatLieu.length === 0) {
-            alert("Vui lòng chọn ít nhất một vật liệu và nhập số lượng > 0.");
+            toast.error("Vui lòng chọn ít nhất một vật liệu và nhập số lượng > 0.");
             return;
         }
 
@@ -178,7 +179,7 @@ export default function XuatKhoModal({ open, onClose, editData = null }) {
             dispatch(clearSelectedXuat());
             onClose();
         } catch (err) {
-            alert("Lỗi: " + (err?.message || err));
+            toast.error(err?.message || "Lưu phiếu xuất thất bại.");
         }
     };
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import {
     fetchPhieuNhapKhoById,
     updatePhieuNhapKho,
@@ -12,6 +13,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LockIcon from "@mui/icons-material/Lock";
+import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
 
 function formatNgay(dateStr) {
     if (!dateStr) return "—";
@@ -42,6 +44,7 @@ function InfoRow({ label, value }) {
  */
 export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
 
     const [isOpen, setIsOpen] = useState(false);
     const [fullPhieu, setFullPhieu] = useState(null);
@@ -175,6 +178,13 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
                             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-sky-500 transition"
                         >
                             <DeleteIcon sx={{ fontSize: 20 }} />
+                        </button>
+                        <button
+                            onClick={() => navigate(`/kho/phieu-nhap/${fullPhieu?._id || phieu?._id}/print`)}
+                            title="In phiếu"
+                            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-sky-500 transition"
+                        >
+                            <LocalPrintshopIcon sx={{ fontSize: 20 }} />
                         </button>
                     </div>
                 </div>

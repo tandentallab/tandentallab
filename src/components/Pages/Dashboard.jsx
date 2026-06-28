@@ -101,7 +101,7 @@ const Dashboard = () => {
           flexGrow: 1,
           minWidth: 0,
           mt: isPrintPage ? 0 : `${headerMarginTop}px`,
-          minHeight: isPrintPage ? "100vh" : `calc(100vh - ${headerMarginTop}px)`,
+          height: isPrintPage ? "100vh" : `calc(100vh - ${headerMarginTop}px)`,
           display: "flex",
           flexDirection: "column",
           transition: theme.transitions.create("margin-left", {

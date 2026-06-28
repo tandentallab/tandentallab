@@ -57,6 +57,7 @@ const ChiPhiForm = ({ isLoading, onAdd }) => {
                     renderValue={(v) => v || <span className="text-slate-400">Loại chi phí</span>}
                 >
                     <MenuItem value="Điện nước">Điện nước</MenuItem>
+                    <MenuItem value="Sửa chữa">Vật tư</MenuItem>
                     <MenuItem value="Sửa chữa">Sửa chữa</MenuItem>
                     <MenuItem value="Khác">Khác</MenuItem>
                 </Select>

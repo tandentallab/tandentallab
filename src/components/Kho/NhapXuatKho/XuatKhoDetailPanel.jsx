@@ -132,7 +132,7 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
             <div
                 className={`fixed inset-0 bg-black/20 transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
                     }`}
-                style={{ zIndex: 9999, top: `${panelTop}px` }}
+                style={{ zIndex: 999, top: `${panelTop}px` }}
                 onClick={handleClose}
             />
 
@@ -141,9 +141,10 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
                 className={`fixed right-0 flex flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
                     }`}
                 style={{
-                    zIndex: 9999,
+                    zIndex: 999,
                     top: `${panelTop}px`,
                     width: "600px",
+                    maxWidth: "100vw",
                     height: `calc(100vh - ${panelTop}px)`,
                 }}
             >

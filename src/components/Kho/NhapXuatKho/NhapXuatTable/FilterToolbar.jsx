@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AddIcon from "@mui/icons-material/Add";
+import DownloadIcon from "@mui/icons-material/Download";
 import SearchableDropdown from "./SearchableDropdown";
 import { MONTH_OPTIONS } from "./constants";
 
@@ -82,6 +83,8 @@ export default function FilterToolbar({
     // toolbar actions
     isLoading,
     onRefresh,
+    onExport,
+    isExporting,
     onOpenNhapModal,
     onOpenXuatModal,
     addMenuOpen,
@@ -108,8 +111,8 @@ export default function FilterToolbar({
     }
 
     return (
-        <div className="mb-3 flex justify-between items-center rounded">
-            <div className="flex items-center gap-2">
+        <div className="mb-3 flex justify-between items-start md:items-center rounded">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
                 <SearchableDropdown
                     options={monthLabels}
                     value={monthLabel}
@@ -175,10 +178,21 @@ export default function FilterToolbar({
                 </div>
 
                 <button
+                    title="Xuất Excel"
+                    onClick={onExport}
+                    disabled={isExporting || isLoading}
+                    className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-600 shadow hover:bg-sky-700 transition disabled:opacity-50"
+                >
+                    <div>
+                        <DownloadIcon sx={{ fontSize: 20 }} />
+                    </div>
+                </button>
+
+                <button
                     title="Tải lại"
                     onClick={onRefresh}
                     disabled={isLoading}
-                    className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition disabled:opacity-50"
+                    className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-orange-500 shadow hover:bg-orange-600 transition disabled:opacity-50"
                 >
                     <div className={isLoading ? "animate-spin" : ""}>
                         <RefreshIcon sx={{ fontSize: 20 }} />

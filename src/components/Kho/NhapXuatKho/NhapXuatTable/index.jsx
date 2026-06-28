@@ -24,6 +24,7 @@ import PhieuXuatTable from "./PhieuXuatTable";
 import VatLieuNhapTable from "./VatLieuNhapTable";
 import VatLieuXuatTable from "./VatLieuXuatTable";
 import { scrollbarStyle, monthToDateRange, aggregateVatLieu } from "./constants";
+import { exportPhieuNhapXuatToExcel } from "./exportPhieuNhapXuatToExcel";
 
 export default function NhapXuatTable() {
     const dispatch = useDispatch();
@@ -48,6 +49,7 @@ export default function NhapXuatTable() {
     const [addMenuOpen, setAddMenuOpen] = useState(false);
     const [selectedNhap, setSelectedNhap] = useState(null);
     const [selectedXuat, setSelectedXuat] = useState(null);
+    const [isExporting, setIsExporting] = useState(false);
 
     const isFiltered = selectedNCC !== "" || selectedMonth !== "" || selectedBoPhan !== "" || selectedTrangThai.length > 0;
     const isLoading = loadingNhap || loadingXuat;
@@ -113,6 +115,21 @@ export default function NhapXuatTable() {
         dispatch(fetchVatLieu());
     }
 
+    async function handleExport() {
+        setIsExporting(true);
+        try {
+            await exportPhieuNhapXuatToExcel(
+                buildNhapParams(),
+                buildXuatParams(),
+                { selectedMonth, selectedNCC, selectedBoPhan, selectedTrangThai }
+            );
+        } catch (err) {
+            console.error("Export lỗi:", err);
+        } finally {
+            setIsExporting(false);
+        }
+    }
+
     const handleLoadMoreNhap = useCallback(() => {
         const next = pageNhap + 1;
         setPageNhap(next);
@@ -170,16 +187,21 @@ export default function NhapXuatTable() {
                 onClearFilter={handleClearFilter}
                 isLoading={isLoading}
                 onRefresh={handleRefresh}
+                onExport={handleExport}
+                isExporting={isExporting}
                 onOpenNhapModal={() => setShowNhapModal(true)}
                 onOpenXuatModal={() => setShowXuatModal(true)}
                 addMenuOpen={addMenuOpen}
                 setAddMenuOpen={setAddMenuOpen}
             />
 
-            <p className="mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
+            <p className="hidden md:block mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
                 Phiếu nhập/xuất
             </p>
-            <div className="flex w-full gap-0 border border-gray-200 rounded">
+            <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
+                Phiếu nhập
+            </p>
+            <div className="flex flex-col md:flex-row w-full">
                 <PhieuNhapTable
                     data={phieuNhapKhos}
                     selectedId={selectedNhap?._id}
@@ -189,6 +211,9 @@ export default function NhapXuatTable() {
                     onLoadMore={handleLoadMoreNhap}
                 />
                 <div className="w-px bg-gray-300 self-stretch" />
+                <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
+                    Phiếu xuất
+                </p>
                 <PhieuXuatTable
                     data={phieuXuatKhos}
                     selectedId={selectedXuat?._id}
@@ -199,12 +224,18 @@ export default function NhapXuatTable() {
                 />
             </div>
 
-            <p className="mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
+            <p className="hidden md:block mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
                 Vật liệu
             </p>
-            <div className="flex w-full gap-0 border border-gray-200 rounded">
+            <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
+                Vật liệu nhập
+            </p>
+            <div className="flex flex-col md:flex-row w-full">
                 <VatLieuNhapTable data={vatLieuNhap} />
                 <div className="w-px bg-gray-300 self-stretch" />
+                <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
+                    Vật liệu xuất
+                </p>
                 <VatLieuXuatTable data={vatLieuXuat} />
             </div>
 
@@ -223,6 +254,6 @@ export default function NhapXuatTable() {
                 onClose={() => setSelectedXuat(null)}
                 onUpdated={handleRefresh}
             />
-        </div>
+        </div >
     );
 }

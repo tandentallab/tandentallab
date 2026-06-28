@@ -126,7 +126,7 @@ const Header = ({ onToggleSidebar }) => {
       const res = await api.get("/ghi-chu");
       if (res.data?.success && res.data.data?.length > 0) {
         const todos = res.data.data;
-        
+
         // Dọn dẹp hàng đợi cũ nếu đang chạy dở
         if (toastIntervalRef.current) {
           clearInterval(toastIntervalRef.current);
@@ -134,7 +134,7 @@ const Header = ({ onToggleSidebar }) => {
         }
 
         let currentIndex = 0;
-        
+
         const showNextTodo = () => {
           if (currentIndex >= todos.length) {
             if (toastIntervalRef.current) {
@@ -145,7 +145,7 @@ const Header = ({ onToggleSidebar }) => {
           }
 
           const note = todos[currentIndex];
-          const labelText = note.maDonHang 
+          const labelText = note.maDonHang
             ? `[Mã ĐH: ${note.maDonHang}] Ghi chú cần xử lý:`
             : "Ghi chú công việc chung:";
 
@@ -287,7 +287,7 @@ const Header = ({ onToggleSidebar }) => {
             </IconButton>
 
             <div className="w-10 h-10 p-1 rounded-full shadow-md bg-white flex items-center justify-center">
-              <img className="w-full" src="/logo3.png" alt="Tấn Dental" />
+              <img className="w-full" src="/icon.png" alt="Tấn Dental" />
             </div>
 
             <p className="hidden sm:block font-medium text-xl tracking-wide">CÔNG TY TNHH TẤN DENTAL</p>

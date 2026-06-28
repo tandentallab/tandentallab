@@ -109,7 +109,7 @@ export default function NhapKhoModal({ open, onClose, editData = null }) {
         Object.values(items).every((i) => i.checked);
 
     const tongTien = useMemo(
-        () => checkedItems.reduce((s, [, v]) => s + Number(v.thanhTien || 0), 0),
+        () => checkedItems.reduce((s, [, v]) => s + Number(v.thanhTien * v.soLuong || 0), 0),
         [checkedItems]
     );
 

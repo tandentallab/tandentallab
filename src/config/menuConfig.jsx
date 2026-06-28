@@ -13,6 +13,7 @@ import {
   AccountTree,
   ReceiptLong,
   CreditCard,
+  AccountBalance, // 1. Import thêm icon AccountBalance
 } from "@mui/icons-material";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
@@ -20,6 +21,7 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import BadgeIcon from "@mui/icons-material/Badge";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+
 export const MAIN_MENU = [
   { name: "Thống kê", router: "/", icon: <Dashboard /> },
   { name: "Đơn Hàng", router: "/don-hang", icon: <ShoppingCart /> },
@@ -65,6 +67,7 @@ export const OTHER_MENU = [
   },
   { name: "Nhân viên", router: "/nhan-vien", icon: <BadgeIcon /> },
   { name: "Bảng lương", router: "/bang-luong", icon: <PaymentsIcon /> },
+  { name: "Chi phí", router: "/chi-phi", icon: <AccountBalance /> }, // 2. Thêm menu Chi phí vào đây
 ];
 
 export const SETTING_MENU = [

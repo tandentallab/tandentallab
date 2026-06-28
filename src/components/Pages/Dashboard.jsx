@@ -328,15 +328,19 @@ const Dashboard = () => {
               <BangLuongPage></BangLuongPage>
             )}
           ></Route>
+
           <Route
             path="/ghi-chu"
             element={renderProtected(
               "/ghi-chu",
               <GhiChuPage></GhiChuPage>
             )}
+          />
+          <Route
             path="/kho"
             element={renderProtected("/kho", <KhoPage></KhoPage>)}
-          ></Route>
+          />
+
           <Route path="*" element={<Navigate to={fallbackPath} replace />} />
         </Routes>
       </Box>

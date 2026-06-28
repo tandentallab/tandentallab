@@ -40,8 +40,33 @@ const renderViTriText = (viTriArr, viTriText) => {
 
 const NUMERIC_KEYS = new Set(["soLuong", "donGia", "tongCong"]);
 
-const ResizableHeaderCell = React.memo(({ label, columnKey, isLast, style, onResize }) => (
-  <TableCell sx={isLast ? { ...style, borderTopRightRadius: "12px" } : style}>
+// ================= CELL STYLES — tĩnh hoàn toàn, tính 1 lần =================
+const CELL_STYLES = (() => {
+  const base = (key, isHeader = false) => ({
+    boxSizing: "border-box", fontSize: isHeader ? "0.8rem" : "0.875rem",
+    fontWeight: isHeader ? 700 : 400, color: isHeader ? "#00a8df" : "#1f2937",
+    overflow: "hidden", whiteSpace: "nowrap", textOverflow: "clip",
+    borderBottom: isHeader ? "1px solid #e6f7ff" : "1px solid #cbd5e1", borderTop: "none",
+    pt: isHeader ? 1 : 1.25, pb: isHeader ? 0.5 : 1.25, pl: 2, pr: NUMERIC_KEYS.has(key) ? 3 : 2,
+    textAlign: NUMERIC_KEYS.has(key) ? "right" : "left", position: "relative",
+    userSelect: isHeader ? "none" : "auto", bgcolor: isHeader ? "#e6f7ff" : "transparent",
+  });
+
+  return {
+    maDonHang_h: base("maDonHang", true), ngayNhan_h: base("ngayNhan", true), bacSi_h: base("bacSi", true),
+    benhNhan_h: base("benhNhan", true), sanPham_h: base("sanPham", true), viTri_h: base("viTri", true),
+    loai_h: base("loai", true), soLuong_h: base("soLuong", true), donGia_h: base("donGia", true),
+    tongCong_h: base("tongCong", true), ghiChuTaiChinh_h: base("ghiChuTaiChinh", true),
+    ngayNhan: base("ngayNhan"), bacSi: base("bacSi"), benhNhan: base("benhNhan"), loai: base("loai"), donGia: base("donGia"),
+    maDonHang_link: { ...base("maDonHang"), color: "#00a8df", fontWeight: 600, cursor: "pointer" },
+    sanPham_bold: { ...base("sanPham"), fontWeight: 500 }, viTri_mono: { ...base("viTri"), fontFamily: "monospace", fontSize: "0.8rem" },
+    soLuong_bold: { ...base("soLuong"), fontWeight: "bold" }, tongCong_bold: { ...base("tongCong"), fontWeight: "bold" },
+    ghiChuTaiChinh_ellipsis: { ...base("ghiChuTaiChinh"), textOverflow: "ellipsis" },
+  };
+})();
+
+const ResizableHeaderCell = React.memo(({ label, columnKey, style, onResize }) => (
+  <TableCell sx={style}>
     {label}
     <div onMouseDown={(e) => onResize(columnKey, e)} className="absolute top-0 right-0 w-2 h-full cursor-col-resize z-10 flex items-center justify-center">
       <div className="w-[1.5px] h-[75%] bg-sky-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
@@ -49,27 +74,35 @@ const ResizableHeaderCell = React.memo(({ label, columnKey, isLast, style, onRes
   </TableCell>
 ));
 
-const RowComponent = React.memo(({ row, isSelected, cellStyles, onToggle, onNavigate }) => (
+const RowComponent = React.memo(({ row, isSelected, onToggle, onNavigate }) => (
   <TableRow hover sx={{ bgcolor: isSelected ? "#e8f4fd" : "white", "&:hover": { bgcolor: isSelected ? "#daeefa" : "#f8fafc" } }}>
     <TableCell padding="checkbox" sx={{ borderBottom: "1px solid #cbd5e1", position: "sticky", left: 0, bgcolor: isSelected ? "#e8f4fd" : "white", zIndex: 1 }}>
       <Checkbox size="small" checked={isSelected} sx={{ color: "#00a8df", "&.Mui-checked": { color: "#00a8df" } }} onChange={() => onToggle(row.orderId, row.rawOrder)} />
     </TableCell>
-    <TableCell sx={cellStyles.maDonHang_link} onClick={() => onNavigate(`/donhang/${row.orderId}/edit`)}>
+    <TableCell sx={CELL_STYLES.maDonHang_link} onClick={() => onNavigate(`/donhang/${row.orderId}/edit`)}>
       {row.maDonHang}
     </TableCell>
-    <TableCell sx={cellStyles.ngayNhan}>{fmtDate(row.ngayNhan)}</TableCell>
-    <TableCell sx={cellStyles.bacSi}>{getFirstName(row.bacSi)}</TableCell>
-    <TableCell sx={cellStyles.benhNhan}>{row.benhNhan || "-"}</TableCell>
-    <TableCell sx={cellStyles.sanPham_bold}>{row.sanPham}</TableCell>
-    <TableCell sx={cellStyles.viTri_mono}>{renderViTriText(row.viTri, row.viTriText)}</TableCell>
-    <TableCell sx={cellStyles.loai}>{row.loai}</TableCell>
-    <TableCell sx={cellStyles.soLuong_bold}>{row.soLuong}</TableCell>
-    <TableCell sx={cellStyles.donGia}>{fmtVND(row.donGia)}</TableCell>
-    <TableCell sx={cellStyles.tongCong_bold}>{fmtVND(row.tongCong)}</TableCell>
-    <TableCell sx={cellStyles.ghiChuTaiChinh_ellipsis} title={row.ghiChuTaiChinh}>{row.ghiChuTaiChinh || " "}</TableCell>
-    <TableCell sx={{ padding: 0, borderBottom: "1px solid #cbd5e1", width: "auto", minWidth: 0 }} />
+    <TableCell sx={CELL_STYLES.ngayNhan}>{fmtDate(row.ngayNhan)}</TableCell>
+    <TableCell sx={CELL_STYLES.bacSi}>{getFirstName(row.bacSi)}</TableCell>
+    <TableCell sx={CELL_STYLES.benhNhan}>{row.benhNhan || "-"}</TableCell>
+    <TableCell sx={CELL_STYLES.sanPham_bold}>{row.sanPham}</TableCell>
+    <TableCell sx={CELL_STYLES.viTri_mono}>{renderViTriText(row.viTri, row.viTriText)}</TableCell>
+    <TableCell sx={CELL_STYLES.loai}>{row.loai}</TableCell>
+    <TableCell sx={CELL_STYLES.soLuong_bold}>{row.soLuong}</TableCell>
+    <TableCell sx={CELL_STYLES.donGia}>{fmtVND(row.donGia)}</TableCell>
+    <TableCell sx={CELL_STYLES.tongCong_bold}>{fmtVND(row.tongCong)}</TableCell>
+    <TableCell sx={CELL_STYLES.ghiChuTaiChinh_ellipsis} title={row.ghiChuTaiChinh}>{row.ghiChuTaiChinh || " "}</TableCell>
+    <TableCell sx={{ padding: 0, borderBottom: "1px solid #cbd5e1", width: 40, minWidth: 40 }} />
   </TableRow>
 ));
+
+// ================= DEFAULT WIDTHS =================
+const DEFAULT_WIDTHS = {
+  maDonHang: 110, ngayNhan: 95, bacSi: 75, benhNhan: 140,
+  sanPham: 120, viTri: 220, loai: 80, soLuong: 60,
+  donGia: 115, tongCong: 120, ghiChuTaiChinh: 180,
+};
+const COLS_ORDER = Object.keys(DEFAULT_WIDTHS);
 
 export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, setSelectedOrders }) {
   const dispatch = useDispatch();
@@ -95,21 +128,18 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   const [dateLabel, setDateLabel] = useState("📅 Chọn trên lịch");
   const [anchorElCustomDate, setAnchorElCustomDate] = useState(null);
 
-  const [columnWidths, setColumnWidths] = useState({
-    maDonHang: 110, ngayNhan: 95, bacSi: 75, benhNhan: 140,
-    sanPham: 120, viTri: 220, loai: 80, soLuong: 60,
-    donGia: 115, tongCong: 120, ghiChuTaiChinh: 180,
-  });
-
-  const columnWidthsRef = useRef(columnWidths);
-  useEffect(() => { columnWidthsRef.current = columnWidths; }, [columnWidths]);
-
-  const totalTableWidth = useMemo(() => Object.values(columnWidths).reduce((a, b) => a + b, 0) + 48, [columnWidths]);
+  // ── Resizable columns — DOM-direct, zero re-render khi kéo ──
+  const widthsRef = useRef({ ...DEFAULT_WIDTHS });
+  const colElemsRef = useRef(Object.fromEntries(COLS_ORDER.map((k) => [k, null])));
+  const tableRef = useRef(null);
+  // +48 cho cột checkbox, +40 cho cột ảo nút X
+  const totalWidthRef = useRef(COLS_ORDER.reduce((s, k) => s + DEFAULT_WIDTHS[k], 0) + 48 + 40);
+  const [tableMinWidth, setTableMinWidth] = useState(totalWidthRef.current);
 
   const handleResize = useCallback((key, e) => {
     e.preventDefault();
     const startX = e.clientX;
-    const startW = columnWidthsRef.current[key];
+    const startW = widthsRef.current[key];
     let rafPending = false; let lastClientX = startX;
 
     const onMove = (mv) => {
@@ -117,39 +147,27 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
       if (rafPending) return;
       rafPending = true;
       requestAnimationFrame(() => {
-        setColumnWidths((p) => ({ ...p, [key]: Math.max(startW + (lastClientX - startX), 40) }));
+        const newWidth = Math.max(startW + (lastClientX - startX), 40);
+        const delta = newWidth - widthsRef.current[key];
+        widthsRef.current[key] = newWidth;
+        totalWidthRef.current += delta;
+
+        const colEl = colElemsRef.current[key];
+        if (colEl) colEl.style.width = `${newWidth}px`;
+        if (tableRef.current) tableRef.current.style.minWidth = `${totalWidthRef.current}px`;
+
         rafPending = false;
       });
     };
 
-    const onUp = () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
-    document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
-  }, []);
-
-  const cellStyles = useMemo(() => {
-    const base = (key, isHeader = false) => ({
-      width: columnWidths[key], minWidth: columnWidths[key], maxWidth: columnWidths[key],
-      boxSizing: "border-box", fontSize: isHeader ? "0.8rem" : "0.875rem",
-      fontWeight: isHeader ? 700 : 400, color: isHeader ? "#00a8df" : "#1f2937",
-      overflow: "hidden", whiteSpace: "nowrap", textOverflow: "clip",
-      borderBottom: isHeader ? "1px solid #e6f7ff" : "1px solid #cbd5e1", borderTop: "none",
-      pt: isHeader ? 1 : 1.25, pb: isHeader ? 0.5 : 1.25, pl: 2, pr: NUMERIC_KEYS.has(key) ? 3 : 2,
-      textAlign: NUMERIC_KEYS.has(key) ? "right" : "left", position: "relative",
-      userSelect: isHeader ? "none" : "auto", bgcolor: isHeader ? "#e6f7ff" : "transparent",
-    });
-
-    return {
-      maDonHang_h: base("maDonHang", true), ngayNhan_h: base("ngayNhan", true), bacSi_h: base("bacSi", true),
-      benhNhan_h: base("benhNhan", true), sanPham_h: base("sanPham", true), viTri_h: base("viTri", true),
-      loai_h: base("loai", true), soLuong_h: base("soLuong", true), donGia_h: base("donGia", true),
-      tongCong_h: base("tongCong", true), ghiChuTaiChinh_h: base("ghiChuTaiChinh", true),
-      ngayNhan: base("ngayNhan"), bacSi: base("bacSi"), benhNhan: base("benhNhan"), loai: base("loai"), donGia: base("donGia"),
-      maDonHang_link: { ...base("maDonHang"), color: "#00a8df", fontWeight: 600, cursor: "pointer" },
-      sanPham_bold: { ...base("sanPham"), fontWeight: 500 }, viTri_mono: { ...base("viTri"), fontFamily: "monospace", fontSize: "0.8rem" },
-      soLuong_bold: { ...base("soLuong"), fontWeight: "bold" }, tongCong_bold: { ...base("tongCong"), fontWeight: "bold" },
-      ghiChuTaiChinh_ellipsis: { ...base("ghiChuTaiChinh"), textOverflow: "ellipsis" },
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setTableMinWidth(totalWidthRef.current);
     };
-  }, [columnWidths]);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, []);
 
   useEffect(() => {
     if (!selectedClinic) return;
@@ -169,7 +187,6 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   const activeDateRange = useMemo(() => {
     let start = startOfDay(new Date());
     let end = endOfDay(new Date());
-
     if (fromDate && toDate) {
       start = startOfDay(new Date(fromDate));
       end = endOfDay(new Date(toDate));
@@ -263,7 +280,6 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
 
   const handleCreateHoaDon = async () => {
     if (selectedOrders.length === 0) { toast.error("Vui lòng chọn ít nhất 1 đơn hàng"); return; }
-
     try {
       await dispatch(createHoaDon({
         nhaKhoaId: selectedClinic,
@@ -273,7 +289,6 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
       })).unwrap();
       toast.success("Tạo hóa đơn thành công!");
       setSelectedOrders([]);
-
       dispatch(fetchCountDonHangChuaXuat());
       dispatch(fetchNgayXuatHoaDonGanNhatAll());
       dispatch(fetchDonHangChuaHoaDon(selectedClinic));
@@ -335,7 +350,7 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
           )}
         </div>
 
-        {/* NỬA PHẢI: Nút Tạo hóa đơn + Input tìm kiếm (bên ngoài cùng) */}
+        {/* NỬA PHẢI: Nút Tạo hóa đơn + Input tìm kiếm */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 w-full xl:w-auto">
           {selectedOrders.length > 0 && (
             <Button variant="contained" color="primary" size="small" onClick={handleCreateHoaDon} sx={{ width: { xs: "100%", sm: "auto" }, height: "38px", px: 3 }}>
@@ -357,24 +372,36 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
 
       <div className="flex-1 flex flex-col min-h-0 px-4 pt-3 pb-0">
         <TableContainer ref={containerRef} component={Paper} elevation={0} sx={{ borderRadius: "12px 12px 0 0", flex: 1, minHeight: 0, overflowX: "auto", overflowY: "auto", backgroundColor: "#ffffff", border: "none !important", boxShadow: "none !important", "&::-webkit-scrollbar": { height: 10, width: 10 }, "&::-webkit-scrollbar-track": { background: "transparent" }, "&::-webkit-scrollbar-thumb": { backgroundColor: "#cbd5e1", borderRadius: 8, border: "2px solid #ffffff" }, "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "#94a3b8" } }}>
-          <Table sx={{ tableLayout: "fixed", width: "100%", minWidth: `${totalTableWidth}px`, borderCollapse: "collapse", bgcolor: "white" }}>
+          <Table ref={tableRef} sx={{ tableLayout: "fixed", width: "100%", minWidth: `${tableMinWidth}px`, borderCollapse: "collapse", bgcolor: "white" }}>
+            <colgroup>
+              <col style={{ width: 48 }} /> {/* checkbox */}
+              {COLS_ORDER.map((key) => (
+                <col
+                  key={key}
+                  ref={(el) => { if (el) colElemsRef.current[key] = el; }}
+                  style={{ width: DEFAULT_WIDTHS[key] }}
+                />
+              ))}
+              <col style={{ width: 40 }} /> {/* cột ảo */}
+            </colgroup>
+
             <TableHead sx={{ position: "sticky", top: 0, zIndex: 20, bgcolor: "#e6f7ff" }}>
               <TableRow className="group" sx={{ border: "none !important" }}>
                 <TableCell padding="checkbox" sx={{ width: 48, minWidth: 48, bgcolor: "#e6f7ff", borderBottom: "1px solid #e6f7ff", borderTopLeftRadius: "12px", position: "sticky", left: 0, zIndex: 21 }}>
                   <Checkbox size="small" sx={{ color: "#00a8df", "&.Mui-checked": { color: "#00a8df" } }} indeterminate={someDisplaySelected} checked={allDisplaySelected} onChange={toggleAll} />
                 </TableCell>
-                <ResizableHeaderCell label="Đơn hàng" columnKey="maDonHang" style={cellStyles.maDonHang_h} onResize={handleResize} />
-                <ResizableHeaderCell label="Ngày nhận" columnKey="ngayNhan" style={cellStyles.ngayNhan_h} onResize={handleResize} />
-                <ResizableHeaderCell label="Bác sĩ" columnKey="bacSi" style={cellStyles.bacSi_h} onResize={handleResize} />
-                <ResizableHeaderCell label="Bệnh nhân" columnKey="benhNhan" style={cellStyles.benhNhan_h} onResize={handleResize} />
-                <ResizableHeaderCell label="Sản phẩm" columnKey="sanPham" style={cellStyles.sanPham_h} onResize={handleResize} />
-                <ResizableHeaderCell label="Vị trí" columnKey="viTri" style={cellStyles.viTri_h} onResize={handleResize} />
-                <ResizableHeaderCell label="Loại" columnKey="loai" style={cellStyles.loai_h} onResize={handleResize} />
-                <ResizableHeaderCell label="S.L" columnKey="soLuong" style={cellStyles.soLuong_h} onResize={handleResize} />
-                <ResizableHeaderCell label="Đơn giá" columnKey="donGia" style={cellStyles.donGia_h} onResize={handleResize} />
-                <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" style={cellStyles.tongCong_h} onResize={handleResize} />
-                <ResizableHeaderCell label="Ghi chú tài chính" columnKey="ghiChuTaiChinh" style={cellStyles.ghiChuTaiChinh_h} onResize={handleResize} isLast />
-                <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff" }} />
+                <ResizableHeaderCell label="Đơn hàng" columnKey="maDonHang" style={CELL_STYLES.maDonHang_h} onResize={handleResize} />
+                <ResizableHeaderCell label="Ngày nhận" columnKey="ngayNhan" style={CELL_STYLES.ngayNhan_h} onResize={handleResize} />
+                <ResizableHeaderCell label="Bác sĩ" columnKey="bacSi" style={CELL_STYLES.bacSi_h} onResize={handleResize} />
+                <ResizableHeaderCell label="Bệnh nhân" columnKey="benhNhan" style={CELL_STYLES.benhNhan_h} onResize={handleResize} />
+                <ResizableHeaderCell label="Sản phẩm" columnKey="sanPham" style={CELL_STYLES.sanPham_h} onResize={handleResize} />
+                <ResizableHeaderCell label="Vị trí" columnKey="viTri" style={CELL_STYLES.viTri_h} onResize={handleResize} />
+                <ResizableHeaderCell label="Loại" columnKey="loai" style={CELL_STYLES.loai_h} onResize={handleResize} />
+                <ResizableHeaderCell label="S.L" columnKey="soLuong" style={CELL_STYLES.soLuong_h} onResize={handleResize} />
+                <ResizableHeaderCell label="Đơn giá" columnKey="donGia" style={CELL_STYLES.donGia_h} onResize={handleResize} />
+                <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" style={CELL_STYLES.tongCong_h} onResize={handleResize} />
+                <ResizableHeaderCell label="Ghi chú tài chính" columnKey="ghiChuTaiChinh" style={CELL_STYLES.ghiChuTaiChinh_h} onResize={handleResize} />
+                <TableCell sx={{ width: 40, minWidth: 40, padding: 0, borderBottom: "1px solid #e6f7ff", bgcolor: "#e6f7ff", borderTopRightRadius: "12px" }} />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -383,7 +410,15 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
               ) : displayedData.length === 0 ? (
                 <TableRow><TableCell colSpan={13} align="center" sx={{ py: 8, color: "text.secondary", borderBottom: "none" }}>Không có đơn hàng nào</TableCell></TableRow>
               ) : (
-                visibleRows.map((row) => (<RowComponent key={row.rowId} row={row} isSelected={selectedSet.has(row.orderId)} cellStyles={cellStyles} onToggle={toggleOrder} onNavigate={onNavigate} />))
+                visibleRows.map((row) => (
+                  <RowComponent
+                    key={row.rowId}
+                    row={row}
+                    isSelected={selectedSet.has(row.orderId)}
+                    onToggle={toggleOrder}
+                    onNavigate={onNavigate}
+                  />
+                ))
               )}
               {!loadingDonHangs && visibleCount < displayedData.length && (
                 <TableRow ref={sentinelRef}><TableCell colSpan={13} align="center" sx={{ py: 2, borderBottom: "none" }}><CircularProgress size={18} sx={{ color: "#00a8df" }} /></TableCell></TableRow>
@@ -393,7 +428,6 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
         </TableContainer>
       </div>
 
-      {/* FOOTER: Đã dọn gọn phần text số lượng được chọn lên trên */}
       <div className="px-4 py-2 border-t bg-white flex-shrink-0 flex justify-between items-center relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <Typography variant="caption" color="text.secondary" fontSize={12}>
           {visibleCount < displayedData.length ? `${visibleCount} / ${displayedData.length} dòng` : `${displayedData.length} dòng`}

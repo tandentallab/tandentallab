@@ -38,6 +38,52 @@ const getFirstName = (fullName) => {
     return parts[parts.length - 1];
 };
 
+// ================= CELL STYLES — tĩnh hoàn toàn, tính 1 lần =================
+// Width được kiểm soát bởi <colgroup> nên không cần đưa vào đây
+const CELL_STYLES = (() => {
+    const base = (key, isHeader = false) => ({
+        boxSizing: "border-box",
+        fontSize: isHeader ? "0.8rem" : "0.875rem",
+        fontWeight: isHeader ? 700 : 400,
+        color: isHeader ? "#00a8df" : "#1f2937",
+        overflow: "hidden",
+        whiteSpace: "nowrap",
+        textOverflow: "clip",
+        borderBottom: isHeader ? "1px solid #e6f7ff" : "1px solid #cbd5e1",
+        borderTop: "none",
+        pt: isHeader ? 1 : 1.25,
+        pb: isHeader ? 0.5 : 1.25,
+        pl: 2,
+        pr: NUMERIC_KEYS.has(key) ? 3 : 2,
+        textAlign: NUMERIC_KEYS.has(key) ? "right" : "left",
+        position: "relative",
+        userSelect: isHeader ? "none" : "auto",
+        bgcolor: isHeader ? "#e6f7ff" : "transparent",
+    });
+
+    const COLS = [
+        "donHang", "ngayNhan", "bacSi", "benhNhan", "sanPham",
+        "loaiDon", "viTri", "soLuong", "donGia", "thanhTien",
+        "giamGia", "tongCongSanPham", "ghiChu",
+    ];
+
+    const row = {};
+    const hdr = {};
+    COLS.forEach((k) => {
+        row[k] = base(k, false);
+        hdr[k] = base(k, true);
+    });
+
+    row.donHang_link = { ...row.donHang, color: "#00a8df", fontWeight: 500, cursor: "pointer", textDecoration: "underline" };
+    row.sanPham_bold = { ...row.sanPham, fontWeight: 500 };
+    row.viTri_mono = { ...row.viTri, fontFamily: "monospace" };
+    row.soLuong_bold = { ...row.soLuong, fontWeight: "bold" };
+    row.tongCong_bold = { ...row.tongCongSanPham, fontWeight: "bold" };
+    hdr.donHang_first = { ...hdr.donHang, borderTopLeftRadius: "12px" };
+
+    return { row, hdr };
+})();
+
 // ================= RESIZABLE HEADER CELL =================
 const RHCell = React.memo(({ label, style, columnKey, onResize }) => (
     <TableCell sx={style}>
@@ -51,28 +97,28 @@ const RHCell = React.memo(({ label, style, columnKey, onResize }) => (
     </TableCell>
 ));
 
-// ================= DETAIL ROW — memo để chỉ re-render dòng bị thay đổi =================
-const DetailRow = React.memo(({ sp, idx, cellStyles, isLocked, canEditItems, uniqueOrdersCount, handleGiamGiaChange, handleGhiChuChange, onDeleteClick, navigate }) => {
+// ================= DETAIL ROW =================
+const DetailRow = React.memo(({ sp, idx, isLocked, canEditItems, uniqueOrdersCount, handleGiamGiaChange, handleGhiChuChange, onDeleteClick, navigate }) => {
     return (
         <TableRow hover className="transition-colors group">
             <TableCell
-                sx={cellStyles.row.donHang_link}
+                sx={CELL_STYLES.row.donHang_link}
                 onClick={() => navigate(`/donhang/${sp.donHang?._id}/edit`)}
             >
                 {sp.donHang?.maDonHang || "---"}
             </TableCell>
 
-            <TableCell sx={cellStyles.row.ngayNhan}>{fmtDate(sp.donHang?.ngayNhan)}</TableCell>
-            <TableCell sx={cellStyles.row.bacSi}>{getFirstName(sp.donHang?.bacSi?.hoVaTen)}</TableCell>
-            <TableCell sx={cellStyles.row.benhNhan}>{sp.donHang?.benhNhan?.hoVaTen || "---"}</TableCell>
-            <TableCell sx={cellStyles.row.sanPham_bold}>{sp.tenSanPham || "---"}</TableCell>
-            <TableCell sx={cellStyles.row.loaiDon}>{sp.loaiDon || "---"}</TableCell>
-            <TableCell sx={cellStyles.row.viTri_mono}>{formatViTriRang(sp.viTri)}</TableCell>
-            <TableCell sx={cellStyles.row.soLuong_bold}>{sp.soLuong}</TableCell>
-            <TableCell sx={cellStyles.row.donGia}>{fmtVND(sp.donGia)}</TableCell>
-            <TableCell sx={cellStyles.row.thanhTien}>{fmtVND(sp.thanhTien)}</TableCell>
+            <TableCell sx={CELL_STYLES.row.ngayNhan}>{fmtDate(sp.donHang?.ngayNhan)}</TableCell>
+            <TableCell sx={CELL_STYLES.row.bacSi}>{getFirstName(sp.donHang?.bacSi?.hoVaTen)}</TableCell>
+            <TableCell sx={CELL_STYLES.row.benhNhan}>{sp.donHang?.benhNhan?.hoVaTen || "---"}</TableCell>
+            <TableCell sx={CELL_STYLES.row.sanPham_bold}>{sp.tenSanPham || "---"}</TableCell>
+            <TableCell sx={CELL_STYLES.row.loaiDon}>{sp.loaiDon || "---"}</TableCell>
+            <TableCell sx={CELL_STYLES.row.viTri_mono}>{formatViTriRang(sp.viTri)}</TableCell>
+            <TableCell sx={CELL_STYLES.row.soLuong_bold}>{sp.soLuong}</TableCell>
+            <TableCell sx={CELL_STYLES.row.donGia}>{fmtVND(sp.donGia)}</TableCell>
+            <TableCell sx={CELL_STYLES.row.thanhTien}>{fmtVND(sp.thanhTien)}</TableCell>
 
-            <TableCell sx={cellStyles.row.giamGia}>
+            <TableCell sx={CELL_STYLES.row.giamGia}>
                 <div className="flex items-center gap-2 w-full">
                     <input
                         type="text"
@@ -107,9 +153,9 @@ const DetailRow = React.memo(({ sp, idx, cellStyles, isLocked, canEditItems, uni
                 </div>
             </TableCell>
 
-            <TableCell sx={cellStyles.row.tongCong_bold}>{fmtVND(sp.tongCongSanPham)}</TableCell>
+            <TableCell sx={CELL_STYLES.row.tongCong_bold}>{fmtVND(sp.tongCongSanPham)}</TableCell>
 
-            <TableCell sx={cellStyles.row.ghiChu}>
+            <TableCell sx={CELL_STYLES.row.ghiChu}>
                 <input
                     disabled={isLocked}
                     type="text"
@@ -120,7 +166,7 @@ const DetailRow = React.memo(({ sp, idx, cellStyles, isLocked, canEditItems, uni
             </TableCell>
 
             {/* CỘT ẢO CUỐI CÙNG CHỨA NÚT X */}
-            <TableCell sx={{ padding: 0, borderBottom: "1px solid #cbd5e1", width: "auto", minWidth: 0, position: "relative" }}>
+            <TableCell sx={{ padding: 0, borderBottom: "1px solid #cbd5e1", width: 40, minWidth: 40, position: "relative" }}>
                 {canEditItems && (
                     <button
                         onClick={() => {
@@ -141,7 +187,35 @@ const DetailRow = React.memo(({ sp, idx, cellStyles, isLocked, canEditItems, uni
     );
 });
 
+// ================= COLGROUP — cập nhật DOM trực tiếp, không trigger React re-render =================
+const ColGroup = ({ colRefs }) => (
+    <colgroup>
+        {Object.keys(colRefs.current).map((key) => (
+            <col key={key} ref={(el) => { if (el) colRefs.current[key] = el; }} />
+        ))}
+        <col style={{ width: 40 }} />
+    </colgroup>
+);
+
 // ================= COMPONENT CHÍNH =================
+const DEFAULT_WIDTHS = {
+    donHang: 110,
+    ngayNhan: 95,
+    bacSi: 80,
+    benhNhan: 140,
+    sanPham: 140,
+    loaiDon: 85,
+    viTri: 140,
+    soLuong: 50,
+    donGia: 115,
+    thanhTien: 140,
+    giamGia: 160,
+    tongCongSanPham: 110,
+    ghiChu: 300,
+};
+
+const COLS_ORDER = Object.keys(DEFAULT_WIDTHS);
+
 const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaChange, isLocked, canEditItems, onRemoveDonHang, onAddRowClick }) => {
 
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -155,34 +229,24 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
         return ids.size;
     }, [rows]);
 
-    const [columnWidths, setColumnWidths] = useState({
-        donHang: 110,
-        ngayNhan: 95,
-        bacSi: 80,
-        benhNhan: 140,
-        sanPham: 140,
-        loaiDon: 85,
-        viTri: 140,
-        soLuong: 50,
-        donGia: 115,
-        thanhTien: 140,
-        giamGia: 160,
-        tongCongSanPham: 110,
-        ghiChu: 120,
-    });
-
-    const columnWidthsRef = useRef(columnWidths);
-    useEffect(() => { columnWidthsRef.current = columnWidths; }, [columnWidths]);
-
-    const totalTableWidth = useMemo(
-        () => Object.values(columnWidths).reduce((a, b) => a + b, 0),
-        [columnWidths]
+    // widths chỉ dùng để tính tổng width cho minWidth của Table
+    // việc resize cập nhật DOM trực tiếp qua colRefs, không setState
+    const widthsRef = useRef({ ...DEFAULT_WIDTHS });
+    const colElemsRef = useRef(
+        Object.fromEntries(COLS_ORDER.map((k) => [k, null]))
     );
+    const tableRef = useRef(null);
+
+    // Tổng width ban đầu — chỉ dùng để set minWidth Table, update qua ref khi resize
+    const totalWidthRef = useRef(
+        COLS_ORDER.reduce((s, k) => s + DEFAULT_WIDTHS[k], 0) + 40
+    );
+    const [tableMinWidth, setTableMinWidth] = useState(totalWidthRef.current);
 
     const handleResize = useCallback((columnKey, e) => {
         e.preventDefault();
         const startX = e.clientX;
-        const startWidth = columnWidthsRef.current[columnKey];
+        const startWidth = widthsRef.current[columnKey];
         let rafPending = false;
         let lastX = startX;
 
@@ -191,10 +255,16 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
             if (rafPending) return;
             rafPending = true;
             requestAnimationFrame(() => {
-                setColumnWidths((prev) => ({
-                    ...prev,
-                    [columnKey]: Math.max(startWidth + (lastX - startX), 40),
-                }));
+                const newWidth = Math.max(startWidth + (lastX - startX), 40);
+                const delta = newWidth - widthsRef.current[columnKey];
+                widthsRef.current[columnKey] = newWidth;
+                totalWidthRef.current += delta;
+
+                // Cập nhật DOM trực tiếp — không setState, không re-render
+                const colEl = colElemsRef.current[columnKey];
+                if (colEl) colEl.style.width = `${newWidth}px`;
+                if (tableRef.current) tableRef.current.style.minWidth = `${totalWidthRef.current}px`;
+
                 rafPending = false;
             });
         };
@@ -202,59 +272,13 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
         const onMouseUp = () => {
             document.removeEventListener("mousemove", onMouseMove);
             document.removeEventListener("mouseup", onMouseUp);
+            // Sync state 1 lần duy nhất khi thả chuột (để persist nếu cần)
+            setTableMinWidth(totalWidthRef.current);
         };
 
         document.addEventListener("mousemove", onMouseMove);
         document.addEventListener("mouseup", onMouseUp);
     }, []);
-
-    const cellStyles = useMemo(() => {
-        const base = (key, isHeader = false) => ({
-            width: columnWidths[key],
-            minWidth: columnWidths[key],
-            maxWidth: columnWidths[key],
-            boxSizing: "border-box",
-            fontSize: isHeader ? "0.8rem" : "0.875rem",
-            fontWeight: isHeader ? 700 : 400,
-            color: isHeader ? "#00a8df" : "#1f2937",
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            textOverflow: "clip",
-            borderBottom: isHeader ? "1px solid #e6f7ff" : "1px solid #cbd5e1",
-            borderTop: "none",
-            pt: isHeader ? 1 : 1.25,
-            pb: isHeader ? 0.5 : 1.25,
-            pl: 2,
-            pr: NUMERIC_KEYS.has(key) ? 3 : 2,
-            textAlign: NUMERIC_KEYS.has(key) ? "right" : "left",
-            position: "relative",
-            userSelect: isHeader ? "none" : "auto",
-            bgcolor: isHeader ? "#e6f7ff" : "transparent",
-        });
-
-        const COLS = [
-            "donHang", "ngayNhan", "bacSi", "benhNhan", "sanPham",
-            "loaiDon", "viTri", "soLuong", "donGia", "thanhTien",
-            "giamGia", "tongCongSanPham", "ghiChu",
-        ];
-
-        const row = {};
-        const hdr = {};
-        COLS.forEach((k) => {
-            row[k] = base(k, false);
-            hdr[k] = base(k, true);
-        });
-
-        row.donHang_link = { ...row.donHang, color: "#00a8df", fontWeight: 500, cursor: "pointer", textDecoration: "underline" };
-        row.sanPham_bold = { ...row.sanPham, fontWeight: 500 };
-        row.viTri_mono = { ...row.viTri, fontFamily: "monospace" };
-        row.soLuong_bold = { ...row.soLuong, fontWeight: "bold" };
-        row.tongCong_bold = { ...row.tongCongSanPham, fontWeight: "bold" };
-        hdr.donHang_first = { ...hdr.donHang, borderTopLeftRadius: "12px" };
-        hdr.ghiChu_last = { ...hdr.ghiChu };
-
-        return { row, hdr };
-    }, [columnWidths]);
 
     return (
         <div className="px-4 flex-1 flex flex-col min-h-0 bg-white relative">
@@ -277,30 +301,43 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                 }}
             >
                 <Table
+                    ref={tableRef}
                     sx={{
                         tableLayout: "fixed",
                         width: "100%",
-                        minWidth: `${totalTableWidth}px`,
+                        minWidth: `${tableMinWidth}px`,
                         borderCollapse: "collapse",
                         bgcolor: "white",
                     }}
                 >
+                    {/* colgroup: mỗi <col> được ref trực tiếp để update width không qua React */}
+                    <colgroup>
+                        {COLS_ORDER.map((key) => (
+                            <col
+                                key={key}
+                                ref={(el) => { if (el) colElemsRef.current[key] = el; }}
+                                style={{ width: DEFAULT_WIDTHS[key] }}
+                            />
+                        ))}
+                        <col style={{ width: 40 }} />
+                    </colgroup>
+
                     <TableHead sx={{ position: "sticky", top: 0, zIndex: 20, bgcolor: "#e6f7ff" }}>
                         <TableRow className="group" sx={{ border: "none !important" }}>
-                            <RHCell label="Đơn hàng ↓" columnKey="donHang" style={cellStyles.hdr.donHang_first} onResize={handleResize} />
-                            <RHCell label="Ngày nhận" columnKey="ngayNhan" style={cellStyles.hdr.ngayNhan} onResize={handleResize} />
-                            <RHCell label="Bác sĩ" columnKey="bacSi" style={cellStyles.hdr.bacSi} onResize={handleResize} />
-                            <RHCell label="Bệnh nhân" columnKey="benhNhan" style={cellStyles.hdr.benhNhan} onResize={handleResize} />
-                            <RHCell label="Sản phẩm" columnKey="sanPham" style={cellStyles.hdr.sanPham} onResize={handleResize} />
-                            <RHCell label="Loại" columnKey="loaiDon" style={cellStyles.hdr.loaiDon} onResize={handleResize} />
-                            <RHCell label="Vị trí răng" columnKey="viTri" style={cellStyles.hdr.viTri} onResize={handleResize} />
-                            <RHCell label="S.L" columnKey="soLuong" style={cellStyles.hdr.soLuong} onResize={handleResize} />
-                            <RHCell label="Đơn giá" columnKey="donGia" style={cellStyles.hdr.donGia} onResize={handleResize} />
-                            <RHCell label="Thành tiền" columnKey="thanhTien" style={cellStyles.hdr.thanhTien} onResize={handleResize} />
-                            <RHCell label="Giảm giá" columnKey="giamGia" style={cellStyles.hdr.giamGia} onResize={handleResize} />
-                            <RHCell label="Tổng cộng" columnKey="tongCongSanPham" style={cellStyles.hdr.tongCongSanPham} onResize={handleResize} />
-                            <RHCell label="Ghi chú" columnKey="ghiChu" style={cellStyles.hdr.ghiChu} onResize={handleResize} />
-                            <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff" }} />
+                            <RHCell label="Đơn hàng ↓" columnKey="donHang" style={CELL_STYLES.hdr.donHang_first} onResize={handleResize} />
+                            <RHCell label="Ngày nhận" columnKey="ngayNhan" style={CELL_STYLES.hdr.ngayNhan} onResize={handleResize} />
+                            <RHCell label="Bác sĩ" columnKey="bacSi" style={CELL_STYLES.hdr.bacSi} onResize={handleResize} />
+                            <RHCell label="Bệnh nhân" columnKey="benhNhan" style={CELL_STYLES.hdr.benhNhan} onResize={handleResize} />
+                            <RHCell label="Sản phẩm" columnKey="sanPham" style={CELL_STYLES.hdr.sanPham} onResize={handleResize} />
+                            <RHCell label="Loại" columnKey="loaiDon" style={CELL_STYLES.hdr.loaiDon} onResize={handleResize} />
+                            <RHCell label="Vị trí răng" columnKey="viTri" style={CELL_STYLES.hdr.viTri} onResize={handleResize} />
+                            <RHCell label="S.L" columnKey="soLuong" style={CELL_STYLES.hdr.soLuong} onResize={handleResize} />
+                            <RHCell label="Đơn giá" columnKey="donGia" style={CELL_STYLES.hdr.donGia} onResize={handleResize} />
+                            <RHCell label="Thành tiền" columnKey="thanhTien" style={CELL_STYLES.hdr.thanhTien} onResize={handleResize} />
+                            <RHCell label="Giảm giá" columnKey="giamGia" style={CELL_STYLES.hdr.giamGia} onResize={handleResize} />
+                            <RHCell label="Tổng cộng" columnKey="tongCongSanPham" style={CELL_STYLES.hdr.tongCongSanPham} onResize={handleResize} />
+                            <RHCell label="Ghi chú" columnKey="ghiChu" style={CELL_STYLES.hdr.ghiChu} onResize={handleResize} />
+                            <TableCell sx={{ width: 40, minWidth: 40, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", bgcolor: "#e6f7ff" }} />
                         </TableRow>
                     </TableHead>
 
@@ -313,12 +350,10 @@ const HoaDonDetailTable = ({ rows, navigate, handleGhiChuChange, handleGiamGiaCh
                             </TableRow>
                         ) : (
                             rows.map((sp, idx) => (
-                                // ✅ key dùng idx — stable vì list không reorder, chỉ append/remove
                                 <DetailRow
                                     key={idx}
                                     sp={sp}
                                     idx={idx}
-                                    cellStyles={cellStyles}
                                     isLocked={isLocked}
                                     canEditItems={canEditItems}
                                     uniqueOrdersCount={uniqueOrdersCount}

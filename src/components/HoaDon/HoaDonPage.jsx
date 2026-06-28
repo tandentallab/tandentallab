@@ -325,7 +325,8 @@ const HoaDonPage = () => {
     .filter((nk) => !exportNhaKhoaSearch.trim() || nk.name.toLowerCase().includes(exportNhaKhoaSearch.toLowerCase()));
 
   return (
-    <div className="bg-gray-50 flex-1 h-full flex flex-col overflow-hidden">
+    <div className="bg-gray-50 flex-1 flex flex-col overflow-hidden"
+      style={{ maxHeight: 'calc(100vh - 70px)' }}>
       <style>
         {`
                 .custom-scrollbar .MuiTableContainer-root {

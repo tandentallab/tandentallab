@@ -19,7 +19,6 @@ import NhaKhoaPage from "../NhaKhoa/NhaKhoaPage";
 import NguoiLienHePage from "../NguoiLienHe/NguoiLienHePage";
 import BenhNhanPage from "../BenhNhan/BenhNhanPage";
 import StaffPage from "../Staff/StaffPage";
-import NhapDuLieu from "../Settings/NhapDuLieu";
 import CongTy from "../Settings/CongTy";
 import VaiTro from "../Settings/VaiTro";
 import StaffProfile from "../Staff/StaffProfile";
@@ -165,10 +164,6 @@ const Dashboard = () => {
             element={renderProtected("/tai-khoan", <StaffPage />)}
           />
           <Route
-            path="/nhap-du-lieu"
-            element={renderProtected("/nhap-du-lieu", <NhapDuLieu />)}
-          />
-          <Route
             path="/cong-ty"
             element={renderProtected("/cong-ty", <CongTy />)}
           />
@@ -254,10 +249,6 @@ const Dashboard = () => {
           <Route
             path="/tai-khoan"
             element={renderProtected("/tai-khoan", <StaffPage />)}
-          />
-          <Route
-            path="/nhap-du-lieu"
-            element={renderProtected("/nhap-du-lieu", <NhapDuLieu />)}
           />
           <Route
             path="/cong-ty"

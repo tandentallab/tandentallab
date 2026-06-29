@@ -124,7 +124,7 @@ const Header = ({ onToggleSidebar }) => {
     try {
       const res = await api.get("/ghi-chu");
       if (res.data?.success && res.data.data?.length > 0) {
-        const todos = res.data.data;
+        const todos = res.data.data.filter(todo => todo.trangThai === "Chưa hoàn thành");
 
         // Dọn dẹp hàng đợi cũ nếu đang chạy dở
         if (toastIntervalRef.current) {

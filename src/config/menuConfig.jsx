@@ -72,7 +72,6 @@ export const OTHER_MENU = [
 
 export const SETTING_MENU = [
   { name: "Tài khoản", router: "/tai-khoan", icon: <People /> },
-  { name: "Nhập dữ liệu", router: "/nhap-du-lieu", icon: <Assignment /> },
   { name: "Công ty", router: "/cong-ty", icon: <LocalHospital /> },
   { name: "Quyền sử dụng", router: "/quyen-su-dung", icon: <People /> },
 ];

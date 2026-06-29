@@ -33,6 +33,31 @@ const STATUS_CLASS = {
   "Lưu tạm": "bg-blue-500 text-white",
 };
 
+// ================= CELL STYLES — tĩnh hoàn toàn, tính 1 lần =================
+const CELL_STYLES = (() => {
+  const base = (key) => ({
+    boxSizing: "border-box", fontSize: "0.91rem", color: "#333", overflow: "hidden",
+    whiteSpace: "nowrap", textOverflow: "clip", borderBottom: "1px solid #d1d5db",
+    py: 0.75, pl: 2, pr: NUMERIC_KEYS.has(key) ? 3 : 2,
+    textAlign: NUMERIC_KEYS.has(key) ? "right" : "left",
+  });
+
+  const baseHeader = (key) => ({
+    ...base(key), position: "relative", fontWeight: 700, fontSize: "0.92rem",
+    userSelect: "none", color: "#00a8df", pt: 1, pb: 0.5, pl: 2,
+    pr: NUMERIC_KEYS.has(key) ? 3 : 2,
+    backgroundColor: "#e6f7ff", borderBottom: "1px solid #e6f7ff",
+  });
+
+  const row = {}; const hdr = {};
+  ["ngayXuat", "soHoaDon", "nhaKhoa", "tongCong", "giamGia",
+    "giaTriThanhToan", "daThanhToan", "conLai", "chiPhiKhac",
+    "trangThai", "ghiChu", "ngayDenHan"].forEach((k) => {
+      row[k] = base(k); hdr[k] = baseHeader(k);
+    });
+  return { row, hdr };
+})();
+
 // ================= RESIZABLE HEADER CELL =================
 const ResizableHeaderCell = React.memo(({ label, style, columnKey, onResize }) => (
   <TableCell sx={style}>
@@ -47,7 +72,7 @@ const ResizableHeaderCell = React.memo(({ label, style, columnKey, onResize }) =
 ));
 
 // ================= ROW COMPONENT =================
-const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => {
+const RowComponent = React.memo(({ hd, onNavigate }) => {
   const baseDate = hd.ngayXuatHoaDon || hd.createdAt;
   let textDenHan = "";
   let isTreHan = false;
@@ -66,32 +91,31 @@ const RowComponent = React.memo(({ hd, cellStyles, onNavigate }) => {
       className="cursor-pointer transition-colors duration-200 hover:bg-slate-50"
       onClick={() => onNavigate(`/hoa-don/${hd._id}/edit`)}
     >
-      <TableCell sx={cellStyles.ngayXuat}>{fmtDate(hd.ngayXuatHoaDon || hd.createdAt)}</TableCell>
-      <TableCell sx={cellStyles.soHoaDon}>{hd.soHoaDon}</TableCell>
-      <TableCell sx={cellStyles.nhaKhoa}>{hd.nhaKhoa?.hoVaTen || hd.nhaKhoa?.tenNhaKhoa || ""}</TableCell>
-      <TableCell sx={cellStyles.tongCong}>{fmtVND(hd.tongCong)}</TableCell>
-      <TableCell sx={cellStyles.giamGia}>{fmtVND(hd.chietKhau)}</TableCell>
-      <TableCell sx={cellStyles.giaTriThanhToan}>{fmtVND(hd.giaTriThanhToan)}</TableCell>
-      <TableCell sx={cellStyles.daThanhToan}>{fmtVND(hd.daThanhToan)}</TableCell>
-      <TableCell sx={cellStyles.conLai}>{fmtVND(hd.conLai)}</TableCell>
-      <TableCell sx={cellStyles.chiPhiKhac}>{fmtVND(hd.chiPhiKhac)}</TableCell>
-      <TableCell sx={cellStyles.trangThai}>
+      <TableCell sx={CELL_STYLES.row.ngayXuat}>{fmtDate(hd.ngayXuatHoaDon || hd.createdAt)}</TableCell>
+      <TableCell sx={CELL_STYLES.row.soHoaDon}>{hd.soHoaDon}</TableCell>
+      <TableCell sx={CELL_STYLES.row.nhaKhoa}>{hd.nhaKhoa?.hoVaTen || hd.nhaKhoa?.tenNhaKhoa || ""}</TableCell>
+      <TableCell sx={CELL_STYLES.row.tongCong}>{fmtVND(hd.tongCong)}</TableCell>
+      <TableCell sx={CELL_STYLES.row.giamGia}>{fmtVND(hd.chietKhau)}</TableCell>
+      <TableCell sx={CELL_STYLES.row.giaTriThanhToan}>{fmtVND(hd.giaTriThanhToan)}</TableCell>
+      <TableCell sx={CELL_STYLES.row.daThanhToan}>{fmtVND(hd.daThanhToan)}</TableCell>
+      <TableCell sx={CELL_STYLES.row.conLai}>{fmtVND(hd.conLai)}</TableCell>
+      <TableCell sx={CELL_STYLES.row.chiPhiKhac}>{fmtVND(hd.chiPhiKhac)}</TableCell>
+      <TableCell sx={CELL_STYLES.row.trangThai}>
         <span className={`inline-block px-2.5 py-1 text-[13px] font-medium tracking-wide ${STATUS_CLASS[hd.trangThai] ?? "bg-gray-500 text-white"}`}>
           {hd.trangThai || ""}
         </span>
       </TableCell>
-      <TableCell sx={cellStyles.ghiChu}>{hd.ghiChuChoKhachHang || ""}</TableCell>
+      <TableCell sx={CELL_STYLES.row.ghiChu}>{hd.ghiChuChoKhachHang || ""}</TableCell>
       <TableCell
         sx={{
-          ...cellStyles.ngayDenHan,
+          ...CELL_STYLES.row.ngayDenHan,
           color: isTreHan ? "#ef4444" : "#6b7280",
           fontWeight: isTreHan ? 600 : 400,
         }}
       >
         {textDenHan}
       </TableCell>
-      {/* CỘT ẢO DÀNH CHO DÒNG DỮ LIỆU */}
-      <TableCell sx={{ padding: 0, borderBottom: "1px solid #d1d5db", width: "auto", minWidth: 0 }} />
+      <TableCell sx={{ padding: 0, borderBottom: "1px solid #d1d5db", width: 40, minWidth: 40 }} />
     </TableRow>
   );
 });
@@ -194,11 +218,22 @@ const MobileCardList = ({ danhSachHoaDon, loading, onLoadMore, sortOrder, onTogg
 
   const onNavigate = useCallback((path) => navigate(path), [navigate]);
 
-  // Mobile scroll: đọc scrollTop trực tiếp, không cần rAF
-  const handleScroll = useCallback(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 300) {
+  useEffect(() => {
+    const savedScroll = Number(sessionStorage.getItem("hd_mobileScrollTop")) || 0;
+    if (savedScroll > 0 && containerRef.current && danhSachHoaDon?.length > 0) {
+      if (!containerRef.current.dataset.restored) {
+        containerRef.current.scrollTop = savedScroll;
+        containerRef.current.dataset.restored = "true";
+      }
+    }
+  }, [danhSachHoaDon]);
+
+  const handleScroll = useCallback((e) => {
+    const el = e.currentTarget;
+    const st = el.scrollTop;
+    sessionStorage.setItem("hd_mobileScrollTop", st.toString());
+
+    if (el.scrollHeight - st - el.clientHeight < 300) {
       if (onLoadMore) onLoadMore();
     }
   }, [onLoadMore]);
@@ -258,54 +293,45 @@ const ROW_HEIGHT = 45;
 const VISIBLE_ROWS = 25;
 const OVERSCAN = 10;
 
-const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
+const DEFAULT_WIDTHS = {
+  ngayXuat: 120, soHoaDon: 130, nhaKhoa: 180, tongCong: 200, giamGia: 120,
+  giaTriThanhToan: 200, daThanhToan: 180, conLai: 160, chiPhiKhac: 160,
+  trangThai: 160, ghiChu: 160, ngayDenHan: 130,
+};
+const COLS_ORDER = Object.keys(DEFAULT_WIDTHS);
+
+const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore, sortOrder, onToggleSort }) => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width: 767px)");
 
-  // ── Resizable columns ──
-  const [columnWidths, setColumnWidths] = useState({
-    ngayXuat: 120, soHoaDon: 130, nhaKhoa: 180, tongCong: 200, giamGia: 120,
-    giaTriThanhToan: 200, daThanhToan: 180, conLai: 160, chiPhiKhac: 160,
-    trangThai: 160, ghiChu: 160, ngayDenHan: 130,
-  });
+  // ── Resizable columns — DOM-direct, zero re-render khi kéo ──
+  const widthsRef = useRef({ ...DEFAULT_WIDTHS });
+  const colElemsRef = useRef(Object.fromEntries(COLS_ORDER.map((k) => [k, null])));
+  const tableRef = useRef(null);
+  const totalWidthRef = useRef(COLS_ORDER.reduce((s, k) => s + DEFAULT_WIDTHS[k], 0) + 40);
+  const [tableMinWidth, setTableMinWidth] = useState(totalWidthRef.current);
 
-  const columnWidthsRef = useRef(columnWidths);
-  useEffect(() => { columnWidthsRef.current = columnWidths; }, [columnWidths]);
-
-  const totalTableWidth = useMemo(
-    () => Object.values(columnWidths).reduce((a, b) => a + b, 0),
-    [columnWidths]
-  );
-
-  // ── Sắp xếp ──
-  const [sortOrder, setSortOrder] = useState("desc");
-  const handleToggleSort = useCallback(
-    () => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc")),
-    []
-  );
-
-  const sortedDanhSachHoaDon = useMemo(() => {
-    if (!danhSachHoaDon) return [];
-    return [...danhSachHoaDon].sort((a, b) => {
-      const timeA = new Date(a.ngayXuatHoaDon || a.createdAt || 0).getTime();
-      const timeB = new Date(b.ngayXuatHoaDon || b.createdAt || 0).getTime();
-      if (timeA !== timeB) return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
-      const createdA = new Date(a.createdAt || 0).getTime();
-      const createdB = new Date(b.createdAt || 0).getTime();
-      return sortOrder === "asc" ? createdA - createdB : createdB - createdA;
-    });
-  }, [danhSachHoaDon, sortOrder]);
-
-  // ── VIRTUAL SCROLLING (fix: đọc scrollTop trực tiếp, không wrap rAF) ──
-  const [scrollTop, setScrollTop] = useState(0);
+  // ── Virtual scrolling ──
+  const tableContainerRef = useRef(null);
+  const [scrollTop, setScrollTop] = useState(() => Number(sessionStorage.getItem("hd_tableScrollTop")) || 0);
   const loadingRef = useRef(false);
 
   useEffect(() => { loadingRef.current = loading; }, [loading]);
 
+  useEffect(() => {
+    const savedScroll = Number(sessionStorage.getItem("hd_tableScrollTop")) || 0;
+    if (savedScroll > 0 && tableContainerRef.current && danhSachHoaDon?.length > 0) {
+      if (!tableContainerRef.current.dataset.restored) {
+        tableContainerRef.current.scrollTop = savedScroll;
+        tableContainerRef.current.dataset.restored = "true";
+      }
+    }
+  }, [danhSachHoaDon]);
+
   const handleScroll = useCallback((e) => {
     const { scrollTop: st, scrollHeight, clientHeight } = e.currentTarget;
-    // Fix từ file 1: đọc giá trị từ currentTarget ngay lập tức, KHÔNG dùng rAF
     setScrollTop(st);
+    sessionStorage.setItem("hd_tableScrollTop", st.toString());
 
     if (scrollHeight - st - clientHeight < 200) {
       if (onLoadMore && !loadingRef.current) {
@@ -315,10 +341,10 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
     }
   }, [onLoadMore]);
 
-  const totalRows = sortedDanhSachHoaDon.length;
+  const totalRows = (danhSachHoaDon || []).length;
   const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
   const endIndex = Math.min(totalRows, Math.floor(scrollTop / ROW_HEIGHT) + VISIBLE_ROWS + OVERSCAN);
-  const visibleRows = sortedDanhSachHoaDon.slice(startIndex, endIndex);
+  const visibleRows = (danhSachHoaDon || []).slice(startIndex, endIndex);
 
   const paddingTop = startIndex * ROW_HEIGHT;
   const paddingBottom = Math.max(0, (totalRows - endIndex) * ROW_HEIGHT);
@@ -326,7 +352,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
   const handleResize = useCallback((columnKey, e) => {
     e.preventDefault();
     const startX = e.clientX;
-    const startWidth = columnWidthsRef.current[columnKey];
+    const startWidth = widthsRef.current[columnKey];
     let rafPending = false;
     let lastX = startX;
 
@@ -335,10 +361,15 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
       if (rafPending) return;
       rafPending = true;
       requestAnimationFrame(() => {
-        setColumnWidths((prev) => ({
-          ...prev,
-          [columnKey]: Math.max(startWidth + (lastX - startX), 60),
-        }));
+        const newWidth = Math.max(startWidth + (lastX - startX), 60);
+        const delta = newWidth - widthsRef.current[columnKey];
+        widthsRef.current[columnKey] = newWidth;
+        totalWidthRef.current += delta;
+
+        const colEl = colElemsRef.current[columnKey];
+        if (colEl) colEl.style.width = `${newWidth}px`;
+        if (tableRef.current) tableRef.current.style.minWidth = `${totalWidthRef.current}px`;
+
         rafPending = false;
       });
     };
@@ -346,36 +377,12 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
     const onMouseUp = () => {
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
+      setTableMinWidth(totalWidthRef.current);
     };
 
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
   }, []);
-
-  const cellStyles = useMemo(() => {
-    const base = (key) => ({
-      width: columnWidths[key], minWidth: columnWidths[key], maxWidth: columnWidths[key],
-      boxSizing: "border-box", fontSize: "0.91rem", color: "#333", overflow: "hidden",
-      whiteSpace: "nowrap", textOverflow: "clip", borderBottom: "1px solid #d1d5db",
-      py: 0.75, pl: 2, pr: NUMERIC_KEYS.has(key) ? 3 : 2,
-      textAlign: NUMERIC_KEYS.has(key) ? "right" : "left",
-    });
-
-    const baseHeader = (key) => ({
-      ...base(key), position: "relative", fontWeight: 700, fontSize: "0.92rem",
-      userSelect: "none", color: "#00a8df", pt: 1, pb: 0.5, pl: 2,
-      pr: NUMERIC_KEYS.has(key) ? 3 : 2,
-      backgroundColor: "#e6f7ff", borderBottom: "1px solid #e6f7ff",
-    });
-
-    const row = {}; const hdr = {};
-    ["ngayXuat", "soHoaDon", "nhaKhoa", "tongCong", "giamGia",
-      "giaTriThanhToan", "daThanhToan", "conLai", "chiPhiKhac",
-      "trangThai", "ghiChu", "ngayDenHan"].forEach((k) => {
-        row[k] = base(k); hdr[k] = baseHeader(k);
-      });
-    return { row, hdr };
-  }, [columnWidths]);
 
   const onNavigate = useCallback((path) => navigate(path), [navigate]);
 
@@ -384,11 +391,11 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
     return (
       <div className="flex flex-col flex-1 min-h-0 bg-[#f5f7fa]">
         <MobileCardList
-          danhSachHoaDon={sortedDanhSachHoaDon}
+          danhSachHoaDon={danhSachHoaDon || []}
           loading={loading}
           onLoadMore={onLoadMore}
           sortOrder={sortOrder}
-          onToggleSort={handleToggleSort}
+          onToggleSort={onToggleSort}
         />
       </div>
     );
@@ -398,6 +405,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <TableContainer
+        ref={tableContainerRef}
         component={Paper}
         elevation={0}
         onScroll={handleScroll}
@@ -410,14 +418,28 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
           "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "#94a3b8" },
         }}
       >
-        <Table sx={{ tableLayout: "fixed", width: totalTableWidth, minWidth: totalTableWidth }}>
+        <Table
+          ref={tableRef}
+          sx={{ tableLayout: "fixed", width: "100%", minWidth: `${tableMinWidth}px`, borderCollapse: "collapse" }}
+        >
+          <colgroup>
+            {COLS_ORDER.map((key) => (
+              <col
+                key={key}
+                ref={(el) => { if (el) colElemsRef.current[key] = el; }}
+                style={{ width: DEFAULT_WIDTHS[key] }}
+              />
+            ))}
+            <col style={{ width: 40 }} />
+          </colgroup>
+
           <TableHead sx={{ position: "sticky", top: 0, zIndex: 20, backgroundColor: "#e6f7ff" }}>
             <TableRow className="group" sx={{ border: "none !important" }}>
               <ResizableHeaderCell
                 label={
                   <div
                     className="flex items-center gap-1 cursor-pointer hover:text-[#00796b] transition-colors"
-                    onClick={handleToggleSort}
+                    onClick={onToggleSort}
                   >
                     Ngày xuất
                     <svg
@@ -429,21 +451,20 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
                     </svg>
                   </div>
                 }
-                columnKey="ngayXuat" style={cellStyles.hdr.ngayXuat} onResize={handleResize}
+                columnKey="ngayXuat" style={CELL_STYLES.hdr.ngayXuat} onResize={handleResize}
               />
-              <ResizableHeaderCell label="Số" columnKey="soHoaDon" style={cellStyles.hdr.soHoaDon} onResize={handleResize} />
-              <ResizableHeaderCell label="Nha khoa" columnKey="nhaKhoa" style={cellStyles.hdr.nhaKhoa} onResize={handleResize} />
-              <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" style={cellStyles.hdr.tongCong} onResize={handleResize} />
-              <ResizableHeaderCell label="Giảm giá" columnKey="giamGia" style={cellStyles.hdr.giamGia} onResize={handleResize} />
-              <ResizableHeaderCell label="Giá trị thanh toán" columnKey="giaTriThanhToan" style={cellStyles.hdr.giaTriThanhToan} onResize={handleResize} />
-              <ResizableHeaderCell label="Đã thanh toán" columnKey="daThanhToan" style={cellStyles.hdr.daThanhToan} onResize={handleResize} />
-              <ResizableHeaderCell label="Còn lại" columnKey="conLai" style={cellStyles.hdr.conLai} onResize={handleResize} />
-              <ResizableHeaderCell label="Chi phí khác" columnKey="chiPhiKhac" style={cellStyles.hdr.chiPhiKhac} onResize={handleResize} />
-              <ResizableHeaderCell label="Trạng thái" columnKey="trangThai" style={cellStyles.hdr.trangThai} onResize={handleResize} />
-              <ResizableHeaderCell label="Ghi chú" columnKey="ghiChu" style={cellStyles.hdr.ghiChu} onResize={handleResize} />
-              <ResizableHeaderCell label="Đến hạn" columnKey="ngayDenHan" style={cellStyles.hdr.ngayDenHan} onResize={handleResize} />
-              {/* CỘT ẢO HEADER */}
-              <TableCell sx={{ width: "auto", minWidth: 0, padding: 0, borderBottom: "1px solid #e6f7ff", borderTopRightRadius: "12px", backgroundColor: "#e6f7ff" }} />
+              <ResizableHeaderCell label="Số" columnKey="soHoaDon" style={CELL_STYLES.hdr.soHoaDon} onResize={handleResize} />
+              <ResizableHeaderCell label="Nha khoa" columnKey="nhaKhoa" style={CELL_STYLES.hdr.nhaKhoa} onResize={handleResize} />
+              <ResizableHeaderCell label="Tổng cộng" columnKey="tongCong" style={CELL_STYLES.hdr.tongCong} onResize={handleResize} />
+              <ResizableHeaderCell label="Giảm giá" columnKey="giamGia" style={CELL_STYLES.hdr.giamGia} onResize={handleResize} />
+              <ResizableHeaderCell label="Giá trị thanh toán" columnKey="giaTriThanhToan" style={CELL_STYLES.hdr.giaTriThanhToan} onResize={handleResize} />
+              <ResizableHeaderCell label="Đã thanh toán" columnKey="daThanhToan" style={CELL_STYLES.hdr.daThanhToan} onResize={handleResize} />
+              <ResizableHeaderCell label="Còn lại" columnKey="conLai" style={CELL_STYLES.hdr.conLai} onResize={handleResize} />
+              <ResizableHeaderCell label="Chi phí khác" columnKey="chiPhiKhac" style={CELL_STYLES.hdr.chiPhiKhac} onResize={handleResize} />
+              <ResizableHeaderCell label="Trạng thái" columnKey="trangThai" style={CELL_STYLES.hdr.trangThai} onResize={handleResize} />
+              <ResizableHeaderCell label="Ghi chú" columnKey="ghiChu" style={CELL_STYLES.hdr.ghiChu} onResize={handleResize} />
+              <ResizableHeaderCell label="Đến hạn" columnKey="ngayDenHan" style={CELL_STYLES.hdr.ngayDenHan} onResize={handleResize} />
+              <TableCell sx={{ width: 40, minWidth: 40, padding: 0, borderBottom: "1px solid #e6f7ff", backgroundColor: "#e6f7ff" }} />
             </TableRow>
           </TableHead>
 
@@ -466,7 +487,6 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
                   <RowComponent
                     key={hd._id}
                     hd={hd}
-                    cellStyles={cellStyles.row}
                     onNavigate={onNavigate}
                   />
                 ))}

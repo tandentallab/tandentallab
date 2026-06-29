@@ -6,7 +6,12 @@ import React, {
   useEffect,
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchVatLieu, fetchNhaCungCap } from "../../redux/slices/khoSlice";
+import {
+  fetchVatLieu,
+  fetchVatLieuMore,
+  fetchNhaCungCap,
+  resetVatLieu,
+} from "../../redux/slices/khoSlice";
 import { api } from "../../config/api";
 import { toast } from "sonner";
 import { exportDanhSachVatLieuToExcel } from "./exportKhoToExcel";
@@ -702,12 +707,90 @@ const EMPTY_FORM = {
 
 export default function VatLieuTable() {
   const dispatch = useDispatch();
-  const { vatLieu, nhaCungCap, loading } = useSelector((state) => state.kho);
+  const {
+    vatLieu,
+    nhaCungCap,
+    loading,
+    loadingMore,
+    vatLieuHasMore,
+    vatLieuPage,
+    vatLieuLimit,
+    vatLieuTotal,
+  } = useSelector((state) => state.kho);
 
   const [search, setSearch] = useState("");
   const [filterNCC, setFilterNCC] = useState("");
   const [filterTrangThai, setFilterTrangThai] = useState("");
   const [filterNhom, setFilterNhom] = useState("");
+
+  // ===== LAZY LOADING — IntersectionObserver sentinel =====
+  const sentinelRef = useRef(null);
+  const isFetchingMore = useRef(false);
+
+  // Params hiện tại để dùng khi load thêm
+  const currentFilters = useMemo(
+    () => ({
+      search,
+      nhaCungCap: filterNCC,
+      nhomVatLieu: filterNhom,
+      trangThai: filterTrangThai,
+    }),
+    [search, filterNCC, filterNhom, filterTrangThai]
+  );
+
+  // Load trang 1 mỗi khi filter thay đổi (debounce search)
+  useEffect(() => {
+    const timer = setTimeout(
+      () => {
+        dispatch(
+          fetchVatLieu({ ...currentFilters, limit: vatLieuLimit || 20 })
+        );
+      },
+      search ? 350 : 0
+    ); // debounce chỉ khi search bằng text
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, filterNCC, filterNhom, filterTrangThai]);
+
+  // IntersectionObserver theo dõi sentinel ở cuối bảng
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (
+          entry.isIntersecting &&
+          vatLieuHasMore &&
+          !loadingMore &&
+          !isFetchingMore.current
+        ) {
+          isFetchingMore.current = true;
+          dispatch(
+            fetchVatLieuMore({
+              ...currentFilters,
+              page: vatLieuPage + 1,
+              limit: vatLieuLimit || 20,
+            })
+          ).finally(() => {
+            isFetchingMore.current = false;
+          });
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    vatLieuHasMore,
+    loadingMore,
+    vatLieuPage,
+    vatLieuLimit,
+    currentFilters,
+    dispatch,
+  ]);
 
   // Modal thêm/sửa
   const [openModal, setOpenModal] = useState(false);
@@ -797,6 +880,7 @@ export default function VatLieuTable() {
   }, [vatLieu]);
 
   // Danh sách nhóm vật liệu unique để lọc filter bar
+  // (lấy từ toàn bộ NhaCungCap + vatLieu đã tải; server trả về unique khi cần)
   const danhSachNhom = useMemo(() => {
     const set = new Set(
       (vatLieu || []).map((vl) => vl.nhomVatLieu).filter(Boolean)
@@ -804,34 +888,8 @@ export default function VatLieuTable() {
     return [...set].sort();
   }, [vatLieu]);
 
-  // ===== FILTER =====
-  const filteredData = useMemo(() => {
-    return (vatLieu || []).filter((vl) => {
-      const kw = search.toLowerCase();
-      const matchSearch =
-        vl.maVatLieu?.toLowerCase().includes(kw) ||
-        vl.tenVatLieu?.toLowerCase().includes(kw) ||
-        vl.nhaCungCap?.ten?.toLowerCase().includes(kw) ||
-        vl.donViTinh?.toLowerCase().includes(kw) ||
-        vl.loaiVatLieu?.toLowerCase().includes(kw) ||
-        vl.nhomVatLieu?.toLowerCase().includes(kw) ||
-        vl.formRang?.toLowerCase().includes(kw) ||
-        vl.mauRang?.toLowerCase().includes(kw);
-
-      const matchNCC = filterNCC ? vl.nhaCungCap?._id === filterNCC : true;
-      const matchNhom = filterNhom ? vl.nhomVatLieu === filterNhom : true;
-
-      const thieuHang = (vl.soLuong ?? 0) < (vl.tonKhoToiThieu ?? 0);
-      const matchTT =
-        filterTrangThai === "thieu"
-          ? thieuHang
-          : filterTrangThai === "du"
-          ? !thieuHang
-          : true;
-
-      return matchSearch && matchNCC && matchTT && matchNhom;
-    });
-  }, [vatLieu, search, filterNCC, filterTrangThai, filterNhom]);
+  // Dữ liệu bảng = vatLieu từ store (server đã filter, không cần filter client)
+  const filteredData = vatLieu || [];
 
   // ===== HANDLERS =====
   const openAdd = () => {
@@ -882,7 +940,7 @@ export default function VatLieuTable() {
         await api.post("/kho/vat-lieu", payload);
         toast.success("Đã thêm vật liệu mới");
       }
-      dispatch(fetchVatLieu());
+      dispatch(fetchVatLieu({ ...currentFilters, limit: vatLieuLimit || 20 }));
       setOpenModal(false);
     } catch (err) {
       toast.error(err.response?.data?.message || "Có lỗi xảy ra");
@@ -897,7 +955,7 @@ export default function VatLieuTable() {
     try {
       await api.delete(`/kho/vat-lieu/${deleteId}`);
       toast.success("Đã xóa vật liệu");
-      dispatch(fetchVatLieu());
+      dispatch(fetchVatLieu({ ...currentFilters, limit: vatLieuLimit || 20 }));
       setDeleteId(null);
     } catch (err) {
       toast.error(err.response?.data?.message || "Có lỗi xảy ra");
@@ -955,7 +1013,18 @@ export default function VatLieuTable() {
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <Tooltip title="Làm mới">
-              <IconButton size="small" onClick={() => dispatch(fetchVatLieu())}>
+              <IconButton
+                size="small"
+                onClick={() =>
+                  dispatch(
+                    fetchVatLieu({
+                      ...currentFilters,
+                      limit: vatLieuLimit || 20,
+                    })
+                  )
+                }
+                disabled={loading}
+              >
                 <RefreshIcon sx={{ fontSize: 20 }} />
               </IconButton>
             </Tooltip>
@@ -1219,7 +1288,7 @@ export default function VatLieuTable() {
               <TableRow>
                 <TableCell colSpan={14} align="right">
                   <Typography variant="caption" color="text.secondary">
-                    Hiển thị {filteredData.length} / {vatLieu?.length ?? 0} vật
+                    Hiển thị {filteredData.length} / {vatLieuTotal ?? 0} vật
                     liệu
                   </Typography>
                 </TableCell>
@@ -1227,6 +1296,36 @@ export default function VatLieuTable() {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* ── Sentinel cho IntersectionObserver (lazy load) ── */}
+        <Box ref={sentinelRef} sx={{ height: 1 }} />
+
+        {/* Loading thêm */}
+        {loadingMore && (
+          <Box
+            sx={{
+              py: 2,
+              display: "flex",
+              justifyContent: "center",
+              gap: 1,
+              alignItems: "center",
+            }}
+          >
+            <CircularProgress size={18} />
+            <Typography variant="caption" color="text.secondary">
+              Đang tải thêm...
+            </Typography>
+          </Box>
+        )}
+
+        {/* Đã tải hết */}
+        {!vatLieuHasMore && filteredData.length > 0 && !loading && (
+          <Box sx={{ py: 1.5, textAlign: "center" }}>
+            <Typography variant="caption" color="text.secondary">
+              ✓ Đã hiển thị tất cả {vatLieuTotal} vật liệu
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       {/* ===== CARD LIST (chỉ hiện trên mobile) ===== */}
@@ -1423,8 +1522,24 @@ export default function VatLieuTable() {
           color="text.secondary"
           sx={{ textAlign: "right", display: "block" }}
         >
-          Hiển thị {filteredData.length} / {vatLieu?.length ?? 0} vật liệu
+          Hiển thị {filteredData.length} / {vatLieuTotal ?? 0} vật liệu
         </Typography>
+        {loadingMore && (
+          <Box
+            sx={{
+              py: 2,
+              display: "flex",
+              justifyContent: "center",
+              gap: 1,
+              alignItems: "center",
+            }}
+          >
+            <CircularProgress size={16} />
+            <Typography variant="caption" color="text.secondary">
+              Đang tải thêm...
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       {/* ===== MODAL THÊM / SỬA ===== */}

@@ -1,7 +1,11 @@
 // pages/Kho/NhaCungCapTable.jsx
 import React, { useState, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchNhaCungCap } from "../../redux/slices/khoSlice";
+import {
+  fetchNhaCungCap,
+  setNhaCungCapFilters,
+  resetNhaCungCapFilters,
+} from "../../redux/slices/khoSlice";
 import { api } from "../../config/api";
 import { toast } from "sonner";
 import { exportDanhSachNhaCungCapToExcel } from "./exportKhoToExcel";
@@ -45,9 +49,14 @@ const EMPTY_FORM = {
 
 export default function NhaCungCapTable() {
   const dispatch = useDispatch();
-  const { nhaCungCap, loading } = useSelector((state) => state.kho);
+  const { nhaCungCap, loading, nhaCungCapFilters } = useSelector(
+    (state) => state.kho
+  );
+  const { search } = nhaCungCapFilters;
 
-  const [search, setSearch] = useState("");
+  // Wrapper setter — ghi vào Redux để giữ lại khi unmount
+  const setSearch = (v) => dispatch(setNhaCungCapFilters({ search: v }));
+
   const [openModal, setOpenModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);

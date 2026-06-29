@@ -28,9 +28,9 @@ export const addNhaCungCap = createAsyncThunk(
 
 /**
  * fetchVatLieu — tải trang đầu (reset danh sách), dùng khi:
- *   - mount component
- *   - thay đổi filter / search
- *   - refresh thủ công
+ * - mount component
+ * - thay đổi filter / search
+ * - refresh thủ công
  *
  * params: { page, limit, search, nhaCungCap, nhomVatLieu, trangThai }
  */
@@ -49,7 +49,7 @@ export const fetchVatLieu = createAsyncThunk(
 
 /**
  * fetchVatLieuMore — tải thêm trang tiếp theo (append), dùng khi:
- *   - người dùng kéo xuống cuối bảng (infinite scroll / lazy loading)
+ * - người dùng kéo xuống cuối bảng (infinite scroll / lazy loading)
  *
  * params: { page, limit, search, nhaCungCap, nhomVatLieu, trangThai }
  */
@@ -71,7 +71,7 @@ const khoSlice = createSlice({
   initialState: {
     nhaCungCap: [],
 
-    // Lazy-loading state
+    // ── Lazy-loading state ─────────────────────────────────────────────────
     vatLieu: [],           // danh sách đang hiển thị (accumulated)
     vatLieuPage: 0,        // trang hiện tại đã tải
     vatLieuTotal: 0,       // tổng số bản ghi khớp filter
@@ -81,6 +81,28 @@ const khoSlice = createSlice({
     loading: false,        // loading lần đầu / reset
     loadingMore: false,    // loading khi append thêm
     error: null,
+
+    // ── Filter state — NhapXuatTable ───────────────────────────────────────
+    nhapXuatFilters: {
+      selectedMonth: "",
+      selectedNCC: "",
+      selectedBoPhan: "",
+      selectedTrangThai: [],
+    },
+
+    // ── Filter state — VatLieuTable ────────────────────────────────────────
+    // Được lưu trong slice để không mất khi component unmount / chuyển tab
+    vatLieuFilters: {
+      search: "",
+      filterNCC: "",
+      filterTrangThai: "",
+      filterNhom: "",
+    },
+
+    // ── Filter state — NhaCungCapTable ────────────────────────────────────
+    nhaCungCapFilters: {
+      search: "",
+    },
   },
   reducers: {
     // Reset về trạng thái ban đầu (dùng khi filter thay đổi trước khi fetch)
@@ -89,6 +111,40 @@ const khoSlice = createSlice({
       state.vatLieuPage = 0;
       state.vatLieuTotal = 0;
       state.vatLieuHasMore = false;
+    },
+
+    // ── NhapXuatTable filters ──────────────────────────────────────────────
+    setNhapXuatFilters(state, action) {
+      state.nhapXuatFilters = { ...state.nhapXuatFilters, ...action.payload };
+    },
+    resetNhapXuatFilters(state) {
+      state.nhapXuatFilters = {
+        selectedMonth: "",
+        selectedNCC: "",
+        selectedBoPhan: "",
+        selectedTrangThai: [],
+      };
+    },
+
+    // ── VatLieuTable filters ───────────────────────────────────────────────
+    setVatLieuFilters(state, action) {
+      state.vatLieuFilters = { ...state.vatLieuFilters, ...action.payload };
+    },
+    resetVatLieuFilters(state) {
+      state.vatLieuFilters = {
+        search: "",
+        filterNCC: "",
+        filterTrangThai: "",
+        filterNhom: "",
+      };
+    },
+
+    // ── NhaCungCapTable filters ────────────────────────────────────────────
+    setNhaCungCapFilters(state, action) {
+      state.nhaCungCapFilters = { ...state.nhaCungCapFilters, ...action.payload };
+    },
+    resetNhaCungCapFilters(state) {
+      state.nhaCungCapFilters = { search: "" };
     },
   },
   extraReducers: (builder) => {
@@ -163,5 +219,13 @@ const khoSlice = createSlice({
   },
 });
 
-export const { resetVatLieu } = khoSlice.actions;
+export const {
+  resetVatLieu,
+  setNhapXuatFilters,
+  resetNhapXuatFilters,
+  setVatLieuFilters,
+  resetVatLieuFilters,
+  setNhaCungCapFilters,
+  resetNhaCungCapFilters,
+} = khoSlice.actions;
 export default khoSlice.reducer;

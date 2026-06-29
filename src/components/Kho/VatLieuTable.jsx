@@ -11,6 +11,8 @@ import {
   fetchVatLieuMore,
   fetchNhaCungCap,
   resetVatLieu,
+  setVatLieuFilters,
+  resetVatLieuFilters,
 } from "../../redux/slices/khoSlice";
 import { api } from "../../config/api";
 import { toast } from "sonner";
@@ -718,10 +720,16 @@ export default function VatLieuTable() {
     vatLieuTotal,
   } = useSelector((state) => state.kho);
 
-  const [search, setSearch] = useState("");
-  const [filterNCC, setFilterNCC] = useState("");
-  const [filterTrangThai, setFilterTrangThai] = useState("");
-  const [filterNhom, setFilterNhom] = useState("");
+  // ── Filter state — lấy từ Redux để giữ lại khi unmount ──────────────────
+  const { vatLieuFilters } = useSelector((state) => state.kho);
+  const { search, filterNCC, filterTrangThai, filterNhom } = vatLieuFilters;
+
+  // Wrapper setters — ghi vào Redux thay vì local state
+  const setSearch = (v) => dispatch(setVatLieuFilters({ search: v }));
+  const setFilterNCC = (v) => dispatch(setVatLieuFilters({ filterNCC: v }));
+  const setFilterTrangThai = (v) =>
+    dispatch(setVatLieuFilters({ filterTrangThai: v }));
+  const setFilterNhom = (v) => dispatch(setVatLieuFilters({ filterNhom: v }));
 
   // ===== LAZY LOADING — IntersectionObserver sentinel =====
   const sentinelRef = useRef(null);
@@ -1076,11 +1084,7 @@ export default function VatLieuTable() {
 
           {(filterNCC || filterNhom || filterTrangThai) && (
             <button
-              onClick={() => {
-                setFilterNCC("");
-                setFilterNhom("");
-                setFilterTrangThai("");
-              }}
+              onClick={() => dispatch(resetVatLieuFilters())}
               className="h-9 px-3 text-sm text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100 transition"
             >
               Xóa lọc

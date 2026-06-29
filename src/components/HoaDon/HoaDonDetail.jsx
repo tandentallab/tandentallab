@@ -283,8 +283,14 @@ const HoaDonDetail = () => {
         ? (fin.thueTien / sauCK) * 100
         : fin.thuePhanTram;
 
+      // 🔥 THÊM LOGIC GIỮ LẠI GIỜ PHÚT GỐC NẾU KHÔNG ĐỔI NGÀY
+      const originalDateOnly = hoaDon.ngayXuatHoaDon ? toLocalDateInput(hoaDon.ngayXuatHoaDon) : "";
+      const ngayXuatGuiDi = formState.ngayXuatHoaDon === originalDateOnly
+        ? hoaDon.ngayXuatHoaDon // Bằng ngày cũ -> Giữ nguyên chuỗi ngày giờ gốc của DB
+        : formState.ngayXuatHoaDon; // Khác ngày cũ -> Người dùng đã đổi ngày mới, chấp nhận 00:00:00
+
       const updateData = {
-        ngayXuatHoaDon: formState.ngayXuatHoaDon,
+        ngayXuatHoaDon: ngayXuatGuiDi,
         chietKhau: Math.round(fin.chietKhauTien),
         thue: thueChinhXac,
         chiPhiKhac: Number(formState.chiPhiKhac),

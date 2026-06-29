@@ -26,7 +26,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import SvgIcon from "@mui/material/SvgIcon";
 import dayjs from "dayjs";
 
-import { fetchAllHoaDonAdmin } from "../../redux/slices/hoaDonSlice";
+import { fetchAllHoaDonAdmin, resetEditedHoaDonIds } from "../../redux/slices/hoaDonSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import ThongKeCongNo from "./ThongKeCongNo";
 import HoaDonFilterDrawer from "./HoaDonFilterDrawer";
@@ -146,7 +146,7 @@ const HoaDonPage = () => {
   const nhaKhoa = useSelector((state) => state.nhaKhoa);
 
   const [page, setPage] = useState(() => Number(sessionStorage.getItem("hd_page")) || 0);
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [rowsPerPage, setRowsPerPage] = useState(() => Number(sessionStorage.getItem("hd_rowsPerPage")) || 50);
   const [activeTabThongKe, setActiveTabThongKe] = useState(() => sessionStorage.getItem("hd_activeTabThongKe") || "");
 
   const [appliedNgayXuat, setAppliedNgayXuat] = useState(() => {
@@ -163,9 +163,11 @@ const HoaDonPage = () => {
   });
   const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("hd_searchTerm") || "");
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+  const [sortOrder, setSortOrder] = useState(() => sessionStorage.getItem("hd_sortOrder") || "desc");
 
   const [openFilter, setOpenFilter] = useState(false);
   const filterContainerRef = useRef(null);
+  const isFirstRender = useRef(true);
 
   // STATES CHO MODAL XUẤT EXCEL
   const [openExport, setOpenExport] = useState(false);
@@ -186,35 +188,63 @@ const HoaDonPage = () => {
 
   useEffect(() => { sessionStorage.setItem("hd_activeTabThongKe", activeTabThongKe); }, [activeTabThongKe]);
   useEffect(() => { sessionStorage.setItem("hd_page", page.toString()); }, [page]);
+  useEffect(() => { sessionStorage.setItem("hd_rowsPerPage", rowsPerPage.toString()); }, [rowsPerPage]);
+  useEffect(() => { sessionStorage.setItem("hd_sortOrder", sortOrder); }, [sortOrder]);
   useEffect(() => { sessionStorage.setItem("hd_appliedNgayXuat_v2", JSON.stringify(appliedNgayXuat)); }, [appliedNgayXuat]);
   useEffect(() => { sessionStorage.setItem("hd_appliedNhaKhoa", JSON.stringify(appliedNhaKhoa)); }, [appliedNhaKhoa]);
   useEffect(() => { sessionStorage.setItem("hd_appliedTrangThai_v2", JSON.stringify(appliedTrangThai)); }, [appliedTrangThai]);
   useEffect(() => { sessionStorage.setItem("hd_searchTerm", searchTerm); }, [searchTerm]);
 
-  // Khi rời trang: nếu KHÔNG phải sang HoaDonDetail thì reset trangThai về default
+  // Khi rời trang: nếu KHÔNG phải sang HoaDonDetail thì reset trạng thái về default
   useEffect(() => {
     return () => {
       const nextPath = window.location.pathname;
       const isGoingToDetail = nextPath.startsWith("/hoa-don/") && nextPath.includes("/edit");
-      if (!isGoingToDetail) {
+      if (isGoingToDetail) {
+        // 🔥 Đánh dấu là Kế toán đang đi vào xem chi tiết
+        sessionStorage.setItem("hd_keep_data", "true");
+      } else {
+        // Đi sang Menu khác thì dọn dẹp sạch sẽ
+        dispatch(resetEditedHoaDonIds()); // 🔥 Kích hoạt hàm xóa trí nhớ
+        sessionStorage.removeItem("hd_keep_data");
         sessionStorage.removeItem("hd_appliedTrangThai_v2");
+        sessionStorage.removeItem("hd_sortOrder");
+        sessionStorage.removeItem("hd_rowsPerPage");
+        sessionStorage.removeItem("hd_tableScrollTop");
+        sessionStorage.removeItem("hd_mobileScrollTop");
       }
     };
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     dispatch(fetchNhaKhoa());
   }, [dispatch]);
 
+  // 🔥 VÁ LỖ HỔNG Ô TÌM KIẾM
   useEffect(() => {
     const handler = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setPage(0);
+      if (searchTerm !== debouncedSearch) {
+        dispatch(resetEditedHoaDonIds()); // 🔥 Xóa trí nhớ khi tìm kiếm mới
+        setDebouncedSearch(searchTerm);
+        setPage(0);
+        setRowsPerPage(50); // Reset số dòng
+        sessionStorage.removeItem("hd_tableScrollTop");
+        sessionStorage.removeItem("hd_mobileScrollTop");
+      }
     }, 500);
     return () => clearTimeout(handler);
-  }, [searchTerm]);
+  }, [searchTerm, debouncedSearch, dispatch]);
 
   useEffect(() => {
+    // 🔥 NẾU LÀ LẦN QUAY TRỞ LẠI TỪ MÀN HÌNH CHI TIẾT -> CHẶN FETCH API!
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      if (sessionStorage.getItem("hd_keep_data") === "true") {
+        sessionStorage.removeItem("hd_keep_data");
+        return; // Dừng luôn ở đây, giữ nguyên state của Redux
+      }
+    }
+
     const { fromDate, toDate } = computeDateRange(appliedNgayXuat);
     dispatch(
       fetchAllHoaDonAdmin({
@@ -226,6 +256,7 @@ const HoaDonPage = () => {
         toDate,
         search: debouncedSearch,
         loaiHan: activeTabThongKe,
+        sortOrder,
       })
     );
   }, [
@@ -236,7 +267,8 @@ const HoaDonPage = () => {
     appliedTrangThai,
     appliedNgayXuat,
     debouncedSearch,
-    activeTabThongKe
+    activeTabThongKe,
+    sortOrder,
   ]);
 
   // Lắng nghe click ra ngoài Form Filter
@@ -331,7 +363,6 @@ const HoaDonPage = () => {
         {`
                 .custom-scrollbar .MuiTableContainer-root {
                     -webkit-overflow-scrolling: touch;
-                    scroll-behavior: smooth;
                 }
                 .custom-scrollbar *::-webkit-scrollbar {
                     height: 14px; 
@@ -367,12 +398,16 @@ const HoaDonPage = () => {
         <ThongKeCongNo
           activeTab={activeTabThongKe}
           onCardClick={(type) => {
+            dispatch(resetEditedHoaDonIds()); // 🔥 VÁ LỖ HỔNG CLICK THẺ THỐNG KÊ
             if (activeTabThongKe === type) {
               setActiveTabThongKe("");
             } else {
               setActiveTabThongKe(type);
             }
             setPage(0);
+            setRowsPerPage(50);
+            sessionStorage.removeItem("hd_tableScrollTop");
+            sessionStorage.removeItem("hd_mobileScrollTop");
           }}
         />
       </div>
@@ -406,17 +441,25 @@ const HoaDonPage = () => {
                 appliedTrangThai={appliedTrangThai}
                 nhaKhoaList={Array.isArray(nhaKhoa?.data) ? nhaKhoa.data : []}
                 onApply={(ngayXuat, nhaKhoa, trangThai) => {
+                  dispatch(resetEditedHoaDonIds()); // 🔥 Xóa trí nhớ
                   setAppliedNgayXuat(ngayXuat);
                   setAppliedNhaKhoa(nhaKhoa);
                   setAppliedTrangThai(trangThai);
                   setPage(0);
+                  setRowsPerPage(50);
+                  sessionStorage.removeItem("hd_tableScrollTop");
+                  sessionStorage.removeItem("hd_mobileScrollTop");
                 }}
                 onReset={() => {
+                  dispatch(resetEditedHoaDonIds()); // 🔥 Xóa trí nhớ
                   setAppliedNgayXuat(EMPTY_DATE);
                   setAppliedNhaKhoa(null);
                   setAppliedTrangThai([]);
                   setActiveTabThongKe("");
                   setPage(0);
+                  setRowsPerPage(50);
+                  sessionStorage.removeItem("hd_tableScrollTop");
+                  sessionStorage.removeItem("hd_mobileScrollTop");
                 }}
               />
             </div>
@@ -525,7 +568,20 @@ const HoaDonPage = () => {
 
       <div className="flex-1 min-h-0 bg-white rounded-b-lg shadow-sm border border-gray-100 flex flex-col overflow-hidden custom-scrollbar table-wrapper">
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          <HoaDonTable danhSachHoaDon={danhSachHoaDon} loading={loading} onLoadMore={handleLoadMore} />
+          <HoaDonTable
+            danhSachHoaDon={danhSachHoaDon}
+            loading={loading}
+            onLoadMore={handleLoadMore}
+            sortOrder={sortOrder}
+            onToggleSort={() => {
+              dispatch(resetEditedHoaDonIds()); // 🔥 Xóa trí nhớ
+              setSortOrder(prev => prev === "desc" ? "asc" : "desc");
+              setPage(0);
+              setRowsPerPage(50);
+              sessionStorage.removeItem("hd_tableScrollTop");
+              sessionStorage.removeItem("hd_mobileScrollTop");
+            }}
+          />
         </div>
         <div className="border-t border-gray-200 bg-gray-50/80 backdrop-blur-sm shrink-0 z-10 relative px-5 py-2.5 flex items-center justify-end text-[13px] text-gray-600">
           <div>

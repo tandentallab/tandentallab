@@ -54,8 +54,6 @@ export const fetchDonHangChuaHoaDonAll = createAsyncThunk(
   }
 );
 
-
-
 // 🔥 Admin lấy tất cả hóa đơn
 export const fetchAllHoaDonAdmin = createAsyncThunk(
   "hoaDon/fetchAllAdmin",
@@ -70,8 +68,10 @@ export const fetchAllHoaDonAdmin = createAsyncThunk(
       fromDate,
       toDate,
       loaiHan, // 🔥 1. Đón lấy loaiHan từ component gửi sang
+      sortOrder
     } = {}
   ) => {
+    console.time("fetchAllHoaDonAdmin");
     const res = await api.get(`/hoa-don/all`, {
       params: {
         page,
@@ -81,10 +81,11 @@ export const fetchAllHoaDonAdmin = createAsyncThunk(
         trangThai,
         fromDate,
         toDate,
-        loaiHan, // 🔥 2. Gắn vào URL params ném xuống cho Backend
+        loaiHan,
+        sortOrder,
       },
     });
-
+    console.timeEnd("fetchAllHoaDonAdmin");
     return res.data;
   }
 );
@@ -259,38 +260,22 @@ const slice = createSlice({
 
   initialState: {
     donHangs: [],
-
     danhSachHoaDon: [],
-
-    // 🔥 CHI TIẾT HÓA ĐƠN
     chiTietHoaDon: null,
-
     filters: initialHoaDonFilter,
 
+    // 🔥 TRÍ NHỚ GHI LẠI CÁC HÓA ĐƠN ĐÃ BỊ SỬA
+    editedHoaDonIds: [],
 
     thongKeCongNo: {
-      conNo: {
-        soHoaDon: 0,
-        tongTien: 0,
-      },
-
-      treHan: {
-        soHoaDon: 0,
-        tongTien: 0,
-      },
-
-      chuaDenHan: {
-        soHoaDon: 0,
-        tongTien: 0,
-      },
+      conNo: { soHoaDon: 0, tongTien: 0 },
+      treHan: { soHoaDon: 0, tongTien: 0 },
+      chuaDenHan: { soHoaDon: 0, tongTien: 0 },
     },
 
     countDonHangChuaXuat: [],
-
     ngayXuatHoaDonGanNhatAll: [],
-
     pagination: {},
-
     loading: false,
 
     // Loading riêng cho từng nhóm — tránh spinner chéo giữa Table và Sidebar
@@ -303,6 +288,11 @@ const slice = createSlice({
   reducers: {
     clearChiTietHoaDon: (state) => {
       state.chiTietHoaDon = null;
+    },
+
+    // 🔥 HÀM XÓA TRÍ NHỚ KHI ĐỔI BỘ LỌC
+    resetEditedHoaDonIds: (state) => {
+      state.editedHoaDonIds = [];
     },
 
     setHoaDonFilter: (state, action) => {
@@ -321,367 +311,205 @@ const slice = createSlice({
     builder
 
       /* ================= ĐƠN HÀNG CHƯA XUẤT HÓA ĐƠN ================= */
-
-      .addCase(
-        fetchDonHangChuaHoaDon.pending,
-        (state) => {
-          state.loadingDonHangs = true;
-        }
-      )
-
-      .addCase(
-        fetchDonHangChuaHoaDon.fulfilled,
-        (state, action) => {
-          state.loadingDonHangs = false;
-
-          state.donHangs =
-            action.payload;
-        }
-      )
-
-      .addCase(
-        fetchDonHangChuaHoaDon.rejected,
-        (state, action) => {
-          state.loadingDonHangs = false;
-
-          state.error =
-            action.payload?.message ||
-            action.error.message;
-        }
-      )
+      .addCase(fetchDonHangChuaHoaDon.pending, (state) => {
+        state.loadingDonHangs = true;
+      })
+      .addCase(fetchDonHangChuaHoaDon.fulfilled, (state, action) => {
+        state.loadingDonHangs = false;
+        state.donHangs = action.payload;
+      })
+      .addCase(fetchDonHangChuaHoaDon.rejected, (state, action) => {
+        state.loadingDonHangs = false;
+        state.error = action.payload?.message || action.error.message;
+      })
 
       /* ================= ĐƠN HÀNG CHƯA XUẤT HÓA ĐƠN - TẤT CẢ NHA KHOA ================= */
-
-      .addCase(
-        fetchDonHangChuaHoaDonAll.pending,
-        (state) => {
-          state.loading = true;
-        }
-      )
-
-      .addCase(
-        fetchDonHangChuaHoaDonAll.fulfilled,
-        (state, action) => {
-          state.loading = false;
-
-          state.donHangs =
-            action.payload;
-        }
-      )
-
-      .addCase(
-        fetchDonHangChuaHoaDonAll.rejected,
-        (state, action) => {
-          state.loading = false;
-
-          state.error =
-            action.payload?.message ||
-            action.error.message;
-        }
-      )
+      .addCase(fetchDonHangChuaHoaDonAll.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchDonHangChuaHoaDonAll.fulfilled, (state, action) => {
+        state.loading = false;
+        state.donHangs = action.payload;
+      })
+      .addCase(fetchDonHangChuaHoaDonAll.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || action.error.message;
+      })
 
       /* ================= LẤY CHI TIẾT HÓA ĐƠN ================= */
-
-      .addCase(
-        fetchHoaDonById.pending,
-        (state) => {
-          state.loading = true;
-        }
-      )
-
-      .addCase(
-        fetchHoaDonById.fulfilled,
-        (state, action) => {
-          state.loading = false;
-
-          state.chiTietHoaDon =
-            action.payload.data;
-        }
-      )
-
-      .addCase(
-        fetchHoaDonById.rejected,
-        (state, action) => {
-          state.loading = false;
-
-          state.error =
-            action.payload?.message ||
-            action.error.message;
-        }
-      )
+      .addCase(fetchHoaDonById.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchHoaDonById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.chiTietHoaDon = action.payload.data;
+      })
+      .addCase(fetchHoaDonById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || action.error.message;
+      })
 
       /* ================= TẠO HÓA ĐƠN ================= */
+      .addCase(createHoaDon.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(createHoaDon.fulfilled, (state, action) => {
+        state.loading = false;
+        const ids = action.meta.arg.danhSachDonHangIds;
 
-      .addCase(
-        createHoaDon.pending,
-        (state) => {
-          state.loading = true;
+        // 🔥 Xóa các đơn hàng đã chọn khỏi danh sách chờ
+        state.donHangs = state.donHangs.filter(
+          (dh) => !ids.includes(dh._id)
+        );
+
+        if (action.payload.success) {
+          state.danhSachHoaDon.unshift(action.payload.data);
         }
-      )
-
-      .addCase(
-        createHoaDon.fulfilled,
-        (state, action) => {
-          state.loading = false;
-
-          const ids = action.meta.arg.danhSachDonHangIds;
-
-          // 🔥 Xóa các đơn hàng đã chọn khỏi danh sách chờ
-          state.donHangs =
-            state.donHangs.filter(
-              (dh) =>
-                !ids.includes(dh._id)
-            );
-
-          if (action.payload.success) {
-            state.danhSachHoaDon.unshift(
-              action.payload.data
-            );
-          }
-        }
-      )
-
-      .addCase(
-        createHoaDon.rejected,
-        (state, action) => {
-          state.loading = false;
-
-          state.error =
-            action.payload?.message ||
-            action.error.message;
-        }
-      )
+      })
+      .addCase(createHoaDon.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || action.error.message;
+      })
 
       /* ================= UPDATE HÓA ĐƠN ================= */
+      .addCase(updateHoaDon.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updateHoaDon.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedHoaDon = action.payload.data;
 
-      .addCase(
-        updateHoaDon.pending,
-        (state) => {
-          state.loading = true;
+        // 🔥 LƯU LẠI ID HÓA ĐƠN VỪA SỬA VÀO TRÍ NHỚ
+        if (!state.editedHoaDonIds) state.editedHoaDonIds = [];
+        if (!state.editedHoaDonIds.includes(updatedHoaDon._id)) {
+          state.editedHoaDonIds.push(updatedHoaDon._id);
         }
-      )
 
-      .addCase(
-        updateHoaDon.fulfilled,
-        (state, action) => {
-          state.loading = false;
+        const index = state.danhSachHoaDon.findIndex(
+          (hd) => hd._id === updatedHoaDon._id
+        );
 
-          const updatedHoaDon =
-            action.payload.data;
-
-          const index =
-            state.danhSachHoaDon.findIndex(
-              (hd) =>
-                hd._id ===
-                updatedHoaDon._id
-            );
-
-          if (index !== -1) {
-            state.danhSachHoaDon[index] =
-              updatedHoaDon;
-          }
-
-
-          if (
-            state.chiTietHoaDon?._id ===
-            updatedHoaDon._id
-          ) {
-            state.chiTietHoaDon =
-              updatedHoaDon;
-          }
-
+        if (index !== -1) {
+          state.danhSachHoaDon[index] = updatedHoaDon;
         }
-      )
 
-      .addCase(
-        updateHoaDon.rejected,
-        (state, action) => {
-          state.loading = false;
-
-          state.error =
-            action.payload?.message ||
-            action.error.message;
+        if (state.chiTietHoaDon?._id === updatedHoaDon._id) {
+          state.chiTietHoaDon = updatedHoaDon;
         }
-      )
+      })
+      .addCase(updateHoaDon.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || action.error.message;
+      })
 
       /* ================= ADMIN LẤY TẤT CẢ HÓA ĐƠN ================= */
+      .addCase(fetchAllHoaDonAdmin.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchAllHoaDonAdmin.fulfilled, (state, action) => {
+        state.loading = false;
+        let newData = action.payload.data;
 
-      .addCase(
-        fetchAllHoaDonAdmin.pending,
-        (state) => {
-          state.loading = true;
+        // 🔥 LOGIC ĐÓNG BĂNG VỊ TRÍ KHI LOAD MORE TỪ SERVER
+        if (state.editedHoaDonIds && state.editedHoaDonIds.length > 0 && state.danhSachHoaDon.length > 0) {
+          const editedItemsToKeep = [];
+
+          // 1. Nhặt ra các hóa đơn đã sửa đang nằm ở vị trí nào trong mảng hiện tại
+          state.editedHoaDonIds.forEach(id => {
+            const oldIndex = state.danhSachHoaDon.findIndex(hd => hd._id === id);
+            if (oldIndex !== -1) {
+              editedItemsToKeep.push({ item: state.danhSachHoaDon[oldIndex], index: oldIndex });
+            }
+          });
+
+          // 2. Xóa các bản sao của nó do Server vừa trả về (để không bị đúp)
+          newData = newData.filter(hd => !state.editedHoaDonIds.includes(hd._id));
+
+          // 3. Cắm lại vào ĐÚNG Y CHANG CÁI VỊ TRÍ CŨ
+          editedItemsToKeep.sort((a, b) => a.index - b.index);
+          editedItemsToKeep.forEach(({ item, index }) => {
+            if (index <= newData.length) {
+              newData.splice(index, 0, item);
+            } else {
+              newData.push(item);
+            }
+          });
         }
-      )
 
-      .addCase(
-        fetchAllHoaDonAdmin.fulfilled,
-        (state, action) => {
-          state.loading = false;
+        state.danhSachHoaDon = newData;
 
-          state.danhSachHoaDon =
-            action.payload.data;
-
-          state.pagination = {
-            total: action.payload.total,
-
-            totalPages:
-              action.payload.totalPages,
-
-            currentPage:
-              action.payload.currentPage,
-          };
-        }
-      )
-
-      .addCase(
-        fetchAllHoaDonAdmin.rejected,
-        (state, action) => {
-          state.loading = false;
-
-          state.error =
-            action.payload?.message ||
-            action.error.message;
-        }
-      )
+        state.pagination = {
+          total: action.payload.total,
+          totalPages: action.payload.totalPages,
+          currentPage: action.payload.currentPage,
+        };
+      })
+      .addCase(fetchAllHoaDonAdmin.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || action.error.message;
+      })
 
       /* ================= THANH TOÁN HÓA ĐƠN ================= */
+      .addCase(thanhToanHoaDon.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(thanhToanHoaDon.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedHoaDon = action.payload.data;
 
-      .addCase(
-        thanhToanHoaDon.pending,
-        (state) => {
-          state.loading = true;
+        const index = state.danhSachHoaDon.findIndex(
+          (hd) => hd._id === updatedHoaDon._id
+        );
+
+        if (index !== -1) {
+          state.danhSachHoaDon[index] = updatedHoaDon;
         }
-      )
 
-      .addCase(
-        thanhToanHoaDon.fulfilled,
-        (state, action) => {
-          state.loading = false;
-
-          const updatedHoaDon =
-            action.payload.data;
-
-          // update list
-          const index =
-            state.danhSachHoaDon.findIndex(
-              (hd) =>
-                hd._id ===
-                updatedHoaDon._id
-            );
-
-          if (index !== -1) {
-            state.danhSachHoaDon[index] =
-              updatedHoaDon;
-          }
-
-          // update detail
-          if (
-            state.chiTietHoaDon?._id ===
-            updatedHoaDon._id
-          ) {
-            state.chiTietHoaDon =
-              updatedHoaDon;
-          }
+        if (state.chiTietHoaDon?._id === updatedHoaDon._id) {
+          state.chiTietHoaDon = updatedHoaDon;
         }
-      )
-
-      .addCase(
-        thanhToanHoaDon.rejected,
-        (state, action) => {
-          state.loading = false;
-
-          state.error =
-            action.payload?.message ||
-            action.error.message;
-        }
-      )
+      })
+      .addCase(thanhToanHoaDon.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || action.error.message;
+      })
 
       /* ================= XÓA HÓA ĐƠN ================= */
+      .addCase(deleteHoaDon.fulfilled, (state, action) => {
+        const id = action.payload.id;
+        state.danhSachHoaDon = state.danhSachHoaDon.filter((hd) => hd._id !== id);
 
-      .addCase(
-        deleteHoaDon.fulfilled,
-        (state, action) => {
-          const id = action.payload.id;
-
-          state.danhSachHoaDon =
-            state.danhSachHoaDon.filter(
-              (hd) => hd._id !== id
-            );
-
-          // 🔥 Reset chi tiết nếu đang xem
-          if (
-            state.chiTietHoaDon?._id === id
-          ) {
-            state.chiTietHoaDon =
-              null;
-          }
+        if (state.chiTietHoaDon?._id === id) {
+          state.chiTietHoaDon = null;
         }
-      )
-
-      .addCase(
-        deleteHoaDon.rejected,
-        (state, action) => {
-        }
-      )
+      })
+      .addCase(deleteHoaDon.rejected, (state, action) => { })
 
       /* ================= THỐNG KÊ CÔNG NỢ ================= */
-
-      .addCase(
-        fetchThongKeCongNoHoaDon.pending,
-        (state) => {
-          state.loading = true;
-        }
-      )
-
-      .addCase(
-        fetchThongKeCongNoHoaDon.fulfilled,
-        (state, action) => {
-          state.loading = false;
-
-          state.thongKeCongNo =
-            action.payload.data;
-        }
-      )
-
-      .addCase(
-        fetchThongKeCongNoHoaDon.rejected,
-        (state, action) => {
-          state.loading = false;
-
-          state.error =
-            action.error.message;
-        }
-      )
+      .addCase(fetchThongKeCongNoHoaDon.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchThongKeCongNoHoaDon.fulfilled, (state, action) => {
+        state.loading = false;
+        state.thongKeCongNo = action.payload.data;
+      })
+      .addCase(fetchThongKeCongNoHoaDon.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
 
       /* ================= ĐẾM ĐƠN HÀNG CHƯA XUẤT HÓA ĐƠN ================= */
-
-      .addCase(
-        fetchCountDonHangChuaXuat.pending,
-        (state) => {
-          state.loadingMeta = true;
-        }
-      )
-
-      .addCase(
-        fetchCountDonHangChuaXuat.fulfilled,
-        (state, action) => {
-          state.loadingMeta = false;
-
-          state.countDonHangChuaXuat =
-            action.payload;
-        }
-      )
-
-      .addCase(
-        fetchCountDonHangChuaXuat.rejected,
-        (state, action) => {
-          state.loadingMeta = false;
-
-          state.error =
-            action.payload?.message ||
-            action.error.message;
-        }
-      )
+      .addCase(fetchCountDonHangChuaXuat.pending, (state) => {
+        state.loadingMeta = true;
+      })
+      .addCase(fetchCountDonHangChuaXuat.fulfilled, (state, action) => {
+        state.loadingMeta = false;
+        state.countDonHangChuaXuat = action.payload;
+      })
+      .addCase(fetchCountDonHangChuaXuat.rejected, (state, action) => {
+        state.loadingMeta = false;
+        state.error = action.payload?.message || action.error.message;
+      })
 
       .addCase(fetchNgayXuatHoaDonGanNhatAll.pending, (state) => {
         state.loadingMeta = true;
@@ -701,10 +529,8 @@ const slice = createSlice({
 export const {
   setHoaDonFilter,
   resetHoaDonFilter,
-} = slice.actions
-
-export const {
   clearChiTietHoaDon,
+  resetEditedHoaDonIds, // 🔥 Khai báo export ở đây
 } = slice.actions;
 
 export default slice.reducer;

@@ -218,10 +218,22 @@ const MobileCardList = ({ danhSachHoaDon, loading, onLoadMore, sortOrder, onTogg
 
   const onNavigate = useCallback((path) => navigate(path), [navigate]);
 
-  const handleScroll = useCallback(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 300) {
+  useEffect(() => {
+    const savedScroll = Number(sessionStorage.getItem("hd_mobileScrollTop")) || 0;
+    if (savedScroll > 0 && containerRef.current && danhSachHoaDon?.length > 0) {
+      if (!containerRef.current.dataset.restored) {
+        containerRef.current.scrollTop = savedScroll;
+        containerRef.current.dataset.restored = "true";
+      }
+    }
+  }, [danhSachHoaDon]);
+
+  const handleScroll = useCallback((e) => {
+    const el = e.currentTarget;
+    const st = el.scrollTop;
+    sessionStorage.setItem("hd_mobileScrollTop", st.toString());
+
+    if (el.scrollHeight - st - el.clientHeight < 300) {
       if (onLoadMore) onLoadMore();
     }
   }, [onLoadMore]);
@@ -288,7 +300,7 @@ const DEFAULT_WIDTHS = {
 };
 const COLS_ORDER = Object.keys(DEFAULT_WIDTHS);
 
-const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
+const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore, sortOrder, onToggleSort }) => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width: 767px)");
 
@@ -299,34 +311,28 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
   const totalWidthRef = useRef(COLS_ORDER.reduce((s, k) => s + DEFAULT_WIDTHS[k], 0) + 40);
   const [tableMinWidth, setTableMinWidth] = useState(totalWidthRef.current);
 
-  // ── Sắp xếp ──
-  const [sortOrder, setSortOrder] = useState("desc");
-  const handleToggleSort = useCallback(
-    () => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc")),
-    []
-  );
-
-  const sortedDanhSachHoaDon = useMemo(() => {
-    if (!danhSachHoaDon) return [];
-    return [...danhSachHoaDon].sort((a, b) => {
-      const timeA = new Date(a.ngayXuatHoaDon || a.createdAt || 0).getTime();
-      const timeB = new Date(b.ngayXuatHoaDon || b.createdAt || 0).getTime();
-      if (timeA !== timeB) return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
-      const createdA = new Date(a.createdAt || 0).getTime();
-      const createdB = new Date(b.createdAt || 0).getTime();
-      return sortOrder === "asc" ? createdA - createdB : createdB - createdA;
-    });
-  }, [danhSachHoaDon, sortOrder]);
-
   // ── Virtual scrolling ──
-  const [scrollTop, setScrollTop] = useState(0);
+  const tableContainerRef = useRef(null);
+  const [scrollTop, setScrollTop] = useState(() => Number(sessionStorage.getItem("hd_tableScrollTop")) || 0);
   const loadingRef = useRef(false);
 
   useEffect(() => { loadingRef.current = loading; }, [loading]);
 
+  useEffect(() => {
+    const savedScroll = Number(sessionStorage.getItem("hd_tableScrollTop")) || 0;
+    if (savedScroll > 0 && tableContainerRef.current && danhSachHoaDon?.length > 0) {
+      if (!tableContainerRef.current.dataset.restored) {
+        tableContainerRef.current.scrollTop = savedScroll;
+        tableContainerRef.current.dataset.restored = "true";
+      }
+    }
+  }, [danhSachHoaDon]);
+
   const handleScroll = useCallback((e) => {
     const { scrollTop: st, scrollHeight, clientHeight } = e.currentTarget;
     setScrollTop(st);
+    sessionStorage.setItem("hd_tableScrollTop", st.toString());
+
     if (scrollHeight - st - clientHeight < 200) {
       if (onLoadMore && !loadingRef.current) {
         loadingRef.current = true;
@@ -335,10 +341,10 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
     }
   }, [onLoadMore]);
 
-  const totalRows = sortedDanhSachHoaDon.length;
+  const totalRows = (danhSachHoaDon || []).length;
   const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
   const endIndex = Math.min(totalRows, Math.floor(scrollTop / ROW_HEIGHT) + VISIBLE_ROWS + OVERSCAN);
-  const visibleRows = sortedDanhSachHoaDon.slice(startIndex, endIndex);
+  const visibleRows = (danhSachHoaDon || []).slice(startIndex, endIndex);
 
   const paddingTop = startIndex * ROW_HEIGHT;
   const paddingBottom = Math.max(0, (totalRows - endIndex) * ROW_HEIGHT);
@@ -385,11 +391,11 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
     return (
       <div className="flex flex-col flex-1 min-h-0 bg-[#f5f7fa]">
         <MobileCardList
-          danhSachHoaDon={sortedDanhSachHoaDon}
+          danhSachHoaDon={danhSachHoaDon || []}
           loading={loading}
           onLoadMore={onLoadMore}
           sortOrder={sortOrder}
-          onToggleSort={handleToggleSort}
+          onToggleSort={onToggleSort}
         />
       </div>
     );
@@ -399,6 +405,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <TableContainer
+        ref={tableContainerRef}
         component={Paper}
         elevation={0}
         onScroll={handleScroll}
@@ -432,7 +439,7 @@ const HoaDonTable = ({ danhSachHoaDon, loading, onLoadMore }) => {
                 label={
                   <div
                     className="flex items-center gap-1 cursor-pointer hover:text-[#00796b] transition-colors"
-                    onClick={handleToggleSort}
+                    onClick={onToggleSort}
                   >
                     Ngày xuất
                     <svg

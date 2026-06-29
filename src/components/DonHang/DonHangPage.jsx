@@ -12,6 +12,7 @@ import {
   fetchMoreDonHang,
   resetDonHangPageFilter,
   setDonHangPageFilter,
+  fetchDonHangStatusCounts,
 } from "../../redux/slices/donHangSlice";
 import { api } from "../../config/api";
 import DonHangTable from "./DonHangTable";
@@ -184,6 +185,7 @@ const DonHangPage = () => {
     error,
     pagination,
     stats,
+    statusCounts,
   } = useSelector((state) => state.donHang);
 
   const nhaKhoaState = useSelector((state) => state.nhaKhoa);
@@ -315,9 +317,45 @@ const DonHangPage = () => {
     refreshKey,
   ]);
 
+  // Fetch status counts WITHOUT trangThai filter so the top buttons always show
+  // counts for all statuses under the current non-status filters
+  const loadStatusCounts = useCallback(() => {
+    const params = {};
+    if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+    if (appliedNhaKhoa) params.nhaKhoa = appliedNhaKhoa._id;
+    if (appliedBenhNhan) params.benhNhan = appliedBenhNhan._id;
+    Object.assign(
+      params,
+      getFilterParams(appliedNgayNhan, "ngayNhanFrom", "ngayNhanTo")
+    );
+    Object.assign(
+      params,
+      getFilterParams(appliedYcHoanThanh, "ycHoanThanhFrom", "ycHoanThanhTo")
+    );
+    Object.assign(
+      params,
+      getFilterParams(appliedHenGiao, "henGiaoFrom", "henGiaoTo")
+    );
+    dispatch(fetchDonHangStatusCounts(params));
+  }, [
+    dispatch,
+    debouncedSearch,
+    appliedNhaKhoa,
+    appliedBenhNhan,
+    appliedNgayNhan,
+    appliedYcHoanThanh,
+    appliedHenGiao,
+    getFilterParams,
+    refreshKey,
+  ]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    loadStatusCounts();
+  }, [loadStatusCounts]);
 
   // Infinite scroll: khi sentinel vào viewport thì tải trang tiếp theo
   useEffect(() => {
@@ -688,7 +726,7 @@ const DonHangPage = () => {
             setPage(1);
           }}
         >
-          <div className="text-xl">{stats?.["Chờ xử lý"] || 0}</div>
+          <div className="text-xl">{statusCounts?.["Chờ xử lý"] || 0}</div>
           <div className="text-sm">Chờ xử lý</div>
         </div>
         <div
@@ -698,7 +736,7 @@ const DonHangPage = () => {
             setPage(1);
           }}
         >
-          <div className="text-xl">{stats?.["Đang sản xuất"] || 0}</div>
+          <div className="text-xl">{statusCounts?.["Đang sản xuất"] || 0}</div>
           <div className="text-sm">Đang SX</div>
         </div>
         <div
@@ -708,7 +746,7 @@ const DonHangPage = () => {
             setPage(1);
           }}
         >
-          <div className="text-xl">{stats?.["Đang thử"] || 0}</div>
+          <div className="text-xl">{statusCounts?.["Đang thử"] || 0}</div>
           <div className="text-sm">Đang thử</div>
         </div>
         <div
@@ -718,7 +756,7 @@ const DonHangPage = () => {
             setPage(1);
           }}
         >
-          <div className="text-xl">{stats?.["Hoàn thành"] || 0}</div>
+          <div className="text-xl">{statusCounts?.["Hoàn thành"] || 0}</div>
           <div className="text-sm">Hoàn thành</div>
         </div>
       </div>
@@ -733,7 +771,7 @@ const DonHangPage = () => {
             <button
               onClick={handleOpenFilter}
               title="Lọc"
-              className="text-gray-700 rounded-full h-10 w-10 flex items-center justify-center bg-white shadow hover:bg-gray-50 transition"
+              className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition"
             >
               <FilterAltIcon sx={{ fontSize: 20 }} />
             </button>
@@ -1060,9 +1098,9 @@ const DonHangPage = () => {
                 </button>
                 <button
                   onClick={handleApplyFilters}
-                  className="flex items-center gap-1 px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition shadow-sm"
+                  className="flex items-center gap-1 px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold rounded-lg transition shadow-sm"
                 >
-                  ✓ Lưu
+                  Lưu
                 </button>
               </div>
             </div>
@@ -1071,20 +1109,20 @@ const DonHangPage = () => {
 
         <div className="flex items-center gap-2">
           <div className="relative flex items-center flex-1 sm:flex-none">
-            <span className="absolute left-2.5 text-gray-400 flex items-center pointer-events-none">
-              <SearchIcon sx={{ fontSize: 16 }} />
+            <span className="absolute left-3 text-gray-400 flex items-center pointer-events-none">
+              <SearchIcon sx={{ fontSize: 20 }} />
             </span>
             <input
               type="text"
-              placeholder="Tìm kiếm"
+              placeholder="Nhập Số/Nha khoa/Bác sĩ/Bệnh nhân/Sản phẩm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-white shadow px-8 py-1.5 rounded-full w-48 sm:w-80 focus:outline-none"
+              className="bg-white shadow text-sm px-10 py-1.5 rounded-full h-10 w-48 sm:w-96 focus:outline-sky-300"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="absolute right-2.5 text-gray-400 hover:text-gray-600 flex items-center"
+                className="absolute right-3 text-gray-400 hover:text-gray-600 flex items-center"
               >
                 <CloseIcon sx={{ fontSize: 16 }} />
               </button>
@@ -1093,21 +1131,21 @@ const DonHangPage = () => {
           <button
             onClick={handleOpenAdd}
             title="Tạo đơn hàng"
-            className="text-gray-700 rounded-full h-10 w-10 flex items-center justify-center bg-white shadow hover:bg-gray-50 transition"
+            className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition"
           >
             <AddIcon sx={{ fontSize: 20 }} />
           </button>
           <button
             onClick={() => setOpenExport(true)}
             title="Xuất Excel"
-            className="text-gray-700 rounded-full h-10 w-10 flex items-center justify-center bg-white shadow hover:bg-gray-50 transition"
+            className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition"
           >
             <DownloadIcon sx={{ fontSize: 20 }} />
           </button>
           <button
             onClick={handleRefresh}
             title="Tải lại"
-            className="text-gray-700 rounded-full h-10 w-10 flex items-center justify-center bg-white shadow hover:bg-gray-50 transition"
+            className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition"
           >
             <RefreshIcon sx={{ fontSize: 20 }} />
           </button>

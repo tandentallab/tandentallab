@@ -138,15 +138,6 @@ export default function FilterToolbar({
                     selectedTrangThai={selectedTrangThai}
                     onToggle={onToggleTrangThai}
                 />
-
-                {isFiltered && (
-                    <button
-                        onClick={onClearFilter}
-                        className="h-9 px-4 text-sm text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100 transition"
-                    >
-                        Xóa lọc
-                    </button>
-                )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -155,7 +146,7 @@ export default function FilterToolbar({
                     <button
                         title="Tạo phiếu nhập/xuất"
                         onClick={() => setAddMenuOpen((o) => !o)}
-                        className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-green-500 shadow hover:bg-green-600 transition"
+                        className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition"
                     >
                         <AddIcon sx={{ fontSize: 20 }} />
                     </button>
@@ -181,7 +172,7 @@ export default function FilterToolbar({
                     title="Xuất Excel"
                     onClick={onExport}
                     disabled={isExporting || isLoading}
-                    className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-600 shadow hover:bg-sky-700 transition disabled:opacity-50"
+                    className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition disabled:opacity-50"
                 >
                     <div>
                         <DownloadIcon sx={{ fontSize: 20 }} />
@@ -190,9 +181,12 @@ export default function FilterToolbar({
 
                 <button
                     title="Tải lại"
-                    onClick={onRefresh}
+                    onClick={() => {
+                        onClearFilter();
+                        onRefresh();
+                    }}
                     disabled={isLoading}
-                    className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-orange-500 shadow hover:bg-orange-600 transition disabled:opacity-50"
+                    className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition disabled:opacity-50"
                 >
                     <div className={isLoading ? "animate-spin" : ""}>
                         <RefreshIcon sx={{ fontSize: 20 }} />

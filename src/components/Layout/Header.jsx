@@ -15,7 +15,6 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
-import NotificationsIcon from "@mui/icons-material/Notifications";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LoginModal from "../Login/LoginModal";
@@ -637,9 +636,6 @@ const Header = ({ onToggleSidebar }) => {
                   </div>
                 )}
                 <QuickAddMenu />
-                <IconButton color="inherit">
-                  <NotificationsIcon />
-                </IconButton>
                 <HeaderUser />
               </>
             ) : (

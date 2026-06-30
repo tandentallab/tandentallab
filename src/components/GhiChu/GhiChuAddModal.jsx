@@ -89,11 +89,11 @@ export default function GhiChuAddModal({
       <DialogContent className="space-y-4 pt-4 mt-2">
         <TextField
           fullWidth
-          disabled={!!initialMaDonHang || !!noteToEdit}
+          disabled={!!initialMaDonHang}
           label="Mã đơn hàng (nếu có)"
           value={maDonHang}
           onChange={(e) => setMaDonHang(e.target.value)}
-          helperText={initialMaDonHang || noteToEdit ? "" : "Để trống nếu đây là ghi chú công việc chung"}
+          helperText={initialMaDonHang ? "" : "Để trống nếu đây là ghi chú công việc chung"}
           size="small"
           InputProps={{ className: "rounded-xl" }}
           sx={{ mt: 1.5 }}

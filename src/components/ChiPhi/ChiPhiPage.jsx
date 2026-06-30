@@ -23,7 +23,7 @@ const ChiPhiPage = () => {
     const { danhSachChiPhi, isLoading } = useSelector(getChiPhiSelector);
 
     const user = useSelector((state) => state.auth?.user);
-    const isDieuPhoi = user?.quyenSuDung?.ten === "Điều phối";
+    const isAdmin = user?.appRole?.toLowerCase() === "admin";
 
     const now = dayjs().tz('Asia/Ho_Chi_Minh');
     const [filter, setFilter] = useState({
@@ -63,7 +63,7 @@ const ChiPhiPage = () => {
         <Box className="min-h-screen bg-slate-50 px-2 py-5 sm:p-5 relative">
 
             {/* 1. ĐẦU TIÊN: PHẦN CHỌN TABS (Chỉ hiển thị cho Admin) */}
-            {!isDieuPhoi && (
+            {isAdmin && (
                 <Tabs
                     value={currentTab}
                     onChange={(e, newVal) => setCurrentTab(newVal)}
@@ -79,7 +79,7 @@ const ChiPhiPage = () => {
             )}
 
             {/* 2. DÒNG TIẾP THEO: STAT CARDS (Chỉ hiển thị ở tab Báo Cáo của Admin) */}
-            {!isDieuPhoi && currentTab === 1 && (
+            {isAdmin && currentTab === 1 && (
                 <Box className="mb-5">
                     <BaoCaoThuChi filter={filter} />
                 </Box>
@@ -91,7 +91,7 @@ const ChiPhiPage = () => {
             </Box>
 
             {/* 4. CUỐI CÙNG: NỘI DUNG BÊN DƯỚI (Form / Table) */}
-            {!isDieuPhoi ? (
+            {isAdmin ? (
                 <>
                     {currentTab === 0 && (
                         <ChiPhiHangNgay

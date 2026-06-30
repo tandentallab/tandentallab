@@ -723,7 +723,9 @@ export default function VatLieuTable() {
   } = useSelector((state) => state.kho);
 
   const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-  const isSystemAdmin = currentUser.quyenSuDung?.ten?.toLowerCase() === "admin" || currentUser.appRole?.toLowerCase() === "admin";
+  const isSystemAdmin =
+    currentUser.quyenSuDung?.ten?.toLowerCase() === "admin" ||
+    currentUser.appRole?.toLowerCase() === "admin";
 
   // ── Filter state — lấy từ Redux để giữ lại khi unmount ──────────────────
   const { vatLieuFilters } = useSelector((state) => state.kho);
@@ -1186,7 +1188,6 @@ export default function VatLieuTable() {
                   "Giá mua",
                   "ĐVT",
                   "Ghi chú",
-                  "",
                 ].map((h) => (
                   <TableCell
                     key={h}
@@ -1239,7 +1240,7 @@ export default function VatLieuTable() {
                           onChange={() => toggleSelectOne(vl._id)}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={() => openEdit(vl)}>
                         <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">
                           {vl.maVatLieu}
                         </span>
@@ -1254,7 +1255,10 @@ export default function VatLieuTable() {
                       >
                         {vl.tenVatLieu}
                       </TableCell>
-                      <TableCell sx={{ fontSize: 12, minWidth: 120 }}>
+                      <TableCell
+                        sx={{ fontSize: 12, minWidth: 120 }}
+                        onClick={() => openEdit(vl)}
+                      >
                         {vl.nhomVatLieu && (
                           <div className="text-xs font-medium text-blue-700">
                             {vl.nhomVatLieu}
@@ -1270,14 +1274,17 @@ export default function VatLieuTable() {
                         )}
                       </TableCell>
 
-                      <TableCell sx={{ color: "#555", fontSize: 13 }}>
+                      <TableCell
+                        sx={{ color: "#555", fontSize: 13 }}
+                        onClick={() => openEdit(vl)}
+                      >
                         {vl.nhaCungCap?.ten || (
                           <span className="text-gray-400 italic text-xs">
                             —
                           </span>
                         )}
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" onClick={() => openEdit(vl)}>
                         <Box
                           sx={{
                             display: "flex",
@@ -1304,12 +1311,14 @@ export default function VatLieuTable() {
                       <TableCell
                         align="center"
                         sx={{ color: "#555", fontSize: 13 }}
+                        onClick={() => openEdit(vl)}
                       >
                         {vl.tonKhoToiThieu ?? 0}
                       </TableCell>
                       <TableCell
                         align="right"
                         sx={{ fontSize: 13, whiteSpace: "nowrap" }}
+                        onClick={() => openEdit(vl)}
                       >
                         {vl.giaMua > 0 ? (
                           <span className="text-green-700 font-medium">
@@ -1319,11 +1328,15 @@ export default function VatLieuTable() {
                           <span className="text-gray-300">—</span>
                         )}
                       </TableCell>
-                      <TableCell sx={{ color: "#6b7280", fontSize: 13 }}>
+                      <TableCell
+                        sx={{ color: "#6b7280", fontSize: 13 }}
+                        onClick={() => openEdit(vl)}
+                      >
                         {vl.donViTinh || "—"}
                       </TableCell>
                       <TableCell
                         sx={{ color: "#9ca3af", fontSize: 12, maxWidth: 120 }}
+                        onClick={() => openEdit(vl)}
                       >
                         <span className="line-clamp-1">{vl.ghiChu || ""}</span>
                       </TableCell>
@@ -1725,7 +1738,11 @@ export default function VatLieuTable() {
                   value={form.soLuong}
                   onChange={(e) => onChange("soLuong", e.target.value)}
                   disabled={!isSystemAdmin}
-                  helperText={!isSystemAdmin ? "Bạn không có quyền chỉnh sửa số lượng" : ""}
+                  helperText={
+                    !isSystemAdmin
+                      ? "Bạn không có quyền chỉnh sửa số lượng"
+                      : ""
+                  }
                 />
                 <TextField
                   label="Tồn kho tối thiểu"

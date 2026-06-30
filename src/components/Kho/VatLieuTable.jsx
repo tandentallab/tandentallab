@@ -722,6 +722,9 @@ export default function VatLieuTable() {
     vatLieuTotal,
   } = useSelector((state) => state.kho);
 
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const isSystemAdmin = currentUser.quyenSuDung?.ten?.toLowerCase() === "admin" || currentUser.appRole?.toLowerCase() === "admin";
+
   // ── Filter state — lấy từ Redux để giữ lại khi unmount ──────────────────
   const { vatLieuFilters } = useSelector((state) => state.kho);
   const { search, filterNCC, filterTrangThai, filterNhom, filterLoai } =
@@ -1197,7 +1200,7 @@ export default function VatLieuTable() {
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={15} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={12} align="center" sx={{ py: 4 }}>
                     <CircularProgress size={28} />
                   </TableCell>
                 </TableRow>
@@ -1205,7 +1208,7 @@ export default function VatLieuTable() {
               {!loading && filteredData.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={15}
+                    colSpan={12}
                     align="center"
                     sx={{ py: 4, color: "#9ca3af" }}
                   >
@@ -1303,16 +1306,6 @@ export default function VatLieuTable() {
                         sx={{ color: "#555", fontSize: 13 }}
                       >
                         {vl.tonKhoToiThieu ?? 0}
-                      </TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{ color: "#555", fontSize: 13 }}
-                      >
-                        {vl.tonKhoToiDa > 0 ? (
-                          vl.tonKhoToiDa
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
                       </TableCell>
                       <TableCell
                         align="right"
@@ -1539,8 +1532,7 @@ export default function VatLieuTable() {
                       </Typography>
                     </Box>
                     <Typography sx={{ fontSize: 11, color: "#9ca3af" }}>
-                      Min: {vl.tonKhoToiThieu ?? 0}{" "}
-                      {vl.tonKhoToiDa > 0 ? `/ Max: ${vl.tonKhoToiDa}` : ""}
+                      Tối thiểu: {vl.tonKhoToiThieu ?? 0}
                     </Typography>
                   </Box>
                   <Box>
@@ -1710,35 +1702,42 @@ export default function VatLieuTable() {
               placeholder="Chọn nhà cung cấp..."
             />
 
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <TextField
-                label="Số lượng tồn kho"
-                size="small"
-                fullWidth
-                type="number"
-                inputProps={{ min: 0 }}
-                value={form.soLuong}
-                onChange={(e) => onChange("soLuong", e.target.value)}
-              />
-              <TextField
-                label="Tồn kho tối thiểu"
-                size="small"
-                fullWidth
-                type="number"
-                inputProps={{ min: 0 }}
-                value={form.tonKhoToiThieu}
-                onChange={(e) => onChange("tonKhoToiThieu", e.target.value)}
-                helperText="Cảnh báo khi dưới mức này"
-              />
-              {/* <TextField
-                label="Tồn kho tối đa"
-                size="small"
-                fullWidth
-                type="number"
-                inputProps={{ min: 0 }}
-                value={form.tonKhoToiDa}
-                onChange={(e) => onChange("tonKhoToiDa", e.target.value)}
-              /> */}
+            <Box>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  mb: 2.5,
+                  mt: 1.5,
+                  display: "block",
+                  fontWeight: 600,
+                  color: "#4b5563",
+                }}
+              >
+                TỒN KHO
+              </Typography>
+              <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+                <TextField
+                  label="Số lượng tồn kho"
+                  size="small"
+                  fullWidth
+                  type="number"
+                  inputProps={{ min: 0 }}
+                  value={form.soLuong}
+                  onChange={(e) => onChange("soLuong", e.target.value)}
+                  disabled={!isSystemAdmin}
+                  helperText={!isSystemAdmin ? "Bạn không có quyền chỉnh sửa số lượng" : ""}
+                />
+                <TextField
+                  label="Tồn kho tối thiểu"
+                  size="small"
+                  fullWidth
+                  type="number"
+                  inputProps={{ min: 0 }}
+                  value={form.tonKhoToiThieu}
+                  onChange={(e) => onChange("tonKhoToiThieu", e.target.value)}
+                  helperText="Cảnh báo khi dưới mức này"
+                />
+              </Box>
             </Box>
 
             <TextField

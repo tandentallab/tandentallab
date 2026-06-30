@@ -65,6 +65,22 @@ export const fetchVatLieuMore = createAsyncThunk(
   }
 );
 
+/**
+ * deleteVatLieuMany — xóa nhiều vật liệu cùng lúc (bulk delete)
+ * payload: { ids: string[] }
+ */
+export const deleteVatLieuMany = createAsyncThunk(
+  "kho/deleteVatLieuMany",
+  async (ids, { rejectWithValue }) => {
+    try {
+      const res = await api.delete("/kho/vat-lieu", { data: { ids } });
+      return { ids, ...res.data };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Lỗi xóa vật liệu");
+    }
+  }
+);
+
 // ===== SLICE =====
 const khoSlice = createSlice({
   name: "kho",
@@ -97,6 +113,7 @@ const khoSlice = createSlice({
       filterNCC: "",
       filterTrangThai: "",
       filterNhom: "",
+      filterLoai: "",
     },
 
     // ── Filter state — NhaCungCapTable ────────────────────────────────────
@@ -136,6 +153,7 @@ const khoSlice = createSlice({
         filterNCC: "",
         filterTrangThai: "",
         filterNhom: "",
+        filterLoai: "",
       };
     },
 
@@ -214,6 +232,20 @@ const khoSlice = createSlice({
       })
       .addCase(fetchVatLieuMore.rejected, (state, action) => {
         state.loadingMore = false;
+        state.error = action.payload;
+      });
+
+    // ── VatLieu — xóa nhiều (bulk delete) ────────────────────────────────
+    builder
+      .addCase(deleteVatLieuMany.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(deleteVatLieuMany.fulfilled, (state, action) => {
+        const deletedIds = new Set(action.payload.ids);
+        state.vatLieu = state.vatLieu.filter((v) => !deletedIds.has(v._id));
+        state.vatLieuTotal = Math.max(0, state.vatLieuTotal - deletedIds.size);
+      })
+      .addCase(deleteVatLieuMany.rejected, (state, action) => {
         state.error = action.payload;
       });
   },

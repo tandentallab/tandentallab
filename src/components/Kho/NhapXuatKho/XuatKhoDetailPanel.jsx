@@ -86,10 +86,12 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
         if (!fullPhieu) return;
         setConfirmingXuat(true);
         try {
-            const res = await dispatch(
+            await dispatch(
                 updatePhieuXuatKho({ id: fullPhieu._id, trangThai: "Đã xuất" })
             ).unwrap();
-            setFullPhieu((prev) => ({ ...prev, trangThai: "Đã xuất", ...(res.data || {}) }));
+            // Re-fetch để lấy dữ liệu đầy đủ (populate vật liệu)
+            const res = await dispatch(fetchPhieuXuatKhoById(fullPhieu._id)).unwrap();
+            setFullPhieu(res.data || res);
             toast.success("Đã xác nhận xuất kho — tồn kho đã cập nhật");
             onUpdated?.();
         } catch (err) {
@@ -243,6 +245,7 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
                                         <thead>
                                             <tr className="bg-green-100">
                                                 <th className="text-left py-1 px-2 font-normal text-gray-700">Vật liệu</th>
+                                                <th className="text-left py-1 px-2 font-normal text-gray-700">ĐVT</th>
                                                 <th className="text-right py-1 px-2 font-normal text-gray-700">Số lượng</th>
                                                 {fullPhieu.danhSachVatLieu?.some((i) => i.moTa) && (
                                                     <th className="text-left py-1 px-2 font-normal text-gray-700">Ghi chú</th>
@@ -258,13 +261,11 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
                                                     <td className="py-1 px-2 max-w-[120px] truncate">
                                                         {item.vatLieu?.tenVatLieu || "—"}
                                                     </td>
+                                                    <td className="py-1 px-2 max-w-[120px] truncate">
+                                                        {item.vatLieu?.donViTinh || "—"}
+                                                    </td>
                                                     <td className="py-1 px-2 text-right">
                                                         {item.soLuong}
-                                                        {item.vatLieu?.donViTinh && (
-                                                            <span className="text-gray-400 ml-1">
-                                                                {item.vatLieu.donViTinh}
-                                                            </span>
-                                                        )}
                                                     </td>
                                                     {fullPhieu.danhSachVatLieu?.some((i) => i.moTa) && (
                                                         <td className="py-1 px-2">
@@ -276,7 +277,7 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
                                         </tbody>
                                         <tfoot>
                                             <tr className="bg-green-100 border-t border-gray-200">
-                                                <td className="py-1 px-2 font-normal text-gray-700">Tổng</td>
+                                                <td className="py-1 px-2 font-normal text-gray-700" colSpan={2}>Tổng</td>
                                                 <td className="py-1 px-2 text-right font-medium">
                                                     {(fullPhieu.danhSachVatLieu || []).reduce(
                                                         (s, i) => s + (i.soLuong || 0),

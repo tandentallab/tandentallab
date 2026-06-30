@@ -6,6 +6,7 @@ import SearchableDropdown from "./SearchableDropdown";
 import { MONTH_OPTIONS } from "./constants";
 
 const NHAP_STATUSES = ["Chưa nhận", "Đã nhận"];
+const NHAP_THANHTOAN_STATUSES = ["Chưa thanh toán", "Đã thanh toán"];
 const XUAT_STATUSES = ["Chưa xuất", "Đã xuất"];
 
 function StatusMultiSelect({ selectedTrangThai, onToggle }) {
@@ -38,7 +39,7 @@ function StatusMultiSelect({ selectedTrangThai, onToggle }) {
             </button>
 
             {open && (
-                <div className="absolute z-50 left-0 mt-1 w-44 bg-white border border-gray-200 rounded shadow-lg py-1">
+                <div className="absolute z-50 left-0 mt-1 w-48 bg-white border border-gray-200 rounded shadow-lg py-1">
                     <div className="px-3 py-1 text-xs font-semibold text-sky-600 uppercase tracking-wide">Nhập kho</div>
                     {NHAP_STATUSES.map((s) => (
                         <label key={s} className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 hover:bg-gray-50 cursor-pointer">
@@ -47,6 +48,19 @@ function StatusMultiSelect({ selectedTrangThai, onToggle }) {
                                 checked={selectedTrangThai.includes(s)}
                                 onChange={() => onToggle(s)}
                                 className="w-3.5 h-3.5 accent-sky-500"
+                            />
+                            {s}
+                        </label>
+                    ))}
+                    <div className="border-t border-gray-100 my-1" />
+                    <div className="px-3 py-1 text-xs font-semibold text-blue-600 uppercase tracking-wide">Thanh toán</div>
+                    {NHAP_THANHTOAN_STATUSES.map((s) => (
+                        <label key={s} className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 hover:bg-gray-50 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={selectedTrangThai.includes(s)}
+                                onChange={() => onToggle(s)}
+                                className="w-3.5 h-3.5 accent-blue-500"
                             />
                             {s}
                         </label>

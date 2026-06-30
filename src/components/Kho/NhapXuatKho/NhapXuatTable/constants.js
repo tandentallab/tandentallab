@@ -54,6 +54,7 @@ export function aggregateVatLieu(phieuList) {
             const tenVatLieu = item.vatLieu?.tenVatLieu || "Không xác định";
             if (!map[tenVatLieu]) map[tenVatLieu] = { tenVatLieu, soLuong: 0 };
             map[tenVatLieu].soLuong += item.soLuong || 0;
+            map[tenVatLieu].donViTinh = item.vatLieu?.donViTinh;
         });
     });
     return Object.values(map);

@@ -18,6 +18,8 @@ import {
 import { api } from "../../config/api";
 import { toast } from "sonner";
 import { exportDanhSachVatLieuToExcel } from "./exportKhoToExcel";
+import NhapKhoModal from "./NhapXuatKho/NhapKhoModal";
+import XuatKhoModal from "./NhapXuatKho/XuatKhoModal";
 
 import {
   Table,
@@ -529,25 +531,25 @@ function NccCombobox({
                   {/* Highlight phần khớp query */}
                   {query
                     ? (() => {
-                        const idx = opt
-                          .toLowerCase()
-                          .indexOf(query.toLowerCase());
-                        if (idx === -1) return opt;
-                        return (
-                          <>
-                            {opt.slice(0, idx)}
-                            <span
-                              style={{
-                                backgroundColor: "#fff9c4",
-                                borderRadius: 2,
-                              }}
-                            >
-                              {opt.slice(idx, idx + query.length)}
-                            </span>
-                            {opt.slice(idx + query.length)}
-                          </>
-                        );
-                      })()
+                      const idx = opt
+                        .toLowerCase()
+                        .indexOf(query.toLowerCase());
+                      if (idx === -1) return opt;
+                      return (
+                        <>
+                          {opt.slice(0, idx)}
+                          <span
+                            style={{
+                              backgroundColor: "#fff9c4",
+                              borderRadius: 2,
+                            }}
+                          >
+                            {opt.slice(idx, idx + query.length)}
+                          </span>
+                          {opt.slice(idx + query.length)}
+                        </>
+                      );
+                    })()
                     : opt}
                 </Box>
               ))}
@@ -656,11 +658,10 @@ function SearchableDropdown({
                     setSearch("");
                     setOpen(false);
                   }}
-                  className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-sky-50 hover:text-sky-700 ${
-                    value === opt
+                  className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-sky-50 hover:text-sky-700 ${value === opt
                       ? "bg-sky-50 text-sky-700 font-medium"
                       : "text-slate-700"
-                  }`}
+                    }`}
                 >
                   {opt}
                 </li>
@@ -824,6 +825,10 @@ export default function VatLieuTable() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteManyOpen, setDeleteManyOpen] = useState(false);
   const [deletingMany, setDeletingMany] = useState(false);
+
+  // ── Modal nhập / xuất từ tab vật liệu ────────────────────────────────────
+  const [nhapModalOpen, setNhapModalOpen] = useState(false);
+  const [xuatModalOpen, setXuatModalOpen] = useState(false);
 
   const toggleSelectOne = (id) => {
     setSelectedIds((prev) =>
@@ -1161,6 +1166,46 @@ export default function VatLieuTable() {
           )}
         </div>
       </div>
+
+      {/* ===== SELECTION ACTION BAR ===== */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-3 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-lg">
+          <span className="text-sm font-medium text-blue-700">
+            Đã chọn {selectedIds.length} vật liệu
+          </span>
+          <div className="flex-1" />
+          <button
+            onClick={() => setNhapModalOpen(true)}
+            className="h-8 px-3 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded flex items-center gap-1.5 transition"
+          >
+            <AddIcon sx={{ fontSize: 16 }} />
+            Tạo phiếu nhập
+          </button>
+          <button
+            onClick={() => setXuatModalOpen(true)}
+            className="h-8 px-3 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded flex items-center gap-1.5 transition"
+          >
+            <AddIcon sx={{ fontSize: 16 }} />
+            Tạo phiếu xuất
+          </button>
+          {isSystemAdmin && (
+            <button
+              onClick={() => setDeleteManyOpen(true)}
+              className="h-8 px-3 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded flex items-center gap-1.5 transition"
+            >
+              <DeleteIcon sx={{ fontSize: 16 }} />
+              Xóa ({selectedIds.length})
+            </button>
+          )}
+          <button
+            onClick={() => setSelectedIds([])}
+            className="h-8 px-3 text-sm text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100 transition"
+          >
+            Bỏ chọn
+          </button>
+        </div>
+      )}
+
       {/* ===== TABLE (ẩn trên mobile) ===== */}
       <Box sx={{ display: { xs: "none", md: "block" } }}>
         <TableContainer
@@ -1228,8 +1273,8 @@ export default function VatLieuTable() {
                         backgroundColor: thieuHang
                           ? "#fff3e0"
                           : idx % 2 === 0
-                          ? "#fff"
-                          : "#fafafa",
+                            ? "#fff"
+                            : "#fafafa",
                         "&:hover": { backgroundColor: "#e3f2fd40" },
                       }}
                     >
@@ -1918,6 +1963,20 @@ export default function VatLieuTable() {
           </Button>
         </DialogActions>
       </Dialog>
+      {/* ===== MODAL NHẬP KHO TỪ TAB VẬT LIỆU ===== */}
+      <NhapKhoModal
+        open={nhapModalOpen}
+        onClose={() => { setNhapModalOpen(false); setSelectedIds([]); }}
+        preSelectedIds={selectedIds}
+      />
+
+      {/* ===== MODAL XUẤT KHO TỪ TAB VẬT LIỆU ===== */}
+      <XuatKhoModal
+        open={xuatModalOpen}
+        onClose={() => { setXuatModalOpen(false); setSelectedIds([]); }}
+        preSelectedIds={selectedIds}
+      />
+
       {/* ===== MODAL XÓA NHIỀU (BULK DELETE) ===== */}
       <Dialog
         open={deleteManyOpen}

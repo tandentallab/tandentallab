@@ -89,15 +89,19 @@ export default function NhapXuatTable() {
   // Helpers — xây dựng params cho từng API
   function buildNhapParams(page = 1) {
     const dateRange = monthToDateRange(selectedMonth);
-    const nhapTrangThai = selectedTrangThai.filter((t) =>
+    const nhapVals = selectedTrangThai.filter((t) =>
       ["Chưa nhận", "Đã nhận"].includes(t)
+    );
+    const toanVals = selectedTrangThai.filter((t) =>
+      ["Chưa thanh toán", "Đã thanh toán"].includes(t)
     );
     return {
       limit: 20,
       page,
       ...dateRange,
       ...(selectedNCC ? { nhaCungCap: selectedNCC } : {}),
-      ...(nhapTrangThai.length ? { trangThai: nhapTrangThai.join(",") } : {}),
+      ...(nhapVals.length ? { trangThaiNhap: nhapVals.join(",") } : {}),
+      ...(toanVals.length ? { trangThaiThanhToan: toanVals.join(",") } : {}),
     };
   }
 
@@ -206,6 +210,7 @@ export default function NhapXuatTable() {
     () => aggregateVatLieu(phieuNhapKhos),
     [phieuNhapKhos]
   );
+  console.log(vatLieuNhap)
   const vatLieuXuat = useMemo(
     () => aggregateVatLieu(phieuXuatKhos),
     [phieuXuatKhos]

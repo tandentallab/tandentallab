@@ -6,17 +6,19 @@ import {
     clearSelected,
 } from "../../../redux/slices/phieuNhapKhoSlice";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import NccCombobox from "./NccCombobox";
 import ThemNhaCungCapModal from "./ThemNhaCungCapModal";
 
 /**
  * Props:
- *  open      – boolean
- *  onClose   – () => void
- *  editData  – object | null
+ *  open           – boolean
+ *  onClose        – () => void
+ *  editData       – object | null
+ *  preSelectedIds – string[] | null  (danh sách _id vật liệu được chọn sẵn từ tab Vật liệu)
  */
-export default function NhapKhoModal({ open, onClose, editData = null }) {
+export default function NhapKhoModal({ open, onClose, editData = null, preSelectedIds = null }) {
     const dispatch = useDispatch();
     const kho = useSelector((state) => state.kho);
     const { user } = useSelector((state) => state.auth);
@@ -26,6 +28,8 @@ export default function NhapKhoModal({ open, onClose, editData = null }) {
 
     const [ghiChu, setGhiChu] = useState("");
     const [items, setItems] = useState({});
+    // NCC cấp phiếu (dùng cho EDIT mode)
+    const [nhaCungCapId, setNhaCungCapId] = useState("");
 
     // Modal thêm NCC mới
     const [nccModal, setNccModal] = useState(false);
@@ -46,13 +50,21 @@ export default function NhapKhoModal({ open, onClose, editData = null }) {
 
         setGhiChu(editData?.ghiChu || "");
 
+        // NCC cấp phiếu (EDIT mode)
+        if (isEdit) {
+            const nccId = editData.nhaCungCap?._id || editData.nhaCungCap || "";
+            setNhaCungCapId(typeof nccId === "string" ? nccId : "");
+        } else {
+            setNhaCungCapId("");
+        }
+
         const editMap = {};
         if (isEdit && editData.danhSachVatLieu) {
             editData.danhSachVatLieu.forEach((item) => {
                 const vlId = item.vatLieu?._id || item.vatLieu;
                 editMap[vlId] = {
                     checked: true,
-                    nhaCungCap: item.nhaCungCap?._id || item.nhaCungCap || "",
+                    nhaCungCap: "", // không dùng per-item NCC trong edit
                     soLuong: item.soLuong || 0,
                     donGia: item.donGia || 0,
                     thanhTien: item.thanhTien || 0,
@@ -63,8 +75,9 @@ export default function NhapKhoModal({ open, onClose, editData = null }) {
 
         const initial = {};
         kho.vatLieu.forEach((vl) => {
+            const preChecked = preSelectedIds ? preSelectedIds.includes(vl._id) : false;
             initial[vl._id] = editMap[vl._id] || {
-                checked: false,
+                checked: preChecked,
                 nhaCungCap: vl.nhaCungCap?._id || "",
                 soLuong: 0,
                 donGia: vl.giaMua || 0,
@@ -113,6 +126,17 @@ export default function NhapKhoModal({ open, onClose, editData = null }) {
         [checkedItems]
     );
 
+    // Số nhóm NCC sẽ tạo phiếu (chỉ những item có số lượng > 0)
+    const nccGroupCount = useMemo(() => {
+        if (isEdit) return 1;
+        const keys = new Set(
+            checkedItems
+                .filter(([, v]) => Number(v.soLuong) > 0)
+                .map(([, v]) => v.nhaCungCap || "__none__")
+        );
+        return keys.size;
+    }, [checkedItems, isEdit]);
+
     const fmt = (v) =>
         new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v || 0);
 
@@ -127,6 +151,9 @@ export default function NhapKhoModal({ open, onClose, editData = null }) {
         await dispatch(fetchNhaCungCap());
         if (pendingVlId) {
             updateField(pendingVlId, "nhaCungCap", newNcc._id);
+        } else {
+            // Edit mode: cập nhật NCC cấp phiếu
+            setNhaCungCapId(newNcc._id);
         }
         setPendingVlId(null);
     };
@@ -135,27 +162,58 @@ export default function NhapKhoModal({ open, onClose, editData = null }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const danhSachVatLieu = checkedItems
+        const validItems = checkedItems
             .filter(([, v]) => v.soLuong > 0)
             .map(([vatLieuId, v]) => ({
                 vatLieu: vatLieuId,
-                ...(v.nhaCungCap ? { nhaCungCap: v.nhaCungCap } : {}),
+                nhaCungCap: v.nhaCungCap || null,
                 soLuong: Number(v.soLuong),
                 donGia: Number(v.donGia),
                 thanhTien: Number(v.thanhTien),
                 moTa: v.moTa,
             }));
 
-        if (danhSachVatLieu.length === 0) {
+        if (validItems.length === 0) {
             alert("Vui lòng chọn ít nhất một vật liệu và nhập số lượng > 0.");
             return;
         }
 
         try {
             if (isEdit) {
-                await dispatch(updatePhieuNhapKho({ id: editData._id, danhSachVatLieu, ghiChu })).unwrap();
+                // NCC cấp phiếu, items không có nhaCungCap
+                const danhSachVatLieu = validItems.map(({ nhaCungCap, ...rest }) => rest);
+                await dispatch(updatePhieuNhapKho({
+                    id: editData._id,
+                    nhaCungCap: nhaCungCapId || null,
+                    danhSachVatLieu,
+                    ghiChu,
+                })).unwrap();
             } else {
-                await dispatch(createPhieuNhapKho({ danhSachVatLieu, ghiChu, nguoiTao: user?.HoTenNV || user?.quyenSuDung.ten })).unwrap();
+                // Nhóm theo per-item NCC → mỗi NCC một phiếu nhập
+                const grouped = {};
+                validItems.forEach((item) => {
+                    const key = item.nhaCungCap || "__none__";
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(item);
+                });
+
+                const groups = Object.entries(grouped);
+                for (const [nccKey, groupItems] of groups) {
+                    // Loại bỏ nhaCungCap per-item, dùng làm top-level nhaCungCap
+                    const danhSachVatLieu = groupItems.map(({ nhaCungCap, ...rest }) => rest);
+                    await dispatch(createPhieuNhapKho({
+                        nhaCungCap: nccKey === "__none__" ? null : nccKey,
+                        danhSachVatLieu,
+                        ghiChu,
+                        nguoiTao: user?.HoTenNV || user?.quyenSuDung?.ten,
+                    })).unwrap();
+                }
+
+                toast.success(
+                    groups.length > 1
+                        ? `Đã tạo ${groups.length} phiếu nhập (theo từng nhà cung cấp)`
+                        : "Đã tạo phiếu nhập kho"
+                );
             }
             dispatch(clearSelected());
             onClose();
@@ -181,7 +239,14 @@ export default function NhapKhoModal({ open, onClose, editData = null }) {
                                 {isEdit ? `Sửa phiếu – ${editData.soPhieu}` : "Tạo phiếu nhập kho"}
                             </h2>
                             {checkedItems.length > 0 && (
-                                <p className="text-xs sm:text-sm text-gray-400 mt-0.5">Đã chọn {checkedItems.length} vật liệu</p>
+                                <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
+                                    Đã chọn {checkedItems.length} vật liệu
+                                    {!isEdit && nccGroupCount > 0 && (
+                                        <span className="ml-2 text-green-600 font-medium">
+                                            → sẽ tạo {nccGroupCount} phiếu (theo nhà cung cấp)
+                                        </span>
+                                    )}
+                                </p>
                             )}
                         </div>
                         <button type="button" onClick={onClose}
@@ -192,13 +257,33 @@ export default function NhapKhoModal({ open, onClose, editData = null }) {
 
                     <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
 
+                        {/* NCC cấp phiếu — chỉ hiện trong EDIT mode */}
+                        {isEdit && (
+                            <div className="px-4 sm:px-6 py-3 bg-sky-50 border-b shrink-0">
+                                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                                    Nhà cung cấp
+                                </label>
+                                <NccCombobox
+                                    value={nhaCungCapId}
+                                    onChange={setNhaCungCapId}
+                                    options={nhaCungCapList}
+                                    disabled={editData?.trangThaiNhap === "Đã nhận"}
+                                    onAddNew={(text) => {
+                                        setNccInitialText(text);
+                                        setPendingVlId(null);
+                                        setNccModal(true);
+                                    }}
+                                />
+                            </div>
+                        )}
+
                         {/* Table header — desktop only */}
                         <div className="hidden sm:grid px-6 py-3 bg-gray-50 border-b shrink-0 gap-3 items-center text-xs font-semibold text-gray-500 uppercase tracking-wide"
-                            style={{ gridTemplateColumns: "40px 1fr 220px 90px 150px 130px 1fr" }}>
+                            style={{ gridTemplateColumns: isEdit ? "40px 1fr 90px 150px 130px 1fr" : "40px 1fr 220px 90px 150px 130px 1fr" }}>
                             <input type="checkbox" checked={allChecked} onChange={toggleCheckAll}
                                 className="w-4 h-4 accent-green-600 cursor-pointer" title="Chọn tất cả" />
                             <div>Vật liệu</div>
-                            <div>Nhà cung cấp</div>
+                            {!isEdit && <div>Nhà cung cấp</div>}
                             <div>Số lượng</div>
                             <div>Đơn giá (₫)</div>
                             <div>Thành tiền</div>
@@ -230,15 +315,17 @@ export default function NhapKhoModal({ open, onClose, editData = null }) {
 
                                             {/* ── Desktop row ── */}
                                             <div className="hidden sm:grid px-6 py-2.5 gap-3 items-center"
-                                                style={{ gridTemplateColumns: "40px 1fr 220px 90px 150px 130px 1fr" }}>
+                                                style={{ gridTemplateColumns: isEdit ? "40px 1fr 90px 150px 130px 1fr" : "40px 1fr 220px 90px 150px 130px 1fr" }}>
                                                 <input type="checkbox" checked={on} onChange={() => toggleCheck(vl._id)}
                                                     className="w-4 h-4 accent-green-600 cursor-pointer" />
                                                 <div>
                                                     <div className={`text-sm font-medium ${on ? "text-gray-800" : "text-gray-400"}`}>{vl.tenVatLieu}</div>
                                                     <div className="text-xs text-gray-400">{vl.maVatLieu}{vl.donViTinh ? ` · ${vl.donViTinh}` : ""}</div>
                                                 </div>
-                                                <NccCombobox value={item.nhaCungCap} onChange={(id) => updateField(vl._id, "nhaCungCap", id)}
-                                                    options={nhaCungCapList} disabled={!on} onAddNew={(text) => handleOpenNccModal(vl._id, text)} />
+                                                {!isEdit && (
+                                                    <NccCombobox value={item.nhaCungCap} onChange={(id) => updateField(vl._id, "nhaCungCap", id)}
+                                                        options={nhaCungCapList} disabled={!on} onAddNew={(text) => handleOpenNccModal(vl._id, text)} />
+                                                )}
                                                 <input type="number" min={0} disabled={!on} value={item.soLuong}
                                                     onChange={(e) => updateField(vl._id, "soLuong", e.target.value)} className={inputCls} />
                                                 <input type="number" min={0} disabled={!on} value={item.donGia}

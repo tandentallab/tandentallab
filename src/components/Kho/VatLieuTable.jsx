@@ -6,7 +6,15 @@ import React, {
   useEffect,
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchVatLieu, fetchNhaCungCap } from "../../redux/slices/khoSlice";
+import {
+  fetchVatLieu,
+  fetchVatLieuMore,
+  fetchNhaCungCap,
+  resetVatLieu,
+  setVatLieuFilters,
+  resetVatLieuFilters,
+  deleteVatLieuMany,
+} from "../../redux/slices/khoSlice";
 import { api } from "../../config/api";
 import { toast } from "sonner";
 import { exportDanhSachVatLieuToExcel } from "./exportKhoToExcel";
@@ -41,6 +49,7 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
+  Checkbox,
 } from "@mui/material";
 
 import SearchIcon from "@mui/icons-material/Search";
@@ -702,12 +711,102 @@ const EMPTY_FORM = {
 
 export default function VatLieuTable() {
   const dispatch = useDispatch();
-  const { vatLieu, nhaCungCap, loading } = useSelector((state) => state.kho);
+  const {
+    vatLieu,
+    nhaCungCap,
+    loading,
+    loadingMore,
+    vatLieuHasMore,
+    vatLieuPage,
+    vatLieuLimit,
+    vatLieuTotal,
+  } = useSelector((state) => state.kho);
 
-  const [search, setSearch] = useState("");
-  const [filterNCC, setFilterNCC] = useState("");
-  const [filterTrangThai, setFilterTrangThai] = useState("");
-  const [filterNhom, setFilterNhom] = useState("");
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const isSystemAdmin = currentUser.quyenSuDung?.ten?.toLowerCase() === "admin" || currentUser.appRole?.toLowerCase() === "admin";
+
+  // ── Filter state — lấy từ Redux để giữ lại khi unmount ──────────────────
+  const { vatLieuFilters } = useSelector((state) => state.kho);
+  const { search, filterNCC, filterTrangThai, filterNhom, filterLoai } =
+    vatLieuFilters;
+
+  // Wrapper setters — ghi vào Redux thay vì local state
+  const setSearch = (v) => dispatch(setVatLieuFilters({ search: v }));
+  const setFilterNCC = (v) => dispatch(setVatLieuFilters({ filterNCC: v }));
+  const setFilterTrangThai = (v) =>
+    dispatch(setVatLieuFilters({ filterTrangThai: v }));
+  const setFilterNhom = (v) => dispatch(setVatLieuFilters({ filterNhom: v }));
+  const setFilterLoai = (v) => dispatch(setVatLieuFilters({ filterLoai: v }));
+
+  // ===== LAZY LOADING — IntersectionObserver sentinel =====
+  const sentinelRef = useRef(null);
+  const isFetchingMore = useRef(false);
+
+  // Params hiện tại để dùng khi load thêm
+  const currentFilters = useMemo(
+    () => ({
+      search,
+      nhaCungCap: filterNCC,
+      nhomVatLieu: filterNhom,
+      loaiVatLieu: filterLoai,
+      trangThai: filterTrangThai,
+    }),
+    [search, filterNCC, filterNhom, filterLoai, filterTrangThai]
+  );
+
+  // Load trang 1 mỗi khi filter thay đổi (debounce search)
+  useEffect(() => {
+    const timer = setTimeout(
+      () => {
+        dispatch(
+          fetchVatLieu({ ...currentFilters, limit: vatLieuLimit || 20 })
+        );
+      },
+      search ? 350 : 0
+    ); // debounce chỉ khi search bằng text
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, filterNCC, filterNhom, filterLoai, filterTrangThai]);
+
+  // IntersectionObserver theo dõi sentinel ở cuối bảng
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (
+          entry.isIntersecting &&
+          vatLieuHasMore &&
+          !loadingMore &&
+          !isFetchingMore.current
+        ) {
+          isFetchingMore.current = true;
+          dispatch(
+            fetchVatLieuMore({
+              ...currentFilters,
+              page: vatLieuPage + 1,
+              limit: vatLieuLimit || 20,
+            })
+          ).finally(() => {
+            isFetchingMore.current = false;
+          });
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    vatLieuHasMore,
+    loadingMore,
+    vatLieuPage,
+    vatLieuLimit,
+    currentFilters,
+    dispatch,
+  ]);
 
   // Modal thêm/sửa
   const [openModal, setOpenModal] = useState(false);
@@ -718,6 +817,32 @@ export default function VatLieuTable() {
   // Modal xóa
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  // ── Chọn nhiều vật liệu (checkbox) ───────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteManyOpen, setDeleteManyOpen] = useState(false);
+  const [deletingMany, setDeletingMany] = useState(false);
+
+  const toggleSelectOne = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteMany = async () => {
+    if (selectedIds.length === 0) return;
+    setDeletingMany(true);
+    try {
+      await dispatch(deleteVatLieuMany(selectedIds)).unwrap();
+      toast.success(`Đã xóa ${selectedIds.length} vật liệu`);
+      setSelectedIds([]);
+      setDeleteManyOpen(false);
+    } catch (err) {
+      toast.error(typeof err === "string" ? err : "Có lỗi xảy ra khi xóa");
+    } finally {
+      setDeletingMany(false);
+    }
+  };
 
   // Modal thêm nhà cung cấp nhanh (từ bên trong modal vật liệu)
   const [openNccModal, setOpenNccModal] = useState(false);
@@ -797,6 +922,7 @@ export default function VatLieuTable() {
   }, [vatLieu]);
 
   // Danh sách nhóm vật liệu unique để lọc filter bar
+  // (lấy từ toàn bộ NhaCungCap + vatLieu đã tải; server trả về unique khi cần)
   const danhSachNhom = useMemo(() => {
     const set = new Set(
       (vatLieu || []).map((vl) => vl.nhomVatLieu).filter(Boolean)
@@ -804,34 +930,35 @@ export default function VatLieuTable() {
     return [...set].sort();
   }, [vatLieu]);
 
-  // ===== FILTER =====
-  const filteredData = useMemo(() => {
-    return (vatLieu || []).filter((vl) => {
-      const kw = search.toLowerCase();
-      const matchSearch =
-        vl.maVatLieu?.toLowerCase().includes(kw) ||
-        vl.tenVatLieu?.toLowerCase().includes(kw) ||
-        vl.nhaCungCap?.ten?.toLowerCase().includes(kw) ||
-        vl.donViTinh?.toLowerCase().includes(kw) ||
-        vl.loaiVatLieu?.toLowerCase().includes(kw) ||
-        vl.nhomVatLieu?.toLowerCase().includes(kw) ||
-        vl.formRang?.toLowerCase().includes(kw) ||
-        vl.mauRang?.toLowerCase().includes(kw);
+  // Danh sách loại vật liệu unique để lọc filter bar
+  const danhSachLoai = useMemo(() => {
+    const set = new Set(
+      (vatLieu || []).map((vl) => vl.loaiVatLieu).filter(Boolean)
+    );
+    return [...set].sort();
+  }, [vatLieu]);
 
-      const matchNCC = filterNCC ? vl.nhaCungCap?._id === filterNCC : true;
-      const matchNhom = filterNhom ? vl.nhomVatLieu === filterNhom : true;
+  // Dữ liệu bảng = vatLieu từ store (server đã filter, không cần filter client)
+  const filteredData = vatLieu || [];
 
-      const thieuHang = (vl.soLuong ?? 0) < (vl.tonKhoToiThieu ?? 0);
-      const matchTT =
-        filterTrangThai === "thieu"
-          ? thieuHang
-          : filterTrangThai === "du"
-          ? !thieuHang
-          : true;
+  // ── Tính toán trạng thái chọn tất cả dựa trên dữ liệu đang hiển thị ─────
+  const isAllSelected =
+    filteredData.length > 0 &&
+    filteredData.every((vl) => selectedIds.includes(vl._id));
+  const isSomeSelected =
+    filteredData.some((vl) => selectedIds.includes(vl._id)) && !isAllSelected;
 
-      return matchSearch && matchNCC && matchTT && matchNhom;
-    });
-  }, [vatLieu, search, filterNCC, filterTrangThai, filterNhom]);
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      // Bỏ chọn tất cả vật liệu đang hiển thị
+      const visibleIds = new Set(filteredData.map((vl) => vl._id));
+      setSelectedIds((prev) => prev.filter((id) => !visibleIds.has(id)));
+    } else {
+      // Chọn tất cả vật liệu đang hiển thị (gộp với các lựa chọn cũ)
+      const visibleIds = filteredData.map((vl) => vl._id);
+      setSelectedIds((prev) => [...new Set([...prev, ...visibleIds])]);
+    }
+  };
 
   // ===== HANDLERS =====
   const openAdd = () => {
@@ -882,7 +1009,7 @@ export default function VatLieuTable() {
         await api.post("/kho/vat-lieu", payload);
         toast.success("Đã thêm vật liệu mới");
       }
-      dispatch(fetchVatLieu());
+      dispatch(fetchVatLieu({ ...currentFilters, limit: vatLieuLimit || 20 }));
       setOpenModal(false);
     } catch (err) {
       toast.error(err.response?.data?.message || "Có lỗi xảy ra");
@@ -897,7 +1024,7 @@ export default function VatLieuTable() {
     try {
       await api.delete(`/kho/vat-lieu/${deleteId}`);
       toast.success("Đã xóa vật liệu");
-      dispatch(fetchVatLieu());
+      dispatch(fetchVatLieu({ ...currentFilters, limit: vatLieuLimit || 20 }));
       setDeleteId(null);
     } catch (err) {
       toast.error(err.response?.data?.message || "Có lỗi xảy ra");
@@ -955,7 +1082,18 @@ export default function VatLieuTable() {
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <Tooltip title="Làm mới">
-              <IconButton size="small" onClick={() => dispatch(fetchVatLieu())}>
+              <IconButton
+                size="small"
+                onClick={() =>
+                  dispatch(
+                    fetchVatLieu({
+                      ...currentFilters,
+                      limit: vatLieuLimit || 20,
+                    })
+                  )
+                }
+                disabled={loading}
+              >
                 <RefreshIcon sx={{ fontSize: 20 }} />
               </IconButton>
             </Tooltip>
@@ -995,6 +1133,12 @@ export default function VatLieuTable() {
             onChange={setFilterNhom}
             placeholder="Nhóm vật liệu"
           />
+          <SearchableDropdown
+            options={danhSachLoai}
+            value={filterLoai}
+            onChange={setFilterLoai}
+            placeholder="Loại vật liệu"
+          />
           <select
             value={filterTrangThai}
             onChange={(e) => setFilterTrangThai(e.target.value)}
@@ -1005,13 +1149,9 @@ export default function VatLieuTable() {
             <option value="thieu">Thiếu hàng</option>
           </select>
 
-          {(filterNCC || filterNhom || filterTrangThai) && (
+          {(filterNCC || filterNhom || filterLoai || filterTrangThai) && (
             <button
-              onClick={() => {
-                setFilterNCC("");
-                setFilterNhom("");
-                setFilterTrangThai("");
-              }}
+              onClick={() => dispatch(resetVatLieuFilters())}
               className="h-9 px-3 text-sm text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100 transition"
             >
               Xóa lọc
@@ -1028,17 +1168,21 @@ export default function VatLieuTable() {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ backgroundColor: "#e3f2fd" }}>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    size="small"
+                    checked={isAllSelected}
+                    indeterminate={isSomeSelected}
+                    onChange={toggleSelectAll}
+                  />
+                </TableCell>
                 {[
-                  "STT",
                   "Mã VL",
                   "Tên vật liệu",
                   "Nhóm / Loại",
-                  "Form răng",
-                  "Màu răng",
                   "Nhà cung cấp",
                   "Tồn kho",
                   "Tối thiểu",
-                  "Tối đa",
                   "Giá mua",
                   "ĐVT",
                   "Ghi chú",
@@ -1056,7 +1200,7 @@ export default function VatLieuTable() {
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={14} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={12} align="center" sx={{ py: 4 }}>
                     <CircularProgress size={28} />
                   </TableCell>
                 </TableRow>
@@ -1064,7 +1208,7 @@ export default function VatLieuTable() {
               {!loading && filteredData.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={14}
+                    colSpan={12}
                     align="center"
                     sx={{ py: 4, color: "#9ca3af" }}
                   >
@@ -1088,15 +1232,26 @@ export default function VatLieuTable() {
                         "&:hover": { backgroundColor: "#e3f2fd40" },
                       }}
                     >
-                      <TableCell sx={{ color: "#9ca3af", fontSize: 12 }}>
-                        {idx + 1}
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          size="small"
+                          checked={selectedIds.includes(vl._id)}
+                          onChange={() => toggleSelectOne(vl._id)}
+                        />
                       </TableCell>
                       <TableCell>
                         <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">
                           {vl.maVatLieu}
                         </span>
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, minWidth: 140 }}>
+                      <TableCell
+                        sx={{
+                          fontWeight: 600,
+                          minWidth: 180,
+                          cursor: "pointer",
+                        }}
+                        onClick={() => openEdit(vl)}
+                      >
                         {vl.tenVatLieu}
                       </TableCell>
                       <TableCell sx={{ fontSize: 12, minWidth: 120 }}>
@@ -1114,14 +1269,7 @@ export default function VatLieuTable() {
                           <span className="text-gray-300">—</span>
                         )}
                       </TableCell>
-                      <TableCell sx={{ fontSize: 13, color: "#555" }}>
-                        {vl.formRang || (
-                          <span className="text-gray-300">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ fontSize: 13, color: "#555" }}>
-                        {vl.mauRang || <span className="text-gray-300">—</span>}
-                      </TableCell>
+
                       <TableCell sx={{ color: "#555", fontSize: 13 }}>
                         {vl.nhaCungCap?.ten || (
                           <span className="text-gray-400 italic text-xs">
@@ -1160,16 +1308,6 @@ export default function VatLieuTable() {
                         {vl.tonKhoToiThieu ?? 0}
                       </TableCell>
                       <TableCell
-                        align="center"
-                        sx={{ color: "#555", fontSize: 13 }}
-                      >
-                        {vl.tonKhoToiDa > 0 ? (
-                          vl.tonKhoToiDa
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell
                         align="right"
                         sx={{ fontSize: 13, whiteSpace: "nowrap" }}
                       >
@@ -1189,37 +1327,13 @@ export default function VatLieuTable() {
                       >
                         <span className="line-clamp-1">{vl.ghiChu || ""}</span>
                       </TableCell>
-                      <TableCell align="right">
-                        <div className="flex items-center gap-1 justify-end">
-                          <Tooltip title="Chỉnh sửa">
-                            <IconButton
-                              size="small"
-                              onClick={() => openEdit(vl)}
-                            >
-                              <EditIcon
-                                sx={{ fontSize: 17, color: "#3b82f6" }}
-                              />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Xóa">
-                            <IconButton
-                              size="small"
-                              onClick={() => setDeleteId(vl._id)}
-                            >
-                              <DeleteIcon
-                                sx={{ fontSize: 17, color: "#ef4444" }}
-                              />
-                            </IconButton>
-                          </Tooltip>
-                        </div>
-                      </TableCell>
                     </TableRow>
                   );
                 })}
               <TableRow>
-                <TableCell colSpan={14} align="right">
+                <TableCell colSpan={15} align="right">
                   <Typography variant="caption" color="text.secondary">
-                    Hiển thị {filteredData.length} / {vatLieu?.length ?? 0} vật
+                    Hiển thị {filteredData.length} / {vatLieuTotal ?? 0} vật
                     liệu
                   </Typography>
                 </TableCell>
@@ -1227,6 +1341,36 @@ export default function VatLieuTable() {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* ── Sentinel cho IntersectionObserver (lazy load) ── */}
+        <Box ref={sentinelRef} sx={{ height: 1 }} />
+
+        {/* Loading thêm */}
+        {loadingMore && (
+          <Box
+            sx={{
+              py: 2,
+              display: "flex",
+              justifyContent: "center",
+              gap: 1,
+              alignItems: "center",
+            }}
+          >
+            <CircularProgress size={18} />
+            <Typography variant="caption" color="text.secondary">
+              Đang tải thêm...
+            </Typography>
+          </Box>
+        )}
+
+        {/* Đã tải hết */}
+        {!vatLieuHasMore && filteredData.length > 0 && !loading && (
+          <Box sx={{ py: 1.5, textAlign: "center" }}>
+            <Typography variant="caption" color="text.secondary">
+              ✓ Đã hiển thị tất cả {vatLieuTotal} vật liệu
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       {/* ===== CARD LIST (chỉ hiện trên mobile) ===== */}
@@ -1270,16 +1414,31 @@ export default function VatLieuTable() {
                     alignItems: "flex-start",
                   }}
                 >
-                  <Box sx={{ flex: 1, pr: 1 }}>
-                    <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded mr-2">
-                      {vl.maVatLieu}
-                    </span>
-                    <Typography
-                      component="span"
-                      sx={{ fontWeight: 700, fontSize: 15 }}
-                    >
-                      {vl.tenVatLieu}
-                    </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      flex: 1,
+                      pr: 1,
+                    }}
+                  >
+                    <Checkbox
+                      size="small"
+                      checked={selectedIds.includes(vl._id)}
+                      onChange={() => toggleSelectOne(vl._id)}
+                      sx={{ p: 0.5, mr: 0.5, mt: "-2px" }}
+                    />
+                    <Box sx={{ flex: 1 }}>
+                      <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded mr-2">
+                        {vl.maVatLieu}
+                      </span>
+                      <Typography
+                        component="span"
+                        sx={{ fontWeight: 700, fontSize: 15 }}
+                      >
+                        {vl.tenVatLieu}
+                      </Typography>
+                    </Box>
                   </Box>
                   <Box sx={{ display: "flex", gap: 0.5, flexShrink: 0 }}>
                     <IconButton size="small" onClick={() => openEdit(vl)}>
@@ -1373,8 +1532,7 @@ export default function VatLieuTable() {
                       </Typography>
                     </Box>
                     <Typography sx={{ fontSize: 11, color: "#9ca3af" }}>
-                      Min: {vl.tonKhoToiThieu ?? 0}{" "}
-                      {vl.tonKhoToiDa > 0 ? `/ Max: ${vl.tonKhoToiDa}` : ""}
+                      Tối thiểu: {vl.tonKhoToiThieu ?? 0}
                     </Typography>
                   </Box>
                   <Box>
@@ -1423,8 +1581,24 @@ export default function VatLieuTable() {
           color="text.secondary"
           sx={{ textAlign: "right", display: "block" }}
         >
-          Hiển thị {filteredData.length} / {vatLieu?.length ?? 0} vật liệu
+          Hiển thị {filteredData.length} / {vatLieuTotal ?? 0} vật liệu
         </Typography>
+        {loadingMore && (
+          <Box
+            sx={{
+              py: 2,
+              display: "flex",
+              justifyContent: "center",
+              gap: 1,
+              alignItems: "center",
+            }}
+          >
+            <CircularProgress size={16} />
+            <Typography variant="caption" color="text.secondary">
+              Đang tải thêm...
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       {/* ===== MODAL THÊM / SỬA ===== */}
@@ -1502,42 +1676,6 @@ export default function VatLieuTable() {
               </Box>
             </Box>
 
-            {/* Thông tin răng */}
-            <Divider />
-            <Typography
-              variant="caption"
-              sx={{
-                color: "#1976d2",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-              }}
-            >
-              Thông tin răng
-            </Typography>
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <Box sx={{ flex: 1 }}>
-                <SelectWithAdd
-                  label="Form răng"
-                  value={form.formRang}
-                  onChange={(v) => onChange("formRang", v)}
-                  options={optFormRang}
-                  onAddNew={addOpt(setOptFormRang)}
-                  placeholder="Chọn form răng..."
-                />
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <SelectWithAdd
-                  label="Màu răng"
-                  value={form.mauRang}
-                  onChange={(v) => onChange("mauRang", v)}
-                  options={optMauRang}
-                  onAddNew={addOpt(setOptMauRang)}
-                  placeholder="Chọn màu răng..."
-                />
-              </Box>
-            </Box>
-
             {/* Tồn kho & giá */}
             <Divider />
             <Typography
@@ -1564,35 +1702,42 @@ export default function VatLieuTable() {
               placeholder="Chọn nhà cung cấp..."
             />
 
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <TextField
-                label="Số lượng tồn kho"
-                size="small"
-                fullWidth
-                type="number"
-                inputProps={{ min: 0 }}
-                value={form.soLuong}
-                onChange={(e) => onChange("soLuong", e.target.value)}
-              />
-              <TextField
-                label="Tồn kho tối thiểu"
-                size="small"
-                fullWidth
-                type="number"
-                inputProps={{ min: 0 }}
-                value={form.tonKhoToiThieu}
-                onChange={(e) => onChange("tonKhoToiThieu", e.target.value)}
-                helperText="Cảnh báo khi dưới mức này"
-              />
-              <TextField
-                label="Tồn kho tối đa"
-                size="small"
-                fullWidth
-                type="number"
-                inputProps={{ min: 0 }}
-                value={form.tonKhoToiDa}
-                onChange={(e) => onChange("tonKhoToiDa", e.target.value)}
-              />
+            <Box>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  mb: 2.5,
+                  mt: 1.5,
+                  display: "block",
+                  fontWeight: 600,
+                  color: "#4b5563",
+                }}
+              >
+                TỒN KHO
+              </Typography>
+              <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+                <TextField
+                  label="Số lượng tồn kho"
+                  size="small"
+                  fullWidth
+                  type="number"
+                  inputProps={{ min: 0 }}
+                  value={form.soLuong}
+                  onChange={(e) => onChange("soLuong", e.target.value)}
+                  disabled={!isSystemAdmin}
+                  helperText={!isSystemAdmin ? "Bạn không có quyền chỉnh sửa số lượng" : ""}
+                />
+                <TextField
+                  label="Tồn kho tối thiểu"
+                  size="small"
+                  fullWidth
+                  type="number"
+                  inputProps={{ min: 0 }}
+                  value={form.tonKhoToiThieu}
+                  onChange={(e) => onChange("tonKhoToiThieu", e.target.value)}
+                  helperText="Cảnh báo khi dưới mức này"
+                />
+              </Box>
             </Box>
 
             <TextField
@@ -1753,6 +1898,41 @@ export default function VatLieuTable() {
             }
           >
             Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* ===== MODAL XÓA NHIỀU (BULK DELETE) ===== */}
+      <Dialog
+        open={deleteManyOpen}
+        onClose={() => setDeleteManyOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: "bold", color: "#ef4444" }}>
+          Xác nhận xóa nhiều vật liệu
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn xóa <b>{selectedIds.length}</b> vật liệu đã
+            chọn không? Hành động không thể hoàn tác.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setDeleteManyOpen(false)} color="inherit">
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteMany}
+            disabled={deletingMany}
+            startIcon={
+              deletingMany ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : null
+            }
+          >
+            Xóa {selectedIds.length} vật liệu
           </Button>
         </DialogActions>
       </Dialog>

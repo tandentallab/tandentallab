@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../config/api";
 import {
   exportBangGiaRiengToExcel,
@@ -49,6 +49,73 @@ import NhaKhoaModal from "./NhaKhoaModal";
 import NhaKhoaUpdateModal from "./NhaKhoaUpdateModal";
 import NhaKhoaDetailModal from "./NhaKhoaDetailModal";
 
+// =====================================================
+// CẤU HÌNH CỘT — danh sách cột + độ rộng mặc định (px)
+// =====================================================
+const TABLE_COLUMNS = [
+  { key: "fav", width: 56, resizable: false },
+  { key: "ten", width: 200, resizable: true },
+  { key: "lienHe", width: 170, resizable: true },
+  { key: "diaChi", width: 220, resizable: true },
+  { key: "website", width: 150, resizable: true },
+  { key: "moTa", width: 200, resizable: true },
+  { key: "congNo", width: 140, resizable: true },
+  { key: "ngayTao", width: 130, resizable: true },
+  { key: "hanhDong", width: 110, resizable: false },
+];
+
+const MIN_COL_WIDTH = 60;
+const COL_WIDTHS_STORAGE_KEY = "nhaKhoaTable_columnWidths_v1";
+
+const getDefaultColumnWidths = () =>
+  TABLE_COLUMNS.reduce((acc, col) => {
+    acc[col.key] = col.width;
+    return acc;
+  }, {});
+
+// =====================================================
+// ResizableTh — TableCell tiêu đề có thể kéo để đổi độ rộng
+// =====================================================
+function ResizableTh({
+  children,
+  resizable = true,
+  onResizeMouseDown,
+  sx,
+  ...rest
+}) {
+  return (
+    <TableCell
+      sx={{
+        position: "relative",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        userSelect: "none",
+        ...sx,
+      }}
+      {...rest}
+    >
+      {children}
+      {resizable && (
+        <Box
+          onMouseDown={onResizeMouseDown}
+          sx={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            height: "100%",
+            width: "8px",
+            cursor: "col-resize",
+            zIndex: 2,
+            "&:hover": { backgroundColor: "#90caf9" },
+            "&:active": { backgroundColor: "#42a5f5" },
+          }}
+        />
+      )}
+    </TableCell>
+  );
+}
+
 export default function NhaKhoaTable() {
   const dispatch = useDispatch();
   const { data, loading } = useSelector((state) => state.nhaKhoa);
@@ -61,6 +128,87 @@ export default function NhaKhoaTable() {
   // State quản lý Modal Xuất Excel
   const [openExport, setOpenExport] = useState(false);
   const [selectedExportNhaKhoa, setSelectedExportNhaKhoa] = useState("");
+
+  // ===== ĐỘ RỘNG CỘT — cho phép kéo giãn, lưu lại trong localStorage =====
+  const [columnWidths, setColumnWidths] = useState(() => {
+    try {
+      const saved = localStorage.getItem(COL_WIDTHS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...getDefaultColumnWidths(), ...parsed };
+      }
+    } catch (e) {
+      // bỏ qua lỗi parse, dùng mặc định
+    }
+    return getDefaultColumnWidths();
+  });
+
+  const resizingKey = useRef(null);
+  const resizeStartX = useRef(0);
+  const resizeStartWidth = useRef(0);
+
+  const handleResizeMouseMove = (e) => {
+    if (!resizingKey.current) return;
+    const delta = e.clientX - resizeStartX.current;
+    const newWidth = Math.max(MIN_COL_WIDTH, resizeStartWidth.current + delta);
+    setColumnWidths((prev) => ({ ...prev, [resizingKey.current]: newWidth }));
+  };
+
+  const handleResizeMouseUp = () => {
+    resizingKey.current = null;
+    document.body.style.cursor = "";
+    window.removeEventListener("mousemove", handleResizeMouseMove);
+    window.removeEventListener("mouseup", handleResizeMouseUp);
+    // Lưu lại độ rộng cột sau khi kéo xong
+    setColumnWidths((prev) => {
+      try {
+        localStorage.setItem(COL_WIDTHS_STORAGE_KEY, JSON.stringify(prev));
+      } catch (e) {
+        // bỏ qua lỗi lưu trữ
+      }
+      return prev;
+    });
+  };
+
+  const handleResizeMouseDown = (key) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingKey.current = key;
+    resizeStartX.current = e.clientX;
+    resizeStartWidth.current = columnWidths[key];
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("mousemove", handleResizeMouseMove);
+    window.addEventListener("mouseup", handleResizeMouseUp);
+  };
+
+  // Dọn dẹp listener nếu component unmount giữa lúc đang kéo
+  useEffect(() => {
+    return () => {
+      window.removeEventListener("mousemove", handleResizeMouseMove);
+      window.removeEventListener("mouseup", handleResizeMouseUp);
+      document.body.style.cursor = "";
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const tableTotalWidth = useMemo(
+    () =>
+      TABLE_COLUMNS.reduce(
+        (sum, col) => sum + (columnWidths[col.key] || col.width),
+        0
+      ),
+    [columnWidths]
+  );
+
+  const resetColumnWidths = () => {
+    const defaults = getDefaultColumnWidths();
+    setColumnWidths(defaults);
+    try {
+      localStorage.removeItem(COL_WIDTHS_STORAGE_KEY);
+    } catch (e) {
+      // bỏ qua
+    }
+  };
 
   useEffect(() => {
     dispatch(fetchNhaKhoa());
@@ -275,42 +423,85 @@ export default function NhaKhoaTable() {
           },
         }}
       >
-        <TableContainer component={Paper} className="rounded-2xl shadow-lg">
-          <Table>
+        <TableContainer
+          component={Paper}
+          className="rounded-2xl shadow-lg"
+          sx={{ overflowX: "auto" }}
+        >
+          <Table
+            sx={{
+              tableLayout: "fixed",
+              width: tableTotalWidth,
+              minWidth: "100%",
+            }}
+          >
+            <colgroup>
+              {TABLE_COLUMNS.map((col) => (
+                <col key={col.key} style={{ width: columnWidths[col.key] }} />
+              ))}
+            </colgroup>
             <TableHead>
               <TableRow>
                 <TableCell colSpan={9} align="left">
-                  <Typography variant="caption" color="text.secondary">
-                    Tổng số {data?.length} nha khoa
-                  </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary">
+                      Tổng số {data?.length} nha khoa
+                    </Typography>
+                    <Tooltip title="Khôi phục độ rộng cột mặc định">
+                      <Typography
+                        variant="caption"
+                        onClick={resetColumnWidths}
+                        sx={{
+                          cursor: "pointer",
+                          color: "primary.main",
+                          "&:hover": { textDecoration: "underline" },
+                        }}
+                      >
+                        Đặt lại độ rộng cột
+                      </Typography>
+                    </Tooltip>
+                  </Box>
                 </TableCell>
               </TableRow>
               <TableRow className="bg-gray-100">
-                <TableCell></TableCell>
-                <TableCell>
+                <ResizableTh resizable={false}></ResizableTh>
+                <ResizableTh onResizeMouseDown={handleResizeMouseDown("ten")}>
                   <b>Tên</b>
-                </TableCell>
-                <TableCell>
+                </ResizableTh>
+                <ResizableTh
+                  onResizeMouseDown={handleResizeMouseDown("lienHe")}
+                >
                   <b>Liên hệ</b>
-                </TableCell>
-                <TableCell>
+                </ResizableTh>
+                <ResizableTh
+                  onResizeMouseDown={handleResizeMouseDown("diaChi")}
+                >
                   <b>Địa chỉ</b>
-                </TableCell>
-                <TableCell>
+                </ResizableTh>
+                <ResizableTh
+                  onResizeMouseDown={handleResizeMouseDown("website")}
+                >
                   <b>Website</b>
-                </TableCell>
-                <TableCell>
+                </ResizableTh>
+                <ResizableTh onResizeMouseDown={handleResizeMouseDown("moTa")}>
                   <b>Mô tả</b>
-                </TableCell>
-                <TableCell>
+                </ResizableTh>
+                <ResizableTh
+                  onResizeMouseDown={handleResizeMouseDown("congNo")}
+                >
                   <b>Công nợ</b>
-                </TableCell>
-                <TableCell>
+                </ResizableTh>
+                <ResizableTh
+                  onResizeMouseDown={handleResizeMouseDown("ngayTao")}
+                >
                   <b>Ngày tạo</b>
-                </TableCell>
-                <TableCell align="center">
-                  <b>Hành động</b>
-                </TableCell>
+                </ResizableTh>
               </TableRow>
             </TableHead>
 
@@ -333,58 +524,81 @@ export default function NhaKhoaTable() {
 
               {filteredData.map((item) => (
                 <TableRow key={item._id} hover>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={() => toggleFavorite(item._id)}
-                    >
-                      {favorites.includes(item._id) ? (
-                        <Star className="text-yellow-400" />
-                      ) : (
-                        <StarBorder className="text-gray-400" />
-                      )}
-                    </IconButton>
+                  <TableCell align="center" sx={{ overflow: "hidden" }}>
+                    <NhaKhoaDetailModal nhaKhoaData={item} />
                   </TableCell>
 
-                  <TableCell>
-                    <div className="font-semibold text-gray-800">
+                  <TableCell
+                    sx={{ overflow: "hidden", cursor: "pointer" }}
+                    onClick={() => {
+                      setSelectedRow(item);
+                      setOpenEdit(true);
+                    }}
+                  >
+                    <div className="font-semibold text-gray-800 truncate">
                       {item.hoVaTen}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 truncate">
                       ID: {item._id.slice(-6)}
                     </div>
                   </TableCell>
 
-                  <TableCell>
-                    <div>{item.soDienThoai}</div>
-                    <div className="text-xs text-blue-500">{item.email}</div>
+                  <TableCell
+                    sx={{ overflow: "hidden", cursor: "pointer" }}
+                    onClick={() => {
+                      setSelectedRow(item);
+                      setOpenEdit(true);
+                    }}
+                  >
+                    <div className="truncate">{item.soDienThoai}</div>
+                    <div className="text-xs text-blue-500 truncate">
+                      {item.email}
+                    </div>
                   </TableCell>
 
-                  <TableCell>
-                    <div className="text-sm">{item.diaChiCuThe}</div>
-                    <div className="text-xs text-gray-500">
+                  <TableCell
+                    sx={{ overflow: "hidden", cursor: "pointer" }}
+                    onClick={() => {
+                      setSelectedRow(item);
+                      setOpenEdit(true);
+                    }}
+                  >
+                    <div className="text-sm truncate">{item.diaChiCuThe}</div>
+                    <div className="text-xs text-gray-500 truncate">
                       {item.tinh}, {item.quocGia}
                     </div>
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell sx={{ overflow: "hidden", cursor: "pointer" }}>
                     <a
                       href={`https://${item.website}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-blue-600 hover:underline truncate block"
                     >
                       {item.website}
                     </a>
                   </TableCell>
 
-                  <TableCell>
-                    <div className="max-w-[200px] truncate">{item.moTa}</div>
+                  <TableCell
+                    sx={{ overflow: "hidden", cursor: "pointer" }}
+                    onClick={() => {
+                      setSelectedRow(item);
+                      setOpenEdit(true);
+                    }}
+                  >
+                    <div className="truncate">{item.moTa}</div>
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell
+                    sx={{ overflow: "hidden", cursor: "pointer" }}
+                    onClick={() => {
+                      setSelectedRow(item);
+                      setOpenEdit(true);
+                    }}
+                  >
                     {(item.tongCongNo ?? 0) > 0 ? (
-                      <span className="font-semibold text-red-500">
+                      <span className="font-semibold text-red-500 whitespace-nowrap">
                         {item.tongCongNo.toLocaleString("vi-VN")}đ
                       </span>
                     ) : (
@@ -392,7 +606,13 @@ export default function NhaKhoaTable() {
                     )}
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell
+                    sx={{ overflow: "hidden", cursor: "pointer" }}
+                    onClick={() => {
+                      setSelectedRow(item);
+                      setOpenEdit(true);
+                    }}
+                  >
                     <Chip
                       label={new Date(item.createdAt).toLocaleDateString(
                         "vi-VN"
@@ -400,24 +620,6 @@ export default function NhaKhoaTable() {
                       color="success"
                       size="small"
                     />
-                  </TableCell>
-
-                  <TableCell align="center">
-                    <div className="flex items-center justify-center">
-                      <Tooltip title="Chỉnh sửa">
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setSelectedRow(item);
-                            setOpenEdit(true);
-                          }}
-                        >
-                          <Edit className="text-blue-500" />
-                        </IconButton>
-                      </Tooltip>
-
-                      <NhaKhoaDetailModal nhaKhoaData={item} />
-                    </div>
                   </TableCell>
                 </TableRow>
               ))}

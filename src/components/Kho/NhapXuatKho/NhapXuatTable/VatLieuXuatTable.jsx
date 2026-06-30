@@ -9,6 +9,7 @@ export default function VatLieuXuatTable({ data }) {
                     <thead className="sticky top-0 z-10">
                         <tr className="shadow">
                             <th className={`${rowBase} ${exBg}`}>Tên vật liệu</th>
+                            <th className={`${rowBase} ${exBg}`}>ĐVT</th>
                             <th className={`${rowBase} ${exBg}`}>Số lượng</th>
                         </tr>
                     </thead>
@@ -20,6 +21,7 @@ export default function VatLieuXuatTable({ data }) {
                         ) : data.map((row, i) => (
                             <tr key={i} className="hover:bg-gray-100">
                                 <td className={`${rowBase} ${borderBottom}`}>{row.tenVatLieu}</td>
+                                <td className={`${rowBase} ${borderBottom}`}>{row.donViTinh}</td>
                                 <td className={`${rowBase} ${borderBottom}`}>{row.soLuong}</td>
                             </tr>
                         ))}
@@ -27,7 +29,7 @@ export default function VatLieuXuatTable({ data }) {
                     {data.length > 0 && (
                         <tfoot className="sticky bottom-0 z-10">
                             <tr>
-                                <td className={`${rowBase} ${exBg} font-medium`}>Tổng</td>
+                                <td className={`${rowBase} ${exBg} font-medium`} colSpan={2}>Tổng</td>
                                 <td className={`${rowBase} ${exBg} font-medium`}>{tongSoLuong}</td>
                             </tr>
                         </tfoot>

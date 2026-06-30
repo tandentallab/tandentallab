@@ -54,11 +54,12 @@ function ComboboxInput({ value, onChange, options, placeholder }) {
 
 /**
  * Props:
- *  open      – boolean
- *  onClose   – () => void
- *  editData  – object | null
+ *  open           – boolean
+ *  onClose        – () => void
+ *  editData       – object | null
+ *  preSelectedIds – string[] | null  (danh sách _id vật liệu được chọn sẵn từ tab Vật liệu)
  */
-export default function XuatKhoModal({ open, onClose, editData = null }) {
+export default function XuatKhoModal({ open, onClose, editData = null, preSelectedIds = null }) {
     const dispatch = useDispatch();
     const kho = useSelector((state) => state.kho);
     const { user } = useSelector((state) => state.auth);
@@ -99,8 +100,9 @@ export default function XuatKhoModal({ open, onClose, editData = null }) {
 
         const initial = {};
         kho.vatLieu.forEach((vl) => {
+            const preChecked = preSelectedIds ? preSelectedIds.includes(vl._id) : false;
             initial[vl._id] = editMap[vl._id] || {
-                checked: false,
+                checked: preChecked,
                 soLuong: 0,
                 moTa: "",
             };

@@ -77,6 +77,14 @@ export default function GhiChuPage() {
 
   useEffect(() => {
     fetchNotes();
+
+    const handleRefresh = () => {
+      fetchNotes();
+    };
+    window.addEventListener("refresh-ghi-chu", handleRefresh);
+    return () => {
+      window.removeEventListener("refresh-ghi-chu", handleRefresh);
+    };
   }, []);
 
   // Handle opening confirmation dialog for note deletion
@@ -104,6 +112,7 @@ export default function GhiChuPage() {
             item._id === note._id ? { ...item, trangThai: newTrangThai } : item
           )
         );
+        window.dispatchEvent(new CustomEvent("refresh-ghi-chu"));
       }
     } catch (err) {
       toast.error(
@@ -122,6 +131,7 @@ export default function GhiChuPage() {
       if (res.data?.success) {
         toast.success("Đã xóa ghi chú thành công!");
         setNotes((prev) => prev.filter((item) => item._id !== selectedNote._id));
+        window.dispatchEvent(new CustomEvent("refresh-ghi-chu"));
       }
       handleCloseConfirm();
     } catch (err) {
@@ -141,6 +151,7 @@ export default function GhiChuPage() {
       if (res.data?.success) {
         toast.success(res.data.message || "Đã dọn dẹp các ghi chú đã hoàn thành!");
         fetchNotes();
+        window.dispatchEvent(new CustomEvent("refresh-ghi-chu"));
       }
       setOpenDeleteCompletedModal(false);
     } catch (err) {

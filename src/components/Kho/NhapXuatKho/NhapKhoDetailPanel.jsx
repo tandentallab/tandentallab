@@ -52,6 +52,7 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [updatingThanhToan, setUpdatingThanhToan] = useState(false);
 
     // Trigger slide animation
     useEffect(() => {
@@ -63,6 +64,9 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
             setFullPhieu(null);
         }
     }, [!!phieu]);
+
+    console.log(fullPhieu);
+
 
     // Fetch full detail whenever selected phieu changes
     useEffect(() => {
@@ -85,16 +89,35 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
         if (!fullPhieu) return;
         setUpdatingStatus(true);
         try {
-            const res = await dispatch(
-                updatePhieuNhapKho({ id: fullPhieu._id, trangThai: "Đã nhận" })
+            await dispatch(
+                updatePhieuNhapKho({ id: fullPhieu._id, trangThaiNhap: "Đã nhận" })
             ).unwrap();
-            setFullPhieu((prev) => ({ ...prev, trangThai: "Đã nhận", ...(res.data || {}) }));
-            toast.success("Cập nhật: Đã nhận");
+            const res = await dispatch(fetchPhieuNhapKhoById(fullPhieu._id)).unwrap();
+            setFullPhieu(res.data || res);
+            toast.success("Cập nhật: Đã nhận — tồn kho đã được cộng");
             onUpdated?.();
         } catch (err) {
             toast.error(err?.message || "Cập nhật thất bại");
         } finally {
             setUpdatingStatus(false);
+        }
+    }
+
+    async function handleConfirmThanhToan() {
+        if (!fullPhieu) return;
+        setUpdatingThanhToan(true);
+        try {
+            await dispatch(
+                updatePhieuNhapKho({ id: fullPhieu._id, trangThaiThanhToan: "Đã thanh toán" })
+            ).unwrap();
+            const res = await dispatch(fetchPhieuNhapKhoById(fullPhieu._id)).unwrap();
+            setFullPhieu(res.data || res);
+            toast.success("Cập nhật: Đã thanh toán");
+            onUpdated?.();
+        } catch (err) {
+            toast.error(err?.message || "Cập nhật thất bại");
+        } finally {
+            setUpdatingThanhToan(false);
         }
     }
 
@@ -123,6 +146,7 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
     }
 
     const panelTop = 70;
+    const isLocked = fullPhieu?.trangThaiNhap === "Đã nhận";
     const tongTien = (fullPhieu?.danhSachVatLieu || []).reduce(
         (s, i) => s + (i.thanhTien || 0),
         0
@@ -167,16 +191,28 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
                     </div>
                     <div className="flex items-center gap-1 text-white">
                         <button
-                            onClick={() => setShowEditModal(true)}
-                            title="Sửa phiếu"
-                            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-sky-500 transition"
+                            onClick={() => {
+                                if (isLocked) {
+                                    toast.error("Phiếu đã nhận, không thể chỉnh sửa");
+                                    return;
+                                }
+                                setShowEditModal(true);
+                            }}
+                            title={isLocked ? "Phiếu đã nhận" : "Sửa phiếu"}
+                            className={`w-8 h-8 flex items-center justify-center rounded-full transition ${isLocked ? "opacity-40 cursor-not-allowed" : "hover:bg-sky-500"}`}
                         >
                             <EditIcon sx={{ fontSize: 20 }} />
                         </button>
                         <button
-                            onClick={() => setShowDeleteConfirm(true)}
-                            title="Xóa phiếu"
-                            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-sky-500 transition"
+                            onClick={() => {
+                                if (isLocked) {
+                                    toast.error("Phiếu đã nhận, không thể xóa");
+                                    return;
+                                }
+                                setShowDeleteConfirm(true);
+                            }}
+                            title={isLocked ? "Không thể xóa phiếu đã nhận" : "Xóa phiếu"}
+                            className={`w-8 h-8 flex items-center justify-center rounded-full transition ${isLocked ? "opacity-40 cursor-not-allowed" : "hover:bg-sky-500"}`}
                         >
                             <DeleteIcon sx={{ fontSize: 20 }} />
                         </button>
@@ -201,19 +237,28 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
                             {/* Meta info */}
                             <div className="flex flex-col gap-2 bg-gray-100 rounded-lg p-3">
                                 <InfoRow label="Ngày tạo" value={formatNgay(fullPhieu.ngayTao)} />
+                                {fullPhieu.ngayNhan && (
+                                    <InfoRow label="Ngày nhận" value={formatNgay(fullPhieu.ngayNhan)} />
+                                )}
                                 <InfoRow label="Người tạo" value={fullPhieu.nguoiTao} />
+                                <InfoRow label="Nhà cung cấp" value={fullPhieu.nhaCungCap?.ten} />
                                 {fullPhieu.ghiChu && (
                                     <InfoRow label="Ghi chú" value={fullPhieu.ghiChu} />
                                 )}
+                                {/* Trạng thái nhập */}
                                 <div className="flex items-center gap-2 text-sm">
-                                    <span className="text-gray-500 w-28 shrink-0">Trạng thái:</span>
-                                    <span
-                                        className={`text-sm text-white font-medium px-2.5 py-0.5 ${fullPhieu.trangThai === "Đã nhận"
-                                            ? "bg-green-500"
-                                            : "bg-yellow-500"
-                                            }`}
-                                    >
-                                        {fullPhieu.trangThai}
+                                    <span className="text-gray-500 w-28 shrink-0">Nhập kho:</span>
+                                    <span className={`text-xs text-white font-medium px-2.5 py-0.5 rounded ${fullPhieu.trangThaiNhap === "Đã nhận" ? "bg-green-500" : "bg-yellow-500"
+                                        }`}>
+                                        {fullPhieu.trangThaiNhap}
+                                    </span>
+                                </div>
+                                {/* Trạng thái thanh toán */}
+                                <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-gray-500 w-28 shrink-0">Thanh toán:</span>
+                                    <span className={`text-xs text-white font-medium px-2.5 py-0.5 rounded ${fullPhieu.trangThaiThanhToan === "Đã thanh toán" ? "bg-green-500" : "bg-orange-400"
+                                        }`}>
+                                        {fullPhieu.trangThaiThanhToan}
                                     </span>
                                 </div>
                             </div>
@@ -229,7 +274,7 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
                                         <thead>
                                             <tr className="bg-sky-100">
                                                 <th className="text-left py-1 px-2 font-normal text-gray-700">Vật liệu</th>
-                                                <th className="text-left py-1 px-2 font-normal text-gray-700">NCC</th>
+                                                <th className="text-left py-1 px-2 font-normal text-gray-700">ĐVT</th>
                                                 <th className="text-right py-1 px-2 font-normal text-gray-700">SL</th>
                                                 <th className="text-right py-1 px-2 font-normal text-gray-700">Đơn giá</th>
                                                 <th className="text-right py-1 px-2 font-normal text-gray-700">Thành tiền</th>
@@ -245,7 +290,7 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
                                                         {item.vatLieu?.tenVatLieu || "—"}
                                                     </td>
                                                     <td className="py-1 px-2 max-w-[120px] truncate">
-                                                        {item.nhaCungCap?.ten || "—"}
+                                                        {item.vatLieu?.donViTinh || "—"}
                                                     </td>
                                                     <td className="py-1 px-2 text-right">{item.soLuong}</td>
                                                     <td className="py-1 px-2 text-right">
@@ -275,21 +320,40 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
                             </div>
 
 
-                            {/* Xác nhận nhận hàng */}
-                            {fullPhieu.trangThai === "Đã nhận" ? (
-                                <div className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700">
-                                    <LockIcon sx={{ fontSize: 16 }} />
-                                    Đã nhập kho
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={handleConfirmNhan}
-                                    disabled={updatingStatus}
-                                    className="w-full py-2.5 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition disabled:opacity-60"
-                                >
-                                    {updatingStatus ? "Đang cập nhật..." : "Đánh dấu Đã nhận"}
-                                </button>
-                            )}
+                            {/* Actions */}
+                            <div className="flex flex-col gap-2">
+                                {/* Xác nhận nhận hàng */}
+                                {fullPhieu.trangThaiNhap === "Đã nhận" ? (
+                                    <div className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700">
+                                        <LockIcon sx={{ fontSize: 16 }} />
+                                        Đã nhập kho
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={handleConfirmNhan}
+                                        disabled={updatingStatus}
+                                        className="w-full py-2.5 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition disabled:opacity-60"
+                                    >
+                                        {updatingStatus ? "Đang cập nhật..." : "Đánh dấu Đã nhận"}
+                                    </button>
+                                )}
+
+                                {/* Xác nhận thanh toán */}
+                                {fullPhieu.trangThaiThanhToan === "Đã thanh toán" ? (
+                                    <div className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-700">
+                                        <LockIcon sx={{ fontSize: 16 }} />
+                                        Đã thanh toán
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={handleConfirmThanhToan}
+                                        disabled={updatingThanhToan}
+                                        className="w-full py-2.5 rounded-lg text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition disabled:opacity-60"
+                                    >
+                                        {updatingThanhToan ? "Đang cập nhật..." : "Đánh dấu Đã thanh toán"}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ) : null}
                 </div>

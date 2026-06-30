@@ -9,6 +9,7 @@ export default function VatLieuNhapTable({ data }) {
                     <thead className="sticky top-0 z-10">
                         <tr className="shadow">
                             <th className={`${rowBase} ${imBg}`}>Tên vật liệu</th>
+                            <th className={`${rowBase} ${imBg}`}>ĐVT</th>
                             <th className={`${rowBase} ${imBg}`}>Số lượng</th>
                         </tr>
                     </thead>
@@ -20,6 +21,7 @@ export default function VatLieuNhapTable({ data }) {
                         ) : data.map((row, i) => (
                             <tr key={i} className="hover:bg-gray-100">
                                 <td className={`${rowBase} ${borderBottom}`}>{row.tenVatLieu}</td>
+                                <td className={`${rowBase} ${borderBottom}`}>{row.donViTinh}</td>
                                 <td className={`${rowBase} ${borderBottom}`}>{row.soLuong}</td>
                             </tr>
                         ))}
@@ -27,7 +29,7 @@ export default function VatLieuNhapTable({ data }) {
                     {data.length > 0 && (
                         <tfoot className="sticky bottom-0 z-10">
                             <tr>
-                                <td className={`${rowBase} ${imBg} font-medium`}>Tổng</td>
+                                <td className={`${rowBase} ${imBg} font-medium`} colSpan={2}>Tổng</td>
                                 <td className={`${rowBase} ${imBg} font-medium`}>{tongSoLuong}</td>
                             </tr>
                         </tfoot>

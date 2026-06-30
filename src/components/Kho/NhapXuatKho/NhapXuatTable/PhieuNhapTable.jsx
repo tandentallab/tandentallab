@@ -40,11 +40,7 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
                                 <td className={`${rowBase} text-gray-400`} colSpan={5}>Không có dữ liệu</td>
                             </tr>
                         ) : data.map((row) => {
-                            const nccDaiDien = row.danhSachVatLieu?.[0]?.nhaCungCap?.ten || "—";
-                            const nccSet = new Set(
-                                (row.danhSachVatLieu || []).map((v) => v.nhaCungCap?.ten).filter(Boolean)
-                            );
-                            const coNhieuNCC = nccSet.size > 1;
+                            const nccTen = row.nhaCungCap?.ten || "—";
                             const isSelected = row._id === selectedId;
                             return (
                                 <tr
@@ -54,19 +50,21 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
                                 >
                                     <td className={`${rowBase} ${borderBottom} whitespace-nowrap`}>{formatNgay(row.ngayTao)}</td>
                                     <td className={`${rowBase} ${borderBottom} whitespace-nowrap`}>{row.soPhieu}</td>
-                                    <td className={`${rowBase} ${borderBottom} max-w-32 truncate`}>
-                                        {nccDaiDien}
-                                        {coNhieuNCC && (
-                                            <span className="text-gray-400 text-xs ml-1">+{nccSet.size - 1}</span>
-                                        )}
-                                    </td>
+                                    <td className={`${rowBase} ${borderBottom} max-w-32 truncate`}>{nccTen}</td>
                                     <td className={`${rowBase} ${borderBottom} whitespace-nowrap`}>
                                         {(row.tongTien || 0).toLocaleString("vi-VN")}
                                     </td>
                                     <td className={`${rowBase} ${borderBottom}`}>
-                                        <span className={`text-sm text-white font-medium px-2.5 py-0.5 ${row.trangThai === "Đã nhận" ? "bg-green-500" : "bg-yellow-500"}`}>
-                                            {row.trangThai}
-                                        </span>
+                                        <div className="flex flex-col gap-1">
+                                            <span className={`text-xs text-white font-medium px-2 py-0.5 rounded w-fit ${row.trangThaiNhap === "Đã nhận" ? "bg-green-500" : "bg-yellow-500"
+                                                }`}>
+                                                {row.trangThaiNhap}
+                                            </span>
+                                            <span className={`text-xs text-white font-medium px-2 py-0.5 rounded w-fit ${row.trangThaiThanhToan === "Đã thanh toán" ? "bg-green-500" : "bg-orange-400"
+                                                }`}>
+                                                {row.trangThaiThanhToan}
+                                            </span>
+                                        </div>
                                     </td>
                                 </tr>
                             );
@@ -89,11 +87,7 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
                     {data.length === 0 ? (
                         <p className="text-sm text-gray-400 text-center py-6">Không có dữ liệu</p>
                     ) : data.map((row) => {
-                        const nccDaiDien = row.danhSachVatLieu?.[0]?.nhaCungCap?.ten || "—";
-                        const nccSet = new Set(
-                            (row.danhSachVatLieu || []).map((v) => v.nhaCungCap?.ten).filter(Boolean)
-                        );
-                        const coNhieuNCC = nccSet.size > 1;
+                        const nccTen = row.nhaCungCap?.ten || "—";
                         const isSelected = row._id === selectedId;
                         return (
                             <div
@@ -104,9 +98,16 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
                                 {/* Header row: số phiếu + trạng thái */}
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="font-semibold text-sm text-gray-800">{row.soPhieu}</span>
-                                    <span className={`text-xs text-white font-medium px-2 py-0.5 rounded ${row.trangThai === "Đã nhận" ? "bg-green-500" : "bg-yellow-500"}`}>
-                                        {row.trangThai}
-                                    </span>
+                                    <div className="flex flex-col gap-1 items-end">
+                                        <span className={`text-xs text-white font-medium px-2 py-0.5 rounded ${row.trangThaiNhap === "Đã nhận" ? "bg-green-500" : "bg-yellow-500"
+                                            }`}>
+                                            {row.trangThaiNhap}
+                                        </span>
+                                        <span className={`text-xs text-white font-medium px-2 py-0.5 rounded ${row.trangThaiThanhToan === "Đã thanh toán" ? "bg-green-500" : "bg-orange-400"
+                                            }`}>
+                                            {row.trangThaiThanhToan}
+                                        </span>
+                                    </div>
                                 </div>
                                 {/* Details */}
                                 <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-600">
@@ -114,12 +115,7 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
                                     <span>{formatNgay(row.ngayTao)}</span>
 
                                     <span className="text-gray-400">Nhà cung cấp</span>
-                                    <span className="truncate">
-                                        {nccDaiDien}
-                                        {coNhieuNCC && (
-                                            <span className="text-gray-400 ml-1">+{nccSet.size - 1}</span>
-                                        )}
-                                    </span>
+                                    <span className="truncate">{nccTen}</span>
 
                                     <span className="text-gray-400">Thành tiền</span>
                                     <span className="font-medium text-gray-800">
@@ -138,13 +134,13 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
                         </div>
                     )}
                 </div>
-
-                {/* Sentinel */}
-                <div ref={sentinelRef} className="h-1" />
-                {loadingMore && (
-                    <div className="text-center py-2 text-xs text-gray-400">Đang tải thêm...</div>
-                )}
             </div>
+
+            {/* Sentinel */}
+            <div ref={sentinelRef} className="h-1" />
+            {loadingMore && (
+                <div className="text-center py-2 text-xs text-gray-400">Đang tải thêm...</div>
+            )}
         </div>
     );
 }

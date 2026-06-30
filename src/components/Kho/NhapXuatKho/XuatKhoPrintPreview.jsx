@@ -72,54 +72,46 @@ const XuatKhoPrintPreview = () => {
                     className="print-area bg-white shadow-lg border border-gray-300"
                     style={{
                         width: "210mm",
-                        fontFamily: "Times New Roman, serif",
                         padding: "12mm 15mm",
                     }}
                 >
                     {/* Header */}
-                    <div style={{ display: "flex" }}>
+                    <div style={{ marginBottom: "4mm" }}>
                         <div style={{ flex: 2 }}>
                             <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>
                                 {congTy?.Ten || ""}
                             </p>
                             <p style={{ margin: "1mm 0 0", fontSize: "9pt" }}>{congTy?.DiaChi || ""}</p>
+                            <p style={{ margin: "1mm 0 0", fontSize: "9pt" }}>SĐT: {congTy?.DienThoai || ""}</p>
                         </div>
                     </div>
 
                     {/* Title */}
                     <div style={{ textAlign: "center", margin: "4mm 0 6mm" }}>
-                        <h1 style={{ margin: 0, fontSize: "16pt", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}>
+                        <h1 style={{ margin: 0, fontSize: "16pt", fontWeight: "bold", textTransform: "uppercase" }}>
                             PHIẾU XUẤT KHO
                         </h1>
-                        <div style={{ fontSize: "9pt", marginTop: "1mm", color: "#444" }}>
-                            Số phiếu: <strong>{phieu.soPhieu || "—"}</strong>
+                        <div style={{ fontSize: "9pt", marginTop: "1mm", color: "#555" }}>
+                            Số phiếu: {phieu.soPhieu || "—"}
                         </div>
-                        <div style={{ fontSize: "9pt", color: "#444" }}>
-                            Ngày: {formatDate(phieu.ngayTao)}
+                        <div style={{ fontSize: "9pt", color: "#555" }}>
+                            Ngày tạo: {formatDate(phieu.ngayTao)}
                         </div>
                     </div>
 
                     {/* Info */}
                     <div style={{ fontSize: "10.5pt", lineHeight: "1.9", marginBottom: "4mm" }}>
-                        {phieu.boPhan && (
-                            <div>
-                                <span style={{ minWidth: "110px", display: "inline-block" }}>Bộ phận:</span>
-                                <strong>{phieu.boPhan}</strong>
-                            </div>
-                        )}
-                        {phieu.nhanVien && (
-                            <div>
-                                <span style={{ minWidth: "110px", display: "inline-block" }}>Nhân viên:</span>
-                                <strong>{phieu.nhanVien}</strong>
-                            </div>
-                        )}
                         <div>
-                            <span style={{ minWidth: "110px", display: "inline-block" }}>Trạng thái:</span>
-                            <strong>{phieu.trangThai || "—"}</strong>
+                            <p style={{ minWidth: "80px", display: "inline-block" }}>Bộ phận:</p>
+                            {phieu?.boPhan}
+                        </div>
+                        <div>
+                            <p style={{ minWidth: "80px", display: "inline-block" }}>Nhân viên:</p>
+                            {phieu?.nhanVien}
                         </div>
                         {phieu.ghiChu && (
                             <div>
-                                <span style={{ minWidth: "110px", display: "inline-block" }}>Ghi chú:</span>
+                                <span style={{ minWidth: "80px", display: "inline-block" }}>Ghi chú:</span>
                                 <span>{phieu.ghiChu}</span>
                             </div>
                         )}
@@ -135,29 +127,27 @@ const XuatKhoPrintPreview = () => {
                         }}
                     >
                         <thead>
-                            <tr style={{ backgroundColor: "#d1fae5" }}>
+                            <tr>
                                 <th style={thStyle({ textAlign: "center", width: "8%" })}>STT</th>
-                                <th style={thStyle({ textAlign: "left", width: "45%" })}>Tên vật liệu</th>
-                                <th style={thStyle({ textAlign: "center", width: "12%" })}>ĐVT</th>
+                                <th style={thStyle({ textAlign: "left", width: "37%" })}>Tên vật liệu</th>
+                                <th style={thStyle({ textAlign: "left", width: "14%" })}>ĐVT</th>
                                 <th style={thStyle({ textAlign: "center", width: "12%" })}>Số lượng</th>
-                                <th style={thStyle({ textAlign: "left", width: "23%" })}>Ghi chú</th>
+                                <th style={thStyle({ textAlign: "left", width: "29%" })}>Ghi chú</th>
                             </tr>
                         </thead>
                         <tbody>
                             {(phieu.danhSachVatLieu || []).map((item, i) => (
-                                <tr key={i} style={{ backgroundColor: i % 2 === 1 ? "#f9f9f9" : "#fff" }}>
+                                <tr key={i}>
                                     <td style={tdStyle({ textAlign: "center" })}>{i + 1}</td>
                                     <td style={tdStyle()}>{item.vatLieu?.tenVatLieu || "—"}</td>
-                                    <td style={tdStyle({ textAlign: "center" })}>
-                                        {item.vatLieu?.donViTinh || "—"}
-                                    </td>
+                                    <td style={tdStyle()}>{item.vatLieu?.donViTinh || "—"}</td>
                                     <td style={tdStyle({ textAlign: "center" })}>{item.soLuong}</td>
                                     <td style={tdStyle()}>{item.moTa || ""}</td>
                                 </tr>
                             ))}
                         </tbody>
                         <tfoot>
-                            <tr style={{ backgroundColor: "#d1fae5", fontWeight: "bold" }}>
+                            <tr style={{ fontWeight: "bold" }}>
                                 <td style={tdStyle({ textAlign: "center" })} colSpan={3}>
                                     Tổng cộng
                                 </td>
@@ -180,17 +170,17 @@ const XuatKhoPrintPreview = () => {
                         <div style={{ width: "30%" }}>
                             <div style={{ fontWeight: "bold" }}>Người lập phiếu</div>
                             <div style={{ fontSize: "8.5pt", color: "#555", marginBottom: "14mm" }}>(Ký, họ tên)</div>
-                            <div style={{ borderTop: "1px solid #333", paddingTop: "1mm" }}>&nbsp;</div>
+                            <div>{phieu.nguoiTao || ""}</div>
                         </div>
                         <div style={{ width: "30%" }}>
                             <div style={{ fontWeight: "bold" }}>Thủ kho</div>
                             <div style={{ fontSize: "8.5pt", color: "#555", marginBottom: "14mm" }}>(Ký, họ tên)</div>
-                            <div style={{ borderTop: "1px solid #333", paddingTop: "1mm" }}>&nbsp;</div>
+                            <div>&nbsp;</div>
                         </div>
                         <div style={{ width: "30%" }}>
                             <div style={{ fontWeight: "bold" }}>Giám đốc</div>
                             <div style={{ fontSize: "8.5pt", color: "#555", marginBottom: "14mm" }}>(Ký, họ tên)</div>
-                            <div style={{ borderTop: "1px solid #333", paddingTop: "1mm" }}>&nbsp;</div>
+                            <div>&nbsp;</div>
                         </div>
                     </div>
                 </div>

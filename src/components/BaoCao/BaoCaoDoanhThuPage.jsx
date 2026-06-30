@@ -13,7 +13,6 @@ import BaoCaoDoanhThuTable from './BaoCaoDoanhThuTable';
 import { FaFileExcel } from "react-icons/fa6";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-const FONT = "'Cambria', 'serif'";
 const now = new Date();
 const currentYear = now.getFullYear();
 const currentMonth = now.getMonth() + 1;
@@ -140,7 +139,8 @@ export default function BaoCaoDoanhThuPage() {
 
     return (
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 1.5, padding: 2 }}
+            style={{ maxHeight: 'calc(100vh - 70px)' }}>
 
             {/* ─── Toolbar ─────────────────────────────────────────────── */}
             <Paper elevation={0} sx={{
@@ -155,17 +155,17 @@ export default function BaoCaoDoanhThuPage() {
             }}>
                 {/* Chọn năm */}
                 <FormControl size="small" sx={{ minWidth: 80, flex: { xs: '1 1 0', sm: '0 0 auto' } }}>
-                    <InputLabel sx={{ fontFamily: FONT }}>Năm</InputLabel>
-                    <Select value={nam} label="Năm" onChange={handleNamChange} sx={{ fontFamily: FONT }}>
-                        {NAM_LIST.map(y => <MenuItem key={y} value={y} sx={{ fontFamily: FONT }}>{y}</MenuItem>)}
+                    <InputLabel sx={{}}>Năm</InputLabel>
+                    <Select value={nam} label="Năm" onChange={handleNamChange} sx={{}}>
+                        {NAM_LIST.map(y => <MenuItem key={y} value={y} sx={{}}>{y}</MenuItem>)}
                     </Select>
                 </FormControl>
 
                 {/* Chọn tháng */}
                 <FormControl size="small" sx={{ minWidth: 95, flex: { xs: '1 1 0', sm: '0 0 auto' } }}>
-                    <InputLabel sx={{ fontFamily: FONT }}>Tháng</InputLabel>
-                    <Select value={thang} label="Tháng" onChange={e => { setThang(Number(e.target.value)); setShowTable(false); }} sx={{ fontFamily: FONT }}>
-                        {availableMonths.map(t => <MenuItem key={t} value={t} sx={{ fontFamily: FONT }}>Tháng {t}</MenuItem>)}
+                    <InputLabel sx={{}}>Tháng</InputLabel>
+                    <Select value={thang} label="Tháng" onChange={e => { setThang(Number(e.target.value)); setShowTable(false); }} sx={{}}>
+                        {availableMonths.map(t => <MenuItem key={t} value={t} >Tháng {t}</MenuItem>)}
                     </Select>
                 </FormControl>
 
@@ -174,8 +174,8 @@ export default function BaoCaoDoanhThuPage() {
                     startIcon={loading ? <CircularProgress size={15} color="inherit" /> : <SearchIcon fontSize="small" />}
                     onClick={handleSearch} disabled={loading}
                     sx={{
-                        fontFamily: FONT, fontWeight: 600, borderRadius: 1.5,
-                        bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' },
+                        fontWeight: 600, borderRadius: 1.5,
+                        bgcolor: '#167b82', '&:hover': { bgcolor: '#42d1db' },
                         px: { xs: 1.5, sm: 2 },
                         height: 40,
                         whiteSpace: 'nowrap',
@@ -197,7 +197,7 @@ export default function BaoCaoDoanhThuPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         sx={{
                             flex: { xs: '1 1 auto', sm: '0 0 160px' },
-                            '& .MuiInputBase-root': { fontFamily: FONT, height: 40, fontSize: '0.85rem', borderRadius: 1.5 },
+                            '& .MuiInputBase-root': { height: 40, fontSize: '0.85rem', borderRadius: 1.5 },
                         }}
                         InputProps={{
                             startAdornment: (
@@ -231,7 +231,7 @@ export default function BaoCaoDoanhThuPage() {
                 )}
             </Paper>
 
-            {error && <Alert severity="error" sx={{ fontFamily: FONT }}>{error}</Alert>}
+            {error && <Alert severity="error" sx={{}}>{error}</Alert>}
 
             {loading && (
                 <div className="flex-1 flex items-center justify-center">
@@ -242,7 +242,7 @@ export default function BaoCaoDoanhThuPage() {
             {!loading && !showTable && (
                 <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3 pb-20">
                     <SearchIcon sx={{ fontSize: 48, opacity: 0.3 }} />
-                    <Typography sx={{ fontFamily: FONT, fontSize: '0.95rem', fontWeight: 500 }}>
+                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 500 }}>
                         Vui lòng chọn thời gian và bấm "Xem báo cáo"
                     </Typography>
                 </div>

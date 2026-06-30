@@ -239,6 +239,18 @@ const Header = ({ onToggleSidebar }) => {
     return todoList.filter((todo) => todo.trangThai === "Chưa hoàn thành");
   }, [todoList]);
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (isAuthenticated && hasRouteAccess(user, "/ghi-chu")) {
+        fetchTodos();
+      }
+    };
+    window.addEventListener("refresh-ghi-chu", handleRefresh);
+    return () => {
+      window.removeEventListener("refresh-ghi-chu", handleRefresh);
+    };
+  }, [isAuthenticated, user]);
+
   const handleToggleTodoPopover = () => {
     if (!openTodoPopover) {
       fetchTodos();
@@ -252,6 +264,7 @@ const Header = ({ onToggleSidebar }) => {
       if (res.data?.success) {
         toast.success("Đã hoàn thành ghi chú!");
         fetchTodos();
+        window.dispatchEvent(new CustomEvent("refresh-ghi-chu"));
       }
     } catch (error) {
       toast.error("Lỗi khi hoàn thành ghi chú: " + error.message);

@@ -1,7 +1,12 @@
 // pages/Kho/KhoPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchVatLieu, fetchNhaCungCap } from "../../redux/slices/khoSlice";
+import {
+  fetchVatLieu,
+  fetchNhaCungCap,
+  setVatLieuFilters,
+  resetVatLieuFilters,
+} from "../../redux/slices/khoSlice";
 import VatLieuTable from "./VatLieuTable";
 import NhapXuatTable from "./NhapXuatKho/NhapXuatTable";
 import NhaCungCapTable from "./NhaCungCapTable";
@@ -34,11 +39,12 @@ export default function KhoPage() {
   return (
     <div className="p-6">
       {/* ===== BANNER TỔNG QUAN ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 cursor-pointer">
         {/* Tổng vật liệu */}
         <div
           className="rounded-xl px-6 py-4 flex items-center gap-4"
           style={{ backgroundColor: "#1976d2" }}
+          onClick={() => dispatch(resetVatLieuFilters())}
         >
           <CategoryIcon sx={{ fontSize: 36, color: "rgba(255,255,255,0.8)" }} />
           <div>
@@ -49,9 +55,14 @@ export default function KhoPage() {
 
         {/* Hàng thiếu */}
         <div
-          className="rounded-xl px-6 py-4 flex items-center gap-4"
+          className="rounded-xl px-6 py-4 flex items-center gap-4 cursor-pointer"
           style={{
             backgroundColor: soHangThieuHang > 0 ? "#ef4444" : "#22c55e",
+          }}
+          onClick={() => {
+            if (soHangThieuHang > 0) {
+              dispatch(setVatLieuFilters({ filterTrangThai: "thieu" }));
+            }
           }}
         >
           <WarningAmberIcon

@@ -28,7 +28,10 @@ export default function DonHangChuaXuatPage() {
   }, [dispatch]);
 
   return (
-    <div className="flex flex-col md:flex-row bg-white md:h-screen md:overflow-hidden relative">
+    <div
+      className="flex flex-col md:flex-row bg-white flex-1 overflow-hidden relative"
+      style={{ maxHeight: 'calc(100vh - 70px)' }}
+    >
       {isInitialLoading && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm gap-3">
           <CircularProgress size={32} sx={{ color: "#00a8df" }} />

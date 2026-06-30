@@ -16,7 +16,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 const SIDEBAR_EXPANDED = 265;
 const SIDEBAR_COLLAPSED = 56;
 
-// Đã tách "Báo cáo doanh thu" ra khỏi menu này
 const REPORT_MENU = [
     { path: '/bao-cao', label: 'Sản lượng theo thời gian', icon: <BarChartIcon fontSize="small" /> },
     { path: '/bao-cao/khach-hang', label: 'Sản lượng theo khách hàng', icon: <PeopleAltIcon fontSize="small" /> },
@@ -57,7 +56,6 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
 
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {/* Header Sidebar Nhỏ */}
             <Box sx={{
                 px: 1.5,
                 bgcolor: '#FFF',
@@ -86,7 +84,6 @@ const SidebarContent = ({ collapsed, onCollapse, onNavigate }) => {
                 )}
             </Box>
 
-            {/* Menu items */}
             <List sx={{ pt: 1, flex: 1 }}>
                 {REPORT_MENU.map((item, idx) => {
                     const isActive =
@@ -158,10 +155,10 @@ const ReportLayout = ({ children, title }) => {
     const [drawerOpen, setDrawerOpen] = useState(() => {
         return location.state?.isFromMainSidebar === true;
     });
-    const [collapsed, setCollapsed] = useState(() => {
-        try { return localStorage.getItem('sidebar-collapsed') === 'true'; }
-        catch { return false; }
-    });
+
+    // Đã thay đổi khởi tạo state thành false để sidebar luôn mở sẵn khi vào trang
+    const [collapsed, setCollapsed] = useState(false);
+
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -223,10 +220,8 @@ const ReportLayout = ({ children, title }) => {
                 </Drawer>
             )}
 
-            {/* ── Content area ── */}
             <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-                {/* Header (Đã tinh chỉnh khoảng trống dư thừa) */}
                 <Box
                     className="no-print"
                     sx={{
@@ -234,7 +229,6 @@ const ReportLayout = ({ children, title }) => {
                         alignItems: 'center',
                         gap: 1.5,
                         px: { xs: 2, md: 3 },
-                        // GIẢM pt TRÊN MOBILE: xs (mobile) cho pt: 1 (8px), md (desktop) giữ pt: 2 (16px)
                         pt: { xs: 1, md: 2 },
                         pb: 2,
                     }}
@@ -242,7 +236,6 @@ const ReportLayout = ({ children, title }) => {
                     {isMobile && (
                         <IconButton
                             onClick={() => setDrawerOpen(true)}
-                            // Có thể thêm size="small" ở đây để icon button bớt to trên mobile
                             size="small"
                             sx={{ bgcolor: '#f3f4f6', '&:hover': { bgcolor: '#e5e7eb' }, mr: 1 }}
                         >
@@ -255,7 +248,6 @@ const ReportLayout = ({ children, title }) => {
                             fontWeight: 700,
                             color: "black",
                             lineHeight: 1,
-                            // GIẢM FONT CHỮ TRÊN MOBILE: xs là mobile (cỡ 1.1rem), md là desktop (cỡ 1.25rem là mặc định của h6)
                             fontSize: { xs: '1.1rem', md: '1.25rem' }
                         }}
                     >
@@ -263,7 +255,6 @@ const ReportLayout = ({ children, title }) => {
                     </Typography>
                 </Box>
 
-                {/* Page content (Đã giảm pt xuống để đẩy nội dung lên sát hơn) */}
                 <Box sx={{ flex: 1, overflow: 'auto', px: { xs: 2, md: 3 }, pb: { xs: 2, md: 3 }, pt: 0 }}>
                     {children}
                 </Box>

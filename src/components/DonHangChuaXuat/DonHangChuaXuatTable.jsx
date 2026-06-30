@@ -114,7 +114,8 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   const [searchMaDon, setSearchMaDon] = useState("");
   const [visibleCount, setVisibleCount] = useState(25);
   const containerRef = useRef(null);
-  const sentinelRef = useRef(null);
+  const [sentinelEl, setSentinelEl] = useState(null);
+  const setSentinelRef = useCallback((node) => setSentinelEl(node), []);
 
   const today = new Date().toISOString().split("T")[0];
   const defaultFrom = (() => {
@@ -251,19 +252,21 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
     return orders;
   }, [displayedData]);
 
+  const displayedLenRef = useRef(displayedData.length);
+  useEffect(() => { displayedLenRef.current = displayedData.length; }, [displayedData.length]);
+
   useEffect(() => {
-    const container = containerRef.current; const sentinel = sentinelRef.current;
-    if (!container || !sentinel) return;
-    if (visibleCount >= displayedData.length) return;
+    const container = containerRef.current;
+    if (!container || !sentinelEl) return;
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
-        setVisibleCount((prev) => Math.min(prev + 25, displayedData.length));
+        setVisibleCount((prev) => Math.min(prev + 25, displayedLenRef.current));
       }
     }, { root: container, rootMargin: "200px", threshold: 0 });
-    observer.observe(sentinel);
+    observer.observe(sentinelEl);
     return () => observer.disconnect();
-  }, [displayedData.length, visibleCount]);
+  }, [sentinelEl]);
 
   const visibleRows = displayedData.slice(0, visibleCount);
 
@@ -421,7 +424,7 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
                 ))
               )}
               {!loadingDonHangs && visibleCount < displayedData.length && (
-                <TableRow ref={sentinelRef}><TableCell colSpan={13} align="center" sx={{ py: 2, borderBottom: "none" }}><CircularProgress size={18} sx={{ color: "#00a8df" }} /></TableCell></TableRow>
+                <TableRow ref={setSentinelRef}><TableCell colSpan={13} align="center" sx={{ py: 2, borderBottom: "none" }}><CircularProgress size={18} sx={{ color: "#00a8df" }} /></TableCell></TableRow>
               )}
             </TableBody>
           </Table>

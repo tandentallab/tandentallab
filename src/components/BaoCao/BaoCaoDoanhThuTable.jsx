@@ -17,10 +17,12 @@ const fmt = (n) => n == null ? '0' : new Intl.NumberFormat('vi-VN').format(Math.
 const fmtStrict = (n) => n == null ? '0' : new Intl.NumberFormat('vi-VN').format(Math.abs(n));
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
-const FONT = "'Cambria', 'serif'";
-const headerSx = { backgroundColor: '#1a237e', color: '#fff', fontWeight: 700, fontSize: '0.76rem', fontFamily: FONT, letterSpacing: '0.04em', whiteSpace: 'nowrap', py: 1.4, border: '1px solid #283593', textTransform: 'uppercase' };
-const sumRowSx = { backgroundColor: '#e8eaf6', fontWeight: 700, fontFamily: FONT };
-const cellSx = { fontSize: '0.82rem', fontFamily: FONT, py: 1, px: 1.5, border: '1px solid #eeeeee' };
+const headerSx = {
+    backgroundColor: '#167b82', color: '#fff', fontWeight: 700, fontSize: '0.76rem'
+    , letterSpacing: '0.04em', whiteSpace: 'nowrap', py: 1.4, border: '1px solid #63a3a8', textTransform: 'uppercase'
+};
+const sumRowSx = { backgroundColor: '#e8eaf6', fontWeight: 700 };
+const cellSx = { fontSize: '0.82rem', py: 1, px: 1.5, border: '1px solid #c1e5e8' };
 const totalCellSx = { ...cellSx, fontWeight: 900, fontSize: "sm" };
 
 const SORT_COLS = [
@@ -68,10 +70,10 @@ const MemoizedTableRow = memo(function MemoizedTableRow({ row, rowNote, onOpenNo
 function StatCell({ label, value, valueColor }) {
     return (
         <Box sx={{ px: 1.5, py: 0.8 }}>
-            <Typography sx={{ fontFamily: FONT, fontSize: '0.75rem', fontWeight: 700, color: 'inherit', opacity: 0.65, mb: 0.2, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'inherit', opacity: 0.65, mb: 0.2, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                 {label}
             </Typography>
-            <Typography sx={{ fontFamily: FONT, fontSize: '1.05rem', color: valueColor || 'inherit', fontWeight: 800 }}>
+            <Typography sx={{ fontSize: '1.05rem', color: valueColor || 'inherit', fontWeight: 800 }}>
                 {value}
             </Typography>
         </Box>
@@ -124,7 +126,7 @@ const MobileCard = memo(function MobileCard({ row, rowNote, onOpenNote }) {
             >
                 <EditNoteIcon sx={{ fontSize: '1.1rem', color: rowNote ? '#2e7d32' : '#b0bec5', flexShrink: 0 }} />
                 <Typography sx={{
-                    fontFamily: FONT, fontSize: '0.85rem',
+                    fontSize: '0.85rem',
                     color: rowNote ? '#424242' : '#9e9e9e',
                     fontStyle: rowNote ? 'normal' : 'italic', flex: 1,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -141,10 +143,10 @@ function MobileSummaryBar({ tongHop, thang, nam, count }) {
     return (
         <Paper elevation={0} sx={{ borderRadius: 2, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             <Box sx={{ px: 1.5, py: 1, bgcolor: '#1a237e', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography sx={{ fontFamily: FONT, fontSize: '0.75rem', color: '#fff', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                <Typography sx={{ fontSize: '0.75rem', color: '#fff', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                     Tổng Cộng
                 </Typography>
-                <Typography sx={{ fontFamily: FONT, fontSize: '0.75rem', color: '#c5cae9', fontWeight: 600 }}>
+                <Typography sx={{ fontSize: '0.75rem', color: '#c5cae9', fontWeight: 600 }}>
                     {count} nha khoa · T{String(thang).padStart(2, '0')}/{nam}
                 </Typography>
             </Box>
@@ -284,7 +286,7 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam,
                                     const isActive = sortConfig.key === key;
                                     const SortIcon = isActive ? (sortConfig.dir === 'asc' ? ArrowUpwardIcon : ArrowDownwardIcon) : UnfoldMoreIcon;
                                     return (
-                                        <TableCell key={key} align="right" onClick={() => handleSort(key)} sx={{ ...headerSx, cursor: 'pointer', userSelect: 'none', '&:hover': { bgcolor: '#283593' } }}>
+                                        <TableCell key={key} align="right" onClick={() => handleSort(key)} sx={{ ...headerSx, cursor: 'pointer', userSelect: 'none' }}>
                                             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                                                 {label}
                                                 <SortIcon sx={{ fontSize: '0.9rem', opacity: isActive ? 1 : 0.5 }} />
@@ -297,6 +299,16 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam,
                         </TableHead>
 
                         <TableBody>
+                            {filteredData.length > 0 && (
+                                <TableRow sx={sumRowSx}>
+                                    <TableCell colSpan={2} align="center" sx={{ ...totalCellSx, color: "#165c61", letterSpacing: "0.05em" }}>TỔNG CỘNG</TableCell>
+                                    <TableCell align="right" sx={{ ...totalCellSx, color: "#424242" }}>{fmtStrict(dynamicTongHop.noDauKy)}</TableCell>
+                                    <TableCell align="right" sx={{ ...totalCellSx, color: "#424242" }}>{fmtStrict(dynamicTongHop.phatSinh)}</TableCell>
+                                    <TableCell align="right" sx={{ ...totalCellSx, color: "#424242" }}>{fmtStrict(dynamicTongHop.thanhToan)}</TableCell>
+                                    <TableCell align="right" sx={{ ...totalCellSx, color: "#d32f2f" }}>{fmtStrict(dynamicTongHop.conNo)}</TableCell>
+                                    <TableCell sx={{ ...totalCellSx }}></TableCell>
+                                </TableRow>
+                            )}
                             {sortedData.map((row) => (
                                 <MemoizedTableRow
                                     key={row.nhaKhoaId}
@@ -305,23 +317,12 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam,
                                     onOpenNote={handleOpenNote}
                                 />
                             ))}
-
-                            {filteredData.length > 0 && (
-                                <TableRow sx={sumRowSx}>
-                                    <TableCell colSpan={2} align="center" sx={{ ...totalCellSx, color: "#1a237e", letterSpacing: "0.05em" }}>TỔNG CỘNG</TableCell>
-                                    <TableCell align="right" sx={{ ...totalCellSx, color: "#424242" }}>{fmtStrict(dynamicTongHop.noDauKy)}</TableCell>
-                                    <TableCell align="right" sx={{ ...totalCellSx, color: "#424242" }}>{fmtStrict(dynamicTongHop.phatSinh)}</TableCell>
-                                    <TableCell align="right" sx={{ ...totalCellSx, color: "#424242" }}>{fmtStrict(dynamicTongHop.thanhToan)}</TableCell>
-                                    <TableCell align="right" sx={{ ...totalCellSx, color: "#d32f2f" }}>{fmtStrict(dynamicTongHop.conNo)}</TableCell>
-                                    <TableCell sx={{ ...totalCellSx }}></TableCell>
-                                </TableRow>
-                            )}
                         </TableBody>
                     </Table>
                 </TableContainer>
 
                 <Box sx={{ px: 2.5, py: 1.2, bgcolor: '#fafbff', borderTop: '1px solid #e0e4f0', display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontFamily: FONT }}>
+                    <Typography variant="caption" color="text.secondary">
                         {filteredData.length} nha khoa &nbsp;·&nbsp; Tháng {String(thang).padStart(2, '0')}/{nam}
                     </Typography>
                 </Box>
@@ -339,8 +340,8 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam,
 // ─── Shared NoteDialog ────────────────────────────────────────────────────────
 function NoteDialog({ noteModal, noteInput, setNoteInput, noteError, savingNote, onCancel, onSave }) {
     return (
-        <Dialog open={!!noteModal} onClose={onCancel} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2, fontFamily: FONT } }}>
-            <DialogTitle sx={{ fontFamily: FONT, fontWeight: 700, fontSize: '1rem', pb: 1 }}>
+        <Dialog open={!!noteModal} onClose={onCancel} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
+            <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 1 }}>
                 📝 Ghi chú — {noteModal?.tenNhaKhoa}
             </DialogTitle>
             <DialogContent sx={{ pt: '8px !important' }}>
@@ -351,13 +352,13 @@ function NoteDialog({ noteModal, noteInput, setNoteInput, noteError, savingNote,
                     onChange={e => setNoteInput(e.target.value)}
                     disabled={savingNote}
                     size="small"
-                    sx={{ '& .MuiInputBase-root': { fontFamily: FONT, fontSize: '0.85rem' } }}
+                    sx={{ '& .MuiInputBase-root': { fontSize: '0.85rem' } }}
                 />
-                {noteError && <Typography sx={{ color: '#c62828', fontSize: '0.78rem', mt: 0.8, fontFamily: FONT }}>{noteError}</Typography>}
+                {noteError && <Typography sx={{ color: '#c62828', fontSize: '0.78rem', mt: 0.8 }}>{noteError}</Typography>}
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-                <Button onClick={onCancel} disabled={savingNote} size="small" sx={{ fontFamily: FONT, color: '#757575', '&:hover': { bgcolor: '#f5f5f5' } }}>Hủy</Button>
-                <Button onClick={onSave} variant="contained" size="small" disabled={savingNote} sx={{ fontFamily: FONT, fontWeight: 600, bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' }, borderRadius: 1.5 }}>
+                <Button onClick={onCancel} disabled={savingNote} size="small" sx={{ color: '#757575', '&:hover': { bgcolor: '#f5f5f5' } }}>Hủy</Button>
+                <Button onClick={onSave} variant="contained" size="small" disabled={savingNote} sx={{ fontWeight: 600, bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' }, borderRadius: 1.5 }}>
                     {savingNote ? 'Đang lưu...' : 'Lưu'}
                 </Button>
             </DialogActions>

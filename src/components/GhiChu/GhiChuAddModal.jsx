@@ -58,6 +58,7 @@ export default function GhiChuAddModal({
 
       if (res.data?.success) {
         toast.success(noteToEdit ? "Cập nhật ghi chú thành công!" : "Thêm ghi chú thành công!");
+        window.dispatchEvent(new CustomEvent("refresh-ghi-chu"));
         if (onSuccess) onSuccess(res.data.data);
         onClose();
       }

@@ -39,6 +39,12 @@ import GhiChuAddModal from "./GhiChuAddModal";
 export default function GhiChuPage() {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("Chưa hoàn thành");
+
+  const filteredNotes = notes.filter((note) => {
+    if (filterStatus === "Tất cả") return true;
+    return note.trangThai === filterStatus;
+  });
   
   // Add Note Modal State
   const [openAddModal, setOpenAddModal] = useState(false);
@@ -66,7 +72,10 @@ export default function GhiChuPage() {
       setLoading(true);
       const res = await api.get("/ghi-chu");
       if (res.data?.success) {
-        setNotes(res.data.data);
+        const sorted = [...res.data.data].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setNotes(sorted);
       }
     } catch (err) {
       toast.error("Không thể lấy danh sách ghi chú: " + (err.response?.data?.message || err.message));
@@ -221,6 +230,34 @@ export default function GhiChuPage() {
           </Box>
         </Box>
 
+        {/* Bộ lọc trạng thái */}
+        <Box sx={{ mb: 3, display: "flex", justifyContent: "flex-start", gap: 1.5 }}>
+          <Button
+            variant={filterStatus === "Chưa hoàn thành" ? "contained" : "outlined"}
+            onClick={() => setFilterStatus("Chưa hoàn thành")}
+            className="rounded-xl px-4 py-1.5 font-semibold text-xs sm:text-sm shadow-sm"
+            style={{ textTransform: "none" }}
+          >
+            Chưa hoàn thành
+          </Button>
+          <Button
+            variant={filterStatus === "Đã hoàn thành" ? "contained" : "outlined"}
+            onClick={() => setFilterStatus("Đã hoàn thành")}
+            className="rounded-xl px-4 py-1.5 font-semibold text-xs sm:text-sm shadow-sm"
+            style={{ textTransform: "none" }}
+          >
+            Đã hoàn thành
+          </Button>
+          <Button
+            variant={filterStatus === "Tất cả" ? "contained" : "outlined"}
+            onClick={() => setFilterStatus("Tất cả")}
+            className="rounded-xl px-4 py-1.5 font-semibold text-xs sm:text-sm shadow-sm"
+            style={{ textTransform: "none" }}
+          >
+            Tất cả
+          </Button>
+        </Box>
+
         {/* Notes Content */}
         {loading ? (
           <Box className="flex justify-center items-center py-20">
@@ -247,10 +284,12 @@ export default function GhiChuPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {notes.length > 0 ? (
-                      notes.map((note, idx) => (
+                    {filteredNotes.length > 0 ? (
+                      filteredNotes.map((note, idx) => (
                         <TableRow key={note._id} className="hover:bg-gray-50/50 transition">
-                          <TableCell className="text-gray-500 font-medium">{idx + 1}</TableCell>
+                          <TableCell className="text-gray-500 font-medium">
+                            {notes.length - notes.findIndex((t) => t._id === note._id)}
+                          </TableCell>
                           <TableCell>
                             {note.donHang ? (
                               <Link
@@ -319,7 +358,7 @@ export default function GhiChuPage() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={6} align="center" className="py-12 text-gray-400 italic">
-                          Không có lưu ý công việc nào cần xử lý
+                          Không có ghi chú nào phù hợp bộ lọc
                         </TableCell>
                       </TableRow>
                     )}
@@ -330,8 +369,8 @@ export default function GhiChuPage() {
 
             {/* Mobile Card View */}
             <Box className="block md:hidden space-y-4">
-              {notes.length > 0 ? (
-                notes.map((note, idx) => (
+              {filteredNotes.length > 0 ? (
+                filteredNotes.map((note, idx) => (
                   <Paper key={note._id} className="p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-3 bg-white">
                     {/* Header card: Mã đơn & Trạng thái */}
                     <div className="flex justify-between items-center">
@@ -362,7 +401,7 @@ export default function GhiChuPage() {
 
                     {/* Nội dung ghi chú */}
                     <div className="text-gray-800 font-medium text-sm whitespace-pre-wrap leading-relaxed">
-                      {idx + 1}. {note.noiDung}
+                      #{notes.length - notes.findIndex((t) => t._id === note._id)}. {note.noiDung}
                     </div>
 
                     {/* Footer card: Ngày tạo & Nút hành động */}
@@ -395,7 +434,7 @@ export default function GhiChuPage() {
                 ))
               ) : (
                 <div className="py-8 text-center text-gray-400 italic text-sm">
-                  Không có lưu ý công việc nào cần xử lý
+                  Không có ghi chú nào phù hợp bộ lọc
                 </div>
               )}
             </Box>

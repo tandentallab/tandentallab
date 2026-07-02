@@ -8,12 +8,11 @@ export default function DonHangChuaXuatFilter({
   selectedClinic,
   setSelectedClinic,
 }) {
-  const [searchText, setSearchText] = useState("");
-
+  const [searchText, setSearchText] = useState(() => sessionStorage.getItem("donHang_searchNhaKhoa") || "");
   const dispatch = useDispatch();
   const { data: nhaKhoaList = [], loading: loadingNhaKhoa } = useSelector((state) => state.nhaKhoa);
 
-  // Đọc metadata đã được fetch từ Page (không tự fetch lại)
+
   const {
     countDonHangChuaXuat = [],
     ngayXuatHoaDonGanNhatAll = [],
@@ -26,10 +25,10 @@ export default function DonHangChuaXuatFilter({
     dispatch(fetchNhaKhoa());
   }, [dispatch]);
 
-  /* ================= BUILD INFO MAP TỪ BACKEND DATA ================= */
-  // countDonHangChuaXuat đã có: nhaKhoaId, soDonHangChuaXuatHoaDon, hoaDonGanNhat
-  // ngayXuatHoaDonGanNhatAll đã có: nhaKhoaId, hoaDonGanNhat.ngayXuatHoaDon
-  // Không cần tự tính từ donHangs nữa
+  useEffect(() => {
+    sessionStorage.setItem("donHang_searchNhaKhoa", searchText);
+  }, [searchText]);
+
   const infoMap = useMemo(() => {
     const map = {};
 
@@ -50,6 +49,17 @@ export default function DonHangChuaXuatFilter({
 
     return map;
   }, [countDonHangChuaXuat, ngayXuatHoaDonGanNhatAll]);
+
+  useEffect(() => {
+    if (isLoading || !selectedClinic) return;
+
+    const info = infoMap[selectedClinic];
+
+    if (info && info.count === 0) {
+      setSelectedClinic(null);
+      setSearchText("");
+    }
+  }, [isLoading, infoMap, selectedClinic, setSelectedClinic]);
 
   const formatDate = (date) => {
     if (!date) return "Chưa xuất";

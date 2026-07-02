@@ -124,10 +124,20 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
     d.setDate(28);
     return d.toISOString().split("T")[0];
   })();
-  const [fromDate, setFromDate] = useState(defaultFrom);
-  const [toDate, setToDate] = useState(today);
-  const [dateLabel, setDateLabel] = useState("📅 Chọn trên lịch");
+
+  // 1. Khởi tạo state từ sessionStorage (nếu có), nếu không có thì dùng giá trị mặc định
+  const [fromDate, setFromDate] = useState(() => sessionStorage.getItem("donHang_fromDate") || defaultFrom);
+  const [toDate, setToDate] = useState(() => sessionStorage.getItem("donHang_toDate") || today);
+  const [dateLabel, setDateLabel] = useState(() => sessionStorage.getItem("donHang_dateLabel") || "📅 Chọn trên lịch");
   const [anchorElCustomDate, setAnchorElCustomDate] = useState(null);
+
+  // 2. Thêm useEffect để lưu lại giá trị vào sessionStorage mỗi khi người dùng thay đổi bộ lọc ngày
+  useEffect(() => {
+    sessionStorage.setItem("donHang_fromDate", fromDate);
+    sessionStorage.setItem("donHang_toDate", toDate);
+    sessionStorage.setItem("donHang_dateLabel", dateLabel);
+  }, [fromDate, toDate, dateLabel]);
+
 
   // ── Resizable columns — DOM-direct, zero re-render khi kéo ──
   const widthsRef = useRef({ ...DEFAULT_WIDTHS });
@@ -284,17 +294,24 @@ export default function DonHangChuaXuatTable({ selectedClinic, selectedOrders, s
   const handleCreateHoaDon = async () => {
     if (selectedOrders.length === 0) { toast.error("Vui lòng chọn ít nhất 1 đơn hàng"); return; }
     try {
-      await dispatch(createHoaDon({
+      const result = await dispatch(createHoaDon({
         nhaKhoaId: selectedClinic,
         danhSachDonHangIds: selectedOrders.map((o) => o._id),
         tuNgay: activeDateRange.start.toISOString(),
-        denNgay: new Date().toISOString(),
+        denNgay: activeDateRange.end.toISOString(), // 🔥 dùng đúng "Đến ngày" filter, không phải now()
       })).unwrap();
+
+      const newHoaDonId = result?.data?._id || result?._id;
+
       toast.success("Tạo hóa đơn thành công!");
       setSelectedOrders([]);
       dispatch(fetchCountDonHangChuaXuat());
       dispatch(fetchNgayXuatHoaDonGanNhatAll());
       dispatch(fetchDonHangChuaHoaDon(selectedClinic));
+
+      if (newHoaDonId) {
+        navigate(`/hoa-don/${newHoaDonId}/edit`);
+      }
     } catch (err) {
       toast.error(err?.message || "Tạo hóa đơn thất bại");
     }

@@ -16,8 +16,20 @@ export default function DonHangChuaXuatPage() {
   const { loading: loadingBangGia } = useSelector((state) => state.bangGia);
   const isInitialLoading = loadingMeta || loadingBangGia;
 
-  const [selectedClinic, setSelectedClinic] = useState(null);
+  // 1. Khởi tạo trực tiếp từ sessionStorage
+  const [selectedClinic, setSelectedClinic] = useState(() => {
+    return sessionStorage.getItem("donHang_selectedClinic") || null;
+  });
   const [selectedOrders, setSelectedOrders] = useState([]);
+
+  // 2. Thêm useEffect để lưu trữ mỗi khi state thay đổi
+  useEffect(() => {
+    if (selectedClinic) {
+      sessionStorage.setItem("donHang_selectedClinic", selectedClinic);
+    } else {
+      sessionStorage.removeItem("donHang_selectedClinic");
+    }
+  }, [selectedClinic]);
 
   // Chỉ fetch metadata cho sidebar + bảng giá
   // Đơn hàng sẽ được fetch lazy khi user click vào từng nha khoa

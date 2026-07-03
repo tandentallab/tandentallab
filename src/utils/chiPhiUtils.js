@@ -2,8 +2,7 @@
 export const formatVND = (amount) =>
     new Intl.NumberFormat('vi-VN').format(amount ?? 0);
 
-// Loại bỏ mọi ký tự không phải số trong chuỗi nhập vào, trả về number nguyên
-// Dùng cho input số tiền để người dùng có thể gõ và thấy format VND ngay lúc nhập
+
 export const parseVNDInput = (value) => {
     const digitsOnly = String(value ?? '').replace(/\D/g, '');
     return digitsOnly ? Number(digitsOnly) : 0;

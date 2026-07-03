@@ -41,7 +41,6 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
 
     const [ngayThu, setNgayThu] = useState("");
 
-    // 👉 THÊM STATE CHỈ LƯU CHUỖI "MM/YYYY" 
     const [thangDoanhThu, setThangDoanhThu] = useState("");
     const [isOpenThang, setIsOpenThang] = useState(false);
     const thangDropdownRef = useRef(null);
@@ -60,7 +59,6 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
             return [{ value: hiểnThịMặcĐịnh, label: hiểnThịMặcĐịnh }];
         }
 
-        // 1. Tìm ngày xuất hóa đơn cũ nhất (Lưu ý bốc từ item.hoaDon)
         const oldestTimestamp = chiTietHoaDon.reduce((min, item) => {
             const hd = item.hoaDon || {};
             const d = new Date(hd.ngayXuatHoaDon || hd.createdAt || Date.now()).getTime();
@@ -73,7 +71,6 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
         const options = [];
         let current = endMonth;
 
-        // 2. Chạy vòng lặp lùi từ tháng hiện tại về tháng cũ nhất
         while (current.isAfter(startMonth) || current.isSame(startMonth, "month")) {
             const label = current.format("MM/YYYY");
             options.push({ value: label, label: label });
@@ -94,7 +91,6 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                 setSoTienThu(String(phieuThu.soTienThu || 0));
                 setError("");
 
-                // 👉 ĐỌC DỮ LIỆU CŨ TỪ BẢN GHI PHIẾU THU ĐỂ GÁN VÀO SELECT
                 if (phieuThu.ngayGhiNhanDoanhThu) {
                     const dateObj = new Date(phieuThu.ngayGhiNhanDoanhThu);
                     const mStr = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -270,12 +266,6 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
     const handleSave = async () => {
         setError("");
 
-        // 👉 VALIDATE BẮT BUỘC CHỌN THÁNG DOANH THU
-        if (!thangDoanhThu) {
-            setError("Vui lòng chọn Tháng ghi nhận doanh thu.");
-            return;
-        }
-
         if (tongPhanBo === 0) {
             setError("Phiếu thu phải phân bổ ít nhất 1 hóa đơn. Nếu muốn hủy, vui lòng xóa phiếu thu này.");
             return;
@@ -305,23 +295,23 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
         }
 
         try {
-            // 👉 TÁCH CHUỖI MM/YYYY ĐỂ TẠO NGÀY 15 MẶC ĐỊNH CHUẨN XỊN ISO
-            const [meshMonth, meshYear] = thangDoanhThu.split("/");
-            const ngayGhiNhanISO = dayjs()
-                .year(Number(meshYear))
-                .month(Number(meshMonth) - 1)
-                .date(15)
-                .startOf("day")
-                .toISOString();
+            let ngayGhiNhanISO = undefined;
+
+            if (thangDoanhThu) {
+                const [meshMonth, meshYear] = thangDoanhThu.split("/");
+                ngayGhiNhanISO = dayjs()
+                    .year(Number(meshYear))
+                    .month(Number(meshMonth) - 1)
+                    .date(15)
+                    .startOf("day")
+                    .toISOString();
+            }
 
             const result = await dispatch(updatePhieuThu({
                 id: phieuThu._id,
                 data: {
                     ngayThu: ngayThu ? new Date(ngayThu).toISOString() : undefined,
-
-                    // 👉 THÊM VÀO PAYLOAD UPDATE ĐẨY ĐI
                     ngayGhiNhanDoanhThu: ngayGhiNhanISO,
-
                     phuongThucThanhToan: phuongThuc,
                     noiDung,
                     danhSachHoaDon: chiTietHoaDon
@@ -512,7 +502,6 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                     </LocalizationProvider>
                                 </div>
 
-                                {/* 👉 KHỐI THÁNG GHI NHẬN DOANH THU ĐỒNG BỘ TRONG CHỈNH SỬA */}
                                 <div ref={thangDropdownRef} className="relative">
                                     <div
                                         onClick={() => setIsOpenThang((p) => !p)}
@@ -524,27 +513,25 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                             }
                                             if (e.key === "Escape") setIsOpenThang(false);
                                         }}
-                                        className={`relative w-full cursor-pointer select-none border-b-2 pt-5 pb-2 rounded-t-md outline-none transition-colors ${!thangDoanhThu
-                                            ? "border-[#f97316] hover:bg-orange-50/40"
-                                            : isOpenThang
-                                                ? "border-[#29b6f6] bg-sky-50/50"
-                                                : "border-gray-200 hover:bg-gray-50/60"
+                                        className={`relative w-full cursor-pointer select-none border-b-2 pt-5 pb-2 rounded-t-md outline-none transition-colors ${isOpenThang
+                                            ? "border-[#29b6f6] bg-sky-50/50"
+                                            : "border-gray-200 hover:bg-gray-50/60"
                                             }`}
                                     >
                                         <span
                                             className={`absolute left-0 pointer-events-none transition-all duration-200 ${isFloating ? "top-0.5 text-[11px]" : "top-5 text-sm"
-                                                } ${!thangDoanhThu ? "text-[#f97316] font-semibold" : "text-gray-400"}`}
+                                                } ${isOpenThang ? "text-[#29b6f6]" : "text-gray-400"}`}
                                         >
                                             Tháng ghi nhận doanh thu
                                         </span>
 
                                         <div className="flex items-center justify-between min-h-[20px]">
-                                            <span className={`text-sm leading-5 ${!thangDoanhThu ? "text-[#f97316] font-semibold" : "text-gray-800"}`}>
+                                            <span className={`text-sm leading-5 text-gray-800`}>
                                                 {selectedThangLabel ? `Tháng ${selectedThangLabel}` : "\u00A0"}
                                             </span>
                                             <CalendarMonthIcon
                                                 sx={{ fontSize: 18 }}
-                                                className={`flex-shrink-0 ${!thangDoanhThu ? "text-[#f97316]" : "text-gray-400"}`}
+                                                className={`flex-shrink-0 ${isOpenThang ? "text-[#29b6f6]" : "text-gray-400"}`}
                                             />
                                         </div>
                                     </div>
@@ -569,12 +556,6 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                                 );
                                             })}
                                         </div>
-                                    )}
-
-                                    {!thangDoanhThu && (
-                                        <p className="text-[#f97316] text-[12px] font-semibold mt-1 tracking-wide">
-                                            Đây là nội dung bắt buộc
-                                        </p>
                                     )}
                                 </div>
 

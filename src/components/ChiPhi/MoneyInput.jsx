@@ -1,6 +1,6 @@
 import React from 'react';
 import { TextField, InputAdornment } from '@mui/material';
-import { formatVND, parseVNDInput } from './chiPhiUtils';
+import { formatVND, parseVNDInput } from '../../utils/chiPhiUtils';
 
 /**
  * Input số tiền: hiển thị giá trị đã format VND (1.234.567) ngay khi người dùng gõ,

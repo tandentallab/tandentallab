@@ -110,82 +110,17 @@ const Header = ({ onToggleSidebar }) => {
     try {
       const res = await api.get("/ghi-chu");
       if (res.data?.success) {
-        setTodoList(res.data.data);
+        const sorted = [...res.data.data].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setTodoList(sorted);
       }
     } catch (error) {
       console.error("Lỗi lấy danh sách ghi chú:", error);
     }
   };
 
-  const toastIntervalRef = useRef(null);
-  const checkIntervalRef = useRef(null);
 
-  const runTodoToastFlow = async () => {
-    try {
-      const res = await api.get("/ghi-chu");
-      if (res.data?.success && res.data.data?.length > 0) {
-        const todos = res.data.data.filter(todo => todo.trangThai === "Chưa hoàn thành");
-
-        // Dọn dẹp hàng đợi cũ nếu đang chạy dở
-        if (toastIntervalRef.current) {
-          clearInterval(toastIntervalRef.current);
-          toastIntervalRef.current = null;
-        }
-
-        let currentIndex = 0;
-
-        const showNextTodo = () => {
-          if (currentIndex >= todos.length) {
-            if (toastIntervalRef.current) {
-              clearInterval(toastIntervalRef.current);
-              toastIntervalRef.current = null;
-            }
-            return;
-          }
-
-          const note = todos[currentIndex];
-          const labelText = note.maDonHang
-            ? `[Mã ĐH: ${note.maDonHang}] Ghi chú cần xử lý:`
-            : "Ghi chú công việc chung:";
-
-          // Đẩy toast hiển thị với duration: Infinity để tự kiểm soát đóng
-          const toastId = toast.info(labelText, {
-            description: note.noiDung,
-            duration: Infinity,
-            action: {
-              label: "Xem",
-              onClick: () => {
-                if (note.donHang) {
-                  navigate(`/donhang/${note.donHang._id}/edit`);
-                } else {
-                  navigate("/ghi-chu");
-                }
-                toast.dismiss(toastId);
-              }
-            }
-          });
-
-          // Tự động tắt sau đúng 15 giây
-          setTimeout(() => {
-            toast.dismiss(toastId);
-          }, 15000);
-
-          currentIndex++;
-        };
-
-        // Hiện ghi chú đầu tiên ngay lập tức
-        showNextTodo();
-
-        // Cứ mỗi 5 giây thì hiện ghi chú tiếp theo (staggered display)
-        // Với thời gian sống 15s của mỗi toast, trên màn hình sẽ hiển thị tối đa 3 toast cùng lúc
-        toastIntervalRef.current = setInterval(() => {
-          showNextTodo();
-        }, 5000);
-      }
-    } catch (error) {
-      console.error("Lỗi khi chạy luồng toast ghi chú:", error);
-    }
-  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -196,42 +131,6 @@ const Header = ({ onToggleSidebar }) => {
   useEffect(() => {
     if (isAuthenticated && hasRouteAccess(user, "/ghi-chu")) {
       fetchTodos();
-
-      // 🔥 Hiển thị thông báo ngay lập tức khi mới đăng nhập hoặc mới mở website lên (lần đầu tiên của session)
-      const hasShownInitial = sessionStorage.getItem("has_shown_initial_toast");
-      if (!hasShownInitial) {
-        runTodoToastFlow();
-        sessionStorage.setItem("has_shown_initial_toast", "true");
-      }
-
-      // Tính số mili-giây đến phút tròn chục gần nhất (xx:00, xx:10, xx:20, xx:30, xx:40, xx:50)
-      const now = new Date();
-      const currentMinutes = now.getMinutes();
-      const currentSeconds = now.getSeconds();
-      const currentMs = now.getMilliseconds();
-      const minutesPastRound = currentMinutes % 10;
-      const minutesToNextRound = minutesPastRound === 0 ? 10 : (10 - minutesPastRound);
-      const msUntilNextRound = (minutesToNextRound * 60 - currentSeconds) * 1000 - currentMs;
-
-      // Đợi đến phút tròn chục gần nhất rồi mới bắt đầu đẩy thông báo
-      const initialTimeout = setTimeout(() => {
-        runTodoToastFlow();
-
-        // Sau đó cứ đúng mỗi 10 phút thì đẩy tiếp (đã căn chỉnh theo đồng hồ)
-        checkIntervalRef.current = setInterval(() => {
-          runTodoToastFlow();
-        }, 10 * 60 * 1000);
-      }, msUntilNextRound);
-
-      return () => {
-        clearTimeout(initialTimeout);
-        if (checkIntervalRef.current) {
-          clearInterval(checkIntervalRef.current);
-        }
-        if (toastIntervalRef.current) {
-          clearInterval(toastIntervalRef.current);
-        }
-      };
     }
   }, [isAuthenticated, user]);
 
@@ -573,7 +472,7 @@ const Header = ({ onToggleSidebar }) => {
                                 <div className="flex items-start gap-2.5 flex-1 min-w-0">
                                   {/* STT nổi bật ở bên trái */}
                                   <span className="font-extrabold text-blue-600 text-sm shrink-0 mt-0.5 min-w-[20px] text-center">
-                                    #{todoList.findIndex((t) => t._id === todo._id) + 1}
+                                    #{todoList.length - todoList.findIndex((t) => t._id === todo._id)}
                                   </span>
                                   <div className="flex-1 min-w-0 text-left">
                                     <p className="text-gray-800 font-semibold text-xs whitespace-pre-wrap leading-relaxed">

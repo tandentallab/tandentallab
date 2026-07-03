@@ -81,7 +81,7 @@ const ChiPhiHangNgay = ({ danhSachChiPhi, isLoading, filter, onAdd, onDelete }) 
     };
 
     return (
-        <Box className="space-y-5 mt-4">
+        <Box className="flex flex-col flex-1 overflow-hidden space-y-5 mt-4" sx={{ height: '100%' }}>
             <ChiPhiForm isLoading={isLoading} onAdd={onAdd} />
 
             <ChiPhiTable

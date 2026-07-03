@@ -48,6 +48,7 @@ import NhaCungCapPage from "../NhaCungCap/NhaCungCapPage";
 import KhoPage from "../Kho/KhoPage";
 import NhapKhoPrintPreview from "../Kho/NhapXuatKho/NhapKhoPrintPreview";
 import XuatKhoPrintPreview from "../Kho/NhapXuatKho/XuatKhoPrintPreview";
+import NhapXuatPrintPreview from "../Kho/NhapXuatKho/NhapXuatPrintPreview";
 import ChiPhiPage from "../ChiPhi/ChiPhiPage.jsx";
 
 const Dashboard = () => {
@@ -345,6 +346,10 @@ const Dashboard = () => {
           <Route
             path="/kho/phieu-xuat/:id/print"
             element={renderProtected("/kho", <XuatKhoPrintPreview />)}
+          />
+          <Route
+            path="/nhap-xuat/in-danh-sach"
+            element={renderProtected("/kho", <NhapXuatPrintPreview />)}
           />
 
           <Route path="*" element={<Navigate to={fallbackPath} replace />} />

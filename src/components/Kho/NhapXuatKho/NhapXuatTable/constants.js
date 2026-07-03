@@ -51,10 +51,11 @@ export function aggregateVatLieu(phieuList) {
     const map = {};
     phieuList.forEach((phieu) => {
         (phieu.danhSachVatLieu || []).forEach((item) => {
+            const id = item.vatLieu?._id || item.vatLieu?.tenVatLieu || "unknown";
             const tenVatLieu = item.vatLieu?.tenVatLieu || "Không xác định";
-            if (!map[tenVatLieu]) map[tenVatLieu] = { tenVatLieu, soLuong: 0 };
-            map[tenVatLieu].soLuong += item.soLuong || 0;
-            map[tenVatLieu].donViTinh = item.vatLieu?.donViTinh;
+            if (!map[id]) map[id] = { id, tenVatLieu, soLuong: 0 };
+            map[id].soLuong += item.soLuong || 0;
+            map[id].donViTinh = item.vatLieu?.donViTinh;
         });
     });
     return Object.values(map);

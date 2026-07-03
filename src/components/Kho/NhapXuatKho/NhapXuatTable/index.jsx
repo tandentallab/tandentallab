@@ -1,5 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   fetchAllPhieuNhapKho,
   appendPhieuNhapKho,
@@ -37,6 +38,7 @@ import { exportPhieuNhapXuatToExcel } from "./exportPhieuNhapXuatToExcel";
 
 export default function NhapXuatTable() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const {
     phieuNhapKhos,
@@ -75,9 +77,49 @@ export default function NhapXuatTable() {
   const [showNhapModal, setShowNhapModal] = useState(false);
   const [showXuatModal, setShowXuatModal] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [printMenuOpen, setPrintMenuOpen] = useState(false);
+  const [printSelection, setPrintSelection] = useState({
+    phieuNhap: true,
+    phieuXuat: true,
+    vatLieuNhap: false,
+    vatLieuXuat: false,
+  });
   const [selectedNhap, setSelectedNhap] = useState(null);
   const [selectedXuat, setSelectedXuat] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
+
+  const [selectedVatLieuNhap, setSelectedVatLieuNhap] = useState(null); // { id, tenVatLieu }
+  const [selectedVatLieuXuat, setSelectedVatLieuXuat] = useState(null);
+
+  function handleVatLieuNhapClick(row) {
+    setSelectedVatLieuNhap((prev) => (prev?.id === row.id ? null : row));
+  }
+
+  function handleVatLieuXuatClick(row) {
+    setSelectedVatLieuXuat((prev) => (prev?.id === row.id ? null : row));
+  }
+
+  function togglePrintSelection(key) {
+    setPrintSelection((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  function handlePrintList() {
+    const pages = Object.entries(printSelection)
+      .filter(([, checked]) => checked)
+      .map(([key]) => key);
+
+    if (pages.length === 0) return; // chưa chọn gì thì không làm gì
+
+    const params = new URLSearchParams();
+    if (selectedMonth) params.set("thang", selectedMonth);
+    if (selectedNCC) params.set("ncc", selectedNCC);
+    if (selectedBoPhan) params.set("boPhan", selectedBoPhan);
+    if (selectedTrangThai.length) params.set("trangThai", selectedTrangThai.join(","));
+    params.set("pages", pages.join(","));
+
+    navigate(`/nhap-xuat/in-danh-sach?${params.toString()}`)
+    setPrintMenuOpen(false);
+  }
 
   const isFiltered =
     selectedNCC !== "" ||
@@ -210,11 +252,29 @@ export default function NhapXuatTable() {
     () => aggregateVatLieu(phieuNhapKhos),
     [phieuNhapKhos]
   );
-  console.log(vatLieuNhap)
+
   const vatLieuXuat = useMemo(
     () => aggregateVatLieu(phieuXuatKhos),
     [phieuXuatKhos]
   );
+
+  const filteredPhieuNhapKhos = useMemo(() => {
+    if (!selectedVatLieuNhap) return phieuNhapKhos;
+    return phieuNhapKhos.filter((p) =>
+      (p.danhSachVatLieu || []).some(
+        (item) => (item.vatLieu?._id || item.vatLieu?.tenVatLieu) === selectedVatLieuNhap.id
+      )
+    );
+  }, [phieuNhapKhos, selectedVatLieuNhap]);
+
+  const filteredPhieuXuatKhos = useMemo(() => {
+    if (!selectedVatLieuXuat) return phieuXuatKhos;
+    return phieuXuatKhos.filter((p) =>
+      (p.danhSachVatLieu || []).some(
+        (item) => (item.vatLieu?._id || item.vatLieu?.tenVatLieu) === selectedVatLieuXuat.id
+      )
+    );
+  }, [phieuXuatKhos, selectedVatLieuXuat]);
 
   const nccOptions = useMemo(
     () => nhaCungCapList.map((n) => n.ten),
@@ -242,6 +302,11 @@ export default function NhapXuatTable() {
         onRefresh={handleRefresh}
         onExport={handleExport}
         isExporting={isExporting}
+        printMenuOpen={printMenuOpen}
+        setPrintMenuOpen={setPrintMenuOpen}
+        printSelection={printSelection}
+        onTogglePrintSelection={togglePrintSelection}
+        onPrintConfirm={handlePrintList}
         onOpenNhapModal={() => setShowNhapModal(true)}
         onOpenXuatModal={() => setShowXuatModal(true)}
         addMenuOpen={addMenuOpen}
@@ -255,26 +320,52 @@ export default function NhapXuatTable() {
         Phiếu nhập
       </p>
       <div className="flex flex-col md:flex-row w-full">
-        <PhieuNhapTable
-          data={phieuNhapKhos}
-          selectedId={selectedNhap?._id}
-          onRowClick={handleNhapRowClick}
-          hasMore={nhapHasMore}
-          loadingMore={loadingMoreNhap}
-          onLoadMore={handleLoadMoreNhap}
-        />
+        <div className="flex-1 min-w-0">
+          {selectedVatLieuNhap && (
+            <div className="flex items-center gap-2 bg-sky-50 border border-sky-200 text-sky-700 text-xs px-3 py-1.5">
+              Đang lọc theo vật liệu: <span className="font-medium">{selectedVatLieuNhap.tenVatLieu}</span>
+              <button
+                onClick={() => setSelectedVatLieuNhap(null)}
+                className="ml-auto text-sky-500 hover:text-sky-700"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          <PhieuNhapTable
+            data={filteredPhieuNhapKhos}
+            selectedId={selectedNhap?._id}
+            onRowClick={handleNhapRowClick}
+            hasMore={!selectedVatLieuNhap && nhapHasMore}
+            loadingMore={loadingMoreNhap}
+            onLoadMore={handleLoadMoreNhap}
+          />
+        </div>
         <div className="w-px bg-gray-300 self-stretch" />
         <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
           Phiếu xuất
         </p>
-        <PhieuXuatTable
-          data={phieuXuatKhos}
-          selectedId={selectedXuat?._id}
-          onRowClick={handleXuatRowClick}
-          hasMore={xuatHasMore}
-          loadingMore={loadingMoreXuat}
-          onLoadMore={handleLoadMoreXuat}
-        />
+        <div className="flex-1 min-w-0">
+          {selectedVatLieuXuat && (
+            <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-xs px-3 py-1.5">
+              Đang lọc theo vật liệu: <span className="font-medium">{selectedVatLieuXuat.tenVatLieu}</span>
+              <button
+                onClick={() => setSelectedVatLieuXuat(null)}
+                className="ml-auto text-green-500 hover:text-green-700"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          <PhieuXuatTable
+            data={filteredPhieuXuatKhos}
+            selectedId={selectedXuat?._id}
+            onRowClick={handleXuatRowClick}
+            hasMore={!selectedVatLieuXuat && xuatHasMore}
+            loadingMore={loadingMoreXuat}
+            onLoadMore={handleLoadMoreXuat}
+          />
+        </div>
       </div>
 
       <p className="hidden md:block mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
@@ -284,12 +375,20 @@ export default function NhapXuatTable() {
         Vật liệu nhập
       </p>
       <div className="flex flex-col md:flex-row w-full">
-        <VatLieuNhapTable data={vatLieuNhap} />
+        <VatLieuNhapTable
+          data={vatLieuNhap}
+          selectedId={selectedVatLieuNhap?.id}
+          onRowClick={handleVatLieuNhapClick}
+        />
         <div className="w-px bg-gray-300 self-stretch" />
         <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
           Vật liệu xuất
         </p>
-        <VatLieuXuatTable data={vatLieuXuat} />
+        <VatLieuXuatTable
+          data={vatLieuXuat}
+          selectedId={selectedVatLieuXuat?.id}
+          onRowClick={handleVatLieuXuatClick}
+        />
       </div>
 
       {/* Modals tạo mới */}

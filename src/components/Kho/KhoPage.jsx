@@ -19,7 +19,18 @@ import CategoryIcon from "@mui/icons-material/Category";
 export default function KhoPage() {
   const dispatch = useDispatch();
   const { vatLieu } = useSelector((state) => state.kho);
-  const [tab, setTab] = useState(0);
+
+  // Lưu tab đang chọn vào sessionStorage để giữ nguyên khi quay lại trang
+  // (ví dụ: từ trang in phiếu nhập/xuất bấm nút Back)
+  const [tab, setTab] = useState(() => {
+    const saved = sessionStorage.getItem("khoPage_activeTab");
+    return saved !== null ? Number(saved) : 0;
+  });
+
+  const handleTabChange = (_, newValue) => {
+    setTab(newValue);
+    sessionStorage.setItem("khoPage_activeTab", newValue);
+  };
 
   useEffect(() => {
     dispatch(fetchVatLieu());
@@ -85,7 +96,7 @@ export default function KhoPage() {
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
         <Tabs
           value={tab}
-          onChange={(_, v) => setTab(v)}
+          onChange={handleTabChange}
           variant="scrollable"
           scrollButtons="auto"
           allowScrollButtonsMobile

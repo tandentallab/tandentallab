@@ -531,25 +531,25 @@ function NccCombobox({
                   {/* Highlight phần khớp query */}
                   {query
                     ? (() => {
-                      const idx = opt
-                        .toLowerCase()
-                        .indexOf(query.toLowerCase());
-                      if (idx === -1) return opt;
-                      return (
-                        <>
-                          {opt.slice(0, idx)}
-                          <span
-                            style={{
-                              backgroundColor: "#fff9c4",
-                              borderRadius: 2,
-                            }}
-                          >
-                            {opt.slice(idx, idx + query.length)}
-                          </span>
-                          {opt.slice(idx + query.length)}
-                        </>
-                      );
-                    })()
+                        const idx = opt
+                          .toLowerCase()
+                          .indexOf(query.toLowerCase());
+                        if (idx === -1) return opt;
+                        return (
+                          <>
+                            {opt.slice(0, idx)}
+                            <span
+                              style={{
+                                backgroundColor: "#fff9c4",
+                                borderRadius: 2,
+                              }}
+                            >
+                              {opt.slice(idx, idx + query.length)}
+                            </span>
+                            {opt.slice(idx + query.length)}
+                          </>
+                        );
+                      })()
                     : opt}
                 </Box>
               ))}
@@ -658,10 +658,11 @@ function SearchableDropdown({
                     setSearch("");
                     setOpen(false);
                   }}
-                  className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-sky-50 hover:text-sky-700 ${value === opt
+                  className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-sky-50 hover:text-sky-700 ${
+                    value === opt
                       ? "bg-sky-50 text-sky-700 font-medium"
                       : "text-slate-700"
-                    }`}
+                  }`}
                 >
                   {opt}
                 </li>
@@ -1273,8 +1274,8 @@ export default function VatLieuTable() {
                         backgroundColor: thieuHang
                           ? "#fff3e0"
                           : idx % 2 === 0
-                            ? "#fff"
-                            : "#fafafa",
+                          ? "#fff"
+                          : "#fafafa",
                         "&:hover": { backgroundColor: "#e3f2fd40" },
                       }}
                     >
@@ -1690,8 +1691,6 @@ export default function VatLieuTable() {
                 fullWidth
                 value={form.maVatLieu}
                 onChange={(e) => onChange("maVatLieu", e.target.value)}
-                disabled={!!editingId}
-                helperText={editingId ? "Không thể đổi mã sau khi tạo" : ""}
               />
               <TextField
                 label="Đơn vị tính"
@@ -1782,9 +1781,9 @@ export default function VatLieuTable() {
                   inputProps={{ min: 0 }}
                   value={form.soLuong}
                   onChange={(e) => onChange("soLuong", e.target.value)}
-                  disabled={!isSystemAdmin}
+                  disabled={editingId && !isSystemAdmin}
                   helperText={
-                    !isSystemAdmin
+                    editingId && !isSystemAdmin
                       ? "Bạn không có quyền chỉnh sửa số lượng"
                       : ""
                   }
@@ -1966,14 +1965,20 @@ export default function VatLieuTable() {
       {/* ===== MODAL NHẬP KHO TỪ TAB VẬT LIỆU ===== */}
       <NhapKhoModal
         open={nhapModalOpen}
-        onClose={() => { setNhapModalOpen(false); setSelectedIds([]); }}
+        onClose={() => {
+          setNhapModalOpen(false);
+          setSelectedIds([]);
+        }}
         preSelectedIds={selectedIds}
       />
 
       {/* ===== MODAL XUẤT KHO TỪ TAB VẬT LIỆU ===== */}
       <XuatKhoModal
         open={xuatModalOpen}
-        onClose={() => { setXuatModalOpen(false); setSelectedIds([]); }}
+        onClose={() => {
+          setXuatModalOpen(false);
+          setSelectedIds([]);
+        }}
         preSelectedIds={selectedIds}
       />
 

@@ -695,8 +695,21 @@ const DEFAULT_NHOM = [
 const DEFAULT_FORM_RANG = [];
 const DEFAULT_MAU_RANG = [];
 
+// Sinh mã vật liệu tự động dạng: VL + yyMMddHHmmss (đảm bảo không trùng
+// giữa các lần tạo do dựa trên thời gian hiện tại chính xác đến giây)
+function generateMaVatLieu() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const yy = String(now.getFullYear()).slice(-2);
+  const MM = pad(now.getMonth() + 1);
+  const dd = pad(now.getDate());
+  const HH = pad(now.getHours());
+  const mm = pad(now.getMinutes());
+  const ss = pad(now.getSeconds());
+  return `VL${yy}${MM}${dd}${HH}${mm}${ss}`;
+}
+
 const EMPTY_FORM = {
-  maVatLieu: "",
   tenVatLieu: "",
   nhaCungCap: "",
   soLuong: 0,
@@ -978,7 +991,6 @@ export default function VatLieuTable() {
   const openEdit = (vl) => {
     setEditingId(vl._id);
     setForm({
-      maVatLieu: vl.maVatLieu || "",
       tenVatLieu: vl.tenVatLieu || "",
       nhaCungCap: vl.nhaCungCap?._id || "",
       soLuong: vl.soLuong ?? 0,
@@ -996,8 +1008,8 @@ export default function VatLieuTable() {
   };
 
   const handleSave = async () => {
-    if (!form.maVatLieu.trim() || !form.tenVatLieu.trim()) {
-      toast.error("Vui lòng nhập mã và tên vật liệu");
+    if (!form.tenVatLieu.trim()) {
+      toast.error("Vui lòng nhập tên vật liệu");
       return;
     }
     setSaving(true);
@@ -1010,6 +1022,9 @@ export default function VatLieuTable() {
         tonKhoToiDa: Number(form.tonKhoToiDa),
         giaMua: Number(form.giaMua),
       };
+      if (!editingId) {
+        payload.maVatLieu = generateMaVatLieu();
+      }
       if (editingId) {
         await api.put(`/kho/vat-lieu/${editingId}`, payload);
         toast.success("Đã cập nhật vật liệu");
@@ -1225,7 +1240,6 @@ export default function VatLieuTable() {
                   />
                 </TableCell>
                 {[
-                  "Mã VL",
                   "Tên vật liệu",
                   "Nhóm / Loại",
                   "Nhà cung cấp",
@@ -1247,7 +1261,7 @@ export default function VatLieuTable() {
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={12} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={11} align="center" sx={{ py: 4 }}>
                     <CircularProgress size={28} />
                   </TableCell>
                 </TableRow>
@@ -1255,7 +1269,7 @@ export default function VatLieuTable() {
               {!loading && filteredData.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={12}
+                    colSpan={11}
                     align="center"
                     sx={{ py: 4, color: "#9ca3af" }}
                   >
@@ -1285,11 +1299,6 @@ export default function VatLieuTable() {
                           checked={selectedIds.includes(vl._id)}
                           onChange={() => toggleSelectOne(vl._id)}
                         />
-                      </TableCell>
-                      <TableCell onClick={() => openEdit(vl)}>
-                        <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">
-                          {vl.maVatLieu}
-                        </span>
                       </TableCell>
                       <TableCell
                         sx={{
@@ -1390,7 +1399,7 @@ export default function VatLieuTable() {
                   );
                 })}
               <TableRow>
-                <TableCell colSpan={15} align="right">
+                <TableCell colSpan={14} align="right">
                   <Typography variant="caption" color="text.secondary">
                     Hiển thị {filteredData.length} / {vatLieuTotal ?? 0} vật
                     liệu
@@ -1488,9 +1497,6 @@ export default function VatLieuTable() {
                       sx={{ p: 0.5, mr: 0.5, mt: "-2px" }}
                     />
                     <Box sx={{ flex: 1 }}>
-                      <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded mr-2">
-                        {vl.maVatLieu}
-                      </span>
                       <Typography
                         component="span"
                         sx={{ fontWeight: 700, fontSize: 15 }}
@@ -1684,23 +1690,6 @@ export default function VatLieuTable() {
             >
               Thông tin cơ bản
             </Typography>
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <TextField
-                label="Mã vật liệu *"
-                size="small"
-                fullWidth
-                value={form.maVatLieu}
-                onChange={(e) => onChange("maVatLieu", e.target.value)}
-              />
-              <TextField
-                label="Đơn vị tính"
-                size="small"
-                fullWidth
-                value={form.donViTinh}
-                onChange={(e) => onChange("donViTinh", e.target.value)}
-                placeholder="cái, hộp, lọ..."
-              />
-            </Box>
 
             <TextField
               label="Tên vật liệu *"
@@ -1708,6 +1697,15 @@ export default function VatLieuTable() {
               fullWidth
               value={form.tenVatLieu}
               onChange={(e) => onChange("tenVatLieu", e.target.value)}
+            />
+
+            <TextField
+              label="Đơn vị tính"
+              size="small"
+              fullWidth
+              value={form.donViTinh}
+              onChange={(e) => onChange("donViTinh", e.target.value)}
+              placeholder="cái, hộp, lọ..."
             />
 
             <Box sx={{ display: "flex", gap: 2 }}>

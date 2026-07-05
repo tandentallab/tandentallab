@@ -85,7 +85,6 @@ export const fetchAllHoaDonAdmin = createAsyncThunk(
         sortOrder,
       },
     });
-    console.timeEnd("fetchAllHoaDonAdmin");
     return res.data;
   }
 );

@@ -47,6 +47,21 @@ export const updateNhaKhoa = createAsyncThunk(
   }
 );
 
+/* ================= DELETE ================= */
+export const deleteNhaKhoa = createAsyncThunk(
+  "nhaKhoa/delete",
+  async (id, { rejectWithValue }) => {
+    try {
+      const res = await api.delete(`/nhakhoa/${id}`);
+      return { id, ...res.data };
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Xóa thất bại"
+      );
+    }
+  }
+);
+
 /* ================= SLICE ================= */
 
 const nhaKhoaSlice = createSlice({
@@ -109,6 +124,18 @@ const nhaKhoaSlice = createSlice({
         if (index !== -1) {
           state.data[index] = action.payload;
         }
+      })
+
+      /* ===== DELETE ===== */
+      .addCase(deleteNhaKhoa.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(deleteNhaKhoa.fulfilled, (state, action) => {
+        state.data = state.data.filter((item) => item._id !== action.payload.id);
+        state.pagination.totalItems = Math.max(0, (state.pagination.totalItems || 0) - 1);
+      })
+      .addCase(deleteNhaKhoa.rejected, (state, action) => {
+        state.error = action.payload || action.error.message;
       });
   },
 });

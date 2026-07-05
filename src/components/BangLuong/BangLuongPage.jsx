@@ -949,45 +949,57 @@ const BangLuongPage = () => {
       {/* ── CONTENT ── */}
       <div className="flex-1 overflow-auto p-4 space-y-4">
         {/* Summary strip */}
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
           {[
             {
               label: "Số nhân viên",
               value: salaryData.length,
               accent: "#0284c7",
+              suffix: "",
+            },
+            {
+              label: "Tổng thực nhận",
+              value: (Math.round(tongLuong / 1000) * 1000).toLocaleString(
+                "vi-VN"
+              ),
+              accent: "#10b981",
+              suffix: " đ",
             },
             {
               label: "Tổng quỹ lương",
-              value: `${(Math.round(tongLuong / 1000) * 1000).toLocaleString(
-                "vi-VN"
-              )}`,
-              accent: "#10b981",
+              value: (
+                Math.round((colTotals.ungTruoc + tongLuong || 0) / 1000) * 1000
+              ).toLocaleString("vi-VN"),
+              accent: "#dc2626",
+              suffix: " đ",
             },
             {
               label: "Lương TB/người",
               value: salaryData.length
-                ? `${(
+                ? (
                     Math.round(
                       Math.round(tongLuong / salaryData.length) / 1000
                     ) * 1000
-                  ).toLocaleString("vi-VN")}`
+                  ).toLocaleString("vi-VN")
                 : "—",
               accent: "#f59e0b",
+              suffix: salaryData.length ? " đ" : "",
             },
-          ].map(({ label, value, accent }) => (
+          ].map(({ label, value, accent, suffix }) => (
             <div
               key={label}
-              className="flex-1 min-w-[180px] rounded-xl px-5 py-3 flex flex-col gap-0.5 shadow-sm"
-              style={{ background: "#fff", borderLeft: `4px solid ${accent}` }}
+              className="flex-1 min-w-[150px] rounded-lg px-3 py-2 flex items-center justify-between gap-2 shadow-sm"
+              style={{ background: "#fff", borderLeft: `3px solid ${accent}` }}
             >
-              <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+              <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wide leading-tight">
                 {label}
               </span>
               <span
-                className="text-xl font-extrabold"
+                className="text-sm font-extrabold whitespace-nowrap"
                 style={{ color: accent }}
               >
                 {value}
+                {suffix}
               </span>
             </div>
           ))}

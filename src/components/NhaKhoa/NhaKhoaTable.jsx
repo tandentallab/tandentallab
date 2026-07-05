@@ -37,6 +37,7 @@ import {
   Star,
   StarBorder,
   Edit,
+  Delete,
 } from "@mui/icons-material";
 
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -44,7 +45,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DownloadIcon from "@mui/icons-material/Download"; // Thêm icon Download
 
 import { useDispatch, useSelector } from "react-redux";
-import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
+import { fetchNhaKhoa, deleteNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import NhaKhoaModal from "./NhaKhoaModal";
 import NhaKhoaUpdateModal from "./NhaKhoaUpdateModal";
 import NhaKhoaDetailModal from "./NhaKhoaDetailModal";
@@ -116,13 +117,204 @@ function ResizableTh({
   );
 }
 
+// =====================================================
+// FilterBar — thanh lọc tách riêng khỏi bảng chính.
+// Ô nhập/select dùng state CỤC BỘ của component này, nên gõ phím
+// chỉ khiến FilterBar re-render, KHÔNG kéo theo re-render toàn bộ
+// bảng dữ liệu (vốn có thể rất nặng khi nhiều dòng). Chỉ khi bấm
+// "Lọc" / nhấn Enter / xóa chip tỉnh thì mới báo lên component cha
+// (qua onApply / onClearProvince) để thực sự lọc lại bảng.
+// =====================================================
+const FilterBar = React.memo(function FilterBar({
+  provinces,
+  appliedProvince,
+  onApply,
+  onClearProvince,
+  onExportList,
+  onOpenExportPrice,
+  onRefresh,
+}) {
+  const [searchDraft, setSearchDraft] = useState("");
+  const [provinceDraft, setProvinceDraft] = useState("");
+
+  const handleApply = () => {
+    onApply(searchDraft, provinceDraft);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleApply();
+    }
+  };
+
+  const handleClear = () => {
+    setProvinceDraft("");
+    onClearProvince();
+  };
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: {
+          xs: "stretch",
+          md: "center",
+        },
+        flexDirection: {
+          xs: "column",
+          md: "row",
+        },
+        gap: 2,
+        mb: 3,
+      }}
+    >
+      {/* LEFT */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: {
+            xs: "stretch",
+            sm: "center",
+          },
+          flexDirection: {
+            xs: "column",
+            sm: "row",
+          },
+          gap: 2,
+          width: {
+            xs: "100%",
+            md: "auto",
+          },
+        }}
+      >
+        {/* CHIP */}
+        {appliedProvince && (
+          <Chip
+            label={`Tỉnh/Thành: ${appliedProvince}`}
+            onDelete={handleClear}
+          />
+        )}
+
+        {/* SELECT */}
+        <TextField
+          select
+          label="Tỉnh/Thành"
+          size="small"
+          value={provinceDraft}
+          onChange={(e) => setProvinceDraft(e.target.value)}
+          sx={{
+            minWidth: {
+              xs: "100%",
+              sm: 220,
+            },
+          }}
+          InputLabelProps={{
+            shrink: true,
+          }}
+        >
+          <MenuItem value="">Tất cả</MenuItem>
+
+          {provinces.map((province, index) => (
+            <MenuItem key={index} value={province}>
+              {province}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
+      {/* RIGHT */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          flexWrap: "wrap",
+          width: {
+            xs: "100%",
+            md: "auto",
+          },
+        }}
+      >
+        {/* SEARCH */}
+        <TextField
+          size="small"
+          placeholder="Tìm nha khoa..."
+          value={searchDraft}
+          onChange={(e) => setSearchDraft(e.target.value)}
+          onKeyDown={handleKeyDown}
+          sx={{
+            flex: 1,
+            minWidth: {
+              xs: "100%",
+              sm: 250,
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon className="text-gray-400" />
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        {/* NÚT LỌC — chỉ bắt đầu tìm khi bấm nút này */}
+        <button
+          onClick={handleApply}
+          title="Lọc theo từ khóa và tỉnh/thành đã chọn"
+          className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#3b82f6] hover:bg-[#2563eb] text-white text-sm font-medium flex items-center gap-1 transition"
+        >
+          <SearchIcon sx={{ fontSize: 17 }} />
+          <span className="hidden sm:inline">Lọc</span>
+        </button>
+
+        {/* NÚT XUẤT DANH SÁCH */}
+        <button
+          onClick={onExportList}
+          title="Xuất excel danh sách nha khoa"
+          className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1 transition"
+        >
+          <DownloadIcon sx={{ fontSize: 17 }} />
+          <span className="hidden sm:inline">Xuất danh sách</span>
+        </button>
+
+        {/* NÚT XUẤT BẢNG GIÁ RIÊNG */}
+        <button
+          onClick={onOpenExportPrice}
+          title="Xuất excel bảng giá riêng"
+          className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1 transition"
+        >
+          <DownloadIcon sx={{ fontSize: 17 }} />
+          <span className="hidden sm:inline">Xuất bảng giá</span>
+        </button>
+
+        <NhaKhoaModal />
+
+        {/* REFRESH */}
+        <IconButton onClick={onRefresh}>
+          <RefreshIcon />
+        </IconButton>
+
+        {/* MORE */}
+        <IconButton>
+          <MoreVertIcon />
+        </IconButton>
+      </Box>
+    </Box>
+  );
+});
+
 export default function NhaKhoaTable() {
   const dispatch = useDispatch();
   const { data, loading } = useSelector((state) => state.nhaKhoa);
 
   // ===== STATE =====
-  const [search, setSearch] = useState("");
-  const [selectedProvince, setSelectedProvince] = useState("");
+  // Giá trị THỰC SỰ dùng để lọc bảng — chỉ được cập nhật khi người dùng
+  // bấm nút "Lọc" / nhấn Enter trong FilterBar (component con, xem phía trên).
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [appliedProvince, setAppliedProvince] = useState("");
   const [favorites, setFavorites] = useState([]);
 
   // State quản lý Modal Xuất Excel
@@ -220,23 +412,51 @@ export default function NhaKhoaTable() {
   }, [data]);
 
   // ===== FILTER =====
+  // Bỏ dấu tiếng Việt để search không phân biệt có dấu / không dấu
+  const chuanHoa = (str) =>
+    (str || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/gi, "d")
+      .toLowerCase();
+
   const filteredData = useMemo(() => {
+    const keyword = chuanHoa(appliedSearch.trim());
+
     return (data || []).filter((item) => {
-      const keyword = search.toLowerCase();
-
+      // Nếu ô search trống thì luôn khớp
       const matchSearch =
-        item.hoVaTen?.toLowerCase().includes(keyword) ||
-        item.email?.toLowerCase().includes(keyword) ||
-        item.soDienThoai?.includes(keyword) ||
-        item.diaChiCuThe?.toLowerCase().includes(keyword);
+        keyword === "" ||
+        [
+          item.hoVaTen,
+          item.tenGiaoDich,
+          item.email,
+          item.soDienThoai,
+          item.diaChiCuThe,
+          item.quanHuyen,
+          item.tinh,
+          item.website,
+        ].some((field) => field && chuanHoa(field).includes(keyword));
 
-      const matchProvince = selectedProvince
-        ? item.tinh === selectedProvince
+      const matchProvince = appliedProvince
+        ? item.tinh === appliedProvince
         : true;
 
       return matchSearch && matchProvince;
     });
-  }, [data, search, selectedProvince]);
+  }, [data, appliedSearch, appliedProvince]);
+
+  // Áp dụng bộ lọc — được gọi từ FilterBar khi bấm nút "Lọc" hoặc nhấn Enter
+  const handleApplyFilter = (searchValue, provinceValue) => {
+    setAppliedSearch(searchValue);
+    setAppliedProvince(provinceValue);
+  };
+
+  // Xóa điều kiện lọc theo tỉnh/thành đã áp dụng
+  const handleClearProvince = () => {
+    setAppliedProvince("");
+  };
 
   // ===== FAVORITE =====
   const toggleFavorite = (id) => {
@@ -248,6 +468,28 @@ export default function NhaKhoaTable() {
   // ===== UPDATE =====
   const [openEdit, setOpenEdit] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+
+  // ===== DELETE =====
+  const [deleteTarget, setDeleteTarget] = useState(null); // item đang chờ xác nhận xóa
+  const [deletingId, setDeletingId] = useState(null); // id đang trong quá trình xóa (hiện loading)
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget?._id) return;
+    setDeletingId(deleteTarget._id);
+    try {
+      const result = await dispatch(deleteNhaKhoa(deleteTarget._id));
+      if (deleteNhaKhoa.fulfilled.match(result)) {
+        toast.success("Đã xóa nha khoa thành công");
+      } else {
+        toast.error(result.payload || "Xóa thất bại");
+      }
+    } catch (err) {
+      toast.error("Đã xảy ra lỗi khi xóa nha khoa");
+    } finally {
+      setDeletingId(null);
+      setDeleteTarget(null);
+    }
+  };
 
   // Hàm xử lý khi bấm nút Xuất trong Modal
   const handleExportSubmit = async () => {
@@ -275,144 +517,15 @@ export default function NhaKhoaTable() {
   return (
     <Box>
       {/* ===== FILTER BAR ===== */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: {
-            xs: "stretch",
-            md: "center",
-          },
-          flexDirection: {
-            xs: "column",
-            md: "row",
-          },
-          gap: 2,
-          mb: 3,
-        }}
-      >
-        {/* LEFT */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: {
-              xs: "stretch",
-              sm: "center",
-            },
-            flexDirection: {
-              xs: "column",
-              sm: "row",
-            },
-            gap: 2,
-            width: {
-              xs: "100%",
-              md: "auto",
-            },
-          }}
-        >
-          {/* CHIP */}
-          {selectedProvince && (
-            <Chip
-              label={`Tỉnh/Thành: ${selectedProvince}`}
-              onDelete={() => setSelectedProvince("")}
-            />
-          )}
-
-          {/* SELECT */}
-          <TextField
-            select
-            label="Tỉnh/Thành"
-            size="small"
-            value={selectedProvince}
-            onChange={(e) => setSelectedProvince(e.target.value)}
-            sx={{
-              minWidth: {
-                xs: "100%",
-                sm: 220,
-              },
-            }}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          >
-            <MenuItem value="">Tất cả</MenuItem>
-
-            {provinces.map((province, index) => (
-              <MenuItem key={index} value={province}>
-                {province}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Box>
-
-        {/* RIGHT */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            flexWrap: "wrap",
-            width: {
-              xs: "100%",
-              md: "auto",
-            },
-          }}
-        >
-          {/* SEARCH */}
-          <TextField
-            size="small"
-            placeholder="Tìm nha khoa..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{
-              flex: 1,
-              minWidth: {
-                xs: "100%",
-                sm: 250,
-              },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon className="text-gray-400" />
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          {/* NÚT XUẤT DANH SÁCH */}
-          <button
-            onClick={() => exportDanhSachNhaKhoaToExcel(filteredData)}
-            title="Xuất excel danh sách nha khoa"
-            className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1 transition"
-          >
-            <DownloadIcon sx={{ fontSize: 17 }} />
-            <span className="hidden sm:inline">Xuất danh sách</span>
-          </button>
-
-          {/* NÚT XUẤT BẢNG GIÁ RIÊNG */}
-          <button
-            onClick={() => setOpenExport(true)}
-            title="Xuất excel bảng giá riêng"
-            className="px-2 sm:px-3 py-1.5 rounded-lg bg-[#29b6f6] hover:bg-[#0091ea] text-white text-sm font-medium flex items-center gap-1 transition"
-          >
-            <DownloadIcon sx={{ fontSize: 17 }} />
-            <span className="hidden sm:inline">Xuất bảng giá</span>
-          </button>
-
-          <NhaKhoaModal />
-
-          {/* REFRESH */}
-          <IconButton onClick={() => dispatch(fetchNhaKhoa())}>
-            <RefreshIcon />
-          </IconButton>
-
-          {/* MORE */}
-          <IconButton>
-            <MoreVertIcon />
-          </IconButton>
-        </Box>
-      </Box>
+      <FilterBar
+        provinces={provinces}
+        appliedProvince={appliedProvince}
+        onApply={handleApplyFilter}
+        onClearProvince={handleClearProvince}
+        onExportList={() => exportDanhSachNhaKhoaToExcel(filteredData)}
+        onOpenExportPrice={() => setOpenExport(true)}
+        onRefresh={() => dispatch(fetchNhaKhoa())}
+      />
 
       {/* ===== DESKTOP TABLE ===== */}
       <Box
@@ -442,7 +555,7 @@ export default function NhaKhoaTable() {
             </colgroup>
             <TableHead>
               <TableRow>
-                <TableCell colSpan={9} align="left">
+                <TableCell colSpan={10} align="left">
                   <Box
                     sx={{
                       display: "flex",
@@ -508,7 +621,7 @@ export default function NhaKhoaTable() {
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={10} align="center">
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
@@ -516,7 +629,7 @@ export default function NhaKhoaTable() {
 
               {!loading && filteredData.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={10} align="center">
                     Không có dữ liệu
                   </TableCell>
                 </TableRow>
@@ -525,7 +638,17 @@ export default function NhaKhoaTable() {
               {filteredData.map((item) => (
                 <TableRow key={item._id} hover>
                   <TableCell align="center" sx={{ overflow: "hidden" }}>
-                    <NhaKhoaDetailModal nhaKhoaData={item} />
+                    <div className="flex flex-col items-center">
+                      <NhaKhoaDetailModal nhaKhoaData={item} />
+                      <Tooltip title="Xóa">
+                        <IconButton
+                          size="small"
+                          onClick={() => setDeleteTarget(item)}
+                        >
+                          <Delete sx={{ fontSize: 18, color: "#ef4444" }} />
+                        </IconButton>
+                      </Tooltip>
+                    </div>
                   </TableCell>
 
                   <TableCell
@@ -624,7 +747,7 @@ export default function NhaKhoaTable() {
                 </TableRow>
               ))}
               <TableRow>
-                <TableCell colSpan={9} align="right">
+                <TableCell colSpan={10} align="right">
                   <Typography variant="caption" color="text.secondary">
                     Tổng số {data?.length} nha khoa
                   </Typography>
@@ -796,6 +919,14 @@ export default function NhaKhoaTable() {
                       <Edit sx={{ fontSize: 18, color: "#3b82f6" }} />
                     </IconButton>
                   </Tooltip>
+                  <Tooltip title="Xóa">
+                    <IconButton
+                      size="small"
+                      onClick={() => setDeleteTarget(item)}
+                    >
+                      <Delete sx={{ fontSize: 18, color: "#ef4444" }} />
+                    </IconButton>
+                  </Tooltip>
                   <NhaKhoaDetailModal nhaKhoaData={item} />
                 </Box>
               </CardContent>
@@ -809,6 +940,47 @@ export default function NhaKhoaTable() {
         setOpen={setOpenEdit}
         data={selectedRow}
       />
+
+      {/* ===== DIALOG XÁC NHẬN XÓA NHA KHOA ===== */}
+      <Dialog
+        open={!!deleteTarget}
+        onClose={() => (deletingId ? null : setDeleteTarget(null))}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle sx={{ fontWeight: "bold" }}>Xác nhận xóa</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc muốn xóa nha khoa{" "}
+            <b>{deleteTarget?.hoVaTen || deleteTarget?.tenGiaoDich}</b>? Hành
+            động này không thể hoàn tác.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            onClick={() => setDeleteTarget(null)}
+            color="inherit"
+            disabled={!!deletingId}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmDelete}
+            disabled={!!deletingId}
+            startIcon={
+              deletingId ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <Delete />
+              )
+            }
+          >
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ===== MODAL CHỌN NHA KHOA ĐỂ XUẤT EXCEL ===== */}
       <Dialog

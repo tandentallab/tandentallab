@@ -75,7 +75,8 @@ export default function XuatKhoModal({ open, onClose, editData = null, preSelect
     // ── Fetch master data ────────────────────────────────────────────────
     useEffect(() => {
         if (!open) return;
-        dispatch(fetchVatLieu()); dispatch(fetchXuatKhoOptions());
+        dispatch(fetchVatLieu({ limit: 9999 }));
+        dispatch(fetchXuatKhoOptions());
     }, [open, dispatch]);
 
     // ── Init items ───────────────────────────────────────────────────────

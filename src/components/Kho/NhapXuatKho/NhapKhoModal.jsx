@@ -37,12 +37,15 @@ export default function NhapKhoModal({ open, onClose, editData = null, preSelect
     // vatLieuId đang mở NCC modal (để auto-select NCC sau khi tạo)
     const [pendingVlId, setPendingVlId] = useState(null);
 
+    // search vật liệu
+    const [search, setSearch] = useState("");
+
     // ── Fetch master data ────────────────────────────────────────────────
     useEffect(() => {
         if (!open) return;
-        dispatch(fetchVatLieu({ limit: -1 }));
+        dispatch(fetchVatLieu({ limit: -1, name: search }));
         dispatch(fetchNhaCungCap());
-    }, [open, dispatch]);
+    }, [open, dispatch, search]);
 
     // ── Init items ───────────────────────────────────────────────────────
     useEffect(() => {
@@ -282,7 +285,15 @@ export default function NhapKhoModal({ open, onClose, editData = null, preSelect
                             style={{ gridTemplateColumns: isEdit ? "40px 1fr 90px 150px 130px 1fr" : "40px 1fr 220px 90px 150px 130px 1fr" }}>
                             <input type="checkbox" checked={allChecked} onChange={toggleCheckAll}
                                 className="w-4 h-4 accent-green-600 cursor-pointer" title="Chọn tất cả" />
-                            <div>Vật liệu</div>
+                            <div className="mr-2">
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="Nhập tên vật liệu"
+                                    className="w-full px-2 py-1 text-sm font-normal border text-black"
+                                />
+                            </div>
                             {!isEdit && <div>Nhà cung cấp</div>}
                             <div>Số lượng</div>
                             <div>Đơn giá (₫)</div>

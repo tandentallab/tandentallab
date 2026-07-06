@@ -72,12 +72,15 @@ export default function XuatKhoModal({ open, onClose, editData = null, preSelect
     const [nhanVien, setNhanVien] = useState("");
     const [items, setItems] = useState({});
 
+    // search vật liệu
+    const [search, setSearch] = useState("");
+
     // ── Fetch master data ────────────────────────────────────────────────
     useEffect(() => {
         if (!open) return;
-        dispatch(fetchVatLieu({ limit: -1 }));
+        dispatch(fetchVatLieu({ limit: -1, name: search }));
         dispatch(fetchXuatKhoOptions());
-    }, [open, dispatch]);
+    }, [open, dispatch, search]);
 
     // ── Init items ───────────────────────────────────────────────────────
     useEffect(() => {
@@ -244,7 +247,15 @@ export default function XuatKhoModal({ open, onClose, editData = null, preSelect
                         style={{ gridTemplateColumns: "40px 1fr 80px 80px 1fr" }}>
                         <input type="checkbox" checked={allChecked} onChange={toggleCheckAll}
                             className="w-4 h-4 accent-orange-500 cursor-pointer" title="Chọn tất cả" />
-                        <div>Vật liệu</div>
+                        <div className="mr-2">
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Nhập tên vật liệu"
+                                className="w-full px-2 py-1 text-sm font-normal border text-black"
+                            />
+                        </div>
                         <div>Tồn kho</div>
                         <div>SL Xuất</div>
                         <div>Mô tả</div>

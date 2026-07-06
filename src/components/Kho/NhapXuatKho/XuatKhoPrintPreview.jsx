@@ -175,7 +175,7 @@ const XuatKhoPrintPreview = () => {
                             <div>{phieu.nguoiTao || ""}</div>
                         </div>
                         <div style={{ width: "30%" }}>
-                            <div style={{ fontWeight: "bold" }}>Thủ kho</div>
+                            <div style={{ fontWeight: "bold" }}>Nhân viên</div>
                             <div style={{ fontSize: "7pt", color: "#555", marginBottom: "7mm" }}>(Ký, họ tên)</div>
                             <div>&nbsp;</div>
                         </div>

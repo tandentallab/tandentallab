@@ -40,7 +40,7 @@ export default function NhapKhoModal({ open, onClose, editData = null, preSelect
     // ── Fetch master data ────────────────────────────────────────────────
     useEffect(() => {
         if (!open) return;
-        dispatch(fetchVatLieu({ limit: 9999 }));
+        dispatch(fetchVatLieu({ limit: -1 }));
         dispatch(fetchNhaCungCap());
     }, [open, dispatch]);
 

@@ -50,7 +50,7 @@ export default function KhoPage() {
   return (
     <div className="p-6">
       {/* ===== BANNER TỔNG QUAN ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 cursor-pointer">
+      <div className="grid grid-cols-2 gap-3 mb-4 cursor-pointer">
         {/* Tổng vật liệu */}
         <div
           className="rounded-xl px-6 py-4 flex items-center gap-4"
@@ -93,7 +93,20 @@ export default function KhoPage() {
       </div>
 
       {/* ===== TABS ===== */}
-      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
+      <Box
+        sx={{
+          position: "sticky",
+          // Nếu toàn bộ trang cuộn (window scroll): chỉnh bằng đúng chiều cao của Header (ví dụ: 64px)
+          // Nếu chỉ có vùng nội dung bên dưới Header cuộn: để là 0
+          top: "64px",
+          backgroundColor: "#f3f4f6", // Khớp với màu nền xám nhạt của hệ thống để che phần nội dung cuộn lên bên dưới
+          zIndex: 10, // Đảm bảo tabs nằm trên bảng dữ liệu khi cuộn
+          borderBottom: 1,
+          borderColor: "divider",
+          // mb: 3,
+          pt: 1, // Thêm chút khoảng trống phía trên cho đẹp khi dính vào top
+        }}
+      >
         <Tabs
           value={tab}
           onChange={handleTabChange}

@@ -74,13 +74,25 @@ export default function XuatKhoModal({ open, onClose, editData = null, preSelect
 
     // search vật liệu
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+
+    // Debounce: chỉ cập nhật debouncedSearch sau khi người dùng ngừng gõ 400ms
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(search), 400);
+        return () => clearTimeout(timer);
+    }, [search]);
 
     // ── Fetch master data ────────────────────────────────────────────────
     useEffect(() => {
         if (!open) return;
-        dispatch(fetchVatLieu({ limit: -1, name: search }));
+        dispatch(fetchVatLieu({ limit: -1, name: debouncedSearch }));
+    }, [open, dispatch, debouncedSearch]);
+
+    // fetchXuatKhoOptions chỉ cần gọi 1 lần khi mở modal, không phụ thuộc search
+    useEffect(() => {
+        if (!open) return;
         dispatch(fetchXuatKhoOptions());
-    }, [open, dispatch, search]);
+    }, [open, dispatch]);
 
     // ── Init items ───────────────────────────────────────────────────────
     useEffect(() => {

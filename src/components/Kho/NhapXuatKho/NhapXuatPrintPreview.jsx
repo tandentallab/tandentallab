@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../../config/api";
 import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-// ⚠️ Chỉnh lại đường dẫn cho đúng vị trí thực tế của constants.js trong dự án
 import { monthToDateRange, aggregateVatLieu } from "../NhapXuatKho/NhapXuatTable/constants";
 
 const formatDate = (dateStr) => {
@@ -17,7 +16,7 @@ const formatCurrency = (value) => new Intl.NumberFormat("vi-VN").format(value ||
 
 const thStyle = (extra = {}) => ({
     border: "1px solid #aaa",
-    padding: "2.5mm 2mm",
+    padding: "1.5mm 2mm",
     fontWeight: "bold",
     background: "#f2f2f2",
     ...extra,
@@ -25,7 +24,7 @@ const thStyle = (extra = {}) => ({
 
 const tdStyle = (extra = {}) => ({
     border: "1px solid #aaa",
-    padding: "2mm",
+    padding: "1.2mm 2mm",
     ...extra,
 });
 
@@ -41,21 +40,21 @@ function buildFilterLabel({ thang, ncc, boPhan, trangThai }) {
 function Header({ congTy, title, filterLabel }) {
     return (
         <>
-            <div style={{ marginBottom: "4mm", display: "flex" }}>
+            <div style={{ marginBottom: "2.5mm", display: "flex" }}>
                 <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>
+                    <p style={{ margin: 0, fontWeight: "bold", fontSize: "9pt", textTransform: "uppercase" }}>
                         {congTy?.Ten || ""}
                     </p>
-                    <p style={{ margin: "1mm 0 0", fontSize: "9pt" }}>{congTy?.DiaChi || ""}</p>
-                    <p style={{ margin: "1mm 0 0", fontSize: "9pt" }}>SĐT: {congTy?.DienThoai || ""}</p>
+                    <p style={{ margin: "0.5mm 0 0", fontSize: "7.5pt" }}>{congTy?.DiaChi || ""}</p>
+                    <p style={{ margin: "0.5mm 0 0", fontSize: "7.5pt" }}>SĐT: {congTy?.DienThoai || ""}</p>
                 </div>
             </div>
-            <div style={{ textAlign: "center", margin: "4mm 0 5mm" }}>
-                <h1 style={{ margin: 0, fontSize: "15pt", fontWeight: "bold", textTransform: "uppercase" }}>
+            <div style={{ textAlign: "center", margin: "2mm 0 3mm" }}>
+                <h1 style={{ margin: 0, fontSize: "13pt", fontWeight: "bold", textTransform: "uppercase" }}>
                     {title}
                 </h1>
-                <div style={{ fontSize: "9pt", marginTop: "1mm", color: "#555" }}>{filterLabel}</div>
-                <div style={{ fontSize: "8.5pt", color: "#888" }}>
+                <div style={{ fontSize: "8pt", marginTop: "0.5mm", color: "#555" }}>{filterLabel}</div>
+                <div style={{ fontSize: "7.5pt", color: "#888" }}>
                     Xuất ngày: {new Date().toLocaleString("vi-VN")}
                 </div>
             </div>
@@ -66,7 +65,7 @@ function Header({ congTy, title, filterLabel }) {
 function VatLieuTable({ data }) {
     const tongSoLuong = data.reduce((s, r) => s + (r.soLuong || 0), 0);
     return (
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8.5pt" }}>
             <thead>
                 <tr>
                     <th style={thStyle({ textAlign: "center", width: "8%" })}>STT</th>
@@ -220,10 +219,10 @@ const NhapXuatPrintPreview = () => {
                 {showPhieuNhap && (
                     <div
                         className={`print-area bg-white shadow-lg border border-gray-300 ${lastSection !== "phieuNhap" ? "page-break" : ""}`}
-                        style={{ width: "210mm", padding: "12mm 15mm" }}
+                        style={{ width: "210mm", minHeight: "148mm", padding: "8mm 10mm", boxSizing: "border-box" }}
                     >
-                        <Header congTy={congTy} title="DANH SÁCH PHIẾU NHẬP KHO" />
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9.5pt" }}>
+                        <Header congTy={congTy} title="DANH SÁCH PHIẾU NHẬP KHO" filterLabel={filterLabel} />
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8.5pt" }}>
                             <thead>
                                 <tr>
                                     <th style={thStyle({ textAlign: "center", width: "6%" })}>STT</th>
@@ -262,10 +261,10 @@ const NhapXuatPrintPreview = () => {
                 {showPhieuXuat && (
                     <div
                         className={`print-area bg-white shadow-lg border border-gray-300 ${lastSection !== "phieuXuat" ? "page-break" : ""}`}
-                        style={{ width: "210mm", padding: "12mm 15mm" }}
+                        style={{ width: "210mm", minHeight: "148mm", padding: "8mm 10mm", boxSizing: "border-box" }}
                     >
-                        <Header congTy={congTy} title="DANH SÁCH PHIẾU XUẤT KHO" />
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9.5pt" }}>
+                        <Header congTy={congTy} title="DANH SÁCH PHIẾU XUẤT KHO" filterLabel={filterLabel} />
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8.5pt" }}>
                             <thead>
                                 <tr>
                                     <th style={thStyle({ textAlign: "center", width: "6%" })}>STT</th>
@@ -296,9 +295,9 @@ const NhapXuatPrintPreview = () => {
                 {showVatLieuNhap && (
                     <div
                         className={`print-area bg-white shadow-lg border border-gray-300 ${lastSection !== "vatLieuNhap" ? "page-break" : ""}`}
-                        style={{ width: "210mm", padding: "12mm 15mm" }}
+                        style={{ width: "210mm", minHeight: "148mm", padding: "8mm 10mm", boxSizing: "border-box" }}
                     >
-                        <Header congTy={congTy} title="TỔNG HỢP VẬT LIỆU NHẬP" />
+                        <Header congTy={congTy} title="TỔNG HỢP VẬT LIỆU NHẬP" filterLabel={filterLabel} />
                         <VatLieuTable data={vatLieuNhap} />
                     </div>
                 )}
@@ -307,9 +306,9 @@ const NhapXuatPrintPreview = () => {
                 {showVatLieuXuat && (
                     <div
                         className="print-area bg-white shadow-lg border border-gray-300"
-                        style={{ width: "210mm", padding: "12mm 15mm" }}
+                        style={{ width: "210mm", minHeight: "148mm", padding: "8mm 10mm", boxSizing: "border-box" }}
                     >
-                        <Header congTy={congTy} title="TỔNG HỢP VẬT LIỆU XUẤT" />
+                        <Header congTy={congTy} title="TỔNG HỢP VẬT LIỆU XUẤT" filterLabel={filterLabel} />
                         <VatLieuTable data={vatLieuXuat} />
                     </div>
                 )}
@@ -351,10 +350,12 @@ const NhapXuatPrintPreview = () => {
                     .print-area {
                         box-shadow: none !important;
                         border: none !important;
-                        padding: 10mm 12mm !important;
+                        width: 100% !important;
+                        min-height: 0 !important;
+                        padding: 6mm 8mm !important;
                     }
                     .page-break { page-break-after: always; }
-                    @page { size: A4; margin: 10mm; }
+                    @page { size: A5 landscape; margin: 8mm; }
                 }
             `}</style>
         </div>,

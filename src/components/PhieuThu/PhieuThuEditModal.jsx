@@ -394,23 +394,23 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
 
     return (
         <div>
-            <div className="fixed inset-0 z-[1400] flex items-start justify-center pt-4 pb-4 overflow-y-auto">
+            <div className="fixed inset-0 z-[1400] flex items-start justify-center sm:pt-4 sm:pb-4 overflow-y-auto">
                 <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-                <div className="relative bg-gray-50 rounded-2xl shadow-2xl w-full max-w-5xl mx-4 flex flex-col" style={{ maxHeight: "calc(100vh - 32px)" }}>
+                <div className="relative bg-gray-50 sm:rounded-2xl shadow-2xl w-full max-w-5xl sm:mx-4 flex flex-col h-screen sm:h-auto sm:max-h-[calc(100vh-32px)]">
 
-                    <div className="flex items-center justify-between px-6 py-3.5 bg-[#29b6f6] rounded-t-2xl shrink-0">
+                    <div className="flex items-center justify-between px-6 py-3.5 bg-[#29b6f6] sm:rounded-t-2xl shrink-0">
                         <h2 className="text-white font-semibold text-base tracking-wide">Chỉnh sửa Phiếu thu {phieuThu.soPhieuThu}</h2>
                         <button onClick={onClose} className="text-white hover:bg-white/20 rounded-full p-1 transition">
                             <CloseIcon sx={{ fontSize: 20 }} />
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                    <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-4">
                         {error && (
                             <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2 text-sm">{error}</div>
                         )}
 
-                        <div className="grid grid-cols-[50%_1fr_30%]">
+                        <div className="grid grid-cols-1 sm:grid-cols-[50%_1fr_30%] gap-6 sm:gap-x-0">
                             <div>
                                 <p className="text-xs text-gray-400 mb-1">Công ty</p>
                                 <div className="flex items-center gap-2 border-b-2 border-gray-200 pb-1">
@@ -430,7 +430,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                 )}
                             </div>
 
-                            <div className="space-y-4 col-start-3">
+                            <div className="space-y-4 sm:col-start-3">
                                 <div className="relative">
                                     <p className="text-xs text-gray-400 mb-0.5">Tổng số tiền thu</p>
                                     <div className="border border-gray-200 rounded-xl px-4 py-3">
@@ -582,10 +582,10 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                         ) : chiTietHoaDon.length > 0 && (
                             <div className="rounded-xl overflow-hidden border border-gray-200 bg-white">
                                 <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[640px] text-sm">
+                                    <table className="w-full min-w-[850px] text-sm">
                                         <thead className="border-b border-gray-100">
                                             <tr className="text-gray-500 bg-gray-50/50">
-                                                <th className="w-10 px-4 py-3 text-left">
+                                                <th className="w-10 px-4 py-3 text-left whitespace-nowrap">
                                                     <input
                                                         type="checkbox"
                                                         checked={allChecked}
@@ -594,13 +594,13 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                                         className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
                                                     />
                                                 </th>
-                                                <th className="px-4 py-3 text-left font-medium">STT</th>
-                                                <th className="px-4 py-3 text-left font-medium">Hóa đơn</th>
-                                                <th className="px-4 py-3 text-left font-medium">Ngày xuất</th>
-                                                <th className="px-4 py-3 text-right font-medium">Giá trị</th>
-                                                <th className="px-4 py-3 text-right font-medium">Đã thanh toán</th>
-                                                <th className="px-4 py-3 text-right font-medium">Còn lại</th>
-                                                <th className="px-4 py-3 text-right font-medium text-[#29b6f6]">Thanh toán</th>
+                                                <th className="px-4 py-3 text-left font-medium whitespace-nowrap">STT</th>
+                                                <th className="px-4 py-3 text-left font-medium whitespace-nowrap">Hóa đơn</th>
+                                                <th className="px-4 py-3 text-left font-medium whitespace-nowrap">Ngày xuất</th>
+                                                <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Giá trị</th>
+                                                <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Đã thanh toán</th>
+                                                <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Còn lại</th>
+                                                <th className="px-4 py-3 text-right font-medium text-[#29b6f6] whitespace-nowrap">Thanh toán</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -613,7 +613,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
 
                                                 return (
                                                     <tr key={hd._id || idx} className={`border-b border-gray-50 last:border-0 transition ${item.selected ? "bg-blue-50/60" : "hover:bg-gray-50"}`}>
-                                                        <td className="px-4 py-3">
+                                                        <td className="px-4 py-4">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={item.selected}
@@ -621,8 +621,8 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                                                 className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
                                                             />
                                                         </td>
-                                                        <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
-                                                        <td className="px-4 py-3 font-medium">
+                                                        <td className="px-4 py-4 text-gray-500 whitespace-nowrap">{idx + 1}</td>
+                                                        <td className="px-4 py-4 font-medium whitespace-nowrap">
                                                             {hd.soHoaDon?.startsWith("SDDK") ? (
                                                                 <span className="text-orange-600 font-bold">
                                                                     Số dư đầu kỳ (Nợ cũ)
@@ -636,23 +636,23 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                                                 </span>
                                                             )}
                                                         </td>
-                                                        <td className="px-4 py-3 text-gray-600">
+                                                        <td className="px-4 py-4 text-gray-600 whitespace-nowrap">
                                                             {hd.soHoaDon?.startsWith("SDDK")
                                                                 ? "—"
                                                                 : hd.ngayXuatHoaDon
                                                                     ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN")
                                                                     : "—"}
                                                         </td>
-                                                        <td className="px-4 py-3 text-right text-gray-700">
+                                                        <td className="px-4 py-4 text-right text-gray-700 whitespace-nowrap">
                                                             {fmt(giaTriHD)}
                                                         </td>
-                                                        <td className="px-4 py-3 text-right text-gray-500">
+                                                        <td className="px-4 py-4 text-right text-gray-500 whitespace-nowrap">
                                                             {fmt(daThanhToan)}
                                                         </td>
-                                                        <td className="px-4 py-3 text-right text-gray-700">
+                                                        <td className="px-4 py-4 text-right text-gray-700 whitespace-nowrap">
                                                             {fmt(item.conLaiToiDa)}
                                                         </td>
-                                                        <td className="px-4 py-3 text-right">
+                                                        <td className="px-4 py-4 text-right whitespace-nowrap">
                                                             <input
                                                                 type="text"
                                                                 inputMode="numeric"
@@ -675,7 +675,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-8 items-start">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-start pb-4 sm:pb-0">
                             <div className="space-y-4">
                                 <div>
                                     <p className="text-xs text-gray-400 mb-1">Nội dung thu</p>
@@ -687,7 +687,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                         </div>
                     </div>
 
-                    <div className="px-6 py-3 border-t bg-white rounded-b-2xl flex items-center justify-between shrink-0">
+                    <div className="px-6 py-3 border-t bg-white sm:rounded-b-2xl flex items-center justify-between shrink-0">
                         <div />
                         <div className="flex items-center gap-3">
                             <button

@@ -594,8 +594,8 @@ const DonHangPage = () => {
 
   const filteredDonHangs = useMemo(() => {
     return donHangs.filter((dh) => {
-      if (searchTerm.trim()) {
-        const term = searchTerm.toLowerCase().trim();
+      if (debouncedSearch.trim()) {
+        const term = debouncedSearch.toLowerCase().trim();
         const ma = (
           dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8)}`
         ).toLowerCase();
@@ -634,7 +634,7 @@ const DonHangPage = () => {
     });
   }, [
     donHangs,
-    searchTerm,
+    debouncedSearch,
     appliedNgayNhan,
     appliedYcHoanThanh,
     appliedHenGiao,

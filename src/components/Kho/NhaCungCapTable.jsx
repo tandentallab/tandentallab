@@ -144,6 +144,7 @@ export default function NhaCungCapTable() {
           display: "flex",
           gap: 2,
           mb: 3,
+          py: 2,
           alignItems: "center",
           justifyContent: "space-between",
           flexWrap: "wrap",

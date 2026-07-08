@@ -1083,17 +1083,48 @@ export default function VatLieuTable() {
     return map;
   }, [nhaCungCap]);
 
+  // ===== Đo chiều cao thực tế của Filter Bar (bao gồm cả Action Bar khi có) =====
+  // Dùng để định vị chính xác header của bảng khi cuộn, tránh trường hợp
+  // header bảng bị đè lên/che khuất do offset cố định không khớp chiều cao thật.
+  const filterBarRef = useRef(null);
+  useEffect(() => {
+    const el = filterBarRef.current;
+    if (!el) return;
+
+    const updateFilterBarHeight = () => {
+      document.documentElement.style.setProperty(
+        "--kho-filter-h",
+        `${el.offsetHeight}px`
+      );
+    };
+
+    updateFilterBarHeight();
+
+    const resizeObserver = new ResizeObserver(updateFilterBarHeight);
+    resizeObserver.observe(el);
+    window.addEventListener("resize", updateFilterBarHeight);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateFilterBarHeight);
+    };
+  }, [selectedIds.length, filterNCC, filterNhom, filterLoai, filterTrangThai]);
+
   // ===== RENDER =====
   return (
     <Box>
       {/* ===== FILTER BAR ===== */}
       <Box
+        ref={filterBarRef}
         sx={{
           position: "sticky",
-          // 64px (Header) + 48px (Tabs) = 112px. Chỉnh lại số này nếu Tabs cao hơn/thấp hơn
-          top: "145px",
+          // Chiều cao khối Header + Tabs + Thống kê được đo động bên KhoPage
+          // (vì trên mobile khối thống kê có thể xuống dòng, chiều cao thay đổi)
+          // và lưu vào biến CSS --kho-header-h. Fallback 145px nếu chưa có giá trị.
+          top: "var(--kho-header-h, 145px)",
           backgroundColor: "#f3f4f6", // Khớp với màu nền xám nhạt của hệ thống để che phần nội dung cuộn lên bên dưới
           zIndex: 9, // Nhỏ hơn zIndex của Tabs (10) nhưng lớn hơn Table
+          pt: 1,
           pb: 2, // Khoảng cách dưới bộ lọc
         }}
         // className="flex flex-wrap items-center justify-between gap-3"
@@ -1253,10 +1284,11 @@ export default function VatLieuTable() {
                     backgroundColor: "#e3f2fd",
                     fontWeight: "bold",
                     // 🟢 ĐỊNH VỊ STICKY CHO HEADER CỦA BẢNG:
-                    // Vị trí nằm dưới: Header (64px) + Tabs (48px) + Filter Bar (~88px) = ~200px
-                    // Nếu bạn có Action Bar (khi tích chọn checkbox), nó sẽ tự đẩy xuống thêm hoặc bạn có thể điều chỉnh linh hoạt.
+                    // Vị trí nằm dưới: --kho-header-h (Tabs + Thống kê, đo động)
+                    // + --kho-filter-h (Filter Bar, đo động — đã tự bao gồm cả
+                    // Action Bar khi có checkbox được chọn).
                     position: "sticky",
-                    top: selectedIds.length > 0 ? "248px" : "200px", // Tự động cộng thêm khoảng cách khi thanh Action Bar xuất hiện
+                    top: "calc(var(--kho-header-h, 145px) + var(--kho-filter-h, 88px))",
                     zIndex: 8, // Nhỏ hơn zIndex của Filter bar (9) và Tabs (10) để cuộn chui xuống dưới
                     transition: "top 0.2s ease-in-out", // Tạo hiệu ứng mượt mà khi thay đổi top
                   },

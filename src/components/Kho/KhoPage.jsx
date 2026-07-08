@@ -1,5 +1,5 @@
 // pages/Kho/KhoPage.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchVatLieu,
@@ -10,7 +10,7 @@ import {
 import VatLieuTable from "./VatLieuTable";
 import NhapXuatTable from "./NhapXuatKho/NhapXuatTable";
 import NhaCungCapTable from "./NhaCungCapTable";
-import { Box, Tab, Tabs } from "@mui/material";
+import { Box, Tab, Tabs, useMediaQuery, useTheme } from "@mui/material";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import AssignmentIcon from "@mui/icons-material/Assignment";
@@ -19,6 +19,8 @@ import CategoryIcon from "@mui/icons-material/Category";
 export default function KhoPage() {
   const dispatch = useDispatch();
   const { vatLieu } = useSelector((state) => state.kho);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // Lưu tab đang chọn vào sessionStorage để giữ nguyên khi quay lại trang
   // (ví dụ: từ trang in phiếu nhập/xuất bấm nút Back)
@@ -47,53 +49,39 @@ export default function KhoPage() {
     };
   }, [vatLieu]);
 
+  // ===== Đo chiều cao thực tế của khối Tabs + Thống kê =====
+  // Trên mobile, khối thống kê có thể xuống dòng (flexWrap) khiến chiều cao
+  // tăng lên so với desktop. VatLieuTable dùng chiều cao này (qua CSS variable
+  // --kho-header-h) để tính vị trí sticky cho thanh lọc/bảng, tránh bị chồng lấn.
+  const headerRef = useRef(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+
+    const updateHeaderHeight = () => {
+      document.documentElement.style.setProperty(
+        "--kho-header-h",
+        `${el.offsetHeight + 64}px` // +64px chiều cao Header cố định của hệ thống
+      );
+    };
+
+    updateHeaderHeight();
+
+    const resizeObserver = new ResizeObserver(updateHeaderHeight);
+    resizeObserver.observe(el);
+    window.addEventListener("resize", updateHeaderHeight);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateHeaderHeight);
+    };
+  }, [tongVatLieu, soHangThieuHang]);
+
   return (
-    <div className="p-6">
-      {/* ===== BANNER TỔNG QUAN ===== */}
-      <div className="grid grid-cols-2 gap-3 mb-4 cursor-pointer">
-        {/* Tổng vật liệu */}
-        <div
-          className="rounded-xl px-6 py-4 flex items-center gap-4"
-          style={{ backgroundColor: "#1976d2" }}
-          onClick={() => dispatch(resetVatLieuFilters())}
-        >
-          <CategoryIcon sx={{ fontSize: 36, color: "rgba(255,255,255,0.8)" }} />
-          <div>
-            <div className="text-white text-2xl font-bold">{tongVatLieu}</div>
-            <div className="text-white text-sm mt-0.5">Vật liệu trong kho</div>
-          </div>
-        </div>
-
-        {/* Hàng thiếu */}
-        <div
-          className="rounded-xl px-6 py-4 flex items-center gap-4 cursor-pointer"
-          style={{
-            backgroundColor: soHangThieuHang > 0 ? "#ef4444" : "#22c55e",
-          }}
-          onClick={() => {
-            if (soHangThieuHang > 0) {
-              dispatch(setVatLieuFilters({ filterTrangThai: "thieu" }));
-            }
-          }}
-        >
-          <WarningAmberIcon
-            sx={{ fontSize: 36, color: "rgba(255,255,255,0.85)" }}
-          />
-          <div>
-            <div className="text-white text-2xl font-bold">
-              {soHangThieuHang}
-            </div>
-            <div className="text-white text-sm mt-0.5">
-              {soHangThieuHang > 0
-                ? "Vật liệu dưới mức tồn kho tối thiểu"
-                : "Tồn kho ổn định"}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ===== TABS ===== */}
+    <div className="px-6 py-2">
+      {/* ===== TABS + THỐNG KÊ (gộp chung 1 hàng để tiết kiệm diện tích) ===== */}
       <Box
+        ref={headerRef}
         sx={{
           position: "sticky",
           // Nếu toàn bộ trang cuộn (window scroll): chỉnh bằng đúng chiều cao của Header (ví dụ: 64px)
@@ -104,7 +92,13 @@ export default function KhoPage() {
           borderBottom: 1,
           borderColor: "divider",
           // mb: 3,
-          pt: 1, // Thêm chút khoảng trống phía trên cho đẹp khi dính vào top
+          pt: 0.25, // Giảm khoảng trống phía trên Tabs
+          pb: { xs: 1, sm: 0 }, // Thêm khoảng cách dưới khối thống kê khi xuống dòng trên mobile
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 1,
         }}
       >
         <Tabs
@@ -113,23 +107,92 @@ export default function KhoPage() {
           variant="scrollable"
           scrollButtons="auto"
           allowScrollButtonsMobile
+          sx={{
+            minHeight: { xs: 40, sm: 48 },
+            "& .MuiTab-root": {
+              minHeight: { xs: 40, sm: 48 },
+              minWidth: { xs: "auto", sm: 90 },
+              px: { xs: 1, sm: 2 },
+              py: 0,
+              fontSize: { xs: 12.5, sm: 14 },
+              gap: { xs: 0.5, sm: 1 },
+            },
+            "& .MuiTabs-scrollButtons": {
+              width: { xs: 24, sm: 40 },
+            },
+          }}
         >
           <Tab
-            icon={<CategoryIcon sx={{ fontSize: 18 }} />}
+            icon={<CategoryIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
             iconPosition="start"
             label="Vật liệu"
           />
           <Tab
-            icon={<AssignmentIcon sx={{ fontSize: 18 }} />}
+            icon={<AssignmentIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
             iconPosition="start"
-            label="Phiếu Nhập - Xuất"
+            label={isMobile ? "Nhập - Xuất" : "Phiếu Nhập - Xuất"}
           />
           <Tab
-            icon={<StorefrontIcon sx={{ fontSize: 18 }} />}
+            icon={<StorefrontIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
             iconPosition="start"
-            label="Nhà cung cấp"
+            label={isMobile ? "NCC" : "Nhà cung cấp"}
           />
         </Tabs>
+
+        {/* ===== THỐNG KÊ THU GỌN ===== */}
+        <Box sx={{ display: "flex", gap: 1, pr: 1, flexWrap: "wrap" }}>
+          <Box
+            onClick={() => dispatch(resetVatLieuFilters())}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.75,
+              px: 1.5,
+              py: 0.5,
+              borderRadius: "999px",
+              cursor: "pointer",
+              backgroundColor: "#e3f2fd",
+              color: "#1976d2",
+              fontSize: 13,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              "&:hover": { backgroundColor: "#d0e6fb" },
+            }}
+          >
+            <CategoryIcon sx={{ fontSize: 16 }} />
+            {tongVatLieu} vật liệu trong kho
+          </Box>
+
+          <Box
+            onClick={() => {
+              if (soHangThieuHang > 0) {
+                dispatch(setVatLieuFilters({ filterTrangThai: "thieu" }));
+              }
+            }}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.75,
+              px: 1.5,
+              py: 0.5,
+              borderRadius: "999px",
+              cursor: soHangThieuHang > 0 ? "pointer" : "default",
+              backgroundColor: soHangThieuHang > 0 ? "#fee2e2" : "#dcfce7",
+              color: soHangThieuHang > 0 ? "#ef4444" : "#22c55e",
+              fontSize: 13,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              "&:hover": {
+                backgroundColor: soHangThieuHang > 0 ? "#fbd0d0" : "#dcfce7",
+              },
+            }}
+          >
+            <WarningAmberIcon sx={{ fontSize: 16 }} />
+            {soHangThieuHang > 0
+              ? `${soHangThieuHang} vật liệu thiếu hàng`
+              : "Tồn kho ổn định"}
+          </Box>
+        </Box>
       </Box>
 
       {tab === 0 && <VatLieuTable />}

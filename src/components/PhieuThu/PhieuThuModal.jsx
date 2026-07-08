@@ -24,8 +24,6 @@ const toLocalDatetimeInput = (d) => {
   )}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
 };
 
-
-
 const fmt = (v) => new Intl.NumberFormat("vi-VN").format(v || 0);
 const formatSoHoaDon = (hd) => hd?.soHoaDon || "-";
 const getInitials = (name) => {
@@ -43,7 +41,6 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     (s) => s.phieuThu
   );
 
-
   const [isOpenThang, setIsOpenThang] = useState(false);
   const thangDropdownRef = useRef(null);
   const [selectedNhaKhoa, setSelectedNhaKhoa] = useState("");
@@ -53,7 +50,6 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
   const [soTienThuInput, setSoTienThuInput] = useState("");
   const [ngayThu, setNgayThu] = useState(toLocalDatetimeInput(new Date()));
 
-  // 👉 THÊM STATE CHỈ LƯU CHUỖI "MM/YYYY" (Mặc định trống để bắt buộc chọn)
   const [thangDoanhThu, setThangDoanhThu] = useState("");
 
   const [phuongThuc, setPhuongThuc] = useState("Chuyển khoản");
@@ -65,24 +61,21 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
 
   const monthYearOptions = useMemo(() => {
     if (!hoaDonChuaThanhToan || hoaDonChuaThanhToan.length === 0) {
-      // Nếu chưa chọn khách hàng hoặc chưa có HĐ, mặc định hiển thị tháng hiện tại
       const hiểnThịMặcĐịnh = dayjs().format("MM/YYYY");
       return [{ value: hiểnThịMặcĐịnh, label: hiểnThịMặcĐịnh }];
     }
 
-    // 1. Tìm ngày xuất hóa đơn cũ nhất
     const oldestTimestamp = hoaDonChuaThanhToan.reduce((min, hd) => {
       const d = new Date(hd.ngayXuatHoaDon || hd.createdAt || Date.now()).getTime();
       return d < min ? d : min;
     }, new Date().getTime());
 
     const startMonth = dayjs(oldestTimestamp).startOf("month");
-    const endMonth = dayjs().startOf("month"); // Tháng hiện tại
+    const endMonth = dayjs().startOf("month");
 
     const options = [];
     let current = endMonth;
 
-    // 2. Chạy vòng lặp từ tháng hiện tại lùi về tháng cũ nhất
     while (current.isAfter(startMonth) || current.isSame(startMonth, "month")) {
       const label = current.format("MM/YYYY");
       options.push({ value: label, label: label });
@@ -90,7 +83,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     }
 
     return options;
-  }, [hoaDonChuaThanhToan]); // 🔥 Re-run khi danh sách hóa đơn thay đổi
+  }, [hoaDonChuaThanhToan]);
 
   useEffect(() => {
     dispatch(fetchNhaKhoa());
@@ -334,7 +327,6 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
       return;
     }
 
-    // 👉 VALIDATE BẮT BUỘC CHỌN THÁNG DOANH THU
     if (!thangDoanhThu) {
       setSubmitError("Vui lòng chọn Tháng ghi nhận doanh thu.");
       return;
@@ -371,7 +363,6 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     }
 
     try {
-      // 👉 TÁCH CHUỖI MM/YYYY ĐỂ TẠO NGÀY 15 MẶC ĐỊNH CHUẨN XỊN ISO
       const [meshMonth, meshYear] = thangDoanhThu.split("/");
       const ngayGhiNhanISO = dayjs()
         .year(Number(meshYear))
@@ -389,10 +380,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
             soTienThanhToan,
           })),
           ngayThu: new Date(ngayThu).toISOString(),
-
-          // 👉 GỬI TRƯỜNG NÀY XUỐNG BE
           ngayGhiNhanDoanhThu: ngayGhiNhanISO,
-
           noiDung,
           phuongThucThanhToan: phuongThuc,
         })
@@ -417,10 +405,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     setSelectedHDs({});
     setSoTienThuInput("");
     setNgayThu(toLocalDatetimeInput(new Date()));
-
-    // 👉 RESET TRƯỜNG MỚI
     setThangDoanhThu("");
-
     setPhuongThuc("Chuyển khoản");
     setNoiDung("");
     setSubmitError("");
@@ -459,13 +444,11 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
     : "";
 
   return (
-    <div className="fixed inset-0 z-[1400] flex items-start justify-center pt-4 pb-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[1400] flex items-start justify-center sm:pt-4 sm:pb-4 overflow-y-auto">
       <div className="fixed inset-0 bg-black/40" onClick={handleClose} />
-      <div
-        className="relative bg-gray-50 rounded-2xl shadow-2xl w-full max-w-5xl mx-4 flex flex-col"
-        style={{ maxHeight: "calc(100vh - 32px)" }}
-      >
-        <div className="flex items-center justify-between px-6 py-3.5 bg-[#29b6f6] rounded-t-2xl shrink-0">
+      <div className="relative bg-gray-50 sm:rounded-2xl shadow-2xl w-full max-w-5xl sm:mx-4 flex flex-col h-screen sm:h-auto sm:max-h-[calc(100vh-32px)]">
+
+        <div className="flex items-center justify-between px-6 py-3.5 bg-[#29b6f6] sm:rounded-t-2xl shrink-0">
           <h2 className="text-white font-semibold text-base tracking-wide">
             Lập phiếu thu
           </h2>
@@ -477,7 +460,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-4">
           {submitError && (
             <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2 text-sm">
               {submitError}
@@ -489,7 +472,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-[50%_1fr_30%] gap-0 sm:gap-x-0">
+          <div className="grid grid-cols-1 sm:grid-cols-[50%_1fr_30%] gap-6 sm:gap-x-0">
             <div>
               <p className="text-xs text-gray-400 mb-1">Công ty</p>
               <div className="relative" ref={searchRef}>
@@ -647,7 +630,6 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                 </LocalizationProvider>
               </div>
 
-              {/* 👉 KHỐI THÁNG GHI NHẬN DOANH THU (CHỈ SELECT THÁNG/NĂM <= THÁNG HIỆN TẠI) */}
               <div ref={thangDropdownRef} className="relative">
                 <div
                   onClick={() => setIsOpenThang((p) => !p)}
@@ -744,10 +726,10 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[560px] text-sm">
+                <table className="w-full min-w-[850px] text-sm">
                   <thead className="border-b border-gray-100">
                     <tr className="text-gray-500">
-                      <th className="w-10 px-4 py-3 text-left">
+                      <th className="w-10 px-4 py-3 text-left whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={allChecked}
@@ -758,23 +740,23 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                           className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
                         />
                       </th>
-                      <th className="px-4 py-3 text-left font-medium">STT</th>
-                      <th className="px-4 py-3 text-left font-medium">
+                      <th className="px-4 py-3 text-left font-medium whitespace-nowrap">STT</th>
+                      <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
                         Hóa đơn
                       </th>
-                      <th className="px-4 py-3 text-left font-medium">
+                      <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
                         Ngày xuất
                       </th>
-                      <th className="px-4 py-3 text-right font-medium">
+                      <th className="px-4 py-3 text-right font-medium whitespace-nowrap">
                         Giá trị
                       </th>
-                      <th className="px-4 py-3 text-right font-medium">
+                      <th className="px-4 py-3 text-right font-medium whitespace-nowrap">
                         Đã thanh toán
                       </th>
-                      <th className="px-4 py-3 text-right font-medium">
+                      <th className="px-4 py-3 text-right font-medium whitespace-nowrap">
                         Còn lại
                       </th>
-                      <th className="px-4 py-3 text-right font-medium">
+                      <th className="px-4 py-3 text-right font-medium whitespace-nowrap">
                         Thanh toán
                       </th>
                     </tr>
@@ -794,7 +776,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                             className={`border-b border-gray-50 last:border-0 transition-colors ${checked ? "bg-blue-50/60" : "hover:bg-gray-50"
                               }`}
                           >
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-4">
                               <input
                                 type="checkbox"
                                 checked={checked}
@@ -802,8 +784,8 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                                 className="w-4 h-4 accent-[#29b6f6] cursor-pointer rounded"
                               />
                             </td>
-                            <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
-                            <td className="px-4 py-3 font-medium">
+                            <td className="px-4 py-4 text-gray-500 whitespace-nowrap">{idx + 1}</td>
+                            <td className="px-4 py-4 font-medium whitespace-nowrap">
                               {hd.soHoaDon?.startsWith("SDDK") ? (
                                 <span className="text-orange-600 font-bold">
                                   Số dư đầu kỳ (Nợ cũ)
@@ -820,23 +802,23 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                                 </span>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-gray-600">
+                            <td className="px-4 py-4 text-gray-600 whitespace-nowrap">
                               {hd.soHoaDon?.startsWith("SDDK")
                                 ? "—"
                                 : hd.ngayXuatHoaDon
                                   ? new Date(hd.ngayXuatHoaDon).toLocaleDateString("vi-VN")
                                   : "—"}
                             </td>
-                            <td className="px-4 py-3 text-right text-gray-700">
+                            <td className="px-4 py-4 text-right text-gray-700 whitespace-nowrap">
                               {fmt(hd.giaTriThanhToan)}
                             </td>
-                            <td className="px-4 py-3 text-right text-gray-500">
+                            <td className="px-4 py-4 text-right text-gray-500 whitespace-nowrap">
                               {fmt(hd.daThanhToan)}
                             </td>
-                            <td className="px-4 py-3 text-right text-gray-700">
+                            <td className="px-4 py-4 text-right text-gray-700 whitespace-nowrap">
                               {fmt(hd.conLai)}
                             </td>
-                            <td className="px-4 py-3 text-right">
+                            <td className="px-4 py-4 text-right whitespace-nowrap">
                               <input
                                 type="text"
                                 inputMode="numeric"
@@ -877,18 +859,9 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                   className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-sm text-gray-800 py-1 outline-none"
                 />
               </div>
-              <div className="bg-[#e3f2fd] rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-3">Tài liệu</p>
-                <div className="flex flex-col items-center justify-center py-4 text-gray-400">
-                  <CloudUploadOutlinedIcon
-                    sx={{ fontSize: 32, color: "#9ca3af", marginBottom: "4px" }}
-                  />
-                  <p className="text-xs">Thả file vào đây để upload</p>
-                </div>
-              </div>
             </div>
 
-            <div className="flex items-start justify-end pt-1">
+            <div className="flex items-start justify-end pt-1 pb-4 sm:pb-0">
               <div className="text-right">
                 <span className="text-sm text-gray-500 mr-4">Còn nợ</span>
                 <span className="text-xl font-bold text-gray-900">
@@ -899,7 +872,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
           </div>
         </div>
 
-        <div className="px-6 py-3 border-t bg-white rounded-b-2xl flex items-center justify-end gap-3 shrink-0">
+        <div className="px-6 py-3 border-t bg-white sm:rounded-b-2xl flex items-center justify-end gap-3 shrink-0">
           <button
             onClick={handleClose}
             disabled={loading}

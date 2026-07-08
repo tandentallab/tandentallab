@@ -48,6 +48,24 @@ export const fetchVatLieu = createAsyncThunk(
 );
 
 /**
+ * fetchVatLieuThongKe — tải số liệu thống kê (tổng vật liệu, số hàng thiếu
+ * hàng) từ API riêng, tính trên TOÀN BỘ collection ở backend.
+ * Không phụ thuộc vào danh sách vatLieu (vốn chỉ chứa dữ liệu đã lazy-load),
+ * nên số liệu luôn chính xác bất kể người dùng đã cuộn/tải bao nhiêu trang.
+ */
+export const fetchVatLieuThongKe = createAsyncThunk(
+  "kho/fetchVatLieuThongKe",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/kho/vat-lieu/thong-ke");
+      return res.data; // { tongVatLieu, soHangThieuHang }
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Lỗi tải thống kê vật liệu");
+    }
+  }
+);
+
+/**
  * fetchVatLieuMore — tải thêm trang tiếp theo (append), dùng khi:
  * - người dùng kéo xuống cuối bảng (infinite scroll / lazy loading)
  *
@@ -93,6 +111,13 @@ const khoSlice = createSlice({
     vatLieuTotal: 0,       // tổng số bản ghi khớp filter
     vatLieuHasMore: false, // còn trang tiếp không
     vatLieuLimit: 20,      // số bản ghi mỗi trang
+
+    // ── Thống kê vật liệu — độc lập với danh sách lazy-load ────────────────
+    vatLieuThongKe: {
+      tongVatLieu: 0,
+      soHangThieuHang: 0,
+    },
+    loadingThongKe: false,
 
     loading: false,        // loading lần đầu / reset
     loadingMore: false,    // loading khi append thêm
@@ -210,6 +235,23 @@ const khoSlice = createSlice({
       })
       .addCase(fetchVatLieu.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload;
+      });
+
+    // ── VatLieu — thống kê (tổng, thiếu hàng) ────────────────────────────
+    builder
+      .addCase(fetchVatLieuThongKe.pending, (state) => {
+        state.loadingThongKe = true;
+      })
+      .addCase(fetchVatLieuThongKe.fulfilled, (state, action) => {
+        state.loadingThongKe = false;
+        state.vatLieuThongKe = {
+          tongVatLieu: action.payload.tongVatLieu,
+          soHangThieuHang: action.payload.soHangThieuHang,
+        };
+      })
+      .addCase(fetchVatLieuThongKe.rejected, (state, action) => {
+        state.loadingThongKe = false;
         state.error = action.payload;
       });
 

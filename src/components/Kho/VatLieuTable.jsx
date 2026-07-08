@@ -1702,24 +1702,6 @@ export default function VatLieuTable() {
       {/* ── Sentinel cho IntersectionObserver (lazy load) ── */}
       <Box ref={sentinelRef} sx={{ height: 1 }} />
 
-      {/* Loading thêm */}
-      {loadingMore && (
-        <Box
-          sx={{
-            py: 2,
-            display: "flex",
-            justifyContent: "center",
-            gap: 1,
-            alignItems: "center",
-          }}
-        >
-          <CircularProgress size={18} />
-          <Typography variant="caption" color="text.secondary">
-            Đang tải thêm...
-          </Typography>
-        </Box>
-      )}
-
       {/* Đã tải hết */}
       {!vatLieuHasMore && filteredData.length > 0 && !loading && (
         <Box sx={{ py: 1.5, textAlign: "center" }}>

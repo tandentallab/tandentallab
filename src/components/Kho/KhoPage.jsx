@@ -10,11 +10,13 @@ import {
 import VatLieuTable from "./VatLieuTable";
 import NhapXuatTable from "./NhapXuatKho/NhapXuatTable";
 import NhaCungCapTable from "./NhaCungCapTable";
+import MuonVatLieu from "./MuonVatLieu";
 import { Box, Tab, Tabs, useMediaQuery, useTheme } from "@mui/material";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import CategoryIcon from "@mui/icons-material/Category";
+import BookmarkIcon from '@mui/icons-material/Bookmark';
 
 export default function KhoPage() {
   const dispatch = useDispatch();
@@ -133,6 +135,11 @@ export default function KhoPage() {
             label={isMobile ? "Nhập - Xuất" : "Phiếu Nhập - Xuất"}
           />
           <Tab
+            icon={<BookmarkIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
+            iconPosition="start"
+            label="Mượn vật liệu"
+          />
+          <Tab
             icon={<StorefrontIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
             iconPosition="start"
             label={isMobile ? "NCC" : "Nhà cung cấp"}
@@ -197,7 +204,8 @@ export default function KhoPage() {
 
       {tab === 0 && <VatLieuTable />}
       {tab === 1 && <NhapXuatTable />}
-      {tab === 2 && <NhaCungCapTable />}
+      {tab === 2 && <MuonVatLieu />}
+      {tab === 3 && <NhaCungCapTable />}
     </div>
   );
 }

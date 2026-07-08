@@ -1,8 +1,9 @@
 // pages/Kho/KhoPage.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchVatLieu,
+  fetchVatLieuThongKe,
   fetchNhaCungCap,
   setVatLieuFilters,
   resetVatLieuFilters,
@@ -18,7 +19,7 @@ import CategoryIcon from "@mui/icons-material/Category";
 
 export default function KhoPage() {
   const dispatch = useDispatch();
-  const { vatLieu } = useSelector((state) => state.kho);
+  const { vatLieuThongKe } = useSelector((state) => state.kho);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -36,18 +37,14 @@ export default function KhoPage() {
 
   useEffect(() => {
     dispatch(fetchVatLieu());
+    dispatch(fetchVatLieuThongKe());
     dispatch(fetchNhaCungCap());
   }, [dispatch]);
 
-  const { tongVatLieu, soHangThieuHang } = useMemo(() => {
-    const thieu = (vatLieu || []).filter(
-      (vl) => (vl.soLuong ?? 0) < (vl.tonKhoToiThieu ?? 0)
-    );
-    return {
-      tongVatLieu: (vatLieu || []).length,
-      soHangThieuHang: thieu.length,
-    };
-  }, [vatLieu]);
+  // Lấy trực tiếp từ API thống kê (tính trên toàn bộ collection ở backend)
+  // thay vì suy ra từ mảng vatLieu — vốn chỉ chứa dữ liệu đã lazy-load nên
+  // không phản ánh đúng tổng số/số thiếu hàng thực tế.
+  const { tongVatLieu, soHangThieuHang } = vatLieuThongKe;
 
   // ===== Đo chiều cao thực tế của khối Tabs + Thống kê =====
   // Trên mobile, khối thống kê có thể xuống dòng (flexWrap) khiến chiều cao

@@ -4,9 +4,6 @@ import { rowBase, borderBottom, imBg, formatNgay } from "./constants";
 export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, loadingMore, onLoadMore }) {
     const sentinelRef = useRef(null);
 
-    console.log(data);
-
-
     useEffect(() => {
         const el = sentinelRef.current;
         if (!el || !onLoadMore) return;

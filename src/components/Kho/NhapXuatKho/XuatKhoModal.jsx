@@ -185,6 +185,7 @@ export default function XuatKhoModal({ open, onClose, editData = null, preSelect
                     ghiChu,
                     boPhan,
                     nhanVien,
+                    currentRole: user?.quyenSuDung?.ten
                 })).unwrap();
             } else {
                 await dispatch(createPhieuXuatKho({

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
     fetchPhieuXuatKhoById,
@@ -52,6 +52,8 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [confirmingXuat, setConfirmingXuat] = useState(false);
+
+    const { user } = useSelector(state => state.auth);
 
     // Trigger slide animation
     useEffect(() => {
@@ -126,7 +128,7 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
     }
 
     const panelTop = 70;
-    const isLocked = fullPhieu?.trangThai === "Đã xuất";
+    const isLocked = fullPhieu?.trangThai === "Đã xuất" && user?.quyenSuDung?.ten !== "Admin";
 
     return (
         <>

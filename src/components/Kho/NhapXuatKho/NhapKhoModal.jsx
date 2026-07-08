@@ -202,6 +202,7 @@ export default function NhapKhoModal({ open, onClose, editData = null, preSelect
                     nhaCungCap: nhaCungCapId || null,
                     danhSachVatLieu,
                     ghiChu,
+                    currentRole: user?.quyenSuDung?.ten
                 })).unwrap();
             } else {
                 // Nhóm theo per-item NCC → mỗi NCC một phiếu nhập

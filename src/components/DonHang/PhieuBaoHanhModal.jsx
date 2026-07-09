@@ -258,13 +258,21 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
             const product = availableProducts[k];
             const pId = product?.sanPham?._id || product?.sanPham;
             const opId = op.sanPham?._id || op.sanPham;
-            const pViTri = product?.viTriRang || "";
-            return pId === opId && pViTri === op.viTriRang;
+            return pId === opId; // So khớp theo sản phẩm ID để đồng bộ
           });
 
           if (existingIdx !== undefined) {
             newConfigs[idx] = productWarrantyConfigs[existingIdx];
-            return availableProducts[existingIdx];
+            const oldProduct = availableProducts[existingIdx];
+            // Đồng bộ dữ liệu mới nhất (vị trí răng, số lượng, ngày bảo hành, màu sắc...) từ đơn hàng
+            return {
+              ...oldProduct,
+              viTriRang: op.viTriRang,
+              soLuong: op.soLuong,
+              mau: op.mau || oldProduct.mau,
+              baoHanhTu: op.baoHanhTu,
+              baoHanhDen: op.baoHanhDen,
+            };
           }
 
           newConfigs[idx] = {

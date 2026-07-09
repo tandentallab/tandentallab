@@ -10,7 +10,7 @@ import {
 import VatLieuTable from "./VatLieuTable";
 import NhapXuatTable from "./NhapXuatKho/NhapXuatTable";
 import NhaCungCapTable from "./NhaCungCapTable";
-import MuonVatLieu from "./MuonVatLieu";
+import MuonVatLieu from "./MuonVatLieu/PhieuMuonSection";
 import { Box, Tab, Tabs, useMediaQuery, useTheme } from "@mui/material";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";

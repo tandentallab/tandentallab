@@ -30,9 +30,6 @@ const NhapKhoPrintPreview = () => {
         if (id) fetchData();
     }, [id]);
 
-    console.log("Phieu: ", phieu);
-    console.log("congTy: ", congTy);
-
     if (loading) return <div className="p-4">Đang tải...</div>;
     if (!phieu) return <div className="p-4">Không tìm thấy phiếu nhập kho</div>;
 
@@ -78,48 +75,50 @@ const NhapKhoPrintPreview = () => {
                     className="print-area bg-white shadow-lg border border-gray-300"
                     style={{
                         width: "210mm",
-                        padding: "12mm 15mm",
+                        minHeight: "148mm",
+                        padding: "8mm 10mm",
+                        boxSizing: "border-box",
                     }}
                 >
                     {/* Header */}
-                    <div style={{ marginBottom: "4mm", display: "flex" }}>
+                    <div style={{ marginBottom: "2.5mm", display: "flex" }}>
                         <div style={{ flex: 2 }}>
-                            <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>
+                            <p style={{ margin: 0, fontWeight: "bold", fontSize: "9pt", textTransform: "uppercase" }}>
                                 {congTy?.Ten || ""}
                             </p>
-                            <p style={{ margin: "1mm 0 0", fontSize: "9pt" }}>{congTy?.DiaChi || ""}</p>
-                            <p style={{ margin: "1mm 0 0", fontSize: "9pt" }}>SĐT: {congTy?.DienThoai || ""}</p>
+                            <p style={{ margin: "0.5mm 0 0", fontSize: "7.5pt" }}>{congTy?.DiaChi || ""}</p>
+                            <p style={{ margin: "0.5mm 0 0", fontSize: "7.5pt" }}>SĐT: {congTy?.DienThoai || ""}</p>
                         </div>
 
                         <div style={{ flex: 1, textAlign: "right" }}>
-                            <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>
-                                {phieu?.nhaCungCap.ten || ""}
+                            <p style={{ margin: 0, fontWeight: "bold", fontSize: "9pt", textTransform: "uppercase" }}>
+                                {phieu?.nhaCungCap?.ten || ""}
                             </p>
                         </div>
                     </div>
 
                     {/* Title */}
-                    <div style={{ textAlign: "center", margin: "4mm 0 6mm" }}>
-                        <h1 style={{ margin: 0, fontSize: "16pt", fontWeight: "bold", textTransform: "uppercase" }}>
+                    <div style={{ textAlign: "center", margin: "2mm 0 3mm" }}>
+                        <h1 style={{ margin: 0, fontSize: "13pt", fontWeight: "bold", textTransform: "uppercase" }}>
                             PHIẾU NHẬP KHO
                         </h1>
-                        <div style={{ fontSize: "9pt", marginTop: "1mm", color: "#555" }}>
+                        <div style={{ fontSize: "8pt", marginTop: "0.5mm", color: "#555" }}>
                             Số phiếu: {phieu.soPhieu || "—"}
                         </div>
-                        <div style={{ fontSize: "9pt", color: "#555" }}>
+                        <div style={{ fontSize: "8pt", color: "#555" }}>
                             Ngày tạo: {formatDate(phieu.ngayTao)}
                         </div>
                     </div>
 
                     {/* Info */}
-                    <div style={{ fontSize: "10.5pt", lineHeight: "1.9", marginBottom: "4mm" }}>
+                    <div style={{ fontSize: "9pt", lineHeight: "1.5", marginBottom: "2.5mm" }}>
                         <div>
-                            <p style={{ minWidth: "120px", display: "inline-block" }}>Người lập phiếu:</p>
+                            <p style={{ minWidth: "100px", display: "inline-block", margin: 0 }}>Người lập phiếu:</p>
                             {phieu.nguoiTao || "—"}
                         </div>
                         {phieu.ghiChu && (
                             <div>
-                                <span style={{ minWidth: "120px", display: "inline-block" }}>Ghi chú:</span>
+                                <span style={{ minWidth: "100px", display: "inline-block" }}>Ghi chú:</span>
                                 <span>{phieu.ghiChu}</span>
                             </div>
                         )}
@@ -130,8 +129,8 @@ const NhapKhoPrintPreview = () => {
                         style={{
                             width: "100%",
                             borderCollapse: "collapse",
-                            fontSize: "10pt",
-                            marginBottom: "4mm",
+                            fontSize: "8.5pt",
+                            marginBottom: "2.5mm",
                         }}
                     >
                         <thead>
@@ -177,24 +176,24 @@ const NhapKhoPrintPreview = () => {
                         style={{
                             display: "flex",
                             justifyContent: "space-between",
-                            marginTop: "8mm",
-                            fontSize: "10pt",
+                            marginTop: "3mm",
+                            fontSize: "8.5pt",
                             textAlign: "center",
                         }}
                     >
                         <div style={{ width: "30%" }}>
                             <div style={{ fontWeight: "bold" }}>Người lập phiếu</div>
-                            <div style={{ fontSize: "8.5pt", color: "#555", marginBottom: "14mm" }}>(Ký, họ tên)</div>
+                            <div style={{ fontSize: "7pt", color: "#555", marginBottom: "7mm" }}>(Ký, họ tên)</div>
                             <div>{phieu.nguoiTao || ""}</div>
                         </div>
                         <div style={{ width: "30%" }}>
                             <div style={{ fontWeight: "bold" }}>Thủ kho</div>
-                            <div style={{ fontSize: "8.5pt", color: "#555", marginBottom: "14mm" }}>(Ký, họ tên)</div>
+                            <div style={{ fontSize: "7pt", color: "#555", marginBottom: "7mm" }}>(Ký, họ tên)</div>
                             <div>&nbsp;</div>
                         </div>
                         <div style={{ width: "30%" }}>
                             <div style={{ fontWeight: "bold" }}>Giám đốc</div>
-                            <div style={{ fontSize: "8.5pt", color: "#555", marginBottom: "14mm" }}>(Ký, họ tên)</div>
+                            <div style={{ fontSize: "7pt", color: "#555", marginBottom: "7mm" }}>(Ký, họ tên)</div>
                             <div>&nbsp;</div>
                         </div>
                     </div>
@@ -208,9 +207,11 @@ const NhapKhoPrintPreview = () => {
                     .print-area {
                         box-shadow: none !important;
                         border: none !important;
-                        padding: 10mm 12mm !important;
+                        width: 100% !important;
+                        min-height: 0 !important;
+                        padding: 6mm 8mm !important;
                     }
-                    @page { size: A4; margin: 10mm; }
+                    @page { size: A5 landscape; margin: 8mm; }
                 }
             `}</style>
         </div>
@@ -219,14 +220,14 @@ const NhapKhoPrintPreview = () => {
 
 const thStyle = (extra = {}) => ({
     border: "1px solid #aaa",
-    padding: "3mm 2mm",
+    padding: "1.5mm 2mm",
     fontWeight: "bold",
     ...extra,
 });
 
 const tdStyle = (extra = {}) => ({
     border: "1px solid #aaa",
-    padding: "2mm",
+    padding: "1.2mm 2mm",
     ...extra,
 });
 

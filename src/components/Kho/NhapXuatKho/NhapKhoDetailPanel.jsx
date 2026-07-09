@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
     fetchPhieuNhapKhoById,
@@ -54,6 +54,8 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [updatingThanhToan, setUpdatingThanhToan] = useState(false);
 
+    const { user } = useSelector(state => state.auth);
+
     // Trigger slide animation
     useEffect(() => {
         if (phieu) {
@@ -64,9 +66,6 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
             setFullPhieu(null);
         }
     }, [!!phieu]);
-
-    console.log(fullPhieu);
-
 
     // Fetch full detail whenever selected phieu changes
     useEffect(() => {
@@ -146,7 +145,7 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
     }
 
     const panelTop = 70;
-    const isLocked = fullPhieu?.trangThaiNhap === "Đã nhận";
+    const isLocked = fullPhieu?.trangThaiNhap === "Đã nhận" && user?.quyenSuDung?.ten !== "Admin";
     const tongTien = (fullPhieu?.danhSachVatLieu || []).reduce(
         (s, i) => s + (i.thanhTien || 0),
         0

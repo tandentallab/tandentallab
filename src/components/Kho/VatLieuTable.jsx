@@ -531,25 +531,25 @@ function NccCombobox({
                   {/* Highlight phần khớp query */}
                   {query
                     ? (() => {
-                      const idx = opt
-                        .toLowerCase()
-                        .indexOf(query.toLowerCase());
-                      if (idx === -1) return opt;
-                      return (
-                        <>
-                          {opt.slice(0, idx)}
-                          <span
-                            style={{
-                              backgroundColor: "#fff9c4",
-                              borderRadius: 2,
-                            }}
-                          >
-                            {opt.slice(idx, idx + query.length)}
-                          </span>
-                          {opt.slice(idx + query.length)}
-                        </>
-                      );
-                    })()
+                        const idx = opt
+                          .toLowerCase()
+                          .indexOf(query.toLowerCase());
+                        if (idx === -1) return opt;
+                        return (
+                          <>
+                            {opt.slice(0, idx)}
+                            <span
+                              style={{
+                                backgroundColor: "#fff9c4",
+                                borderRadius: 2,
+                              }}
+                            >
+                              {opt.slice(idx, idx + query.length)}
+                            </span>
+                            {opt.slice(idx + query.length)}
+                          </>
+                        );
+                      })()
                     : opt}
                 </Box>
               ))}
@@ -658,10 +658,11 @@ function SearchableDropdown({
                     setSearch("");
                     setOpen(false);
                   }}
-                  className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-sky-50 hover:text-sky-700 ${value === opt
+                  className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-sky-50 hover:text-sky-700 ${
+                    value === opt
                       ? "bg-sky-50 text-sky-700 font-medium"
                       : "text-slate-700"
-                    }`}
+                  }`}
                 >
                   {opt}
                 </li>
@@ -694,8 +695,21 @@ const DEFAULT_NHOM = [
 const DEFAULT_FORM_RANG = [];
 const DEFAULT_MAU_RANG = [];
 
+// Sinh mã vật liệu tự động dạng: VL + yyMMddHHmmss (đảm bảo không trùng
+// giữa các lần tạo do dựa trên thời gian hiện tại chính xác đến giây)
+function generateMaVatLieu() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const yy = String(now.getFullYear()).slice(-2);
+  const MM = pad(now.getMonth() + 1);
+  const dd = pad(now.getDate());
+  const HH = pad(now.getHours());
+  const mm = pad(now.getMinutes());
+  const ss = pad(now.getSeconds());
+  return `VL${yy}${MM}${dd}${HH}${mm}${ss}`;
+}
+
 const EMPTY_FORM = {
-  maVatLieu: "",
   tenVatLieu: "",
   nhaCungCap: "",
   soLuong: 0,
@@ -977,7 +991,6 @@ export default function VatLieuTable() {
   const openEdit = (vl) => {
     setEditingId(vl._id);
     setForm({
-      maVatLieu: vl.maVatLieu || "",
       tenVatLieu: vl.tenVatLieu || "",
       nhaCungCap: vl.nhaCungCap?._id || "",
       soLuong: vl.soLuong ?? 0,
@@ -995,8 +1008,8 @@ export default function VatLieuTable() {
   };
 
   const handleSave = async () => {
-    if (!form.maVatLieu.trim() || !form.tenVatLieu.trim()) {
-      toast.error("Vui lòng nhập mã và tên vật liệu");
+    if (!form.tenVatLieu.trim()) {
+      toast.error("Vui lòng nhập tên vật liệu");
       return;
     }
     setSaving(true);
@@ -1009,6 +1022,9 @@ export default function VatLieuTable() {
         tonKhoToiDa: Number(form.tonKhoToiDa),
         giaMua: Number(form.giaMua),
       };
+      if (!editingId) {
+        payload.maVatLieu = generateMaVatLieu();
+      }
       if (editingId) {
         await api.put(`/kho/vat-lieu/${editingId}`, payload);
         toast.success("Đã cập nhật vật liệu");
@@ -1067,154 +1083,217 @@ export default function VatLieuTable() {
     return map;
   }, [nhaCungCap]);
 
+  // ===== Đo chiều cao thực tế của Filter Bar (bao gồm cả Action Bar khi có) =====
+  // Dùng để định vị chính xác header của bảng khi cuộn, tránh trường hợp
+  // header bảng bị đè lên/che khuất do offset cố định không khớp chiều cao thật.
+  const filterBarRef = useRef(null);
+  useEffect(() => {
+    const el = filterBarRef.current;
+    if (!el) return;
+
+    const updateFilterBarHeight = () => {
+      document.documentElement.style.setProperty(
+        "--kho-filter-h",
+        `${el.offsetHeight}px`
+      );
+    };
+
+    updateFilterBarHeight();
+
+    const resizeObserver = new ResizeObserver(updateFilterBarHeight);
+    resizeObserver.observe(el);
+    window.addEventListener("resize", updateFilterBarHeight);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateFilterBarHeight);
+    };
+  }, [selectedIds.length, filterNCC, filterNhom, filterLoai, filterTrangThai]);
+
   // ===== RENDER =====
   return (
     <Box>
       {/* ===== FILTER BAR ===== */}
-      <div className="flex flex-col gap-2 mb-4">
-        {/* Hàng 1: search + action buttons */}
-        <div className="flex gap-2 items-center">
-          <div className="relative flex-1">
-            <SearchIcon
-              sx={{ fontSize: 18 }}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-            />
-            <input
-              type="text"
-              placeholder="Tìm vật liệu..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-9 pl-8 pr-3 text-sm border border-gray-300 rounded outline-none focus:border-sky-400 hover:border-gray-400 transition bg-white"
-            />
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Tooltip title="Làm mới">
-              <IconButton
-                size="small"
-                onClick={() =>
-                  dispatch(
-                    fetchVatLieu({
-                      ...currentFilters,
-                      limit: vatLieuLimit || 20,
-                    })
-                  )
-                }
-                disabled={loading}
+      <Box
+        ref={filterBarRef}
+        sx={{
+          position: "sticky",
+          // Chiều cao khối Header + Tabs + Thống kê được đo động bên KhoPage
+          // (vì trên mobile khối thống kê có thể xuống dòng, chiều cao thay đổi)
+          // và lưu vào biến CSS --kho-header-h. Fallback 145px nếu chưa có giá trị.
+          top: "var(--kho-header-h, 145px)",
+          backgroundColor: "#f3f4f6", // Khớp với màu nền xám nhạt của hệ thống để che phần nội dung cuộn lên bên dưới
+          zIndex: 9, // Nhỏ hơn zIndex của Tabs (10) nhưng lớn hơn Table
+          pt: 1,
+          pb: 2, // Khoảng cách dưới bộ lọc
+        }}
+        // className="flex flex-wrap items-center justify-between gap-3"
+      >
+        <div className="flex flex-col gap-2 py-2">
+          {/* Hàng 1: search + action buttons */}
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1">
+              <SearchIcon
+                sx={{ fontSize: 18 }}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
+              <input
+                type="text"
+                placeholder="Tìm vật liệu..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-9 pl-8 pr-3 text-sm border border-gray-300 rounded outline-none focus:border-sky-400 hover:border-gray-400 transition bg-white"
+              />
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Tooltip title="Làm mới">
+                <IconButton
+                  size="small"
+                  onClick={() =>
+                    dispatch(
+                      fetchVatLieu({
+                        ...currentFilters,
+                        limit: vatLieuLimit || 20,
+                      })
+                    )
+                  }
+                  disabled={loading}
+                >
+                  <RefreshIcon sx={{ fontSize: 20 }} />
+                </IconButton>
+              </Tooltip>
+              <button
+                onClick={() => exportDanhSachVatLieuToExcel(filteredData)}
+                className="h-9 px-3 text-sm font-medium text-white bg-[#29b6f6] hover:bg-[#0091ea] rounded flex items-center gap-1 transition"
               >
-                <RefreshIcon sx={{ fontSize: 20 }} />
-              </IconButton>
-            </Tooltip>
-            <button
-              onClick={() => exportDanhSachVatLieuToExcel(filteredData)}
-              className="h-9 px-3 text-sm font-medium text-white bg-[#29b6f6] hover:bg-[#0091ea] rounded flex items-center gap-1 transition"
+                <DownloadIcon sx={{ fontSize: 17 }} />
+                <span className="hidden sm:inline">Xuất Excel</span>
+              </button>
+              <button
+                onClick={openAdd}
+                className="h-9 px-3 text-sm font-medium text-white bg-[#1976d2] hover:bg-[#1565c0] rounded flex items-center gap-1 transition"
+              >
+                <AddIcon sx={{ fontSize: 17 }} />
+                <span className="hidden sm:inline">Thêm vật liệu</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Hàng 2: filter dropdowns */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <SearchableDropdown
+              options={(nhaCungCap || []).map((n) => n.ten)}
+              value={
+                (nhaCungCap || []).find((n) => n._id === filterNCC)?.ten || ""
+              }
+              onChange={(ten) => {
+                const found = (nhaCungCap || []).find((n) => n.ten === ten);
+                setFilterNCC(found?._id || "");
+              }}
+              placeholder="Nhà cung cấp"
+            />
+            <SearchableDropdown
+              options={danhSachNhom}
+              value={filterNhom}
+              onChange={setFilterNhom}
+              placeholder="Nhóm vật liệu"
+            />
+            <SearchableDropdown
+              options={danhSachLoai}
+              value={filterLoai}
+              onChange={setFilterLoai}
+              placeholder="Loại vật liệu"
+            />
+            <select
+              value={filterTrangThai}
+              onChange={(e) => setFilterTrangThai(e.target.value)}
+              className="h-9 px-3 text-sm text-slate-700 bg-white border border-gray-300 rounded hover:border-gray-400 outline-none focus:border-sky-400 transition cursor-pointer"
             >
-              <DownloadIcon sx={{ fontSize: 17 }} />
-              <span className="hidden sm:inline">Xuất Excel</span>
-            </button>
-            <button
-              onClick={openAdd}
-              className="h-9 px-3 text-sm font-medium text-white bg-[#1976d2] hover:bg-[#1565c0] rounded flex items-center gap-1 transition"
-            >
-              <AddIcon sx={{ fontSize: 17 }} />
-              <span className="hidden sm:inline">Thêm vật liệu</span>
-            </button>
+              <option value="">Tất cả tồn kho</option>
+              <option value="du">Đủ hàng</option>
+              <option value="thieu">Thiếu hàng</option>
+            </select>
+
+            {(filterNCC || filterNhom || filterLoai || filterTrangThai) && (
+              <button
+                onClick={() => dispatch(resetVatLieuFilters())}
+                className="h-9 px-3 text-sm text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100 transition"
+              >
+                Xóa lọc
+              </button>
+            )}
           </div>
         </div>
-
-        {/* Hàng 2: filter dropdowns */}
-        <div className="flex flex-wrap gap-2 items-center">
-          <SearchableDropdown
-            options={(nhaCungCap || []).map((n) => n.ten)}
-            value={
-              (nhaCungCap || []).find((n) => n._id === filterNCC)?.ten || ""
-            }
-            onChange={(ten) => {
-              const found = (nhaCungCap || []).find((n) => n.ten === ten);
-              setFilterNCC(found?._id || "");
-            }}
-            placeholder="Nhà cung cấp"
-          />
-          <SearchableDropdown
-            options={danhSachNhom}
-            value={filterNhom}
-            onChange={setFilterNhom}
-            placeholder="Nhóm vật liệu"
-          />
-          <SearchableDropdown
-            options={danhSachLoai}
-            value={filterLoai}
-            onChange={setFilterLoai}
-            placeholder="Loại vật liệu"
-          />
-          <select
-            value={filterTrangThai}
-            onChange={(e) => setFilterTrangThai(e.target.value)}
-            className="h-9 px-3 text-sm text-slate-700 bg-white border border-gray-300 rounded hover:border-gray-400 outline-none focus:border-sky-400 transition cursor-pointer"
-          >
-            <option value="">Tất cả tồn kho</option>
-            <option value="du">Đủ hàng</option>
-            <option value="thieu">Thiếu hàng</option>
-          </select>
-
-          {(filterNCC || filterNhom || filterLoai || filterTrangThai) && (
+        {selectedIds.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-3 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-lg">
+            <span className="text-sm font-medium text-blue-700">
+              Đã chọn {selectedIds.length} vật liệu
+            </span>
+            <div className="flex-1" />
             <button
-              onClick={() => dispatch(resetVatLieuFilters())}
-              className="h-9 px-3 text-sm text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100 transition"
+              onClick={() => setNhapModalOpen(true)}
+              className="h-8 px-3 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded flex items-center gap-1.5 transition"
             >
-              Xóa lọc
+              <AddIcon sx={{ fontSize: 16 }} />
+              Tạo phiếu nhập
             </button>
-          )}
-        </div>
-      </div>
+            <button
+              onClick={() => setXuatModalOpen(true)}
+              className="h-8 px-3 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded flex items-center gap-1.5 transition"
+            >
+              <AddIcon sx={{ fontSize: 16 }} />
+              Tạo phiếu xuất
+            </button>
+            {isSystemAdmin && (
+              <button
+                onClick={() => setDeleteManyOpen(true)}
+                className="h-8 px-3 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded flex items-center gap-1.5 transition"
+              >
+                <DeleteIcon sx={{ fontSize: 16 }} />
+                Xóa ({selectedIds.length})
+              </button>
+            )}
+            <button
+              onClick={() => setSelectedIds([])}
+              className="h-8 px-3 text-sm text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100 transition"
+            >
+              Bỏ chọn
+            </button>
+          </div>
+        )}
+      </Box>
 
       {/* ===== SELECTION ACTION BAR ===== */}
-      {selectedIds.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-3 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-lg">
-          <span className="text-sm font-medium text-blue-700">
-            Đã chọn {selectedIds.length} vật liệu
-          </span>
-          <div className="flex-1" />
-          <button
-            onClick={() => setNhapModalOpen(true)}
-            className="h-8 px-3 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded flex items-center gap-1.5 transition"
-          >
-            <AddIcon sx={{ fontSize: 16 }} />
-            Tạo phiếu nhập
-          </button>
-          <button
-            onClick={() => setXuatModalOpen(true)}
-            className="h-8 px-3 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded flex items-center gap-1.5 transition"
-          >
-            <AddIcon sx={{ fontSize: 16 }} />
-            Tạo phiếu xuất
-          </button>
-          {isSystemAdmin && (
-            <button
-              onClick={() => setDeleteManyOpen(true)}
-              className="h-8 px-3 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded flex items-center gap-1.5 transition"
-            >
-              <DeleteIcon sx={{ fontSize: 16 }} />
-              Xóa ({selectedIds.length})
-            </button>
-          )}
-          <button
-            onClick={() => setSelectedIds([])}
-            className="h-8 px-3 text-sm text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100 transition"
-          >
-            Bỏ chọn
-          </button>
-        </div>
-      )}
 
       {/* ===== TABLE (ẩn trên mobile) ===== */}
       <Box sx={{ display: { xs: "none", md: "block" } }}>
         <TableContainer
           component={Paper}
-          sx={{ borderRadius: 2, boxShadow: 1 }}
+          sx={{
+            boxShadow: "none",
+            border: "1px solid #e0e0e0",
+            overflow: "unset", // 🟢 Bỏ cuộn nội bộ của riêng bảng để cuộn chung với trang
+          }}
         >
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ backgroundColor: "#e3f2fd" }}>
+          {/* Thêm thuộc tính stickyHeader để kích hoạt tính năng sticky của Material UI */}
+          <Table stickyHeader aria-label="sticky table">
+            <TableHead sx={{ mt: "800px" }}>
+              <TableRow
+                sx={{
+                  "& .MuiTableCell-head": {
+                    backgroundColor: "#e3f2fd",
+                    fontWeight: "bold",
+                    // 🟢 ĐỊNH VỊ STICKY CHO HEADER CỦA BẢNG:
+                    // Vị trí nằm dưới: --kho-header-h (Tabs + Thống kê, đo động)
+                    // + --kho-filter-h (Filter Bar, đo động — đã tự bao gồm cả
+                    // Action Bar khi có checkbox được chọn).
+                    position: "sticky",
+                    top: "calc(var(--kho-header-h, 145px) + var(--kho-filter-h, 88px))",
+                    zIndex: 8, // Nhỏ hơn zIndex của Filter bar (9) và Tabs (10) để cuộn chui xuống dưới
+                    transition: "top 0.2s ease-in-out", // Tạo hiệu ứng mượt mà khi thay đổi top
+                  },
+                }}
+              >
                 <TableCell padding="checkbox">
                   <Checkbox
                     size="small"
@@ -1224,7 +1303,6 @@ export default function VatLieuTable() {
                   />
                 </TableCell>
                 {[
-                  "Mã VL",
                   "Tên vật liệu",
                   "Nhóm / Loại",
                   "Nhà cung cấp",
@@ -1246,7 +1324,7 @@ export default function VatLieuTable() {
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={12} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={11} align="center" sx={{ py: 4 }}>
                     <CircularProgress size={28} />
                   </TableCell>
                 </TableRow>
@@ -1254,7 +1332,7 @@ export default function VatLieuTable() {
               {!loading && filteredData.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={12}
+                    colSpan={11}
                     align="center"
                     sx={{ py: 4, color: "#9ca3af" }}
                   >
@@ -1273,8 +1351,8 @@ export default function VatLieuTable() {
                         backgroundColor: thieuHang
                           ? "#fff3e0"
                           : idx % 2 === 0
-                            ? "#fff"
-                            : "#fafafa",
+                          ? "#fff"
+                          : "#fafafa",
                         "&:hover": { backgroundColor: "#e3f2fd40" },
                       }}
                     >
@@ -1284,11 +1362,6 @@ export default function VatLieuTable() {
                           checked={selectedIds.includes(vl._id)}
                           onChange={() => toggleSelectOne(vl._id)}
                         />
-                      </TableCell>
-                      <TableCell onClick={() => openEdit(vl)}>
-                        <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">
-                          {vl.maVatLieu}
-                        </span>
                       </TableCell>
                       <TableCell
                         sx={{
@@ -1389,7 +1462,7 @@ export default function VatLieuTable() {
                   );
                 })}
               <TableRow>
-                <TableCell colSpan={15} align="right">
+                <TableCell colSpan={14} align="right">
                   <Typography variant="caption" color="text.secondary">
                     Hiển thị {filteredData.length} / {vatLieuTotal ?? 0} vật
                     liệu
@@ -1399,36 +1472,6 @@ export default function VatLieuTable() {
             </TableBody>
           </Table>
         </TableContainer>
-
-        {/* ── Sentinel cho IntersectionObserver (lazy load) ── */}
-        <Box ref={sentinelRef} sx={{ height: 1 }} />
-
-        {/* Loading thêm */}
-        {loadingMore && (
-          <Box
-            sx={{
-              py: 2,
-              display: "flex",
-              justifyContent: "center",
-              gap: 1,
-              alignItems: "center",
-            }}
-          >
-            <CircularProgress size={18} />
-            <Typography variant="caption" color="text.secondary">
-              Đang tải thêm...
-            </Typography>
-          </Box>
-        )}
-
-        {/* Đã tải hết */}
-        {!vatLieuHasMore && filteredData.length > 0 && !loading && (
-          <Box sx={{ py: 1.5, textAlign: "center" }}>
-            <Typography variant="caption" color="text.secondary">
-              ✓ Đã hiển thị tất cả {vatLieuTotal} vật liệu
-            </Typography>
-          </Box>
-        )}
       </Box>
 
       {/* ===== CARD LIST (chỉ hiện trên mobile) ===== */}
@@ -1487,9 +1530,6 @@ export default function VatLieuTable() {
                       sx={{ p: 0.5, mr: 0.5, mt: "-2px" }}
                     />
                     <Box sx={{ flex: 1 }}>
-                      <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded mr-2">
-                        {vl.maVatLieu}
-                      </span>
                       <Typography
                         component="span"
                         sx={{ fontWeight: 700, fontSize: 15 }}
@@ -1659,6 +1699,18 @@ export default function VatLieuTable() {
         )}
       </Box>
 
+      {/* ── Sentinel cho IntersectionObserver (lazy load) ── */}
+      <Box ref={sentinelRef} sx={{ height: 1 }} />
+
+      {/* Đã tải hết */}
+      {!vatLieuHasMore && filteredData.length > 0 && !loading && (
+        <Box sx={{ py: 1.5, textAlign: "center" }}>
+          <Typography variant="caption" color="text.secondary">
+            ✓ Đã hiển thị tất cả {vatLieuTotal} vật liệu
+          </Typography>
+        </Box>
+      )}
+
       {/* ===== MODAL THÊM / SỬA ===== */}
       <Dialog
         open={openModal}
@@ -1683,25 +1735,6 @@ export default function VatLieuTable() {
             >
               Thông tin cơ bản
             </Typography>
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <TextField
-                label="Mã vật liệu *"
-                size="small"
-                fullWidth
-                value={form.maVatLieu}
-                onChange={(e) => onChange("maVatLieu", e.target.value)}
-                disabled={!!editingId}
-                helperText={editingId ? "Không thể đổi mã sau khi tạo" : ""}
-              />
-              <TextField
-                label="Đơn vị tính"
-                size="small"
-                fullWidth
-                value={form.donViTinh}
-                onChange={(e) => onChange("donViTinh", e.target.value)}
-                placeholder="cái, hộp, lọ..."
-              />
-            </Box>
 
             <TextField
               label="Tên vật liệu *"
@@ -1709,6 +1742,15 @@ export default function VatLieuTable() {
               fullWidth
               value={form.tenVatLieu}
               onChange={(e) => onChange("tenVatLieu", e.target.value)}
+            />
+
+            <TextField
+              label="Đơn vị tính"
+              size="small"
+              fullWidth
+              value={form.donViTinh}
+              onChange={(e) => onChange("donViTinh", e.target.value)}
+              placeholder="cái, hộp, lọ..."
             />
 
             <Box sx={{ display: "flex", gap: 2 }}>
@@ -1782,9 +1824,9 @@ export default function VatLieuTable() {
                   inputProps={{ min: 0 }}
                   value={form.soLuong}
                   onChange={(e) => onChange("soLuong", e.target.value)}
-                  disabled={!isSystemAdmin}
+                  disabled={editingId && !isSystemAdmin}
                   helperText={
-                    !isSystemAdmin
+                    editingId && !isSystemAdmin
                       ? "Bạn không có quyền chỉnh sửa số lượng"
                       : ""
                   }
@@ -1966,14 +2008,20 @@ export default function VatLieuTable() {
       {/* ===== MODAL NHẬP KHO TỪ TAB VẬT LIỆU ===== */}
       <NhapKhoModal
         open={nhapModalOpen}
-        onClose={() => { setNhapModalOpen(false); setSelectedIds([]); }}
+        onClose={() => {
+          setNhapModalOpen(false);
+          setSelectedIds([]);
+        }}
         preSelectedIds={selectedIds}
       />
 
       {/* ===== MODAL XUẤT KHO TỪ TAB VẬT LIỆU ===== */}
       <XuatKhoModal
         open={xuatModalOpen}
-        onClose={() => { setXuatModalOpen(false); setSelectedIds([]); }}
+        onClose={() => {
+          setXuatModalOpen(false);
+          setSelectedIds([]);
+        }}
         preSelectedIds={selectedIds}
       />
 

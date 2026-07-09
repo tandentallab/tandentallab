@@ -639,7 +639,7 @@ const HoaDonDetail = () => {
           <h1 className="text-white text-base">
             Hóa đơn <span className="font-bold">{hoaDon.soHoaDon || "---"}</span>
           </h1>
-          <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${TRANG_THAI_COLOR[hoaDon.trangThai] || "bg-orange-500 text-white"}`}>
+          <span className={`text-sm font-bold px-2 py-0.5 rounded ${TRANG_THAI_COLOR[hoaDon.trangThai] || "bg-orange-500 text-white"}`}>
             {hoaDon.trangThai}
           </span>
         </div>
@@ -650,12 +650,12 @@ const HoaDonDetail = () => {
 
       <div className="bg-white px-4 lg:px-6 py-4 flex flex-col lg:flex-row items-stretch gap-3 lg:gap-4 shrink-0">
         <div className="order-1 lg:hidden px-1">
-          <p className="text-[11px] text-gray-400 font-medium">Giá trị thanh toán</p>
+          <p className="text-sm text-gray-400 font-medium">Giá trị thanh toán</p>
           <p className="text-3xl font-black text-gray-900 leading-tight mt-1 mb-3">
             {fmtVND(fin.giaTriThanhToan)}
           </p>
-          <p className="text-[11px] text-gray-400 font-medium">Ngày xuất</p>
-          <div className="flex items-center mt-0.5">
+          <p className="text-sm text-gray-400 font-medium mt-4">Ngày xuất</p>
+          <div className="flex items-center mt-0.5 mb-4">
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
                 disabled={isLocked}
@@ -686,7 +686,7 @@ const HoaDonDetail = () => {
             {initials}
           </div>
           <div>
-            <p className="text-[11px] text-gray-400 font-medium">Nha khoa</p>
+            <p className="text-sm text-gray-400 font-medium">Nha khoa</p>
             <p className="font-bold text-gray-900 text-base leading-tight mt-0.5 uppercase">
               {hoaDon.nhaKhoa?.hoVaTen || "---"}
             </p>
@@ -698,7 +698,7 @@ const HoaDonDetail = () => {
           <p><span className="text-gray-500 inline-block w-20">Điện thoại:</span><span className="font-medium">{hoaDon.nhaKhoa?.soDienThoai || ""}</span></p>
           <p><span className="text-gray-500 inline-block w-20">Mô tả:</span><span className="font-medium">{hoaDon.nhaKhoa?.moTa || ""}</span></p>
           <div className="pt-3 mt-1.5 border-t border-[#00a8df]/30 flex items-center justify-between">
-            <span className="text-gray-700 font-bold uppercase text-[11px] tracking-wide">
+            <span className="text-gray-700 font-bold uppercase text-sm tracking-wide">
               Công nợ:
             </span>
             <span className="font-black text-gray-700 text-xl">
@@ -707,8 +707,8 @@ const HoaDonDetail = () => {
           </div>
         </div>
 
-        <div className="order-5 lg:hidden px-1">
-          <p className="text-[11px] text-gray-400 font-medium">Chính sách thanh toán</p>
+        <div className="order-5 lg:hidden px-1 py-4">
+          <p className="text-sm text-gray-400 font-medium">Chính sách thanh toán</p>
           <select
             disabled={isLocked}
             value={formState.chinhSachThanhToan}
@@ -727,14 +727,14 @@ const HoaDonDetail = () => {
               {initials}
             </div>
             <div>
-              <p className="text-[11px] text-gray-400 font-medium">Nha khoa</p>
+              <p className="text-sm text-gray-400 font-medium">Nha khoa</p>
               <p className="font-bold text-gray-900 text-base leading-tight mt-0.5 uppercase">
                 {hoaDon.nhaKhoa?.hoVaTen || "---"}
               </p>
             </div>
           </div>
           <div className="-mt-2">
-            <p className="text-[11px] text-gray-400 font-medium">Chính sách thanh toán</p>
+            <p className="text-sm text-gray-400 font-medium">Chính sách thanh toán</p>
             <select
               disabled={isLocked}
               value={formState.chinhSachThanhToan}
@@ -749,12 +749,12 @@ const HoaDonDetail = () => {
         </div>
 
         <div className="hidden lg:flex lg:order-3 lg:w-[30%] pl-8 flex-col justify-center ">
-          <p className="text-[11px] text-gray-400 font-medium">Giá trị thanh toán</p>
+          <p className="text-sm text-gray-400 font-medium">Giá trị thanh toán</p>
           <p className="text-3xl font-black text-gray-900 leading-tight mt-1 mb-3">
             {fmtVND(fin.giaTriThanhToan)}
           </p>
           <div className="flex flex-col gap-1">
-            <p className="text-[11px] text-gray-400 font-medium">Ngày xuất</p>
+            <p className="text-sm text-gray-400 font-medium">Ngày xuất</p>
             <div className="flex items-center">
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
@@ -796,7 +796,7 @@ const HoaDonDetail = () => {
         />
 
         <div className="flex flex-col md:flex-row mt-6 bg-gray-50/30 shrink-0 items-stretch">
-          <div className="w-full md:w-[60%] lg:w-[55%] p-4 md:p-6 space-y-6">
+          <div className="w-full md:w-[60%] lg:w-[70%] p-4 md:p-6 space-y-6">
             <div>
               <p className="text-xs text-gray-500 font-medium mb-1.5">Ghi chú cho khách hàng</p>
               <textarea
@@ -815,20 +815,8 @@ const HoaDonDetail = () => {
                 className="w-full border-b border-gray-300 text-sm outline-none resize-none bg-transparent focus:border-[#00a8df] transition-colors pb-1"
               />
             </div>
-            <div className="block lg:hidden">
-              <div className="w-full min-h-[100px] bg-[#e6f7ff] rounded-xl border-2 border-dashed border-[#00a8df]/30 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00a8df] hover:bg-sky-50 transition-all p-4">
-                <p className="text-xs font-bold text-[#00a8df]">Tài liệu</p>
-                <Upload className="w-6 h-6 text-[#00a8df]" />
-              </div>
-            </div>
           </div>
 
-          <div className="hidden lg:flex lg:w-[15%] p-6 flex-col justify-start">
-            <div className="w-full h-3/5 min-h-[120px] bg-[#e6f7ff] rounded-xl border-2 border-dashed border-[#00a8df]/30 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00a8df] hover:bg-sky-50 transition-all p-4">
-              <p className="text-xs font-bold text-[#00a8df]">Tài liệu</p>
-              <Upload className="w-6 h-6 text-[#00a8df]" />
-            </div>
-          </div>
 
           <div className="w-full md:w-[40%] lg:w-[30%] p-4 md:p-6 lg:p-8 flex flex-col justify-center border-t md:border-t-0 md:border-l border-gray-100">
             <div className="w-full md:max-w-none lg:max-w-[320px] lg:ml-auto space-y-4">

@@ -41,7 +41,9 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
 
     const formatDateTime = (value) => {
         if (!value) return "";
-        return new Date(value).toLocaleString("vi-VN", {
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleString("vi-VN", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
@@ -52,7 +54,9 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
 
     const formatDate = (value) => {
         if (!value) return "";
-        return new Date(value).toLocaleDateString("vi-VN");
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleDateString("vi-VN");
     };
 
     const loaiDonPrefix = { "Mới": "Mới", "Hàng sửa": "Sửa", "Hàng làm lại": "Làm lại", "Hàng bảo hành": "Bảo hành" };
@@ -60,9 +64,9 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
     const renderViTri = (viTri) => {
         if (!Array.isArray(viTri) || viTri.length === 0) return "";
         return viTri.map((vt) => {
-            const soRang = vt.soRang || [];
+            const soRang = vt?.soRang || [];
             if (soRang.length === 0) return "";
-            if (vt.kieu === "Cầu") {
+            if (vt?.kieu === "Cầu") {
                 return `${soRang[0]}->${soRang[soRang.length - 1]}`;
             }
             return soRang.join(", ");
@@ -72,12 +76,14 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
     const renderTomTatRang = (danhSachSanPham) => {
         if (!Array.isArray(danhSachSanPham) || danhSachSanPham.length === 0) return "";
         return danhSachSanPham.map((sp) => {
-            const prefix = loaiDonPrefix[sp.loaiDon] || "";
-            const soLuong = sp.soLuong || 1;
-            const tenSanPham = sp.sanPham?.tenSanPham || "";
+            const prefix = loaiDonPrefix[sp?.loaiDon] || "";
+            const soLuong = sp?.soLuong || 1;
+            const tenSanPham = sp?.sanPham?.tenSanPham || "";
             return [prefix, " - ", soLuong, tenSanPham].filter(Boolean).join(" ");
         }).join(" | ");
     };
+
+    const getMaDonHang = (dh) => dh?.maDonHang || `TAN${(dh?._id?.substring?.(dh._id.length - 8) || "").toUpperCase()}`;
 
     const totalWidth = colWidths.reduce((a, b) => a + b, 0);
 
@@ -91,7 +97,7 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
     const thBase = "px-3 py-3 select-none relative group overflow-hidden";
 
     const renderMobileOrders = renderData.flatMap((dh) => {
-        if (!dh.danhSachSanPham?.length) {
+        if (!dh?.danhSachSanPham?.length) {
             return [{ ...dh, sanPham: null }];
         }
 
@@ -111,42 +117,42 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                     ) : (
                         renderMobileOrders.map((dh, index) => (
                             <div
-                                key={`${dh._id}-${dh.sanPham?._id || index}`}
+                                key={`${dh?._id || index}-${dh?.sanPham?._id || index}`}
                                 onClick={() => onRowClick(dh)}
-                                className={`mb-3 rounded-md shadow bg-white ${trangThaiTopBorder[dh.trangThai] || ''}`}
+                                className={`mb-3 rounded-md shadow bg-white ${trangThaiTopBorder[dh?.trangThai] || ''}`}
                             >
                                 <div className="flex items-center justify-between border-b border-b-gray-100 px-2 py-1 mb-1">
                                     <p className="text-gray-400">Số</p>
                                     <p>
-                                        {dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8).toUpperCase()}`}
+                                        {getMaDonHang(dh)}
                                     </p>
                                 </div>
                                 <div className="flex items-center justify-between border-b border-b-gray-100 px-2 py-1 mb-1">
                                     <p className="text-gray-400">Nhận lúc</p>
                                     <p>
-                                        {formatDateTime(dh.ngayNhan)}
+                                        {formatDateTime(dh?.ngayNhan)}
                                     </p>
                                 </div>
                                 <div className="flex items-center justify-between border-b border-b-gray-100 px-2 py-1 mb-1">
                                     <p className="text-gray-400">Nha khoa</p>
                                     <p>
-                                        {dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen}
+                                        {dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen}
                                     </p>
                                 </div>
                                 <div className="flex items-center justify-between border-b border-b-gray-100 px-2 py-1 mb-1">
                                     <p className="text-gray-400">Bác sĩ</p>
                                     <p>
-                                        {dh.bacSi?.hoVaTen}
+                                        {dh?.bacSi?.hoVaTen}
                                     </p>
                                 </div>
                                 <div className="flex items-center justify-between border-b border-b-gray-100 px-2 py-1 mb-1">
                                     <p className="text-gray-400">Bệnh nhân</p>
                                     <p>
-                                        {dh.benhNhan?.hoVaTen}
+                                        {dh?.benhNhan?.hoVaTen}
                                     </p>
                                 </div>
                                 {
-                                    dh.sanPham && (
+                                    dh?.sanPham && (
                                         <div className="flex items-center justify-between border-b border-b-gray-100 px-2 py-1 mb-1">
                                             <p className="text-gray-400">Sản phẩm</p>
                                             <p>
@@ -195,36 +201,36 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                                 </tr>
                             ) : (() => {
                                 const flatRows = renderData.flatMap((dh) => {
-                                    const dssp = dh.danhSachSanPham || [];
+                                    const dssp = dh?.danhSachSanPham || [];
                                     if (dssp.length === 0) return [{ dh, sp: null, spIdx: 0 }];
                                     return dssp.map((sp, spIdx) => ({ dh, sp, spIdx }));
                                 });
                                 return flatRows.map(({ dh, sp, spIdx }) => (
                                     <tr
-                                        key={`${dh._id}_${spIdx}`}
-                                        className={`border-b cursor-pointer transition-colors ${selectedId === dh._id ? 'bg-sky-200 border-sky-200' : 'hover:bg-gray-50'}`}
+                                        key={`${dh?._id || Math.random()}_${spIdx}`}
+                                        className={`border-b cursor-pointer transition-colors ${selectedId === dh?._id ? 'bg-sky-200 border-sky-200' : 'hover:bg-gray-50'}`}
                                         onClick={() => onRowClick(dh)}
                                     >
-                                        <td className="px-3 truncate">{formatDateTime(dh.ngayNhan)}</td>
-                                        <td className="px-3 truncate">{dh.maDonHang || `TAN${dh._id.substring(dh._id.length - 8).toUpperCase()}`}</td>
-                                        <td className="px-3 truncate">{dh.nhaKhoa?.tenGiaoDich || dh.nhaKhoa?.hoVaTen}</td>
-                                        <td className="px-3 truncate hidden md:table-cell">{dh.bacSi?.hoVaTen}</td>
-                                        <td className="px-3 truncate hidden md:table-cell">{dh.benhNhan?.hoVaTen}</td>
-                                        <td className="px-3 truncate hidden lg:table-cell">{sp ? (loaiDonPrefix[sp.loaiDon] || "Mới") : ""}</td>
+                                        <td className="px-3 truncate">{formatDateTime(dh?.ngayNhan)}</td>
+                                        <td className="px-3 truncate">{getMaDonHang(dh)}</td>
+                                        <td className="px-3 truncate">{dh?.nhaKhoa?.tenGiaoDich || dh?.nhaKhoa?.hoVaTen}</td>
+                                        <td className="px-3 truncate hidden md:table-cell">{dh?.bacSi?.hoVaTen}</td>
+                                        <td className="px-3 truncate hidden md:table-cell">{dh?.benhNhan?.hoVaTen}</td>
+                                        <td className="px-3 truncate hidden lg:table-cell">{sp ? (loaiDonPrefix[sp?.loaiDon] || "Mới") : ""}</td>
                                         <td className="px-3 py-2 hidden lg:table-cell">
                                             <div className="truncate">{sp?.sanPham?.tenSanPham || ""}</div>
                                         </td>
                                         <td className="px-3 py-2 truncate hidden lg:table-cell">{sp?.mau || ""}</td>
-                                        <td className="px-3 py-2 truncate hidden lg:table-cell text-center">{sp ? (sp.soLuong || 1) : ""}</td>
+                                        <td className="px-3 py-2 truncate hidden lg:table-cell text-center">{sp ? (sp?.soLuong || 1) : ""}</td>
                                         <td className="px-3 py-2 hidden lg:table-cell">
                                             {(sp?.sanPham?.loaiTinh === "Răng" || sp?.sanPham?.loaiTinh === "Răng (không đếm)")
-                                                ? <div className="truncate">{sp ? renderViTri(sp.viTri) : ""}</div>
-                                                : <div className="truncate">{sp ? sp.viTriText || "" : ""}</div>
+                                                ? <div className="truncate">{sp ? renderViTri(sp?.viTri) : ""}</div>
+                                                : <div className="truncate">{sp ? (sp?.viTriText || "") : ""}</div>
                                             }
                                         </td>
-                                        <td className="px-3 truncate text-white"><TrangThaiBadge value={dh.trangThai} /></td>
-                                        <td className="px-3 truncate">{formatDateTime(dh.henGiao)}</td>
-                                        <td className="px-3 truncate hidden xl:table-cell" title={dh.ghiChuChung || ""}>{dh.ghiChuChung || ""}</td>
+                                        <td className="px-3 truncate text-white"><TrangThaiBadge value={dh?.trangThai} /></td>
+                                        <td className="px-3 truncate">{formatDateTime(dh?.henGiao)}</td>
+                                        <td className="px-3 truncate hidden xl:table-cell" title={dh?.ghiChuChung || ""}>{dh?.ghiChuChung || ""}</td>
                                     </tr>
                                 ));
                             })()}

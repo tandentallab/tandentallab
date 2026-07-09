@@ -2,12 +2,20 @@ import { useRef, useEffect, useState } from "react";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AddIcon from "@mui/icons-material/Add";
 import DownloadIcon from "@mui/icons-material/Download";
+import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
 import SearchableDropdown from "./SearchableDropdown";
 import { MONTH_OPTIONS } from "./constants";
 
 const NHAP_STATUSES = ["Chưa nhận", "Đã nhận"];
 const NHAP_THANHTOAN_STATUSES = ["Chưa thanh toán", "Đã thanh toán"];
 const XUAT_STATUSES = ["Chưa xuất", "Đã xuất"];
+
+const PRINT_OPTIONS = [
+    { key: "phieuNhap", label: "Phiếu nhập" },
+    { key: "phieuXuat", label: "Phiếu xuất" },
+    { key: "vatLieuNhap", label: "Vật liệu nhập" },
+    { key: "vatLieuXuat", label: "Vật liệu xuất" },
+];
 
 function StatusMultiSelect({ selectedTrangThai, onToggle }) {
     const [open, setOpen] = useState(false);
@@ -84,6 +92,65 @@ function StatusMultiSelect({ selectedTrangThai, onToggle }) {
     );
 }
 
+function PrintMenu({ printSelection, onTogglePrintSelection, onPrintConfirm }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const hasSelection = Object.values(printSelection).some(Boolean);
+
+    return (
+        <div ref={ref} className="relative">
+            <button
+                title="In danh sách"
+                onClick={() => setOpen((o) => !o)}
+                className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition"
+            >
+                <LocalPrintshopIcon sx={{ fontSize: 20 }} />
+            </button>
+
+            {open && (
+                <div className="absolute right-0 mt-1 w-52 bg-white border border-gray-200 rounded shadow-lg z-50 p-2">
+                    <p className="text-xs text-gray-400 px-2 pb-1">Chọn nội dung in</p>
+                    {PRINT_OPTIONS.map((opt) => (
+                        <label
+                            key={opt.key}
+                            className="flex items-center gap-2 px-2 py-1.5 text-sm text-slate-700 rounded hover:bg-gray-50 cursor-pointer"
+                        >
+                            <input
+                                type="checkbox"
+                                checked={printSelection[opt.key]}
+                                onChange={() => onTogglePrintSelection(opt.key)}
+                                className="w-3.5 h-3.5 accent-sky-500"
+                            />
+                            {opt.label}
+                        </label>
+                    ))}
+                    <div className="border-t border-gray-100 mt-1 pt-2 px-2 pb-1">
+                        <button
+                            onClick={() => {
+                                onPrintConfirm();
+                                setOpen(false);
+                            }}
+                            disabled={!hasSelection}
+                            className="w-full text-sm bg-sky-500 text-white rounded py-1.5 hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                        >
+                            In
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function FilterToolbar({
     // filter state
     selectedMonth, setSelectedMonth,
@@ -103,6 +170,10 @@ export default function FilterToolbar({
     onOpenXuatModal,
     addMenuOpen,
     setAddMenuOpen,
+    // print
+    printSelection,
+    onTogglePrintSelection,
+    onPrintConfirm,
 }) {
     const addMenuRef = useRef(null);
 
@@ -181,6 +252,13 @@ export default function FilterToolbar({
                         </div>
                     )}
                 </div>
+
+                {/* Print button với dropdown chọn nội dung */}
+                <PrintMenu
+                    printSelection={printSelection}
+                    onTogglePrintSelection={onTogglePrintSelection}
+                    onPrintConfirm={onPrintConfirm}
+                />
 
                 <button
                     title="Xuất Excel"

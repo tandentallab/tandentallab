@@ -217,7 +217,7 @@ const DonHangTable = ({ data, selectedId, onRowClick }) => {
                                         <td className="px-3 py-2 truncate hidden lg:table-cell">{sp?.mau || ""}</td>
                                         <td className="px-3 py-2 truncate hidden lg:table-cell text-center">{sp ? (sp.soLuong || 1) : ""}</td>
                                         <td className="px-3 py-2 hidden lg:table-cell">
-                                            {(sp.sanPham.loaiTinh == "Răng" || sp.sanPham.loaiTinh == "Răng (không đếm)")
+                                            {(sp?.sanPham?.loaiTinh === "Răng" || sp?.sanPham?.loaiTinh === "Răng (không đếm)")
                                                 ? <div className="truncate">{sp ? renderViTri(sp.viTri) : ""}</div>
                                                 : <div className="truncate">{sp ? sp.viTriText || "" : ""}</div>
                                             }

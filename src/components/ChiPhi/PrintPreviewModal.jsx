@@ -25,6 +25,13 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                 @page { size: A5 portrait; margin: 3mm; }
                 body { font-family: 'Times New Roman', serif; color: #000; margin: 0; padding: 0; }
                 
+                /* Thêm class bọc ngoài để tạo khoảng cách an toàn khi in (cỡ p-4) */
+                .print-container {
+                    padding: 12px 12px 0 12px; /* Top, Right, Bottom, Left */
+                    box-sizing: border-box;
+                    width: 100%;
+                }
+                
                 table { width: 100%; border-collapse: collapse; margin-top: 10px; }
                 th, td { border: 0.5px solid #000; padding: 2px 8px; font-size: 14px; }
                 
@@ -44,29 +51,28 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
             </style>
         </head>
         <body>
-            <table>
-                <thead>
-                    <!-- Dòng Header gộp chung vào bảng, đã bỏ viền ngoài (top, left, right) -->
-                    <tr>
-                        <th colspan="3" style=" border-top: none; border-left: none;">
-                            <div class="main-title">LAB TẤN DENTAL</div>
-                            ${displaySubtitle ? `<div class="sub-title">${displaySubtitle}</div>` : ''}
-                        </th>
-                        <th colspan="1" class="sd-n-cell">
-                            <div>SD:</div>
-                            <div>N:</div>
-                        </th>
-                    </tr>
-                    <!-- Dòng Header các cột -->
-                    <tr>
-                        <th width="8%" class="col-header">STT</th>
-                        <th width="57%" class="col-header">Nội dung</th>
-                        <th width="20%" class="col-header">Loại</th>
-                        <th width="15%" class="col-header">Số tiền</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${items.map((item, index) => {
+            <div class="print-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="3" style="border-top: none; border-left: none;">
+                                <div class="main-title">LAB TẤN DENTAL</div>
+                                ${displaySubtitle ? `<div class="sub-title">${displaySubtitle}</div>` : ''}
+                            </th>
+                            <th colspan="1" class="sd-n-cell">
+                                <div>SD:</div>
+                                <div>N:</div>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th width="8%" class="col-header">STT</th>
+                            <th width="57%" class="col-header">Nội dung</th>
+                            <th width="20%" class="col-header">Loại</th>
+                            <th width="15%" class="col-header">Số tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map((item, index) => {
         let sttDisplay = index + 1;
 
         if (type === 'month') {
@@ -85,24 +91,25 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
         }
 
         return `
-                            <tr>
-                                <td class="text-center">${sttDisplay}</td>
-                                <td>${item.tenChiPhi || ''}</td>
-                                <td class="text-center">${item.loaiChiPhi || ''}</td>
-                                <td class="text-right">${(item.gia || 0).toLocaleString('vi-VN')}</td>
-                            </tr>
-                        `;
+                                <tr>
+                                    <td class="text-center">${sttDisplay}</td>
+                                    <td>${item.tenChiPhi || ''}</td>
+                                    <td class="text-center">${item.loaiChiPhi || ''}</td>
+                                    <td class="text-right">${(item.gia || 0).toLocaleString('vi-VN')}</td>
+                                </tr>
+                            `;
     }).join('')}
-                    <tr>
-                        <td colspan="3" class="text-center font-bold">TỔNG CỘNG</td>
-                        <td class="text-right font-bold">${tongTien.toLocaleString('vi-VN')}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="3" class="text-center font-bold">SỬ DỤNG</td>
-                        <td></td>
-                    </tr>
-                </tbody>
-            </table>
+                        <tr>
+                            <td colspan="3" class="text-center font-bold">TỔNG CỘNG</td>
+                            <td class="text-right font-bold">${tongTien.toLocaleString('vi-VN')}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="text-center font-bold">SỬ DỤNG</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </body>
         </html>
     `;
@@ -127,7 +134,7 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                     />
                 </DialogContent>
                 <DialogActions sx={{ p: 2, bgcolor: 'white', borderTop: '1px solid #e2e8f0' }}>
-                    <Button onClick={onClose} color="inherit" fontWeight="bold">Hủy bỏ</Button>
+                    <Button onClick={onClose} color="inherit" sx={{ fontWeight: 'bold' }}>Hủy bỏ</Button>
                     <Button onClick={handlePrint} variant="contained" startIcon={<Print />} sx={{ borderRadius: '10px', px: 4, fontWeight: 'bold' }}>
                         IN PHIẾU
                     </Button>

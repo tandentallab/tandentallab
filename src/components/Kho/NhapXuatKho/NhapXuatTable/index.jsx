@@ -282,7 +282,7 @@ export default function NhapXuatTable() {
   );
 
   return (
-    <div>
+    <div className="mt-6">
       <style>{scrollbarStyle}</style>
 
       <FilterToolbar

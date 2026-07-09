@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   fetchVatLieu,
   fetchVatLieuMore,
+  fetchVatLieuTuyChon,
   fetchNhaCungCap,
   resetVatLieu,
   setVatLieuFilters,
@@ -735,6 +736,7 @@ export default function VatLieuTable() {
     vatLieuPage,
     vatLieuLimit,
     vatLieuTotal,
+    vatLieuTuyChon,
   } = useSelector((state) => state.kho);
 
   const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
@@ -770,6 +772,12 @@ export default function VatLieuTable() {
     }),
     [search, filterNCC, filterNhom, filterLoai, filterTrangThai]
   );
+
+  // Tải danh sách tùy chọn lọc/phân loại (nhóm, loại...) 1 lần khi mount —
+  // độc lập với lazy-loading của danh sách vatLieu bên dưới.
+  useEffect(() => {
+    dispatch(fetchVatLieuTuyChon());
+  }, [dispatch]);
 
   // Load trang 1 mỗi khi filter thay đổi (debounce search)
   useEffect(() => {
@@ -835,6 +843,9 @@ export default function VatLieuTable() {
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  // ── Xuất Excel — tải TOÀN BỘ dữ liệu khớp filter hiện tại từ server ─────
+  const [exporting, setExporting] = useState(false);
+
   // ── Chọn nhiều vật liệu (checkbox) ───────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteManyOpen, setDeleteManyOpen] = useState(false);
@@ -856,6 +867,7 @@ export default function VatLieuTable() {
     try {
       await dispatch(deleteVatLieuMany(selectedIds)).unwrap();
       toast.success(`Đã xóa ${selectedIds.length} vật liệu`);
+      dispatch(fetchVatLieuTuyChon());
       setSelectedIds([]);
       setDeleteManyOpen(false);
     } catch (err) {
@@ -909,55 +921,27 @@ export default function VatLieuTable() {
   const [optFormRang, setOptFormRang] = useState(DEFAULT_FORM_RANG);
   const [optMauRang, setOptMauRang] = useState(DEFAULT_MAU_RANG);
 
-  // Merge options từ data thực tế (khi load)
+  // Merge options từ danh sách tùy chọn (toàn bộ collection, tải qua
+  // fetchVatLieuTuyChon) — TRƯỚC ĐÂY merge từ `vatLieu` lazy-load nên thiếu
+  // các giá trị thuộc những vật liệu chưa được tải.
   useEffect(() => {
-    if (!vatLieu?.length) return;
     const mergeUniq = (base, vals) => {
-      const s = new Set([...base, ...vals.filter(Boolean)]);
+      const s = new Set([...base, ...(vals || []).filter(Boolean)]);
       return [...s].sort();
     };
-    setOptLoai((b) =>
-      mergeUniq(
-        b,
-        vatLieu.map((v) => v.loaiVatLieu)
-      )
-    );
-    setOptNhom((b) =>
-      mergeUniq(
-        b,
-        vatLieu.map((v) => v.nhomVatLieu)
-      )
-    );
-    setOptFormRang((b) =>
-      mergeUniq(
-        b,
-        vatLieu.map((v) => v.formRang)
-      )
-    );
-    setOptMauRang((b) =>
-      mergeUniq(
-        b,
-        vatLieu.map((v) => v.mauRang)
-      )
-    );
-  }, [vatLieu]);
+    setOptLoai((b) => mergeUniq(b, vatLieuTuyChon.loaiVatLieu));
+    setOptNhom((b) => mergeUniq(b, vatLieuTuyChon.nhomVatLieu));
+    setOptFormRang((b) => mergeUniq(b, vatLieuTuyChon.formRang));
+    setOptMauRang((b) => mergeUniq(b, vatLieuTuyChon.mauRang));
+  }, [vatLieuTuyChon]);
 
-  // Danh sách nhóm vật liệu unique để lọc filter bar
-  // (lấy từ toàn bộ NhaCungCap + vatLieu đã tải; server trả về unique khi cần)
-  const danhSachNhom = useMemo(() => {
-    const set = new Set(
-      (vatLieu || []).map((vl) => vl.nhomVatLieu).filter(Boolean)
-    );
-    return [...set].sort();
-  }, [vatLieu]);
+  // Danh sách nhóm vật liệu để lọc filter bar — lấy từ API tùy chọn
+  // (toàn bộ collection), không suy ra từ vatLieu lazy-load nữa.
+  const danhSachNhom = vatLieuTuyChon.nhomVatLieu || [];
 
-  // Danh sách loại vật liệu unique để lọc filter bar
-  const danhSachLoai = useMemo(() => {
-    const set = new Set(
-      (vatLieu || []).map((vl) => vl.loaiVatLieu).filter(Boolean)
-    );
-    return [...set].sort();
-  }, [vatLieu]);
+  // Danh sách loại vật liệu để lọc filter bar — lấy từ API tùy chọn
+  // (toàn bộ collection), không suy ra từ vatLieu lazy-load nữa.
+  const danhSachLoai = vatLieuTuyChon.loaiVatLieu || [];
 
   // Dữ liệu bảng = vatLieu từ store (server đã filter, không cần filter client)
   const filteredData = vatLieu || [];
@@ -1033,6 +1017,7 @@ export default function VatLieuTable() {
         toast.success("Đã thêm vật liệu mới");
       }
       dispatch(fetchVatLieu({ ...currentFilters, limit: vatLieuLimit || 20 }));
+      dispatch(fetchVatLieuTuyChon());
       setOpenModal(false);
     } catch (err) {
       toast.error(err.response?.data?.message || "Có lỗi xảy ra");
@@ -1048,11 +1033,32 @@ export default function VatLieuTable() {
       await api.delete(`/kho/vat-lieu/${deleteId}`);
       toast.success("Đã xóa vật liệu");
       dispatch(fetchVatLieu({ ...currentFilters, limit: vatLieuLimit || 20 }));
+      dispatch(fetchVatLieuTuyChon());
       setDeleteId(null);
     } catch (err) {
       toast.error(err.response?.data?.message || "Có lỗi xảy ra");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  /**
+   * Xuất Excel — TRƯỚC ĐÂY dùng `filteredData` (= vatLieu, chỉ chứa dữ liệu
+   * đã lazy-load) nên thiếu các bản ghi chưa được tải. Giờ gọi lại API danh
+   * sách vật liệu với `limit: -1` (backend đã hỗ trợ sẵn để lấy tất cả) và
+   * giữ nguyên bộ filter đang áp dụng, đảm bảo xuất đủ toàn bộ dữ liệu khớp.
+   */
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const res = await api.get("/kho/vat-lieu", {
+        params: { ...currentFilters, limit: -1 },
+      });
+      exportDanhSachVatLieuToExcel(res.data?.data || []);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Có lỗi khi xuất Excel");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -1163,11 +1169,18 @@ export default function VatLieuTable() {
                 </IconButton>
               </Tooltip>
               <button
-                onClick={() => exportDanhSachVatLieuToExcel(filteredData)}
-                className="h-9 px-3 text-sm font-medium text-white bg-[#29b6f6] hover:bg-[#0091ea] rounded flex items-center gap-1 transition"
+                onClick={handleExportExcel}
+                disabled={exporting}
+                className="h-9 px-3 text-sm font-medium text-white bg-[#29b6f6] hover:bg-[#0091ea] rounded flex items-center gap-1 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <DownloadIcon sx={{ fontSize: 17 }} />
-                <span className="hidden sm:inline">Xuất Excel</span>
+                {exporting ? (
+                  <CircularProgress size={14} sx={{ color: "#fff" }} />
+                ) : (
+                  <DownloadIcon sx={{ fontSize: 17 }} />
+                )}
+                <span className="hidden sm:inline">
+                  {exporting ? "Đang xuất..." : "Xuất Excel"}
+                </span>
               </button>
               <button
                 onClick={openAdd}

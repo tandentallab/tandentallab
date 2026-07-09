@@ -66,6 +66,25 @@ export const fetchVatLieuThongKe = createAsyncThunk(
 );
 
 /**
+ * fetchVatLieuTuyChon — tải danh sách giá trị duy nhất (nhóm/loại/form/màu)
+ * từ API riêng, tính trên TOÀN BỘ collection ở backend.
+ * Dùng cho dropdown lọc (filter bar) và SelectWithAdd trong modal thêm/sửa
+ * vật liệu — không phụ thuộc vào mảng vatLieu (vốn chỉ chứa dữ liệu đã
+ * lazy-load), tránh thiếu option của các vật liệu chưa được tải.
+ */
+export const fetchVatLieuTuyChon = createAsyncThunk(
+  "kho/fetchVatLieuTuyChon",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/kho/vat-lieu/tuy-chon");
+      return res.data; // { nhomVatLieu, loaiVatLieu, formRang, mauRang }
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Lỗi tải danh sách tùy chọn vật liệu");
+    }
+  }
+);
+
+/**
  * fetchVatLieuMore — tải thêm trang tiếp theo (append), dùng khi:
  * - người dùng kéo xuống cuối bảng (infinite scroll / lazy loading)
  *
@@ -118,6 +137,15 @@ const khoSlice = createSlice({
       soHangThieuHang: 0,
     },
     loadingThongKe: false,
+
+    // ── Tùy chọn lọc/phân loại vật liệu — độc lập với danh sách lazy-load ──
+    vatLieuTuyChon: {
+      nhomVatLieu: [],
+      loaiVatLieu: [],
+      formRang: [],
+      mauRang: [],
+    },
+    loadingTuyChon: false,
 
     loading: false,        // loading lần đầu / reset
     loadingMore: false,    // loading khi append thêm
@@ -252,6 +280,25 @@ const khoSlice = createSlice({
       })
       .addCase(fetchVatLieuThongKe.rejected, (state, action) => {
         state.loadingThongKe = false;
+        state.error = action.payload;
+      });
+
+    // ── VatLieu — tùy chọn lọc/phân loại (nhóm, loại, form, màu) ──────────
+    builder
+      .addCase(fetchVatLieuTuyChon.pending, (state) => {
+        state.loadingTuyChon = true;
+      })
+      .addCase(fetchVatLieuTuyChon.fulfilled, (state, action) => {
+        state.loadingTuyChon = false;
+        state.vatLieuTuyChon = {
+          nhomVatLieu: action.payload.nhomVatLieu || [],
+          loaiVatLieu: action.payload.loaiVatLieu || [],
+          formRang: action.payload.formRang || [],
+          mauRang: action.payload.mauRang || [],
+        };
+      })
+      .addCase(fetchVatLieuTuyChon.rejected, (state, action) => {
+        state.loadingTuyChon = false;
         state.error = action.payload;
       });
 

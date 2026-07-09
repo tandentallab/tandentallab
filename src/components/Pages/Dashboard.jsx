@@ -198,8 +198,8 @@ const Dashboard = () => {
             element={renderProtected("/hoa-don", <HoaDonPage />)}
           />
           <Route
-            path="/bao-cao/doanh-thu"
-            element={renderProtected("/bao-cao", <BaoCaoDoanhThuPage />)}
+            path="/doanh-thu"
+            element={renderProtected("/doanh-thu", <BaoCaoDoanhThuPage />)}
           />
           <Route
             path="/bao-cao/khach-hang"

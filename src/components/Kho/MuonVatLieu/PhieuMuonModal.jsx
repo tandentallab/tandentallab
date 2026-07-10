@@ -298,25 +298,6 @@ export default function PhieuMuonModal({ open, onClose, editData = null }) {
                         </div>
                     )}
 
-                    {/* Vật liệu đã chọn — luôn hiển thị dù đang lọc theo từ khóa khác */}
-                    {checkedItems.length > 0 && (
-                        <div className="px-4 sm:px-6 py-2 border-b bg-gray-50 flex flex-wrap gap-1.5 shrink-0">
-                            {checkedItems.map(([id, v]) => (
-                                <span key={id}
-                                    className={`inline-flex items-center gap-1.5 text-xs bg-white border rounded-full pl-2.5 pr-1.5 py-1 ${chipBorder}`}>
-                                    <span className="text-gray-700">{vatLieuInfo[id]?.tenVatLieu || "…"}</span>
-                                    <span className="text-gray-400">× {v.soLuong || 0}</span>
-                                    {!locked && (
-                                        <button type="button" onClick={() => toggleCheck(id)}
-                                            className="w-4 h-4 flex items-center justify-center rounded-full text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-                                            ✕
-                                        </button>
-                                    )}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
                     {/* Table header — desktop only */}
                     <div className={`hidden sm:grid px-6 py-2.5 border-b shrink-0 gap-3 items-center text-xs font-semibold text-gray-500 uppercase tracking-wide ${isMuon ? "bg-sky-100/50" : "bg-green-100/50"}`}
                         style={{ gridTemplateColumns: "40px 1fr 120px 1fr" }}>
@@ -414,13 +395,13 @@ export default function PhieuMuonModal({ open, onClose, editData = null }) {
                     {/* Footer */}
                     <div className="border-t bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 shrink-0 space-y-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
+                            <label className="hidden sm:block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
                             <textarea rows={2} placeholder="Ghi chú chung..."
                                 className="border rounded w-full px-3 py-2 text-sm resize-none focus:outline-none"
                                 value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} />
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <span className="text-xs text-gray-400">
+                            <span className="hidden sm:inline text-xs text-gray-400">
                                 {checkedItems.length > 0 ? `${checkedItems.length} vật liệu đã chọn` : ""}
                             </span>
                             <div className="flex gap-3 justify-end">

@@ -309,23 +309,6 @@ export default function XuatKhoModal({ open, onClose, editData = null, preSelect
                         </div>
                     </div>
 
-                    {/* Vật liệu đã chọn — luôn hiển thị dù đang lọc theo từ khóa khác */}
-                    {checkedItems.length > 0 && (
-                        <div className="px-4 sm:px-6 py-2 border-b bg-gray-50 flex flex-wrap gap-1.5 shrink-0">
-                            {checkedItems.map(([id, v]) => (
-                                <span key={id}
-                                    className="inline-flex items-center gap-1.5 text-xs bg-white border border-orange-200 rounded-full pl-2.5 pr-1.5 py-1">
-                                    <span className="text-gray-700">{vatLieuInfo[id]?.tenVatLieu || "…"}</span>
-                                    <span className="text-gray-400">× {v.soLuong || 0}</span>
-                                    <button type="button" onClick={() => toggleCheck(id)}
-                                        className="w-4 h-4 flex items-center justify-center rounded-full text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-                                        ✕
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
                     {/* Table header — desktop only */}
                     <div className="hidden sm:grid px-6 py-3 bg-gray-50 border-b shrink-0 gap-3 items-center text-xs font-semibold text-gray-500 uppercase tracking-wide"
                         style={{ gridTemplateColumns: "40px 1fr 80px 80px 1fr" }}>

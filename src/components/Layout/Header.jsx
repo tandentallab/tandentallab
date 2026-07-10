@@ -457,7 +457,7 @@ const Header = ({ onToggleSidebar }) => {
                     {/* Todo Popover */}
                     {openTodoPopover && (
                       <Paper
-                        className="fixed sm:absolute top-[60px] sm:top-[45px] left-4 sm:left-auto right-4 sm:right-0 w-[calc(100vw-32px)] sm:w-[400px] max-w-md sm:max-w-none bg-white rounded-2xl shadow-2xl border border-gray-100 z-[1200] flex flex-col overflow-hidden text-gray-800"
+                        className="fixed sm:absolute top-[60px] sm:top-[45px] left-4 sm:left-auto right-4 sm:right-0 w-[calc(100vw-32px)] sm:w-[480px] max-w-md sm:max-w-none bg-white rounded-2xl shadow-2xl border border-gray-100 z-[1200] flex flex-col overflow-hidden text-gray-800"
                         style={{
                           maxHeight: "450px",
                         }}
@@ -481,10 +481,6 @@ const Header = ({ onToggleSidebar }) => {
                                 className="p-2 flex items-center justify-between gap-2.5 hover:bg-gray-50 transition rounded-lg"
                               >
                                 <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                                  {/* STT nổi bật ở bên trái */}
-                                  <span className="font-extrabold text-blue-600 text-base shrink-0 mt-0.5 min-w-[24px] text-center">
-                                    #{todoList.length - todoList.findIndex((t) => t._id === todo._id)}
-                                  </span>
                                   <div className="flex-1 min-w-0 text-left">
                                     <p className="text-gray-800 font-semibold text-sm whitespace-pre-wrap leading-relaxed">
                                       {todo.noiDung}

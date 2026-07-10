@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { fetchHoaDonById, updateHoaDon, deleteHoaDon } from "../../redux/slices/hoaDonSlice";
+import { fetchHoaDonById, updateHoaDon, deleteHoaDon, resetEditedHoaDonIds } from "../../redux/slices/hoaDonSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 import { fetchPhieuThuByHoaDon } from "../../redux/slices/phieuThuSlice";
 import { X, Printer, FileDown, Save, Upload, Trash2 } from "lucide-react";
@@ -331,7 +331,10 @@ const HoaDonDetail = () => {
         toast.success("Đã lưu hóa đơn thành công!");
       }
 
-      if (exitAfter) navigate(-1);
+      if (exitAfter) {
+        sessionStorage.removeItem("hd_keep_data"); // 🔥 Thêm dòng này
+        navigate(-1);
+      }
     } catch (err) {
       toast.error("Lỗi: " + (err.message || err));
     }
@@ -410,6 +413,7 @@ const HoaDonDetail = () => {
     try {
       await dispatch(deleteHoaDon(id)).unwrap();
       setShowDeleteConfirm(false);
+      sessionStorage.removeItem("hd_keep_data");
       navigate(-1);
       toast.success("Đã xóa hóa đơn");
     } catch (err) {
@@ -905,7 +909,11 @@ const HoaDonDetail = () => {
         onClose={() => setPtOpen(false)}
         onSuccess={() => {
           toast.success("Tạo phiếu thu thành công!");
-          navigate('/phieu-thu');
+          dispatch(resetEditedHoaDonIds());
+          sessionStorage.removeItem("hd_keep_data");
+          setTimeout(() => {
+            navigate(-1);
+          }, 300);
         }}
         initialNhaKhoaId={hoaDon?.nhaKhoa?._id}
         initialHoaDonId={hoaDon?._id}

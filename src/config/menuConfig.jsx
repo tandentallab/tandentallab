@@ -20,7 +20,8 @@ import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import BadgeIcon from "@mui/icons-material/Badge";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import HistoryIcon from "@mui/icons-material/History";
 
 export const MAIN_MENU = [
   { name: "Thống kê", router: "/", icon: <Dashboard /> },
@@ -61,12 +62,13 @@ export const CUSTOMER_MENU = [
 export const OTHER_MENU = [
   { name: "Báo Cáo", router: "/bao-cao", icon: <BarChart /> },
   {
-    name: 'Báo cáo doanh thu',
-    router: '/doanh-thu',
-    icon: <AttachMoneyIcon />
+    name: "Báo cáo doanh thu",
+    router: "/doanh-thu",
+    icon: <AttachMoneyIcon />,
   },
   { name: "Nhân viên", router: "/nhan-vien", icon: <BadgeIcon /> },
   { name: "Bảng lương", router: "/bang-luong", icon: <PaymentsIcon /> },
+  { name: "Lịch sử lương", router: "/lich-su-luong", icon: <HistoryIcon /> },
   { name: "Chi phí", router: "/chi-phi", icon: <AccountBalance /> }, // 2. Thêm menu Chi phí vào đây
 ];
 
@@ -83,8 +85,8 @@ export const ALL_MENUS = [
     title: "Khác",
     items: [
       ...OTHER_MENU,
-      { name: "Ghi chú", router: "/ghi-chu", icon: <Assignment /> }
-    ]
+      { name: "Ghi chú", router: "/ghi-chu", icon: <Assignment /> },
+    ],
   },
   { title: "Thiết Lập", items: SETTING_MENU },
 ];

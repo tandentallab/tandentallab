@@ -42,6 +42,7 @@ import { FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PrintIcon from "@mui/icons-material/Print";
 import InBangLuongModal from "./InBangLuongModal";
+import HistoryIcon from "@mui/icons-material/History";
 
 const COLUMNS = [
   "Nhân viên",
@@ -872,6 +873,27 @@ const BangLuongPage = () => {
             >
               <PeopleAltIcon sx={{ fontSize: 16 }} />
               <span className="whitespace-nowrap">Nhân viên</span>
+            </button>
+
+            {/* Staff */}
+            <button
+              onClick={() => safeNavigate("/lich-su-luong")}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all w-full sm:w-auto"
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                color: "#cbd5e1",
+                border: "1px solid rgba(255,255,255,0.13)",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "rgba(255,255,255,0.14)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "rgba(255,255,255,0.08)")
+              }
+            >
+              <HistoryIcon sx={{ fontSize: 16 }} />
+              <span className="whitespace-nowrap">Lịch sử LCB</span>
             </button>
 
             {/* Export */}

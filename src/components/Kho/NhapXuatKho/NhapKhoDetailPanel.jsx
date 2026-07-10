@@ -86,6 +86,17 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
 
     async function handleConfirmNhan() {
         if (!fullPhieu) return;
+
+        const danhSach = fullPhieu.danhSachVatLieu || [];
+        const invalidItems = danhSach.filter((item) => !item.donGia || Number(item.donGia) <= 0);
+        if (invalidItems.length > 0) {
+            const tenList = invalidItems
+                .map((item) => item.vatLieu?.tenVatLieu || "Vật liệu")
+                .join(", ");
+            toast.error(`Cần nhập giá vật liệu.`);
+            return;
+        }
+
         setUpdatingStatus(true);
         try {
             await dispatch(
@@ -104,6 +115,17 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
 
     async function handleConfirmThanhToan() {
         if (!fullPhieu) return;
+
+        const danhSach = fullPhieu.danhSachVatLieu || [];
+        const invalidItems = danhSach.filter((item) => !item.donGia || Number(item.donGia) <= 0);
+        if (invalidItems.length > 0) {
+            const tenList = invalidItems
+                .map((item) => item.vatLieu?.tenVatLieu || "Vật liệu")
+                .join(", ");
+            toast.error(`Cần nhập giá vật liệu.`);
+            return;
+        }
+
         setUpdatingThanhToan(true);
         try {
             await dispatch(

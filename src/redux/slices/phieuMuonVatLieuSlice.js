@@ -1,7 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { api } from "../../config/api"; // ⚠️ chỉnh lại path cho khớp cấu trúc dự án
-
-// ── Thunks ────────────────────────────────────────────────────────────────────
+import { api } from "../../config/api";
 
 export const fetchAllPhieuMuonVatLieu = createAsyncThunk(
     "phieuMuonVatLieu/fetchAll",
@@ -63,15 +61,24 @@ export const deletePhieuMuonVatLieu = createAsyncThunk(
     }
 );
 
-// ── Slice ─────────────────────────────────────────────────────────────────────
+const emptyBucket = () => ({
+    list: [],
+    total: 0,
+    page: 1,
+    limit: 20,
+    hasMore: true,
+    loading: false,
+    loadingMore: false,
+});
 
 const phieuMuonVatLieuSlice = createSlice({
     name: "phieuMuonVatLieu",
     initialState: {
-        list: [],
-        total: 0,
+        byLoai: {
+            "Mượn": emptyBucket(),
+            "Cho mượn": emptyBucket(),
+        },
         selected: null,
-        loading: false,
         loadingDetail: false,
         error: null,
     },
@@ -80,24 +87,43 @@ const phieuMuonVatLieuSlice = createSlice({
         clearSelected(state) {
             state.selected = null;
         },
+        // Xóa sạch danh sách + reset về trang 1 cho 1 loai (dùng khi đổi filter tháng, hoặc refresh)
+        resetLoai(state, action) {
+            const loai = action.payload;
+            if (state.byLoai[loai]) state.byLoai[loai] = emptyBucket();
+        },
     },
 
     extraReducers: (builder) => {
-        const pending = (state) => { state.loading = true; state.error = null; };
-        const rejected = (state, action) => {
-            state.loading = false;
-            state.error = action.payload?.message || action.error.message;
-        };
-
         builder
-            // fetchAll
-            .addCase(fetchAllPhieuMuonVatLieu.pending, pending)
-            .addCase(fetchAllPhieuMuonVatLieu.fulfilled, (state, action) => {
-                state.loading = false;
-                state.list = action.payload.data || [];
-                state.total = action.payload.total || 0;
+            // fetchAll — theo từng loai, hỗ trợ append khi page > 1
+            .addCase(fetchAllPhieuMuonVatLieu.pending, (state, action) => {
+                const { loai, page = 1 } = action.meta.arg || {};
+                const bucket = state.byLoai[loai];
+                if (!bucket) return;
+                if (page > 1) bucket.loadingMore = true;
+                else bucket.loading = true;
+                state.error = null;
             })
-            .addCase(fetchAllPhieuMuonVatLieu.rejected, rejected)
+            .addCase(fetchAllPhieuMuonVatLieu.fulfilled, (state, action) => {
+                const { loai, page = 1, limit = 20 } = action.meta.arg || {};
+                const bucket = state.byLoai[loai];
+                if (!bucket) return;
+                const newList = action.payload.data || [];
+                bucket.list = page > 1 ? [...bucket.list, ...newList] : newList;
+                bucket.total = action.payload.total || 0;
+                bucket.page = page;
+                bucket.limit = limit;
+                bucket.hasMore = bucket.list.length < bucket.total;
+                bucket.loading = false;
+                bucket.loadingMore = false;
+            })
+            .addCase(fetchAllPhieuMuonVatLieu.rejected, (state, action) => {
+                const { loai } = action.meta.arg || {};
+                const bucket = state.byLoai[loai];
+                if (bucket) { bucket.loading = false; bucket.loadingMore = false; }
+                state.error = action.payload?.message || action.error.message;
+            })
 
             // fetchById
             .addCase(fetchPhieuMuonVatLieuById.pending, (state) => {
@@ -113,36 +139,37 @@ const phieuMuonVatLieuSlice = createSlice({
                 state.error = action.payload?.message || action.error.message;
             })
 
-            // create
-            .addCase(createPhieuMuonVatLieu.pending, pending)
+            // create — thêm vào đầu bucket đúng loai
             .addCase(createPhieuMuonVatLieu.fulfilled, (state, action) => {
-                state.loading = false;
-                state.list = [action.payload.data, ...state.list];
-                state.total += 1;
+                const created = action.payload.data;
+                const bucket = state.byLoai[created.loai];
+                if (bucket) {
+                    bucket.list = [created, ...bucket.list];
+                    bucket.total += 1;
+                }
             })
-            .addCase(createPhieuMuonVatLieu.rejected, rejected)
 
-            // update
-            .addCase(updatePhieuMuonVatLieu.pending, pending)
+            // update — tìm đúng bucket theo id và thay thế
             .addCase(updatePhieuMuonVatLieu.fulfilled, (state, action) => {
-                state.loading = false;
                 const updated = action.payload.data;
-                state.list = state.list.map((p) =>
-                    p._id === updated._id ? { ...p, ...updated } : p
-                );
+                Object.values(state.byLoai).forEach((bucket) => {
+                    bucket.list = bucket.list.map((p) =>
+                        p._id === updated._id ? { ...p, ...updated } : p
+                    );
+                });
             })
-            .addCase(updatePhieuMuonVatLieu.rejected, rejected)
 
-            // delete
-            .addCase(deletePhieuMuonVatLieu.pending, pending)
+            // delete — xóa khỏi bucket chứa id đó
             .addCase(deletePhieuMuonVatLieu.fulfilled, (state, action) => {
-                state.loading = false;
-                state.list = state.list.filter((p) => p._id !== action.payload);
-                state.total -= 1;
-            })
-            .addCase(deletePhieuMuonVatLieu.rejected, rejected);
+                const id = action.payload;
+                Object.values(state.byLoai).forEach((bucket) => {
+                    const before = bucket.list.length;
+                    bucket.list = bucket.list.filter((p) => p._id !== id);
+                    if (bucket.list.length !== before) bucket.total -= 1;
+                });
+            });
     },
 });
 
-export const { clearSelected } = phieuMuonVatLieuSlice.actions;
+export const { clearSelected, resetLoai } = phieuMuonVatLieuSlice.actions;
 export default phieuMuonVatLieuSlice.reducer;

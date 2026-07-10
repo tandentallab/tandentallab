@@ -5,17 +5,6 @@ import {
     formatNgay
 } from "../NhapXuatKho/NhapXuatTable/constants";
 
-/**
- * Props:
- *  data          – array phiếu mượn (đã lọc theo loai từ component cha)
- *  loai          – "Mượn" | "Cho mượn"
- *  loading       – boolean
- *  selectedId    – id phiếu đang được xem chi tiết (để highlight dòng)
- *  onRowClick    – (row) => void   → click vào dòng sẽ mở panel chi tiết
- *  hasMore       – boolean (tùy chọn, nếu có phân trang / infinite scroll)
- *  loadingMore   – boolean
- *  onLoadMore    – () => void
- */
 export default function PhieuMuonTable({
     data,
     loai,
@@ -26,6 +15,7 @@ export default function PhieuMuonTable({
     loadingMore,
     onLoadMore,
 }) {
+    const scrollRef = useRef(null);
     const sentinelRef = useRef(null);
     const isMuon = loai === "Mượn";
     const themeBg = isMuon ? "bg-sky-50" : "bg-green-50";
@@ -34,20 +24,21 @@ export default function PhieuMuonTable({
 
     useEffect(() => {
         const el = sentinelRef.current;
-        if (!el || !onLoadMore) return;
+        const root = scrollRef.current;
+        if (!el || !root || !onLoadMore) return;
         const observer = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting && hasMore && !loadingMore) onLoadMore();
             },
-            { threshold: 0.1 }
+            { root, threshold: 0.1 }
         );
         observer.observe(el);
         return () => observer.disconnect();
-    }, [hasMore, loadingMore, onLoadMore]);
+    }, [hasMore, loadingMore, onLoadMore, data.length]);
 
     return (
         <div className="flex flex-col flex-1 min-w-0">
-            <div className="max-h-[650px] overflow-y-auto table-scroll">
+            <div ref={scrollRef} className="max-h-[650px] overflow-y-auto table-scroll">
                 <div className={`sticky top-0 h-10 flex items-center justify-center border-b font-medium uppercase text-sm ${themeBg}`}>
                     {loai}
                 </div>
@@ -56,8 +47,8 @@ export default function PhieuMuonTable({
                 <table className="hidden sm:table w-full border-collapse text-sm text-left bg-white">
                     <thead className="sticky top-10 z-10">
                         <tr className="shadow">
-                            <th className={`${rowBase} ${themeBg}`}>Số</th>
                             <th className={`${rowBase} ${themeBg}`}>Ngày tạo</th>
+                            <th className={`${rowBase} ${themeBg}`}>Số phiếu</th>
                             <th className={`${rowBase} ${themeBg}`}>Đối tác</th>
                             <th className={`${rowBase} ${themeBg}`}>Vật liệu</th>
                             <th className={`${rowBase} ${themeBg}`}>Trạng thái</th>
@@ -75,8 +66,6 @@ export default function PhieuMuonTable({
                         ) : data.map((row) => {
                             const items = row.danhSachVatLieu || [];
                             const tenVatLieu = items.map((i) => i.vatLieu?.tenVatLieu || "?").join(", ");
-                            const daNhan = row.trangThaiNhan === "Đã nhận";
-                            const daTra = row.trangThaiTra === "Đã trả";
                             const trangThai = ({ trangThaiNhan, trangThaiTra }) => {
                                 if (trangThaiNhan === "Chưa nhận")
                                     return <p className="px-2.5 py-0.5 w-fit text-white font-medium bg-yellow-500">Chưa nhận</p>;
@@ -92,8 +81,8 @@ export default function PhieuMuonTable({
                                     onClick={() => onRowClick && onRowClick(row)}
                                     className={`cursor-pointer transition-colors ${isSelected ? selectedBg : "hover:bg-gray-50"}`}
                                 >
-                                    <td className={`${rowBase} ${borderBottom} max-w-24 truncate`}>{row.soPhieu || "-"}</td>
                                     <td className={`${rowBase} ${borderBottom} max-w-28 truncate`}>{formatNgay(row.ngayTao)}</td>
+                                    <td className={`${rowBase} ${borderBottom} max-w-24 truncate`}>{row.soPhieu || "-"}</td>
                                     <td className={`${rowBase} ${borderBottom} max-w-32 truncate`}>{row.doiTac?.ten || "—"}</td>
                                     <td className={`${rowBase} ${borderBottom} max-w-56 truncate`} title={tenVatLieu}>
                                         {items.length > 0 ? tenVatLieu : "—"}
@@ -126,7 +115,6 @@ export default function PhieuMuonTable({
                                 onClick={() => onRowClick && onRowClick(row)}
                                 className={`cursor-pointer rounded-lg border bg-white p-3 shadow-sm transition-colors ${isSelected ? `${selectedBorder} ${selectedBg}` : "border-gray-200"}`}
                             >
-                                {/* Header row: đối tác + trạng thái */}
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="font-semibold text-sm text-gray-800 truncate">{row.doiTac?.ten || "—"}</span>
                                     <div className="flex flex-col gap-1 items-end shrink-0">
@@ -138,7 +126,6 @@ export default function PhieuMuonTable({
                                         </span>
                                     </div>
                                 </div>
-                                {/* Details */}
                                 <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-600">
                                     <span className="text-gray-400">Ngày tạo</span>
                                     <span>{formatNgay(row.ngayTao)}</span>
@@ -155,13 +142,13 @@ export default function PhieuMuonTable({
                         );
                     })}
                 </div>
-            </div>
 
-            {/* Sentinel — chỉ hoạt động khi component cha truyền onLoadMore */}
-            <div ref={sentinelRef} className="h-1" />
-            {loadingMore && (
-                <div className="text-center py-2 text-xs text-gray-400">Đang tải thêm...</div>
-            )}
+                {/* Sentinel — nằm TRONG vùng cuộn để IntersectionObserver bắt đúng lúc chạm đáy */}
+                <div ref={sentinelRef} className="h-1" />
+                {loadingMore && (
+                    <div className="text-center py-2 text-xs text-gray-400">Đang tải thêm...</div>
+                )}
+            </div>
         </div>
     );
 }

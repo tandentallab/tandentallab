@@ -37,7 +37,7 @@ function buildFilterLabel({ thang, ncc, boPhan, trangThai }) {
     return parts.length ? parts.join("  |  ") : "Tất cả dữ liệu";
 }
 
-function Header({ congTy, title, filterLabel }) {
+function Header({ congTy, title }) {
     return (
         <>
             <div style={{ marginBottom: "2.5mm", display: "flex" }}>
@@ -53,9 +53,8 @@ function Header({ congTy, title, filterLabel }) {
                 <h1 style={{ margin: 0, fontSize: "13pt", fontWeight: "bold", textTransform: "uppercase" }}>
                     {title}
                 </h1>
-                <div style={{ fontSize: "8pt", marginTop: "0.5mm", color: "#555" }}>{filterLabel}</div>
-                <div style={{ fontSize: "7.5pt", color: "#888" }}>
-                    Xuất ngày: {new Date().toLocaleString("vi-VN")}
+                <div style={{ fontSize: "7.5pt" }}>
+                    Ngày xuất: {new Date().toLocaleDateString("vi-VN")}
                 </div>
             </div>
         </>
@@ -221,7 +220,7 @@ const NhapXuatPrintPreview = () => {
                         className={`print-area bg-white shadow-lg border border-gray-300 ${lastSection !== "phieuNhap" ? "page-break" : ""}`}
                         style={{ width: "210mm", minHeight: "148mm", padding: "8mm 10mm", boxSizing: "border-box" }}
                     >
-                        <Header congTy={congTy} title="DANH SÁCH PHIẾU NHẬP KHO" filterLabel={filterLabel} />
+                        <Header congTy={congTy} title="DANH SÁCH PHIẾU NHẬP KHO" />
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8.5pt" }}>
                             <thead>
                                 <tr>
@@ -263,7 +262,7 @@ const NhapXuatPrintPreview = () => {
                         className={`print-area bg-white shadow-lg border border-gray-300 ${lastSection !== "phieuXuat" ? "page-break" : ""}`}
                         style={{ width: "210mm", minHeight: "148mm", padding: "8mm 10mm", boxSizing: "border-box" }}
                     >
-                        <Header congTy={congTy} title="DANH SÁCH PHIẾU XUẤT KHO" filterLabel={filterLabel} />
+                        <Header congTy={congTy} title="DANH SÁCH PHIẾU XUẤT KHO" />
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8.5pt" }}>
                             <thead>
                                 <tr>
@@ -297,7 +296,7 @@ const NhapXuatPrintPreview = () => {
                         className={`print-area bg-white shadow-lg border border-gray-300 ${lastSection !== "vatLieuNhap" ? "page-break" : ""}`}
                         style={{ width: "210mm", minHeight: "148mm", padding: "8mm 10mm", boxSizing: "border-box" }}
                     >
-                        <Header congTy={congTy} title="TỔNG HỢP VẬT LIỆU NHẬP" filterLabel={filterLabel} />
+                        <Header congTy={congTy} title="TỔNG HỢP VẬT LIỆU NHẬP" />
                         <VatLieuTable data={vatLieuNhap} />
                     </div>
                 )}
@@ -308,7 +307,7 @@ const NhapXuatPrintPreview = () => {
                         className="print-area bg-white shadow-lg border border-gray-300"
                         style={{ width: "210mm", minHeight: "148mm", padding: "8mm 10mm", boxSizing: "border-box" }}
                     >
-                        <Header congTy={congTy} title="TỔNG HỢP VẬT LIỆU XUẤT" filterLabel={filterLabel} />
+                        <Header congTy={congTy} title="TỔNG HỢP VẬT LIỆU XUẤT" />
                         <VatLieuTable data={vatLieuXuat} />
                     </div>
                 )}

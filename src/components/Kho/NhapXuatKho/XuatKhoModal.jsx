@@ -240,9 +240,26 @@ export default function XuatKhoModal({ open, onClose, editData = null, preSelect
         }
     };
 
-    if (!open) return null;
+    // ID vật liệu đã có sẵn trong phiếu khi mở modal sửa — ghim lên đầu danh sách
+    const editVlIds = useMemo(() => {
+        if (!isEdit || !editData?.danhSachVatLieu) return null;
+        return new Set(editData.danhSachVatLieu.map((item) => item.vatLieu?._id || item.vatLieu));
+    }, [isEdit, editData]);
 
-    const vatLieuList = kho.vatLieu || [];
+    // Khi sửa phiếu, đưa các vật liệu đã chọn lên đầu; giữ nguyên thứ tự phần còn lại
+    const vatLieuList = useMemo(() => {
+        const list = kho.vatLieu || [];
+        if (!editVlIds || editVlIds.size === 0) return list;
+        const selected = [];
+        const rest = [];
+        list.forEach((vl) => {
+            if (editVlIds.has(vl._id)) selected.push(vl);
+            else rest.push(vl);
+        });
+        return [...selected, ...rest];
+    }, [kho.vatLieu, editVlIds]);
+
+    if (!open) return null;
 
     return (
         <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-2 sm:p-4">

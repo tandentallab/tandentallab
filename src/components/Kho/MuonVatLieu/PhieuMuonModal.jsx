@@ -193,9 +193,25 @@ export default function PhieuMuonModal({ open, onClose, editData = null }) {
         }
     };
 
+    const editVlIds = useMemo(() => {
+        if (!isEdit || !editData?.danhSachVatLieu) return null;
+        return new Set(editData.danhSachVatLieu.map((item) => item.vatLieu?._id || item.vatLieu));
+    }, [isEdit, editData]);
+
+    const vatLieuList = useMemo(() => {
+        const list = kho.vatLieu || [];
+        if (!editVlIds || editVlIds.size === 0) return list;
+        const selected = [];
+        const rest = [];
+        list.forEach((vl) => {
+            if (editVlIds.has(vl._id)) selected.push(vl);
+            else rest.push(vl);
+        });
+        return [...selected, ...rest];
+    }, [kho.vatLieu, editVlIds]);
+
     if (!open) return null;
 
-    const vatLieuList = kho.vatLieu || [];
     const theme = isMuon ? "sky" : "green";
 
     return (

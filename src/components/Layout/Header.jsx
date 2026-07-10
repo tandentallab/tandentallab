@@ -33,6 +33,18 @@ import { toast } from "sonner";
 import TimKiemNangCaoPage from "./TimKiemNangCaoPage";
 import GhiChuAddModal from "../GhiChu/GhiChuAddModal";
 
+const formatDateTime = (isoString) => {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return "";
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${hours}:${minutes} ${day}/${month}/${year}`;
+};
+
 const Header = ({ onToggleSidebar }) => {
   const { isAuthenticated, user } = useSelector(getAuthSelector);
   const navigate = useNavigate();
@@ -445,15 +457,14 @@ const Header = ({ onToggleSidebar }) => {
                     {/* Todo Popover */}
                     {openTodoPopover && (
                       <Paper
-                        className="absolute right-[-100px] sm:right-0 mt-2 w-[calc(100vw-32px)] sm:w-80 max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 z-[1200] flex flex-col overflow-hidden text-gray-800"
+                        className="fixed sm:absolute top-[60px] sm:top-[45px] left-4 sm:left-auto right-4 sm:right-0 w-[calc(100vw-32px)] sm:w-[400px] max-w-md sm:max-w-none bg-white rounded-2xl shadow-2xl border border-gray-100 z-[1200] flex flex-col overflow-hidden text-gray-800"
                         style={{
-                          top: "45px",
                           maxHeight: "450px",
                         }}
                       >
                         {/* Header */}
                         <div className="bg-blue-50 px-4 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
-                          <span className="font-bold text-blue-900 text-sm">
+                          <span className="font-bold text-blue-900 text-base">
                             Ghi chú cần xử lý ({activeTodoList.length})
                           </span>
                         </div>
@@ -471,14 +482,14 @@ const Header = ({ onToggleSidebar }) => {
                               >
                                 <div className="flex items-start gap-2.5 flex-1 min-w-0">
                                   {/* STT nổi bật ở bên trái */}
-                                  <span className="font-extrabold text-blue-600 text-sm shrink-0 mt-0.5 min-w-[20px] text-center">
+                                  <span className="font-extrabold text-blue-600 text-base shrink-0 mt-0.5 min-w-[24px] text-center">
                                     #{todoList.length - todoList.findIndex((t) => t._id === todo._id)}
                                   </span>
                                   <div className="flex-1 min-w-0 text-left">
-                                    <p className="text-gray-800 font-semibold text-xs whitespace-pre-wrap leading-relaxed">
+                                    <p className="text-gray-800 font-semibold text-sm whitespace-pre-wrap leading-relaxed">
                                       {todo.noiDung}
                                     </p>
-                                    <div className="flex items-center justify-start mt-1 text-[10px] text-gray-400">
+                                    <div className="flex items-center justify-start mt-1 text-xs text-gray-400 gap-1.5 flex-wrap">
                                       {todo.donHang ? (
                                         <span
                                           onClick={() => {
@@ -496,6 +507,9 @@ const Header = ({ onToggleSidebar }) => {
                                           </span>
                                         )
                                       )}
+                                      <span className="text-[10px] text-gray-400 font-medium bg-gray-100 px-1.5 py-0.5 rounded select-none">
+                                        {formatDateTime(todo.createdAt)}
+                                      </span>
                                     </div>
                                   </div>
                                 </div>

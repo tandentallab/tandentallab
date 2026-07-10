@@ -271,7 +271,6 @@ export default function GhiChuPage() {
                 <Table>
                   <TableHead className="bg-gray-50">
                     <TableRow>
-                      <TableCell className="font-bold text-gray-700" style={{ width: "60px" }}>STT</TableCell>
                       <TableCell className="font-bold text-gray-700">Đơn hàng liên kết</TableCell>
                       <TableCell className="font-bold text-gray-700" style={{ width: "40%" }}>
                         Nội Dung Lưu Ý
@@ -287,9 +286,6 @@ export default function GhiChuPage() {
                     {filteredNotes.length > 0 ? (
                       filteredNotes.map((note, idx) => (
                         <TableRow key={note._id} className="hover:bg-gray-50/50 transition">
-                          <TableCell className="text-gray-500 font-medium">
-                            {notes.length - notes.findIndex((t) => t._id === note._id)}
-                          </TableCell>
                           <TableCell>
                             {note.donHang ? (
                               <Link
@@ -399,9 +395,8 @@ export default function GhiChuPage() {
                       />
                     </div>
 
-                    {/* Nội dung ghi chú */}
                     <div className="text-gray-800 font-medium text-sm whitespace-pre-wrap leading-relaxed">
-                      #{notes.length - notes.findIndex((t) => t._id === note._id)}. {note.noiDung}
+                      {note.noiDung}
                     </div>
 
                     {/* Footer card: Ngày tạo & Nút hành động */}

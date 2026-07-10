@@ -36,7 +36,7 @@ function StatusMultiSelect({ selectedTrangThai, onToggle }) {
             <button
                 type="button"
                 onClick={() => setOpen((o) => !o)}
-                className="h-9 min-w-[140px] px-3 text-sm text-left bg-white border border-gray-300 rounded flex items-center justify-between gap-2 hover:border-gray-400 transition"
+                className="h-9 min-w-[170px] px-3 text-sm text-left bg-white border border-gray-300 rounded flex items-center justify-between gap-2 hover:border-gray-400 transition"
             >
                 <span className={count ? "text-slate-700" : "text-gray-400"}>
                     {count ? `Trạng thái (${count})` : "Trạng thái"}
@@ -196,8 +196,8 @@ export default function FilterToolbar({
     }
 
     return (
-        <div className="mb-3 flex justify-between items-start md:items-center rounded">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
+        <div className="mb-3 flex flex-wrap-reverse justify-end gap-3 md:flex-nowrap md:gap-0 md:justify-between md:items-center">
+            <div className="flex justify-center items-center flex-wrap gap-2">
                 <SearchableDropdown
                     options={monthLabels}
                     value={monthLabel}

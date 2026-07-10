@@ -23,7 +23,7 @@ export default function SearchableDropdown({ options, value, onChange, placehold
             <button
                 type="button"
                 onClick={() => setOpen((o) => !o)}
-                className="h-9 min-w-[160px] px-3 text-sm text-left bg-white border border-gray-300 rounded flex items-center justify-between gap-2 hover:border-gray-400 transition"
+                className="h-9 min-w-[170px] px-3 text-sm text-left bg-white border border-gray-300 rounded flex items-center justify-between gap-2 hover:border-gray-400 transition"
             >
                 <span className={value ? "text-slate-700" : "text-gray-400"}>
                     {value || placeholder}
@@ -57,9 +57,8 @@ export default function SearchableDropdown({ options, value, onChange, placehold
                             <li
                                 key={opt}
                                 onClick={() => { onChange(opt); setSearch(""); setOpen(false); }}
-                                className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-sky-50 hover:text-sky-700 ${
-                                    value === opt ? "bg-sky-50 text-sky-700 font-medium" : "text-slate-700"
-                                }`}
+                                className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-sky-50 hover:text-sky-700 ${value === opt ? "bg-sky-50 text-sky-700 font-medium" : "text-slate-700"
+                                    }`}
                             >
                                 {opt}
                             </li>

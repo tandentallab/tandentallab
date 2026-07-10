@@ -96,16 +96,16 @@ export default function KhoPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          flexWrap: "wrap",
+          flexWrap: { xs: "wrap-reverse", sm: "wrap" },
           gap: 1,
         }}
       >
         <Tabs
           value={tab}
           onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          allowScrollButtonsMobile
+          // variant="scrollable"
+          // scrollButtons="auto"
+          // allowScrollButtonsMobile
           sx={{
             minHeight: { xs: 40, sm: 48 },
             "& .MuiTab-root": {
@@ -122,22 +122,22 @@ export default function KhoPage() {
           }}
         >
           <Tab
-            icon={<CategoryIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
+            icon={<CategoryIcon sx={{ fontSize: { xs: 0, sm: 18 } }} />}
             iconPosition="start"
             label="Vật liệu"
           />
           <Tab
-            icon={<AssignmentIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
+            icon={<AssignmentIcon sx={{ fontSize: { xs: 0, sm: 18 } }} />}
             iconPosition="start"
-            label={isMobile ? "Nhập - Xuất" : "Phiếu Nhập - Xuất"}
+            label={isMobile ? "Nhập/Xuất" : "Phiếu Nhập - Xuất"}
           />
           <Tab
-            icon={<BookmarkIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
+            icon={<BookmarkIcon sx={{ fontSize: { xs: 0, sm: 18 } }} />}
             iconPosition="start"
-            label="Mượn vật liệu"
+            label={isMobile ? "Mượn" : "Mượn vật liệu"}
           />
           <Tab
-            icon={<StorefrontIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
+            icon={<StorefrontIcon sx={{ fontSize: { xs: 0, sm: 18 } }} />}
             iconPosition="start"
             label={isMobile ? "NCC" : "Nhà cung cấp"}
           />
@@ -164,7 +164,7 @@ export default function KhoPage() {
             }}
           >
             <CategoryIcon sx={{ fontSize: 16 }} />
-            {tongVatLieu} vật liệu trong kho
+            {tongVatLieu} vl trong kho
           </Box>
 
           <Box
@@ -193,7 +193,7 @@ export default function KhoPage() {
           >
             <WarningAmberIcon sx={{ fontSize: 16 }} />
             {soHangThieuHang > 0
-              ? `${soHangThieuHang} vật liệu thiếu hàng`
+              ? `${soHangThieuHang} vl thiếu hàng`
               : "Tồn kho ổn định"}
           </Box>
         </Box>

@@ -135,7 +135,7 @@ export default function PhieuMuonSection() {
                 </div>
             </div>
 
-            <div className="flex divide-x-2 divide-gray-200">
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-0 divide-x-2 divide-gray-200">
                 <PhieuMuonTable
                     data={muon.list}
                     loai="Mượn"

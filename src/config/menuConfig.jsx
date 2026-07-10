@@ -62,7 +62,7 @@ export const OTHER_MENU = [
   { name: "Báo Cáo", router: "/bao-cao", icon: <BarChart /> },
   {
     name: 'Báo cáo doanh thu',
-    router: '/bao-cao/doanh-thu',
+    router: '/doanh-thu',
     icon: <AttachMoneyIcon />
   },
   { name: "Nhân viên", router: "/nhan-vien", icon: <BadgeIcon /> },

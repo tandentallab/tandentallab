@@ -50,6 +50,7 @@ import NhapKhoPrintPreview from "../Kho/NhapXuatKho/NhapKhoPrintPreview";
 import XuatKhoPrintPreview from "../Kho/NhapXuatKho/XuatKhoPrintPreview";
 import NhapXuatPrintPreview from "../Kho/NhapXuatKho/NhapXuatPrintPreview";
 import ChiPhiPage from "../ChiPhi/ChiPhiPage.jsx";
+import LichSuLuongPage from "../BangLuong/LichSuLuongPage.jsx";
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -103,7 +104,9 @@ const Dashboard = () => {
           flexGrow: 1,
           minWidth: 0,
           mt: isPrintPage ? 0 : `${headerMarginTop}px`,
-          minHeight: isPrintPage ? "100vh" : `calc(100vh - ${headerMarginTop}px)`,
+          minHeight: isPrintPage
+            ? "100vh"
+            : `calc(100vh - ${headerMarginTop}px)`,
           display: "flex",
           flexDirection: "column",
           transition: theme.transitions.create("margin-left", {
@@ -314,6 +317,13 @@ const Dashboard = () => {
             )}
           ></Route>
           <Route
+            path="/lich-su-luong"
+            element={renderProtected(
+              "/lich-su-luong",
+              <LichSuLuongPage></LichSuLuongPage>
+            )}
+          ></Route>
+          <Route
             path="/nhan-vien/:id"
             element={renderProtected(
               "/nhan-vien",
@@ -330,10 +340,7 @@ const Dashboard = () => {
 
           <Route
             path="/ghi-chu"
-            element={renderProtected(
-              "/ghi-chu",
-              <GhiChuPage></GhiChuPage>
-            )}
+            element={renderProtected("/ghi-chu", <GhiChuPage></GhiChuPage>)}
           />
           <Route
             path="/kho"

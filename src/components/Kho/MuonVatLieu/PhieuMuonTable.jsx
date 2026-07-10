@@ -1,9 +1,9 @@
-function formatNgay(d) {
-    if (!d) return "—";
-    return new Date(d).toLocaleDateString("vi-VN");
-}
-
-const rowBase = "px-3 py-2";
+import { useRef, useEffect } from "react";
+import {
+    rowBase,
+    borderBottom,
+    formatNgay
+} from "../NhapXuatKho/NhapXuatTable/constants";
 
 /**
  * Props:
@@ -11,104 +11,157 @@ const rowBase = "px-3 py-2";
  *  loai          – "Mượn" | "Cho mượn"
  *  loading       – boolean
  *  selectedId    – id phiếu đang được xem chi tiết (để highlight dòng)
- *  onRowClick    – (row) => void   → click vào dòng (trừ vùng nút) sẽ mở panel chi tiết
- *  onXacNhanNhan – (row) => void
- *  onXacNhanTra  – (row) => void
- *  onEdit        – (row) => void
- *  onDelete      – (row) => void
+ *  onRowClick    – (row) => void   → click vào dòng sẽ mở panel chi tiết
+ *  hasMore       – boolean (tùy chọn, nếu có phân trang / infinite scroll)
+ *  loadingMore   – boolean
+ *  onLoadMore    – () => void
  */
-export default function PhieuMuonTable({ data, loai, loading, selectedId, onRowClick, onXacNhanNhan, onXacNhanTra, onEdit, onDelete }) {
+export default function PhieuMuonTable({
+    data,
+    loai,
+    loading,
+    selectedId,
+    onRowClick,
+    hasMore,
+    loadingMore,
+    onLoadMore,
+}) {
+    const sentinelRef = useRef(null);
     const isMuon = loai === "Mượn";
-    const theme = isMuon ? "sky" : "green";
-    const headBg = isMuon ? "bg-sky-50" : "bg-green-50";
+    const themeBg = isMuon ? "bg-sky-50" : "bg-green-50";
+    const selectedBg = isMuon ? "bg-sky-50" : "bg-green-50";
+    const selectedBorder = isMuon ? "border-sky-400" : "border-green-400";
 
-    const nhanLabel = isMuon ? "Xác nhận đã nhận" : "Xác nhận đã giao";
-    const traLabel = isMuon ? "Xác nhận đã trả" : "Xác nhận nhận lại";
+    useEffect(() => {
+        const el = sentinelRef.current;
+        if (!el || !onLoadMore) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !loadingMore) onLoadMore();
+            },
+            { threshold: 0.1 }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [hasMore, loadingMore, onLoadMore]);
 
     return (
-        <div className="overflow-x-auto bg-white border border-gray-200 rounded">
-            <table className="w-full text-sm text-left border-collapse min-w-[720px]">
-                <thead>
-                    <tr className={headBg}>
-                        <th className={`${rowBase} font-semibold text-gray-600`}>Ngày tạo</th>
-                        <th className={`${rowBase} font-semibold text-gray-600`}>{isMuon ? "Mượn của" : "Cho mượn"}</th>
-                        <th className={`${rowBase} font-semibold text-gray-600`}>Nhân viên</th>
-                        <th className={`${rowBase} font-semibold text-gray-600`}>Vật liệu</th>
-                        <th className={`${rowBase} font-semibold text-gray-600`}>Trạng thái</th>
-                        <th className={`${rowBase} font-semibold text-gray-600`}>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
+        <div className="flex flex-col flex-1 min-w-0">
+            <div className="max-h-[650px] overflow-y-auto table-scroll">
+                <div className={`sticky top-0 h-10 flex items-center justify-center border-b font-medium uppercase text-sm ${themeBg}`}>
+                    {loai}
+                </div>
+
+                {/* ── TABLE — desktop (sm+) ── */}
+                <table className="hidden sm:table w-full border-collapse text-sm text-left bg-white">
+                    <thead className="sticky top-10 z-10">
+                        <tr className="shadow">
+                            <th className={`${rowBase} ${themeBg}`}>Số</th>
+                            <th className={`${rowBase} ${themeBg}`}>Ngày tạo</th>
+                            <th className={`${rowBase} ${themeBg}`}>Đối tác</th>
+                            <th className={`${rowBase} ${themeBg}`}>Vật liệu</th>
+                            <th className={`${rowBase} ${themeBg}`}>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {loading ? (
+                            <tr>
+                                <td className={`${rowBase} text-gray-400`} colSpan={5}>Đang tải...</td>
+                            </tr>
+                        ) : data.length === 0 ? (
+                            <tr>
+                                <td className={`${rowBase} text-gray-400`} colSpan={5}>Không có dữ liệu</td>
+                            </tr>
+                        ) : data.map((row) => {
+                            const items = row.danhSachVatLieu || [];
+                            const tenVatLieu = items.map((i) => i.vatLieu?.tenVatLieu || "?").join(", ");
+                            const daNhan = row.trangThaiNhan === "Đã nhận";
+                            const daTra = row.trangThaiTra === "Đã trả";
+                            const trangThai = ({ trangThaiNhan, trangThaiTra }) => {
+                                if (trangThaiNhan === "Chưa nhận")
+                                    return <p className="px-2.5 py-0.5 w-fit text-white font-medium bg-yellow-500">Chưa nhận</p>;
+                                if (trangThaiTra === "Chưa trả")
+                                    return <p className="px-2.5 py-0.5 w-fit text-white font-medium bg-red-500">Chưa trả</p>;
+                                return <p className="px-2.5 py-0.5 w-fit text-white font-medium bg-green-500">Đã trả</p>;
+                            };
+                            const isSelected = row._id === selectedId;
+
+                            return (
+                                <tr
+                                    key={row._id}
+                                    onClick={() => onRowClick && onRowClick(row)}
+                                    className={`cursor-pointer transition-colors ${isSelected ? selectedBg : "hover:bg-gray-50"}`}
+                                >
+                                    <td className={`${rowBase} ${borderBottom} max-w-24 truncate`}>{row.soPhieu || "-"}</td>
+                                    <td className={`${rowBase} ${borderBottom} max-w-28 truncate`}>{formatNgay(row.ngayTao)}</td>
+                                    <td className={`${rowBase} ${borderBottom} max-w-32 truncate`}>{row.doiTac?.ten || "—"}</td>
+                                    <td className={`${rowBase} ${borderBottom} max-w-56 truncate`} title={tenVatLieu}>
+                                        {items.length > 0 ? tenVatLieu : "—"}
+                                    </td>
+                                    <td className={`${rowBase} ${borderBottom}`}>
+                                        {trangThai(row)}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+
+                {/* ── CARD LIST — mobile (< sm) ── */}
+                <div className="sm:hidden flex flex-col gap-2 p-2 bg-gray-50">
                     {loading ? (
-                        <tr><td className={`${rowBase} text-gray-400`} colSpan={6}>Đang tải...</td></tr>
+                        <p className="text-sm text-gray-400 text-center py-6">Đang tải...</p>
                     ) : data.length === 0 ? (
-                        <tr><td className={`${rowBase} text-gray-400`} colSpan={6}>Không có dữ liệu</td></tr>
+                        <p className="text-sm text-gray-400 text-center py-6">Không có dữ liệu</p>
                     ) : data.map((row) => {
                         const items = row.danhSachVatLieu || [];
                         const tenVatLieu = items.map((i) => i.vatLieu?.tenVatLieu || "?").join(", ");
                         const daNhan = row.trangThaiNhan === "Đã nhận";
                         const daTra = row.trangThaiTra === "Đã trả";
+                        const isSelected = row._id === selectedId;
 
                         return (
-                            <tr key={row._id}
+                            <div
+                                key={row._id}
                                 onClick={() => onRowClick && onRowClick(row)}
-                                className={`border-t border-gray-100 cursor-pointer transition-colors ${row._id === selectedId ? (isMuon ? "bg-sky-50" : "bg-green-50") : "hover:bg-gray-50"}`}>
-                                <td className={`${rowBase} whitespace-nowrap`}>{formatNgay(row.ngayTao)}</td>
-                                <td className={`${rowBase} max-w-40 truncate`}>{row.doiTac?.ten || "—"}</td>
-                                <td className={`${rowBase} max-w-32 truncate`}>{row.nhanVien || "—"}</td>
-                                <td className={`${rowBase} max-w-56 truncate`} title={tenVatLieu}>
-                                    {items.length > 0 ? `${tenVatLieu} (${items.length})` : "—"}
-                                </td>
-                                <td className={rowBase}>
-                                    <div className="flex flex-col gap-1">
-                                        <span className={`text-xs text-white font-medium px-2 py-0.5 rounded w-fit ${daNhan ? "bg-green-500" : "bg-yellow-500"}`}>
+                                className={`cursor-pointer rounded-lg border bg-white p-3 shadow-sm transition-colors ${isSelected ? `${selectedBorder} ${selectedBg}` : "border-gray-200"}`}
+                            >
+                                {/* Header row: đối tác + trạng thái */}
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-semibold text-sm text-gray-800 truncate">{row.doiTac?.ten || "—"}</span>
+                                    <div className="flex flex-col gap-1 items-end shrink-0">
+                                        <span className={`text-xs text-white font-medium px-2 py-0.5 rounded ${daNhan ? "bg-green-500" : "bg-yellow-500"}`}>
                                             {row.trangThaiNhan}
                                         </span>
-                                        <span className={`text-xs text-white font-medium px-2 py-0.5 rounded w-fit ${daTra ? "bg-green-500" : "bg-orange-400"}`}>
+                                        <span className={`text-xs text-white font-medium px-2 py-0.5 rounded ${daTra ? "bg-green-500" : "bg-orange-400"}`}>
                                             {row.trangThaiTra}
                                         </span>
                                     </div>
-                                </td>
-                                <td className={rowBase} onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {!daNhan && (
-                                            <>
-                                                <button onClick={() => onXacNhanNhan(row)}
-                                                    className={`text-xs text-white px-2 py-1 rounded transition-colors ${isMuon ? "bg-sky-500 hover:bg-sky-600" : "bg-green-500 hover:bg-green-600"}`}>
-                                                    {nhanLabel}
-                                                </button>
-                                                <button onClick={() => onEdit(row)}
-                                                    className="text-xs text-gray-600 border border-gray-300 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
-                                                    Sửa
-                                                </button>
-                                                <button onClick={() => onDelete(row)}
-                                                    className="text-xs text-red-600 border border-red-200 px-2 py-1 rounded hover:bg-red-50 transition-colors">
-                                                    Xóa
-                                                </button>
-                                            </>
-                                        )}
-                                        {daNhan && !daTra && (
-                                            <>
-                                                <button onClick={() => onXacNhanTra(row)}
-                                                    className="text-xs text-white px-2 py-1 rounded bg-orange-500 hover:bg-orange-600 transition-colors">
-                                                    {traLabel}
-                                                </button>
-                                                <button onClick={() => onEdit(row)}
-                                                    className="text-xs text-gray-600 border border-gray-300 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
-                                                    Ghi chú
-                                                </button>
-                                            </>
-                                        )}
-                                        {daTra && (
-                                            <span className="text-xs text-gray-400 italic">Hoàn tất</span>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
+                                </div>
+                                {/* Details */}
+                                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-600">
+                                    <span className="text-gray-400">Ngày tạo</span>
+                                    <span>{formatNgay(row.ngayTao)}</span>
+
+                                    <span className="text-gray-400">Nhân viên</span>
+                                    <span className="truncate">{row.nhanVien || "—"}</span>
+
+                                    <span className="text-gray-400">Vật liệu</span>
+                                    <span className="truncate col-span-1" title={tenVatLieu}>
+                                        {items.length > 0 ? tenVatLieu : "—"}
+                                    </span>
+                                </div>
+                            </div>
                         );
                     })}
-                </tbody>
-            </table>
+                </div>
+            </div>
+
+            {/* Sentinel — chỉ hoạt động khi component cha truyền onLoadMore */}
+            <div ref={sentinelRef} className="h-1" />
+            {loadingMore && (
+                <div className="text-center py-2 text-xs text-gray-400">Đang tải thêm...</div>
+            )}
         </div>
     );
 }

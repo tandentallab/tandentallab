@@ -41,8 +41,9 @@ export function formatNgay(dateStr) {
 export function monthToDateRange(month) {
     if (!month) return {};
     const [year, mon] = month.split("-").map(Number);
-    const tuNgay = new Date(year, mon - 1, 1).toISOString().split("T")[0];
-    const denNgay = new Date(year, mon, 0).toISOString().split("T")[0];
+    const tuNgay = `${year}-${String(mon).padStart(2, "0")}-01`;
+    const lastDay = new Date(year, mon, 0).getDate();
+    const denNgay = `${year}-${String(mon).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
     return { tuNgay, denNgay };
 }
 

@@ -460,19 +460,33 @@ const DonHangForm = () => {
 
   // <-- THÊM MỚI: Xử lý bật Modal khi chọn Hàng sửa/Làm lại
   const handleSanPhamChange = (index, field, value) => {
+    // SearchInput gọi onChange("") khi người dùng bấm nút x hoặc bắt đầu gõ lại để tìm sản phẩm khác
+    // (chỉ là thao tác xoá tạm ô tìm kiếm, chưa phải chọn sản phẩm mới) -> bỏ qua, không đụng tới formData,
+    // để tránh xoá mất vị trí/số lượng/... trước khi người dùng thực sự chọn xong sản phẩm B.
+    if (field === "sanPham" && !value) return;
+
     markDirty();
     const newDsSp = [...formData.danhSachSanPham];
+    const oldRow = newDsSp[index]; // giữ lại dòng cũ để so sánh loaiTinh trước khi ghi đè
     // FIX: Clone object con để tránh mutate state trực tiếp
-    newDsSp[index] = { ...newDsSp[index], [field]: value };
+    newDsSp[index] = { ...oldRow, [field]: value };
 
-    // Khi đổi sản phẩm → reset các trường phụ thuộc
+    // Khi thực sự chọn 1 sản phẩm mới → chỉ reset các trường phụ thuộc nếu loaiTinh thay đổi.
+    // Nếu sản phẩm mới cùng loaiTinh với sản phẩm cũ, giữ nguyên vị trí/số lượng/màu/ghi chú/yêu cầu thử.
     if (field === "sanPham") {
-      newDsSp[index].viTri = [];
-      newDsSp[index].viTriText = "";
-      newDsSp[index].soLuong = 1;
-      newDsSp[index].mau = "";
-      newDsSp[index].ghiChu = "";
-      newDsSp[index].yeuCauThu = [];
+      const oldLoaiTinh = getLoaiTinh(oldRow.sanPham);
+      const newLoaiTinh = getLoaiTinh(value);
+      const sameLoaiTinh = Boolean(oldRow.sanPham) && oldLoaiTinh != null && oldLoaiTinh === newLoaiTinh;
+
+      if (!sameLoaiTinh) {
+        newDsSp[index].viTri = [];
+        newDsSp[index].viTriText = "";
+        newDsSp[index].soLuong = 1;
+        newDsSp[index].mau = "";
+        newDsSp[index].ghiChu = "";
+        newDsSp[index].yeuCauThu = [];
+      }
+      // else: cùng loaiTinh → giữ nguyên toàn bộ các trường khác
     }
 
     // Nếu đổi loại đơn sang Sửa/Bảo hành/Làm lại

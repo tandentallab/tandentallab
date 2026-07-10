@@ -14,14 +14,17 @@ import { toast } from "sonner";
  *  editData  – object | null
  *  loai      – "Mượn" | "Cho mượn"   (chỉ dùng khi tạo mới, editData sẽ tự quyết định loai)
  */
-export default function PhieuMuonModal({ open, onClose, editData = null, loai = "Mượn" }) {
+export default function PhieuMuonModal({ open, onClose, editData = null }) {
     const dispatch = useDispatch();
     const kho = useSelector((state) => state.kho);
     const { user } = useSelector((state) => state.auth);
     const { loading: submitting } = useSelector((state) => state.phieuMuonVatLieu);
 
     const isEdit = !!editData;
-    const effectiveLoai = editData?.loai || loai;
+
+    // Loại phiếu: khi sửa thì lấy theo phiếu đang sửa, khi tạo mới thì cho chọn trong modal
+    const [formLoai, setFormLoai] = useState("Mượn");
+    const effectiveLoai = isEdit ? editData.loai : formLoai;
     const isMuon = effectiveLoai === "Mượn";
 
     // Phiếu đã xử lý (đã nhận hoặc đã trả) → khóa phần nội dung, chỉ còn sửa ghi chú
@@ -33,13 +36,9 @@ export default function PhieuMuonModal({ open, onClose, editData = null, loai = 
     const [items, setItems] = useState({});
     const [search, setSearch] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
-    // Cache tên/mã/đơn vị theo id vật liệu — không bị xóa khi đổi từ khóa tìm kiếm,
-    // để vẫn hiển thị được tên của những vật liệu đã chọn nhưng đang bị lọc khỏi danh sách hiển thị
     const [vatLieuInfo, setVatLieuInfo] = useState({});
-    // true sau khi đã khởi tạo state lần đầu cho phiên mở modal hiện tại
     const initializedRef = useRef(false);
 
-    // Debounce ô tìm kiếm — chỉ gọi API sau khi người dùng ngừng gõ 400ms
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(search), 400);
         return () => clearTimeout(timer);
@@ -50,6 +49,8 @@ export default function PhieuMuonModal({ open, onClose, editData = null, loai = 
         initializedRef.current = false;
         setSearch("");
         setDebouncedSearch("");
+        // Khi mở modal để tạo mới, luôn quay về mặc định "Mượn"
+        if (open && !editData) setFormLoai("Mượn");
     }, [open, editData]);
 
     useEffect(() => {
@@ -57,7 +58,6 @@ export default function PhieuMuonModal({ open, onClose, editData = null, loai = 
         dispatch(fetchVatLieu({ limit: -1, name: debouncedSearch }));
     }, [open, dispatch, debouncedSearch]);
 
-    // Gộp thông tin vật liệu (tên/mã/đơn vị) vào cache, không xóa dữ liệu cũ
     useEffect(() => {
         if (!kho.vatLieu?.length) return;
         setVatLieuInfo((prev) => {
@@ -71,7 +71,6 @@ export default function PhieuMuonModal({ open, onClose, editData = null, loai = 
         if (!open || !kho.vatLieu?.length) return;
 
         if (!initializedRef.current) {
-            // Khởi tạo lần đầu cho phiên mở modal này — nạp toàn bộ dữ liệu form + danh sách đã chọn (nếu sửa)
             setNhanVien(editData?.nhanVien || "");
             setDoiTac({
                 ten: editData?.doiTac?.ten || "",
@@ -99,8 +98,6 @@ export default function PhieuMuonModal({ open, onClose, editData = null, loai = 
             setItems(initial);
             initializedRef.current = true;
         } else {
-            // Các lần tải sau (do gõ tìm kiếm) — chỉ THÊM vật liệu mới xuất hiện,
-            // không đụng đến state của vật liệu đã có (dù đang bị lọc khỏi danh sách hiển thị)
             setItems((prev) => {
                 const next = { ...prev };
                 kho.vatLieu.forEach((vl) => {
@@ -122,8 +119,6 @@ export default function PhieuMuonModal({ open, onClose, editData = null, loai = 
         [items]
     );
 
-    // "Chọn tất cả" chỉ áp dụng cho danh sách đang hiển thị (theo từ khóa tìm kiếm hiện tại),
-    // không đụng tới các vật liệu đã chọn trước đó nhưng đang bị lọc khỏi danh sách
     const visibleIds = useMemo(() => (kho.vatLieu || []).map((vl) => vl._id), [kho.vatLieu]);
     const allChecked =
         visibleIds.length > 0 && visibleIds.every((id) => items[id]?.checked);
@@ -170,13 +165,13 @@ export default function PhieuMuonModal({ open, onClose, editData = null, loai = 
                     toast.success("Đã cập nhật phiếu");
                 } else {
                     await dispatch(createPhieuMuonVatLieu({
-                        loai,
+                        loai: formLoai,
                         nhanVien,
                         doiTac,
                         danhSachVatLieu: validItems,
                         ghiChu,
                     })).unwrap();
-                    toast.success(loai === "Mượn" ? "Đã tạo phiếu mượn" : "Đã tạo phiếu cho mượn");
+                    toast.success(formLoai === "Mượn" ? "Đã tạo phiếu mượn" : "Đã tạo phiếu cho mượn");
                 }
                 onClose();
             } catch (err) {
@@ -185,7 +180,6 @@ export default function PhieuMuonModal({ open, onClose, editData = null, loai = 
             return;
         }
 
-        // locked → chỉ cập nhật ghi chú
         try {
             await dispatch(updatePhieuMuonVatLieu({
                 id: editData._id,
@@ -209,12 +203,28 @@ export default function PhieuMuonModal({ open, onClose, editData = null, loai = 
             <div className="bg-white rounded-lg shadow-xl w-full max-w-[900px] h-[95vh] sm:h-[85vh] flex flex-col">
 
                 {/* Header */}
-                <div className={`flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0 ${isMuon ? "bg-sky-50" : "bg-green-50"}`}>
-                    <h2 className="text-base sm:text-lg font-semibold text-gray-800">
-                        {isEdit
-                            ? `Sửa phiếu ${effectiveLoai.toLowerCase()}`
-                            : effectiveLoai === "Mượn" ? "Tạo phiếu mượn vật liệu" : "Tạo phiếu cho mượn vật liệu"}
-                    </h2>
+                <div className={`flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0 ${isMuon ? "bg-sky-100" : "bg-green-100"}`}>
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-base sm:text-lg font-semibold text-gray-800">
+                            {isEdit ? `Sửa phiếu ${effectiveLoai.toLowerCase()}` : "Tạo phiếu"}
+                        </h2>
+
+                        {/* Bộ chọn loại phiếu — chỉ cho đổi khi tạo mới */}
+                        {!isEdit && (
+                            <div className="inline-flex rounded-full border border-gray-300 bg-white p-0.5 text-xs font-medium">
+                                <button type="button" onClick={() => setFormLoai("Mượn")}
+                                    className={`px-3 py-1 rounded-full transition-colors ${isMuon ? "bg-sky-600 text-white" : "text-gray-500 hover:text-sky-700"
+                                        }`}>
+                                    Phiếu mượn
+                                </button>
+                                <button type="button" onClick={() => setFormLoai("Cho mượn")}
+                                    className={`px-3 py-1 rounded-full transition-colors ${!isMuon ? "bg-green-600 text-white" : "text-gray-500 hover:text-green-700"
+                                        }`}>
+                                    Phiếu cho mượn
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <button type="button" onClick={onClose}
                         className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition-colors">
                         ✕
@@ -222,34 +232,37 @@ export default function PhieuMuonModal({ open, onClose, editData = null, loai = 
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-                    {/* Thông tin đối tác + nhân viên */}
-                    <div className="px-4 sm:px-6 py-3 border-b shrink-0 grid grid-cols-1 sm:grid-cols-4 gap-3">
-                        <div className="sm:col-span-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
-                                {isMuon ? "Mượn của (đối tác)" : "Cho mượn (đối tác)"} *
-                            </label>
-                            <input type="text" disabled={locked} value={doiTac.ten}
-                                onChange={(e) => setDoiTac((p) => ({ ...p, ten: e.target.value }))}
-                                placeholder="Tên đối tác..."
-                                className="border rounded w-full px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400" />
+                    <div className="p-3">
+                        <div className="flex gap-3">
+                            <div className="flex-1">
+                                <label className="text-xs text-gray-600">Tên đối tác *</label>
+                                <input type="text" disabled={locked} value={doiTac.ten}
+                                    onChange={(e) => setDoiTac((p) => ({ ...p, ten: e.target.value }))}
+                                    placeholder="ABC Dental"
+                                    className="border rounded w-full px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400" />
+                            </div>
+                            <div className="flex-1">
+                                <label className="text-xs text-gray-600">Địa chỉ</label>
+                                <input type="text" disabled={locked} value={doiTac.diaChi}
+                                    onChange={(e) => setDoiTac((p) => ({ ...p, diaChi: e.target.value }))}
+                                    placeholder="Ninh Kiều, Cần Thơ"
+                                    className="border rounded w-full px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400" />
+                            </div>
+                            <div className="flex-1">
+                                <label className="text-xs text-gray-600">Số điện thoại</label>
+                                <input type="text" disabled={locked} value={doiTac.soDienThoai}
+                                    onChange={(e) => setDoiTac((p) => ({ ...p, soDienThoai: e.target.value }))}
+                                    placeholder="0123456789"
+                                    className="border rounded w-full px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400" />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Số điện thoại</label>
-                            <input type="text" disabled={locked} value={doiTac.soDienThoai}
-                                onChange={(e) => setDoiTac((p) => ({ ...p, soDienThoai: e.target.value }))}
-                                className="border rounded w-full px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Nhân viên phụ trách</label>
+
+                        <div className="mt-3">
+                            <label className="text-xs text-gray-600">Nhân viên</label>
                             <input type="text" value={nhanVien}
                                 onChange={(e) => setNhanVien(e.target.value)}
-                                className="border rounded w-full px-2 py-1.5 text-sm" />
-                        </div>
-                        <div className="sm:col-span-4">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Địa chỉ</label>
-                            <input type="text" disabled={locked} value={doiTac.diaChi}
-                                onChange={(e) => setDoiTac((p) => ({ ...p, diaChi: e.target.value }))}
-                                className="border rounded w-full px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400" />
+                                placeholder="Nguyễn Văn A"
+                                className="block border rounded w-[282px] px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400" />
                         </div>
                     </div>
 
@@ -279,7 +292,7 @@ export default function PhieuMuonModal({ open, onClose, editData = null, loai = 
                     )}
 
                     {/* Table header */}
-                    <div className={`hidden sm:grid px-6 py-2.5 border-b shrink-0 gap-3 items-center text-xs font-semibold text-gray-500 uppercase tracking-wide ${isMuon ? "bg-sky-50/50" : "bg-green-50/50"}`}
+                    <div className={`hidden sm:grid px-6 py-2.5 border-b shrink-0 gap-3 items-center text-xs font-semibold text-gray-500 uppercase tracking-wide ${isMuon ? "bg-sky-100/50" : "bg-green-100/50"}`}
                         style={{ gridTemplateColumns: "40px 1fr 120px 1fr" }}>
                         <input type="checkbox" checked={allChecked} disabled={locked} onChange={toggleCheckAll}
                             className={`w-4 h-4 cursor-pointer ${isMuon ? "accent-sky-600" : "accent-green-600"}`} />

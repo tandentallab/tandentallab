@@ -34,6 +34,18 @@ function InfoRow({ label, value }) {
     );
 }
 
+// Gộp trạng thái nhận + trả thành 1 trạng thái duy nhất — cùng logic với PhieuMuonTable
+function getTrangThai(fullPhieu) {
+    if (!fullPhieu) return null;
+    if (fullPhieu.trangThaiNhan === "Chưa nhận") {
+        return { text: "Chưa nhận", cls: "bg-yellow-500" };
+    }
+    if (fullPhieu.trangThaiTra === "Chưa trả") {
+        return { text: "Chưa trả", cls: "bg-red-500" };
+    }
+    return { text: "Đã trả", cls: "bg-green-500" };
+}
+
 /**
  * Props:
  *  phieu     – phiếu mượn row object | null
@@ -48,8 +60,7 @@ export default function PhieuMuonDetailPanel({ phieu, onClose, onUpdated }) {
     const [loading, setLoading] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [updatingNhan, setUpdatingNhan] = useState(false);
-    const [updatingTra, setUpdatingTra] = useState(false);
+    const [updatingStep, setUpdatingStep] = useState(false);
 
     const { user } = useSelector((state) => state.auth);
 
@@ -85,51 +96,40 @@ export default function PhieuMuonDetailPanel({ phieu, onClose, onUpdated }) {
     const nhanLabel = isMuon ? "Đã nhận" : "Đã giao";
     const traLabel = isMuon ? "Đã trả" : "Đã nhận lại";
 
-    async function handleConfirmNhan() {
-        if (!fullPhieu) return;
-        setUpdatingNhan(true);
-        try {
-            await dispatch(
-                updatePhieuMuonVatLieu({
-                    id: fullPhieu._id,
-                    trangThaiNhan: "Đã nhận",
-                    currentRole: user?.quyenSuDung?.ten,
-                })
-            ).unwrap();
-            const res = await dispatch(fetchPhieuMuonVatLieuById(fullPhieu._id)).unwrap();
-            setFullPhieu(res.data || res);
-            toast.success(
-                isMuon ? "Cập nhật: Đã nhận — tồn kho đã được cộng" : "Cập nhật: Đã giao — tồn kho đã được trừ"
-            );
-            onUpdated?.();
-        } catch (err) {
-            toast.error(err?.message || "Cập nhật thất bại");
-        } finally {
-            setUpdatingNhan(false);
-        }
-    }
+    const daNhan = fullPhieu?.trangThaiNhan === "Đã nhận";
+    const daTra = fullPhieu?.trangThaiTra === "Đã trả";
+    const trangThai = getTrangThai(fullPhieu);
 
-    async function handleConfirmTra() {
-        if (!fullPhieu) return;
-        setUpdatingTra(true);
+    // Bước tiếp theo trong luồng 1 chiều duy nhất:
+    // Chưa nhận -> "nhan" -> Đã nhận, chưa trả -> "tra" -> Đã trả -> null (hoàn tất)
+    const nextStep = !daNhan ? "nhan" : !daTra ? "tra" : null;
+    const nextStepLabel = nextStep === "nhan" ? nhanLabel : nextStep === "tra" ? traLabel : null;
+
+    // Một hàm duy nhất xử lý cả 2 bước, tự xác định field cần cập nhật
+    async function handleConfirmNext() {
+        if (!fullPhieu || !nextStep) return;
+        setUpdatingStep(true);
         try {
-            await dispatch(
-                updatePhieuMuonVatLieu({
-                    id: fullPhieu._id,
-                    trangThaiTra: "Đã trả",
-                    currentRole: user?.quyenSuDung?.ten,
-                })
-            ).unwrap();
+            const payload = {
+                id: fullPhieu._id,
+                currentRole: user?.quyenSuDung?.ten,
+                ...(nextStep === "nhan"
+                    ? { trangThaiNhan: "Đã nhận" }
+                    : { trangThaiTra: "Đã trả" }),
+            };
+            await dispatch(updatePhieuMuonVatLieu(payload)).unwrap();
             const res = await dispatch(fetchPhieuMuonVatLieuById(fullPhieu._id)).unwrap();
             setFullPhieu(res.data || res);
             toast.success(
-                isMuon ? "Cập nhật: Đã trả — tồn kho đã được trừ" : "Cập nhật: Đã nhận lại — tồn kho đã được cộng"
+                nextStep === "nhan"
+                    ? (isMuon ? "Cập nhật: Đã nhận — tồn kho đã được cộng" : "Cập nhật: Đã giao — tồn kho đã được trừ")
+                    : (isMuon ? "Cập nhật: Đã trả — tồn kho đã được trừ" : "Cập nhật: Đã nhận lại — tồn kho đã được cộng")
             );
             onUpdated?.();
         } catch (err) {
             toast.error(err?.message || "Cập nhật thất bại");
         } finally {
-            setUpdatingTra(false);
+            setUpdatingStep(false);
         }
     }
 
@@ -158,8 +158,6 @@ export default function PhieuMuonDetailPanel({ phieu, onClose, onUpdated }) {
     }
 
     const panelTop = 70;
-    const daNhan = fullPhieu?.trangThaiNhan === "Đã nhận";
-    const daTra = fullPhieu?.trangThaiTra === "Đã trả";
     const isLocked = (daNhan || daTra) && user?.quyenSuDung?.ten !== "Admin";
     const headerBg = isMuon ? "bg-sky-400" : "bg-green-500";
     const headerHoverBg = isMuon ? "hover:bg-sky-500" : "hover:bg-green-600";
@@ -197,10 +195,10 @@ export default function PhieuMuonDetailPanel({ phieu, onClose, onUpdated }) {
                         </button>
                         <div>
                             <div className="font-semibold text-base leading-tight">
-                                {fullPhieu?.doiTac?.ten || phieu?.doiTac?.ten || (isMuon ? "Phiếu mượn" : "Phiếu cho mượn")}
+                                {fullPhieu?.soPhieu || "-"}
                             </div>
-                            <div className="text-xs text-white/80">
-                                {isMuon ? "Phiếu mượn vật liệu" : "Phiếu cho mượn vật liệu"}
+                            <div className="text-xs text-gray-100">
+                                {isMuon ? "Phiếu mượn" : "Phiếu cho mượn"}
                             </div>
                         </div>
                     </div>
@@ -255,22 +253,15 @@ export default function PhieuMuonDetailPanel({ phieu, onClose, onUpdated }) {
                                 {fullPhieu.ghiChu && (
                                     <InfoRow label="Ghi chú" value={fullPhieu.ghiChu} />
                                 )}
-                                {/* Trạng thái nhận */}
-                                <div className="flex items-center gap-2 text-sm">
-                                    <span className="text-gray-500 w-28 shrink-0">Trạng thái nhận:</span>
-                                    <span className={`text-xs text-white font-medium px-2.5 py-0.5 rounded ${daNhan ? "bg-green-500" : "bg-yellow-500"
-                                        }`}>
-                                        {fullPhieu.trangThaiNhan}
-                                    </span>
-                                </div>
-                                {/* Trạng thái trả */}
-                                <div className="flex items-center gap-2 text-sm">
-                                    <span className="text-gray-500 w-28 shrink-0">Trạng thái trả:</span>
-                                    <span className={`text-xs text-white font-medium px-2.5 py-0.5 rounded ${daTra ? "bg-green-500" : "bg-orange-400"
-                                        }`}>
-                                        {fullPhieu.trangThaiTra}
-                                    </span>
-                                </div>
+                                {/* Trạng thái — gộp làm 1, cùng logic với bảng danh sách */}
+                                {trangThai && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <span className="text-gray-500 w-28 shrink-0">Trạng thái:</span>
+                                        <span className={`text-xs text-white font-medium px-2.5 py-0.5 ${trangThai.cls}`}>
+                                            {trangThai.text}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Danh sách vật liệu */}
@@ -282,8 +273,8 @@ export default function PhieuMuonDetailPanel({ phieu, onClose, onUpdated }) {
                                     <table className="w-full text-xs">
                                         <thead>
                                             <tr className={isMuon ? "bg-sky-100" : "bg-green-100"}>
+                                                <th className="text-left py-1 px-2 font-normal text-gray-700">STT</th>
                                                 <th className="text-left py-1 px-2 font-normal text-gray-700">Vật liệu</th>
-                                                <th className="text-left py-1 px-2 font-normal text-gray-700">Mã</th>
                                                 <th className="text-left py-1 px-2 font-normal text-gray-700">ĐVT</th>
                                                 <th className="text-right py-1 px-2 font-normal text-gray-700">SL</th>
                                                 <th className="text-left py-1 px-2 font-normal text-gray-700">Mô tả</th>
@@ -295,17 +286,17 @@ export default function PhieuMuonDetailPanel({ phieu, onClose, onUpdated }) {
                                                     key={i}
                                                     className={`border-t border-gray-100 ${i % 2 === 1 ? "bg-gray-50" : "bg-white"}`}
                                                 >
+                                                    <td className="py-1 px-2 w-10">
+                                                        {i + 1}
+                                                    </td>
                                                     <td className="py-1 px-2 max-w-[110px] truncate">
                                                         {item.vatLieu?.tenVatLieu || "—"}
-                                                    </td>
-                                                    <td className="py-1 px-2 max-w-[80px] truncate text-gray-500">
-                                                        {item.vatLieu?.maVatLieu || "—"}
                                                     </td>
                                                     <td className="py-1 px-2 max-w-[70px] truncate">
                                                         {item.vatLieu?.donViTinh || "—"}
                                                     </td>
-                                                    <td className="py-1 px-2 text-right font-medium">{item.soLuong}</td>
-                                                    <td className="py-1 px-2 max-w-[110px] truncate text-gray-500">
+                                                    <td className="py-1 px-2 text-right">{item.soLuong}</td>
+                                                    <td className="py-1 px-2 max-w-[110px] truncate">
                                                         {item.moTa || "—"}
                                                     </td>
                                                 </tr>
@@ -315,42 +306,24 @@ export default function PhieuMuonDetailPanel({ phieu, onClose, onUpdated }) {
                                 </div>
                             </div>
 
-                            {/* Actions */}
+                            {/* Actions — 1 nút duy nhất theo luồng 1 chiều */}
                             <div className="flex flex-col gap-2">
-                                {/* Xác nhận nhận / giao */}
-                                {daNhan ? (
+                                {nextStep ? (
+                                    <button
+                                        onClick={handleConfirmNext}
+                                        disabled={updatingStep}
+                                        className={`w-full py-2.5 rounded-lg text-sm font-medium text-white transition disabled:opacity-60 ${nextStep === "nhan"
+                                            ? (isMuon ? "bg-sky-500 hover:bg-sky-600" : "bg-green-500 hover:bg-green-600")
+                                            : "bg-orange-500 hover:bg-orange-600"
+                                            }`}
+                                    >
+                                        {updatingStep ? "Đang cập nhật..." : `Đánh dấu ${nextStepLabel}`}
+                                    </button>
+                                ) : (
                                     <div className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700">
                                         <LockIcon sx={{ fontSize: 16 }} />
-                                        {nhanLabel}
+                                        Đã hoàn tất ({traLabel})
                                     </div>
-                                ) : (
-                                    <button
-                                        onClick={handleConfirmNhan}
-                                        disabled={updatingNhan}
-                                        className={`w-full py-2.5 rounded-lg text-sm font-medium text-white transition disabled:opacity-60 ${isMuon ? "bg-sky-500 hover:bg-sky-600" : "bg-green-500 hover:bg-green-600"}`}
-                                    >
-                                        {updatingNhan ? "Đang cập nhật..." : `Đánh dấu ${nhanLabel}`}
-                                    </button>
-                                )}
-
-                                {/* Xác nhận trả / nhận lại */}
-                                {daTra ? (
-                                    <div className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700">
-                                        <LockIcon sx={{ fontSize: 16 }} />
-                                        {traLabel}
-                                    </div>
-                                ) : !daNhan ? (
-                                    <div className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-400">
-                                        Cần xác nhận "{nhanLabel}" trước
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={handleConfirmTra}
-                                        disabled={updatingTra}
-                                        className="w-full py-2.5 rounded-lg text-sm font-medium bg-orange-500 text-white hover:bg-orange-600 transition disabled:opacity-60"
-                                    >
-                                        {updatingTra ? "Đang cập nhật..." : `Đánh dấu ${traLabel}`}
-                                    </button>
                                 )}
                             </div>
                         </div>
@@ -394,7 +367,6 @@ export default function PhieuMuonDetailPanel({ phieu, onClose, onUpdated }) {
                     open={showEditModal}
                     onClose={handleEditClose}
                     editData={fullPhieu}
-                    loai={fullPhieu.loai}
                 />
             )}
         </>

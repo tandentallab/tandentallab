@@ -122,15 +122,15 @@ export default function PhieuMuonSection() {
                     </select>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button title="Tạo phiếu mượn" onClick={openCreate}
+                        className="text-white rounded-full h-9 w-9 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition">
+                        <AddIcon sx={{ fontSize: 18 }} />
+                    </button>
                     <button title="Tải lại" onClick={handleRefresh} disabled={isLoading}
                         className="text-white rounded-full h-9 w-9 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition disabled:opacity-50">
                         <div className={isLoading ? "animate-spin" : ""}>
                             <RefreshIcon sx={{ fontSize: 18 }} />
                         </div>
-                    </button>
-                    <button title="Tạo phiếu mượn" onClick={openCreate}
-                        className="text-white rounded-full h-9 w-9 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition">
-                        <AddIcon sx={{ fontSize: 18 }} />
                     </button>
                 </div>
             </div>

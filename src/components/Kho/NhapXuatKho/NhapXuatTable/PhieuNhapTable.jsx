@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import { rowBase, borderBottom, imBg, formatNgay } from "./constants";
 
-export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, loadingMore, onLoadMore }) {
+export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, loadingMore, onLoadMore, onToggleVAT }) {
     const sentinelRef = useRef(null);
 
     useEffect(() => {
@@ -31,13 +31,14 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
                             <th className={`${rowBase} ${imBg}`}>Số phiếu</th>
                             <th className={`${rowBase} ${imBg}`}>Nhà cung cấp</th>
                             <th className={`${rowBase} ${imBg}`}>Thành tiền</th>
+                            <th className={`${rowBase} ${imBg} text-center`}>VAT</th>
                             <th className={`${rowBase} ${imBg}`}>Trạng thái</th>
                         </tr>
                     </thead>
                     <tbody>
                         {data.length === 0 ? (
                             <tr>
-                                <td className={`${rowBase} text-gray-400`} colSpan={5}>Không có dữ liệu</td>
+                                <td className={`${rowBase} text-gray-400`} colSpan={6}>Không có dữ liệu</td>
                             </tr>
                         ) : data.map((row) => {
                             const nccTen = row.nhaCungCap?.ten || "—";
@@ -53,6 +54,19 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
                                     <td className={`${rowBase} ${borderBottom} max-w-32 truncate`}>{nccTen}</td>
                                     <td className={`${rowBase} ${borderBottom} whitespace-nowrap`}>
                                         {(row.tongTien || 0).toLocaleString("vi-VN")}
+                                    </td>
+                                    <td
+                                        className={`${borderBottom} pl-3`}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <label class="checkbox">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!row.VAT}
+                                                onChange={(e) => onToggleVAT?.(row, e.target.checked)}
+                                            />
+                                            <span class="checkmark"></span>
+                                        </label>
                                     </td>
                                     <td className={`${rowBase} ${borderBottom}`}>
                                         <div className="flex flex-col gap-1">
@@ -74,7 +88,7 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
                         <tfoot className="sticky bottom-0 z-10">
                             <tr>
                                 <td className={`${rowBase} ${imBg} font-medium`} colSpan={3}>Tổng</td>
-                                <td className={`${rowBase} ${imBg} font-medium`} colSpan={2}>
+                                <td className={`${rowBase} ${imBg} font-medium`} colSpan={3}>
                                     {tongTien.toLocaleString("vi-VN")} ₫
                                 </td>
                             </tr>
@@ -120,6 +134,16 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
                                     <span className="text-gray-400">Thành tiền</span>
                                     <span className="font-medium text-gray-800">
                                         {(row.tongTien || 0).toLocaleString("vi-VN")} ₫
+                                    </span>
+
+                                    <span className="text-gray-400">VAT</span>
+                                    <span onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            type="checkbox"
+                                            checked={!!row.VAT}
+                                            onChange={(e) => onToggleVAT?.(row, e.target.checked)}
+                                            className="h-4 w-4 cursor-pointer accent-sky-500"
+                                        />
                                     </span>
                                 </div>
                             </div>

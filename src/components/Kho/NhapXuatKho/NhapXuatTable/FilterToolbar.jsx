@@ -9,6 +9,7 @@ import { MONTH_OPTIONS } from "./constants";
 const NHAP_STATUSES = ["Chưa nhận", "Đã nhận"];
 const NHAP_THANHTOAN_STATUSES = ["Chưa thanh toán", "Đã thanh toán"];
 const XUAT_STATUSES = ["Chưa xuất", "Đã xuất"];
+const VAT_STATUSES = ["Có VAT", "Không VAT"];
 
 const PRINT_OPTIONS = [
     { key: "phieuNhap", label: "Phiếu nhập" },
@@ -82,6 +83,19 @@ function StatusMultiSelect({ selectedTrangThai, onToggle }) {
                                 checked={selectedTrangThai.includes(s)}
                                 onChange={() => onToggle(s)}
                                 className="w-3.5 h-3.5 accent-green-500"
+                            />
+                            {s}
+                        </label>
+                    ))}
+                    <div className="border-t border-gray-100 my-1" />
+                    <div className="px-3 py-1 text-xs font-semibold text-purple-600 uppercase tracking-wide">VAT</div>
+                    {VAT_STATUSES.map((s) => (
+                        <label key={s} className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 hover:bg-gray-50 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={selectedTrangThai.includes(s)}
+                                onChange={() => onToggle(s)}
+                                className="w-3.5 h-3.5 accent-purple-500"
                             />
                             {s}
                         </label>

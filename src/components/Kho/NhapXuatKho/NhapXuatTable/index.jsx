@@ -5,6 +5,7 @@ import {
   fetchAllPhieuNhapKho,
   appendPhieuNhapKho,
   clearSelected,
+  updatePhieuNhapKho
 } from "../../../../redux/slices/phieuNhapKhoSlice";
 import {
   fetchAllPhieuXuatKho,
@@ -137,6 +138,9 @@ export default function NhapXuatTable() {
     const toanVals = selectedTrangThai.filter((t) =>
       ["Chưa thanh toán", "Đã thanh toán"].includes(t)
     );
+    const vatVals = selectedTrangThai.filter((t) =>
+      ["Có VAT", "Không VAT"].includes(t)
+    );
     return {
       limit: 20,
       page,
@@ -144,6 +148,9 @@ export default function NhapXuatTable() {
       ...(selectedNCC ? { nhaCungCap: selectedNCC } : {}),
       ...(nhapVals.length ? { trangThaiNhap: nhapVals.join(",") } : {}),
       ...(toanVals.length ? { trangThaiThanhToan: toanVals.join(",") } : {}),
+      ...(vatVals.length === 1
+        ? { VAT: vatVals[0] === "Có VAT" }
+        : {}),
     };
   }
 
@@ -281,6 +288,10 @@ export default function NhapXuatTable() {
     [nhaCungCapList]
   );
 
+  const handleToggleVAT = (row, checked) => {
+    dispatch(updatePhieuNhapKho({ id: row._id, VAT: checked }));
+  };
+
   return (
     <div className="mt-6">
       <style>{scrollbarStyle}</style>
@@ -339,6 +350,7 @@ export default function NhapXuatTable() {
             hasMore={!selectedVatLieuNhap && nhapHasMore}
             loadingMore={loadingMoreNhap}
             onLoadMore={handleLoadMoreNhap}
+            onToggleVAT={handleToggleVAT}
           />
         </div>
         <div className="w-px bg-gray-300 self-stretch" />

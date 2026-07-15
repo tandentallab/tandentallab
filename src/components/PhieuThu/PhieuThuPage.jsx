@@ -439,10 +439,10 @@ export default function PhieuThuPage() {
                             </span>
                             <input
                                 type="text"
-                                placeholder="Tìm phiếu thu, khách hàng..."
+                                placeholder="Tìm phiếu thu, KH..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="border bg-gray-50 pl-8 pr-8 py-1.5 rounded-full w-full sm:w-64 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                className="border bg-gray-50 pl-8 pr-8 py-1.5 rounded-full w-full sm:w-64 focus:outline-none focus:ring-1 focus:ring-blue-500 text-base"
                             />
                             {searchTerm && (
                                 <button onClick={() => setSearchTerm("")} className="absolute right-2.5 text-gray-400 hover:text-gray-600 flex items-center">

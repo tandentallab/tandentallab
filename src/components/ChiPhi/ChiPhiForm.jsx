@@ -71,7 +71,15 @@ const ChiPhiForm = ({ isLoading, onAdd }) => {
                     value={formData.tenChiPhi}
                     onChange={handleChangeForm}
                     required
-                    sx={{ flex: '1 1 180px', '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                    sx={{
+                        flex: '1 1 180px',
+                        '& .MuiOutlinedInput-root': {
+                            borderRadius: '8px',
+                            '& input': {
+                                fontSize: '16px',
+                            },
+                        },
+                    }}
                 />
 
                 <FormControl size="small" required sx={{ minWidth: 180, width: { xs: '100%', sm: 160 } }}>

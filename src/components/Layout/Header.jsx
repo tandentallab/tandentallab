@@ -17,7 +17,6 @@ import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import CloseIcon from "@mui/icons-material/Close";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LoginModal from "../Login/LoginModal";
 import HeaderUser from "./HeaderUser";
 import QuickAddMenu from "./QuickAddMenu";
@@ -29,9 +28,6 @@ import debounce from "lodash/debounce";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import { hasRouteAccess } from "../../config/permissions";
 import { toast } from "sonner";
-
-// Import trang Tìm kiếm nâng cao vào đây
-import TimKiemNangCaoPage from "./TimKiemNangCaoPage";
 
 const Header = ({ onToggleSidebar }) => {
   const { isAuthenticated, user } = useSelector(getAuthSelector);
@@ -48,8 +44,6 @@ const Header = ({ onToggleSidebar }) => {
   });
   const [isSearching, setIsSearching] = useState(false);
 
-  // State quản lý bật/tắt Tìm kiếm nâng cao
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [openTodoPopover, setOpenTodoPopover] = useState(false);
   const [todoList, setTodoList] = useState([]);
   const [checkedTodoIds, setCheckedTodoIds] = useState([]);
@@ -126,7 +120,7 @@ const Header = ({ onToggleSidebar }) => {
       const res = await api.get("/ghi-chu");
       if (res.data?.success && res.data.data?.length > 0) {
         const todos = res.data.data;
-        
+
         // Dọn dẹp hàng đợi cũ nếu đang chạy dở
         if (toastIntervalRef.current) {
           clearInterval(toastIntervalRef.current);
@@ -134,7 +128,7 @@ const Header = ({ onToggleSidebar }) => {
         }
 
         let currentIndex = 0;
-        
+
         const showNextTodo = () => {
           if (currentIndex >= todos.length) {
             if (toastIntervalRef.current) {
@@ -145,7 +139,7 @@ const Header = ({ onToggleSidebar }) => {
           }
 
           const note = todos[currentIndex];
-          const labelText = note.maDonHang 
+          const labelText = note.maDonHang
             ? `[Mã ĐH: ${note.maDonHang}] Ghi chú cần xử lý:`
             : "Ghi chú công việc chung:";
 
@@ -394,23 +388,6 @@ const Header = ({ onToggleSidebar }) => {
                   <Typography variant="body2" sx={{ fontSize: "13px", fontWeight: "bold", color: "#64748b", pl: 1 }}>
                     KẾT QUẢ ĐƠN HÀNG
                   </Typography>
-
-                  <Button
-                    size="small"
-                    endIcon={<OpenInNewIcon fontSize="small" />}
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      setSearchOpen(false);
-                      setShowAdvancedSearch(true);
-                    }}
-                    sx={{
-                      textTransform: "none",
-                      fontWeight: "bold",
-                      fontSize: "12px",
-                    }}
-                  >
-                    Tìm nâng cao
-                  </Button>
                 </Box>
 
                 {/* DANH SÁCH HIỂN THỊ */}
@@ -644,12 +621,6 @@ const Header = ({ onToggleSidebar }) => {
           </Box>
         </Toolbar>
       </AppBar>
-
-      {/* HIỂN THỊ MÀN HÌNH TÌM KIẾM NÂNG CAO */}
-      {showAdvancedSearch && (
-        <TimKiemNangCaoPage onClose={() => setShowAdvancedSearch(false)} />
-      )}
-
     </>
   );
 };

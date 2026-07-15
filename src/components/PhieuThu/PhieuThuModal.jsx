@@ -495,7 +495,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                       setShowDropdown(true);
                       if (!e.target.value) handleClearNhaKhoa();
                     }}
-                    className="flex-1 text-sm font-semibold text-gray-800 bg-transparent outline-none placeholder-gray-400"
+                    className="flex-1 text-base font-semibold text-gray-800 bg-transparent outline-none placeholder-gray-400"
                   />
                   {selectedNhaKhoa && (
                     <button
@@ -856,7 +856,7 @@ export default function PhieuThuModal({ open, onClose, onSuccess, initialNhaKhoa
                   value={noiDung}
                   onChange={(e) => setNoiDung(e.target.value)}
                   placeholder=""
-                  className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-sm text-gray-800 py-1 outline-none"
+                  className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-base text-gray-800 py-1 outline-none"
                 />
               </div>
             </div>

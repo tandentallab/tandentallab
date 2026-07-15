@@ -680,7 +680,7 @@ export default function PhieuThuEditModal({ phieuThu, open, onClose, onSuccess }
                                 <div>
                                     <p className="text-xs text-gray-400 mb-1">Nội dung thu</p>
                                     <input type="text" value={noiDung} onChange={(e) => setNoiDung(e.target.value)}
-                                        className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-sm text-gray-800 py-1 outline-none" />
+                                        className="w-full border-b-2 border-gray-200 focus:border-[#29b6f6] bg-transparent text-base text-gray-800 py-1 outline-none" />
                                 </div>
                             </div>
                             <div />

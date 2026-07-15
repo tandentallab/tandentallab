@@ -1,6 +1,31 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "../../config/api"; // Tự động lấy cấu hình base URL và Token của bạn
 
+/* ================= THUNKS QUỸ CHI PHÍ (MỚI) ================= */
+export const fetchQuyChiPhi = createAsyncThunk(
+    "chiPhi/fetchQuyChiPhi",
+    async (_, { rejectWithValue }) => {
+        try {
+            const res = await api.get("/chiphi/quy");
+            return res.data.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.message || "Lỗi lấy thông tin quỹ");
+        }
+    }
+);
+
+export const napQuyChiPhi = createAsyncThunk(
+    "chiPhi/napQuyChiPhi",
+    async (soTien, { rejectWithValue }) => {
+        try {
+            const res = await api.post("/chiphi/quy/nap", { soTien });
+            return res.data.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.message || "Lỗi nạp quỹ");
+        }
+    }
+);
+
 /* ================= GET DANH SÁCH CHI PHÍ ================= */
 export const fetchChiPhi = createAsyncThunk(
     "chiPhi/fetchChiPhi",
@@ -17,9 +42,10 @@ export const fetchChiPhi = createAsyncThunk(
 /* ================= TẠO CHI PHÍ MỚI ================= */
 export const addChiPhi = createAsyncThunk(
     "chiPhi/addChiPhi",
-    async (data, { rejectWithValue }) => {
+    async (data, { dispatch, rejectWithValue }) => {
         try {
             const res = await api.post("/chiphi", data);
+            dispatch(fetchQuyChiPhi()); // Đồng bộ lại quỹ sau khi thêm
             return res.data.data;
         } catch (err) {
             return rejectWithValue(err.response?.data?.message || "Lỗi tạo chi phí mới");
@@ -30,9 +56,10 @@ export const addChiPhi = createAsyncThunk(
 /* ================= CẬP NHẬT CHI PHÍ ================= */
 export const updateChiPhi = createAsyncThunk(
     "chiPhi/updateChiPhi",
-    async ({ id, data }, { rejectWithValue }) => {
+    async ({ id, data }, { dispatch, rejectWithValue }) => {
         try {
             const res = await api.put(`/chiphi/${id}`, data);
+            dispatch(fetchQuyChiPhi()); // Đồng bộ lại quỹ sau khi sửa
             return res.data.data;
         } catch (err) {
             return rejectWithValue(err.response?.data?.message || "Lỗi cập nhật chi phí");
@@ -43,9 +70,10 @@ export const updateChiPhi = createAsyncThunk(
 /* ================= XÓA CHI PHÍ ================= */
 export const deleteChiPhi = createAsyncThunk(
     "chiPhi/deleteChiPhi",
-    async (id, { rejectWithValue }) => {
+    async (id, { dispatch, rejectWithValue }) => {
         try {
             await api.delete(`/chiphi/${id}`);
+            dispatch(fetchQuyChiPhi()); // Đồng bộ lại quỹ sau khi xóa
             return id;
         } catch (err) {
             return rejectWithValue(err.response?.data?.message || "Lỗi xóa chi phí");
@@ -71,7 +99,8 @@ const chiPhiSlice = createSlice({
     name: "chiPhi",
     initialState: {
         danhSachChiPhi: [],
-        danhSachLoaiChiPhi: [], // Lưu trữ danh sách loại chi phí động
+        danhSachLoaiChiPhi: [],
+        thongTinQuy: { soDu: 0, lanNapCuoi: null, soTienNapCuoi: 0 }, // State mới cho Quỹ
         isLoading: false,
         error: null,
     },
@@ -80,13 +109,10 @@ const chiPhiSlice = createSlice({
             state.danhSachChiPhi = [];
             state.error = null;
         },
-        // Chèn loại chi phí mới vào UI lập tức để người dùng có thể chọn ngay
         themLoaiChiPhiLocal: (state, action) => {
             const loaiMoi = action.payload;
             if (!state.danhSachLoaiChiPhi.includes(loaiMoi)) {
                 state.danhSachLoaiChiPhi.push(loaiMoi);
-
-                // CẬP NHẬT: Sắp xếp lại danh sách A-Z, giữ "Khác" ở cuối
                 state.danhSachLoaiChiPhi.sort((a, b) => {
                     if (a === "Khác") return 1;
                     if (b === "Khác") return -1;
@@ -97,70 +123,52 @@ const chiPhiSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            /* ===== CASE LẤY DANH SÁCH CHI PHÍ ===== */
-            .addCase(fetchChiPhi.pending, (state) => {
-                state.isLoading = true;
-                state.error = null;
+            /* ===== CASE THÔNG TIN QUỸ ===== */
+            .addCase(fetchQuyChiPhi.fulfilled, (state, action) => {
+                if (action.payload) {
+                    state.thongTinQuy = action.payload;
+                }
             })
+            .addCase(napQuyChiPhi.fulfilled, (state, action) => {
+                if (action.payload) {
+                    state.thongTinQuy = action.payload;
+                }
+            })
+
+            /* ===== CASE LẤY DANH SÁCH CHI PHÍ ===== */
+            .addCase(fetchChiPhi.pending, (state) => { state.isLoading = true; state.error = null; })
             .addCase(fetchChiPhi.fulfilled, (state, action) => {
                 state.isLoading = false;
                 state.danhSachChiPhi = action.payload || [];
             })
-            .addCase(fetchChiPhi.rejected, (state, action) => {
-                state.isLoading = false;
-                state.error = action.payload;
-            })
+            .addCase(fetchChiPhi.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
 
             /* ===== CASE TẠO CHI PHÍ MỚI ===== */
-            .addCase(addChiPhi.pending, (state) => {
-                state.isLoading = true;
-                state.error = null;
-            })
+            .addCase(addChiPhi.pending, (state) => { state.isLoading = true; state.error = null; })
             .addCase(addChiPhi.fulfilled, (state, action) => {
                 state.isLoading = false;
-                if (action.payload) {
-                    state.danhSachChiPhi.unshift(action.payload);
-                }
+                if (action.payload) state.danhSachChiPhi.unshift(action.payload);
             })
-            .addCase(addChiPhi.rejected, (state, action) => {
-                state.isLoading = false;
-                state.error = action.payload;
-            })
+            .addCase(addChiPhi.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
 
             /* ===== CASE CẬP NHẬT CHI PHÍ ===== */
-            .addCase(updateChiPhi.pending, (state) => {
-                state.isLoading = true;
-                state.error = null;
-            })
+            .addCase(updateChiPhi.pending, (state) => { state.isLoading = true; state.error = null; })
             .addCase(updateChiPhi.fulfilled, (state, action) => {
                 state.isLoading = false;
                 if (action.payload) {
                     const index = state.danhSachChiPhi.findIndex((item) => item._id === action.payload._id);
-                    if (index !== -1) {
-                        state.danhSachChiPhi[index] = action.payload;
-                    }
+                    if (index !== -1) state.danhSachChiPhi[index] = action.payload;
                 }
             })
-            .addCase(updateChiPhi.rejected, (state, action) => {
-                state.isLoading = false;
-                state.error = action.payload;
-            })
+            .addCase(updateChiPhi.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
 
             /* ===== CASE XÓA CHI PHÍ ===== */
-            .addCase(deleteChiPhi.pending, (state) => {
-                state.isLoading = true;
-                state.error = null;
-            })
+            .addCase(deleteChiPhi.pending, (state) => { state.isLoading = true; state.error = null; })
             .addCase(deleteChiPhi.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.danhSachChiPhi = state.danhSachChiPhi.filter(
-                    (item) => item._id !== action.payload
-                );
+                state.danhSachChiPhi = state.danhSachChiPhi.filter((item) => item._id !== action.payload);
             })
-            .addCase(deleteChiPhi.rejected, (state, action) => {
-                state.isLoading = false;
-                state.error = action.payload;
-            })
+            .addCase(deleteChiPhi.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
 
             /* ===== CASE LẤY LOẠI CHI PHÍ ===== */
             .addCase(fetchLoaiChiPhi.fulfilled, (state, action) => {

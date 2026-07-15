@@ -447,7 +447,7 @@ const HoaDonDetail = () => {
               setFormState((p) => ({ ...p, chietKhauPhanTram: val, chietKhauMode: "phanTram" }));
               setIsDirty(true);
             }}
-            className="w-12 border-b border-gray-400 text-center text-sm outline-none bg-transparent pb-0.5 no-spinner"
+            className="w-12 border-b border-gray-400 text-center text-base outline-none bg-transparent pb-0.5 no-spinner"
           />
           <span className="mx-2 text-gray-800 text-sm">% =</span>
           <input
@@ -459,7 +459,7 @@ const HoaDonDetail = () => {
               setFormState((p) => ({ ...p, chietKhauTien: val, chietKhauMode: "tienMat" }));
               setIsDirty(true);
             }}
-            className="w-[100px] text-right border-b border-gray-400 text-[15px] pb-0.5 outline-none bg-transparent"
+            className="w-[100px] text-right border-b border-gray-400 text-[16px] pb-0.5 outline-none bg-transparent"
           />
         </div>
       </div>
@@ -476,7 +476,7 @@ const HoaDonDetail = () => {
               setFormState((p) => ({ ...p, thuePhanTram: val, thueMode: "phanTram" }));
               setIsDirty(true);
             }}
-            className="w-12 border-b border-gray-400 text-center text-sm outline-none bg-transparent pb-0.5 no-spinner"
+            className="w-12 border-b border-gray-400 text-center text-base outline-none bg-transparent pb-0.5 no-spinner"
           />
           <span className="mx-2 text-gray-800 text-sm">% =</span>
           <input
@@ -488,7 +488,7 @@ const HoaDonDetail = () => {
               setFormState((p) => ({ ...p, thueTien: val, thueMode: "tienMat" }));
               setIsDirty(true);
             }}
-            className="w-[100px] text-right border-b border-gray-400 text-[15px] pb-0.5 outline-none bg-transparent"
+            className="w-[100px] text-right border-b border-gray-400 text-[16px] pb-0.5 outline-none bg-transparent"
           />
         </div>
       </div>
@@ -501,7 +501,7 @@ const HoaDonDetail = () => {
             type="text" inputMode="numeric"
             value={fmtMoneyInput(formState.chiPhiKhac)}
             onChange={(e) => setField("chiPhiKhac", parseMoneyInput(e.target.value))}
-            className="w-[110px] border-b border-gray-400 text-right text-[15px] outline-none bg-transparent pb-0.5"
+            className="w-[110px] border-b border-gray-400 text-right text-[16px] outline-none bg-transparent pb-0.5"
           />
         </div>
       </div>
@@ -807,7 +807,7 @@ const HoaDonDetail = () => {
                 value={formState.ghiChuChoKhachHang}
                 onChange={(e) => setField("ghiChuChoKhachHang", e.target.value)}
                 rows={2}
-                className="w-full border-b border-gray-300 text-sm outline-none resize-none bg-transparent focus:border-[#00a8df] transition-colors pb-1"
+                className="w-full border-b border-gray-300 text-base outline-none resize-none bg-transparent focus:border-[#00a8df] transition-colors pb-1"
               />
             </div>
             <div>
@@ -816,7 +816,7 @@ const HoaDonDetail = () => {
                 value={formState.ghiChuNoiBo}
                 onChange={(e) => setField("ghiChuNoiBo", e.target.value)}
                 rows={2}
-                className="w-full border-b border-gray-300 text-sm outline-none resize-none bg-transparent focus:border-[#00a8df] transition-colors pb-1"
+                className="w-full border-b border-gray-300 text-base outline-none resize-none bg-transparent focus:border-[#00a8df] transition-colors pb-1"
               />
             </div>
           </div>

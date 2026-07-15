@@ -16,7 +16,6 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LoginModal from "../Login/LoginModal";
 import HeaderUser from "./HeaderUser";
 import QuickAddMenu from "./QuickAddMenu";
@@ -29,6 +28,7 @@ import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import { hasRouteAccess } from "../../config/permissions";
 import { toast } from "sonner";
 
+<<<<<<< HEAD
 // Import trang Tìm kiếm nâng cao vào đây
 import TimKiemNangCaoPage from "./TimKiemNangCaoPage";
 import GhiChuAddModal from "../GhiChu/GhiChuAddModal";
@@ -45,6 +45,8 @@ const formatDateTime = (isoString) => {
   return `${hours}:${minutes} ${day}/${month}/${year}`;
 };
 
+=======
+>>>>>>> 047b6d8e1122a0d82dba510b1759f9461e565816
 const Header = ({ onToggleSidebar }) => {
   const { isAuthenticated, user } = useSelector(getAuthSelector);
   const navigate = useNavigate();
@@ -60,8 +62,6 @@ const Header = ({ onToggleSidebar }) => {
   });
   const [isSearching, setIsSearching] = useState(false);
 
-  // State quản lý bật/tắt Tìm kiếm nâng cao
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [openTodoPopover, setOpenTodoPopover] = useState(false);
   const [todoList, setTodoList] = useState([]);
   const [openGhiChuAddModal, setOpenGhiChuAddModal] = useState(false);
@@ -133,6 +133,75 @@ const Header = ({ onToggleSidebar }) => {
   };
 
 
+<<<<<<< HEAD
+=======
+  const runTodoToastFlow = async () => {
+    try {
+      const res = await api.get("/ghi-chu");
+      if (res.data?.success && res.data.data?.length > 0) {
+        const todos = res.data.data;
+
+        // Dọn dẹp hàng đợi cũ nếu đang chạy dở
+        if (toastIntervalRef.current) {
+          clearInterval(toastIntervalRef.current);
+          toastIntervalRef.current = null;
+        }
+
+        let currentIndex = 0;
+
+        const showNextTodo = () => {
+          if (currentIndex >= todos.length) {
+            if (toastIntervalRef.current) {
+              clearInterval(toastIntervalRef.current);
+              toastIntervalRef.current = null;
+            }
+            return;
+          }
+
+          const note = todos[currentIndex];
+          const labelText = note.maDonHang
+            ? `[Mã ĐH: ${note.maDonHang}] Ghi chú cần xử lý:`
+            : "Ghi chú công việc chung:";
+
+          // Đẩy toast hiển thị với duration: Infinity để tự kiểm soát đóng
+          const toastId = toast.info(labelText, {
+            description: note.noiDung,
+            duration: Infinity,
+            action: {
+              label: "Xem",
+              onClick: () => {
+                if (note.donHang) {
+                  navigate(`/donhang/${note.donHang._id}/edit`);
+                } else {
+                  navigate("/ghi-chu");
+                }
+                toast.dismiss(toastId);
+              }
+            }
+          });
+
+          // Tự động tắt sau đúng 15 giây
+          setTimeout(() => {
+            toast.dismiss(toastId);
+          }, 15000);
+
+          currentIndex++;
+        };
+
+        // Hiện ghi chú đầu tiên ngay lập tức
+        showNextTodo();
+
+        // Cứ mỗi 5 giây thì hiện ghi chú tiếp theo (staggered display)
+        // Với thời gian sống 15s của mỗi toast, trên màn hình sẽ hiển thị tối đa 3 toast cùng lúc
+        toastIntervalRef.current = setInterval(() => {
+          showNextTodo();
+        }, 5000);
+      }
+    } catch (error) {
+      console.error("Lỗi khi chạy luồng toast ghi chú:", error);
+    }
+  };
+>>>>>>> 047b6d8e1122a0d82dba510b1759f9461e565816
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -310,23 +379,6 @@ const Header = ({ onToggleSidebar }) => {
                   <Typography variant="body2" sx={{ fontSize: "13px", fontWeight: "bold", color: "#64748b", pl: 1 }}>
                     KẾT QUẢ ĐƠN HÀNG
                   </Typography>
-
-                  <Button
-                    size="small"
-                    endIcon={<OpenInNewIcon fontSize="small" />}
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      setSearchOpen(false);
-                      setShowAdvancedSearch(true);
-                    }}
-                    sx={{
-                      textTransform: "none",
-                      fontWeight: "bold",
-                      fontSize: "12px",
-                    }}
-                  >
-                    Tìm nâng cao
-                  </Button>
                 </Box>
 
                 {/* DANH SÁCH HIỂN THỊ */}
@@ -566,18 +618,6 @@ const Header = ({ onToggleSidebar }) => {
           </Box>
         </Toolbar>
       </AppBar>
-
-      {/* HIỂN THỊ MÀN HÌNH TÌM KIẾM NÂNG CAO */}
-      {showAdvancedSearch && (
-        <TimKiemNangCaoPage onClose={() => setShowAdvancedSearch(false)} />
-      )}
-
-      <GhiChuAddModal
-        open={openGhiChuAddModal}
-        onClose={() => setOpenGhiChuAddModal(false)}
-        onSuccess={fetchTodos}
-      />
-
     </>
   );
 };

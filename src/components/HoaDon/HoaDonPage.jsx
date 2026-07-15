@@ -519,7 +519,7 @@ const HoaDonPage = () => {
                 "& .MuiOutlinedInput-root": {
                   borderRadius: "20px",
                   bgcolor: "#f5f5f5",
-                  fontSize: "0.85rem",
+                  fontSize: "1rem",
                   height: "36px",
                   "& fieldset": { border: "none" },
                 },

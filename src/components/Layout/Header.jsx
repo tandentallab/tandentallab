@@ -28,25 +28,6 @@ import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import { hasRouteAccess } from "../../config/permissions";
 import { toast } from "sonner";
 
-<<<<<<< HEAD
-// Import trang Tìm kiếm nâng cao vào đây
-import TimKiemNangCaoPage from "./TimKiemNangCaoPage";
-import GhiChuAddModal from "../GhiChu/GhiChuAddModal";
-
-const formatDateTime = (isoString) => {
-  if (!isoString) return "";
-  const d = new Date(isoString);
-  if (isNaN(d.getTime())) return "";
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${hours}:${minutes} ${day}/${month}/${year}`;
-};
-
-=======
->>>>>>> 047b6d8e1122a0d82dba510b1759f9461e565816
 const Header = ({ onToggleSidebar }) => {
   const { isAuthenticated, user } = useSelector(getAuthSelector);
   const navigate = useNavigate();
@@ -133,8 +114,6 @@ const Header = ({ onToggleSidebar }) => {
   };
 
 
-<<<<<<< HEAD
-=======
   const runTodoToastFlow = async () => {
     try {
       const res = await api.get("/ghi-chu");
@@ -201,7 +180,6 @@ const Header = ({ onToggleSidebar }) => {
       console.error("Lỗi khi chạy luồng toast ghi chú:", error);
     }
   };
->>>>>>> 047b6d8e1122a0d82dba510b1759f9461e565816
 
   useEffect(() => {
     if (!isAuthenticated) {

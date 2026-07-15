@@ -263,6 +263,7 @@ export default function NhapKhoDetailPanel({ phieu, onClose, onUpdated }) {
                                 )}
                                 <InfoRow label="Người tạo" value={fullPhieu.nguoiTao} />
                                 <InfoRow label="Nhà cung cấp" value={fullPhieu.nhaCungCap?.ten} />
+                                <InfoRow label="VAT" value={fullPhieu.VAT ? "CÓ" : "KHÔNG"} />
                                 {fullPhieu.ghiChu && (
                                     <InfoRow label="Ghi chú" value={fullPhieu.ghiChu} />
                                 )}

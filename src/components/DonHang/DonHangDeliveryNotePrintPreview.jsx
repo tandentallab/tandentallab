@@ -7,17 +7,26 @@ const DonHangDeliveryNotePrintPreview = () => {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [donHang, setDonHang] = useState(null);
+  const [company, setCompany] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/donhang/${id}`);
-        const donHangData = res.data?.data || res.data;
+        const [resDonHang, resCompany] = await Promise.all([
+          api.get(`/donhang/${id}`),
+          api.get('/cong-ty')
+        ]);
+
+        const donHangData = resDonHang.data?.data || resDonHang.data;
         if (donHangData) {
           setDonHang(donHangData);
         } else {
-          console.error("Không có dữ liệu:", res.data);
+          console.error("Không có dữ liệu:", resDonHang.data);
+        }
+
+        if (resCompany.data && resCompany.data.data) {
+          setCompany(resCompany.data.data);
         }
       } catch (err) {
         console.error("Lỗi fetch:", err.response?.status, err.message);
@@ -131,8 +140,8 @@ const DonHangDeliveryNotePrintPreview = () => {
           style={{ fontFamily: "Cambria, Georgia, serif", fontSize: "13px" }}
         >
           <div className="text-center">
-            <div className="font-bold text-base">CÔNG TY TNHH TẤN DENTAL</div>
-            <div className="text-xs">Điện thoại: 0842312828</div>
+            <div className="font-bold text-base">{company?.Ten || ""}</div>
+            <div className="text-xs">{company?.DienThoai ? `Điện thoại: ${company.DienThoai}` : ""}</div>
             <div className="text-sm font-bold mt-2">PHIẾU GIAO HÀNG</div>
             <div className="border-b border-dashed border-gray-500 mt-2" />
           </div>

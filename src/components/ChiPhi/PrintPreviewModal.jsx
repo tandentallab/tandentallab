@@ -1,9 +1,27 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogActions, Button, Box } from '@mui/material';
 import { Print } from '@mui/icons-material';
+import { api } from '../../config/api';
 
 const PrintPreviewModal = ({ isOpen, onClose, data }) => {
     const iframeRef = useRef(null);
+    const [company, setCompany] = useState(null);
+
+    useEffect(() => {
+        const fetchCompany = async () => {
+            try {
+                const res = await api.get('/cong-ty');
+                if (res.data && res.data.data) {
+                    setCompany(res.data.data);
+                }
+            } catch (err) {
+                console.error("Lỗi lấy thông tin công ty:", err);
+            }
+        };
+        if (isOpen) {
+            fetchCompany();
+        }
+    }, [isOpen]);
 
     const { items = [], subtitle = "", type = "day" } = data || {};
 
@@ -56,7 +74,7 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                     <thead>
                         <tr>
                             <th colspan="3" style="border-top: none; border-left: none;">
-                                <div class="main-title">LAB TẤN DENTAL</div>
+                                <div class="main-title">${company?.Ten ? company.Ten.toUpperCase() : ''}</div>
                                 ${displaySubtitle ? `<div class="sub-title">${displaySubtitle}</div>` : ''}
                             </th>
                             <th colspan="1" class="sd-n-cell">

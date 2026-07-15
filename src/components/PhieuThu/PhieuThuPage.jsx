@@ -814,8 +814,8 @@ export default function PhieuThuPage() {
                         <div style={{ marginBottom: "6mm" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "3mm" }}>
                                 <div style={{ flex: 2 }}>
-                                    <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>{congTy?.Ten || "CÔNG TY TNHH TẤN DENTAL"}</p>
-                                    <p style={{ fontSize: "9pt", margin: "1mm 0 0 0" }}>{congTy?.DiaChi || "Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ"}</p>
+                                    <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>{congTy?.Ten || "DENTAL LAB"}</p>
+                                    <p style={{ fontSize: "9pt", margin: "1mm 0 0 0" }}>{congTy?.DiaChi || "(địa chỉ)"}</p>
                                 </div>
                                 <div style={{ marginTop: "1mm", flex: 1, textAlign: "right", fontSize: "9pt" }}>
                                     <div>QĐ số 15/2006/QĐ-BTC</div>

@@ -168,7 +168,7 @@ const Sidebar = ({ collapsed }) => {
             whiteSpace: "nowrap",
           }}
         >
-          TẤN DENTAL
+          DENTAL LAB
         </Box>
         {isMobileSize && (
           <IconButton onClick={() => setMobileOpen(false)} sx={{ ml: "auto" }}>

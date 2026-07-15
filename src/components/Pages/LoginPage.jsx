@@ -424,10 +424,10 @@ export default function LoginPage() {
           {/* ── LEFT: Brand ── */}
           <div className="brand-panel">
             <div className="brand-logo-wrap">
-              <img src="/icon.png" alt="Tấn Dental" />
+              <img src="/icon.png" alt="Dental Lab" />
             </div>
             <div className="brand-divider" />
-            <div className="brand-title">Tấn Dental</div>
+            <div className="brand-title">Dental Lab</div>
             <div className="brand-sub">Dental Laboratory</div>
             <div className="brand-badge">
               <div className="brand-badge-dot" />

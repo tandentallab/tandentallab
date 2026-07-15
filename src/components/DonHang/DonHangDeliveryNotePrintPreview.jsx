@@ -131,7 +131,7 @@ const DonHangDeliveryNotePrintPreview = () => {
           style={{ fontFamily: "Cambria, Georgia, serif", fontSize: "13px" }}
         >
           <div className="text-center">
-            <div className="font-bold text-base">CÔNG TY TNHH TẤN DENTAL</div>
+            <div className="font-bold text-base">DENTAL LAB</div>
             <div className="text-xs">Điện thoại: 0842312828</div>
             <div className="text-sm font-bold mt-2">PHIẾU GIAO HÀNG</div>
             <div className="border-b border-dashed border-gray-500 mt-2" />

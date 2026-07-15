@@ -163,11 +163,11 @@ export const xuatPhieuChi = (chiPhiData) => {
                 <div class="header">
                     <div class="company-info">
                         <div class="logo-container">
-                            <img src="${originUrl}/logo_tan_dental.jpg" alt="Logo Tấn Dental" />
+                            <img src="${originUrl}/logo_tan_dental.jpg" alt="" />
                         </div>
                         <div class="company-text">
-                            <div class="company-name">Công ty TNHH Tấn Dental</div>
-                            <div class="company-detail">Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ</div>
+                            <div class="company-name">DENTAL LAB</div>
+                            <div class="company-detail">(địa chỉ)</div>
                             <div class="company-detail">Điện thoại: 0842312828</div>
                         </div>
                     </div>

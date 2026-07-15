@@ -251,7 +251,7 @@ const CheckPhieuBaoHanhCuPage = () => {
         <div className="wcontainer">
           <h4 className="wtitle">
             THÔNG TIN BẢO HÀNH RĂNG SỨ<br />
-            CÔNG TY TNHH TẤN DENTAL
+            DENTAL LAB
           </h4>
 
           <form onSubmit={handleSubmit}>

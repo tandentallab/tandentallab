@@ -150,7 +150,7 @@ const HoaDonPrintPreview = () => {
               <tbody>
                 <tr>
                   <td className="border border-black p-2 w-1/2 align-top leading-tight font-bold text-center">
-                    <div className="font-bold mb-1 uppercase">Công ty TNHH Tấn Dental</div>
+                    <div className="font-bold mb-1 uppercase">DENTAL LAB</div>
                     <div>Số 43, đường số 14, KDC Hồng Phát, phường An Bình,</div>
                     <div>TP Cần Thơ</div>
                     <div>Điện thoại: 0842312828</div>

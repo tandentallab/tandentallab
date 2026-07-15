@@ -152,7 +152,7 @@ const CheckPhieuBaoHanhPage = () => {
           alt="Logo"
           onError={(e) => e.target.src = '/logo192.png'}
         />
-        <h4>THÔNG TIN BẢO HÀNH RĂNG SỨ<br />CÔNG TY TNHH TẤN DENTAL</h4>
+        <h4>THÔNG TIN BẢO HÀNH RĂNG SỨ<br />DENTAL LAB</h4>
 
         <div className="search-box">
           <form onSubmit={handleSearch}>

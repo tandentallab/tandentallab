@@ -256,11 +256,11 @@ const Header = ({ onToggleSidebar }) => {
               <MenuIcon />
             </IconButton>
 
-            <div className="w-10 h-10 p-1 rounded-full shadow-md bg-white flex items-center justify-center">
-              <img className="w-full" src="/icon.png" alt="Tấn Dental" />
+            <div className="w-10 h-10 p-1 shadow-md bg-white flex items-center justify-center">
+              <img className="w-full" src="/icon.png" alt="Dental Lab" />
             </div>
 
-            <p className="hidden sm:block font-medium text-xl tracking-wide">CÔNG TY TNHH TẤN DENTAL</p>
+            <p className="hidden sm:block font-medium text-xl tracking-wide">DENTAL LAB</p>
           </Box>
 
           {/* 👉 THANH TÌM KIẾM CHO CẢ PC & MOBILE */}

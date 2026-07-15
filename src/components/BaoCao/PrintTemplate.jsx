@@ -28,8 +28,8 @@ const PrintTemplate = ({ data, startDate, endDate }) => {
                         />
                     </div>
                     <div>
-                        <h1 className="text-center text-xl font-bold">Công ty TNHH Tấn Dental</h1>
-                        <p className="text-center text-lg">Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ</p>
+                        <h1 className="text-center text-xl font-bold">DENTAL LAB</h1>
+                        <p className="text-center text-lg">(địa chỉ)</p>
                         <p className="text-center text-lg">Điện thoại: 0842312828</p>
                     </div>
                 </div>

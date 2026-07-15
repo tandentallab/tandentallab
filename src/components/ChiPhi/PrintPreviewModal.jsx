@@ -56,7 +56,7 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                     <thead>
                         <tr>
                             <th colspan="3" style="border-top: none; border-left: none;">
-                                <div class="main-title">LAB TẤN DENTAL</div>
+                                <div class="main-title">DENTAL LAB</div>
                                 ${displaySubtitle ? `<div class="sub-title">${displaySubtitle}</div>` : ''}
                             </th>
                             <th colspan="1" class="sd-n-cell">

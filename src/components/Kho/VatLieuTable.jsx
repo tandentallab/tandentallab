@@ -237,7 +237,7 @@ function SelectWithAdd({
                     border: "1px solid #1976d2",
                     borderRadius: 4,
                     padding: "5px 10px",
-                    fontSize: 13,
+                    fontSize: 16,
                     outline: "none",
                     fontFamily: "inherit",
                   }}
@@ -396,7 +396,7 @@ function NccCombobox({
                   flex: 1,
                   border: "none",
                   outline: "none",
-                  fontSize: 14,
+                  fontSize: 16,
                   fontFamily: "inherit",
                   background: "transparent",
                   color: "#1a1a1a",
@@ -532,25 +532,25 @@ function NccCombobox({
                   {/* Highlight phần khớp query */}
                   {query
                     ? (() => {
-                        const idx = opt
-                          .toLowerCase()
-                          .indexOf(query.toLowerCase());
-                        if (idx === -1) return opt;
-                        return (
-                          <>
-                            {opt.slice(0, idx)}
-                            <span
-                              style={{
-                                backgroundColor: "#fff9c4",
-                                borderRadius: 2,
-                              }}
-                            >
-                              {opt.slice(idx, idx + query.length)}
-                            </span>
-                            {opt.slice(idx + query.length)}
-                          </>
-                        );
-                      })()
+                      const idx = opt
+                        .toLowerCase()
+                        .indexOf(query.toLowerCase());
+                      if (idx === -1) return opt;
+                      return (
+                        <>
+                          {opt.slice(0, idx)}
+                          <span
+                            style={{
+                              backgroundColor: "#fff9c4",
+                              borderRadius: 2,
+                            }}
+                          >
+                            {opt.slice(idx, idx + query.length)}
+                          </span>
+                          {opt.slice(idx + query.length)}
+                        </>
+                      );
+                    })()
                     : opt}
                 </Box>
               ))}
@@ -636,7 +636,7 @@ function SearchableDropdown({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={`Tìm ${placeholder.toLowerCase()}...`}
-              className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded outline-none focus:border-sky-400"
+              className="w-full px-2 py-1.5 md:text-sm text-base border border-gray-200 rounded outline-none focus:border-sky-400"
             />
           </div>
           <ul className="max-h-48 overflow-y-auto py-1">
@@ -659,11 +659,10 @@ function SearchableDropdown({
                     setSearch("");
                     setOpen(false);
                   }}
-                  className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-sky-50 hover:text-sky-700 ${
-                    value === opt
-                      ? "bg-sky-50 text-sky-700 font-medium"
-                      : "text-slate-700"
-                  }`}
+                  className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-sky-50 hover:text-sky-700 ${value === opt
+                    ? "bg-sky-50 text-sky-700 font-medium"
+                    : "text-slate-700"
+                    }`}
                 >
                   {opt}
                 </li>
@@ -1133,7 +1132,7 @@ export default function VatLieuTable() {
           pt: 1,
           pb: 2, // Khoảng cách dưới bộ lọc
         }}
-        // className="flex flex-wrap items-center justify-between gap-3"
+      // className="flex flex-wrap items-center justify-between gap-3"
       >
         <div className="flex flex-col gap-2 py-2">
           {/* Hàng 1: search + action buttons */}
@@ -1148,7 +1147,7 @@ export default function VatLieuTable() {
                 placeholder="Tìm vật liệu..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-9 pl-8 pr-3 text-sm border border-gray-300 rounded outline-none focus:border-sky-400 hover:border-gray-400 transition bg-white"
+                className="w-full h-9 pl-8 pr-3 md:text-sm text-base border border-gray-300 rounded outline-none focus:border-sky-400 hover:border-gray-400 transition bg-white"
               />
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -1364,8 +1363,8 @@ export default function VatLieuTable() {
                         backgroundColor: thieuHang
                           ? "#fff3e0"
                           : idx % 2 === 0
-                          ? "#fff"
-                          : "#fafafa",
+                            ? "#fff"
+                            : "#fafafa",
                         "&:hover": { backgroundColor: "#e3f2fd40" },
                       }}
                     >

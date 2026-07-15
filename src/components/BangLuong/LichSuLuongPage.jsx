@@ -219,7 +219,7 @@ const LichSuLuongPage = () => {
             placeholder="Tìm nhân viên..."
             value={searchTen}
             onChange={(e) => setSearchTen(e.target.value)}
-            className="text-sm rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 focus:outline-none focus:border-sky-400 flex-1"
+            className="md:text-sm text-base rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 focus:outline-none focus:border-sky-400 flex-1"
             style={{ minWidth: 160, maxWidth: 260 }}
           />
           {/* Từ tháng/năm */}

@@ -401,11 +401,11 @@ const BangLuongPage = () => {
           label: "Tổng phụ cấp",
           value: fmt(
             tongPhuCap ||
-              (emp.com || 0) +
-                (emp.dienThoai || 0) +
-                (emp.thuong || 0) -
-                (emp.phat || 0) -
-                (emp.ungTruoc || 0)
+            (emp.com || 0) +
+            (emp.dienThoai || 0) +
+            (emp.thuong || 0) -
+            (emp.phat || 0) -
+            (emp.ungTruoc || 0)
           ),
           color: "#0369a1",
         },
@@ -720,15 +720,15 @@ const BangLuongPage = () => {
             style={
               hasData
                 ? {
-                    background: "#166534",
-                    color: "#86efac",
-                    border: "1px solid #166534",
-                  }
+                  background: "#166534",
+                  color: "#86efac",
+                  border: "1px solid #166534",
+                }
                 : {
-                    background: "#78350f",
-                    color: "#fde68a",
-                    border: "1px solid #78350f",
-                  }
+                  background: "#78350f",
+                  color: "#fde68a",
+                  border: "1px solid #78350f",
+                }
             }
           >
             {hasData ? "✓ Đã có bảng lương" : "⚠ Chưa tạo bảng lương"}
@@ -808,8 +808,8 @@ const BangLuongPage = () => {
                 background: isSaving
                   ? "#075985"
                   : !isDirty
-                  ? "rgba(255,255,255,0.08)"
-                  : "#0284c7",
+                    ? "rgba(255,255,255,0.08)"
+                    : "#0284c7",
                 color: !isDirty ? "#94a3b8" : "#fff",
                 border: !isDirty ? "1px solid rgba(255,255,255,0.13)" : "none",
                 cursor: isSaving || !isDirty ? "not-allowed" : "pointer",
@@ -999,10 +999,10 @@ const BangLuongPage = () => {
               label: "Lương TB/người",
               value: salaryData.length
                 ? (
-                    Math.round(
-                      Math.round(tongLuong / salaryData.length) / 1000
-                    ) * 1000
-                  ).toLocaleString("vi-VN")
+                  Math.round(
+                    Math.round(tongLuong / salaryData.length) / 1000
+                  ) * 1000
+                ).toLocaleString("vi-VN")
                 : "—",
               accent: "#f59e0b",
               suffix: salaryData.length ? " đ" : "",
@@ -1050,7 +1050,7 @@ const BangLuongPage = () => {
               placeholder="Tìm theo tên nhân viên…"
               value={searchTen}
               onChange={(e) => setSearchTen(e.target.value)}
-              className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all"
+              className="w-full pl-9 pr-9 py-2 md:text-sm text-base rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all"
               style={{ color: "#1e293b" }}
             />
             {searchTen && (

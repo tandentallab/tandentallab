@@ -1117,7 +1117,7 @@ const DonHangPage = () => {
               placeholder="Nhập Số/Nha khoa/Bác sĩ/Bệnh nhân/Sản phẩm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-white shadow text-sm px-10 py-1.5 rounded-full h-10 w-48 sm:w-96 focus:outline-sky-300"
+              className="bg-white shadow md:text-sm text-base px-10 py-1.5 rounded-full h-10 w-48 sm:w-96 focus:outline-sky-300"
             />
             {searchTerm && (
               <button

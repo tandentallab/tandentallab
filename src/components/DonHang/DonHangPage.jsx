@@ -66,7 +66,12 @@ const DATE_PRESETS = [
   { key: "last_30", label: "Trong vòng 30 ngày" },
 ];
 
-const TRANG_THAI_OPTIONS = ["Chờ xử lý", "Đang sản xuất", "Đang thử", "Hoàn thành"];
+const TRANG_THAI_OPTIONS = [
+  "Chờ xử lý",
+  "Đang sản xuất",
+  "Đang thử",
+  "Hoàn thành",
+];
 const ROWS_PER_PAGE = 20;
 
 const EMPTY_DATE = { preset: null, customFrom: "", customTo: "" };
@@ -229,7 +234,11 @@ const DonHangPage = () => {
   const filterRef = useRef(null);
   const [openDateModal, setOpenDateModal] = useState(null); // 'ngayNhan' | 'ycHoanThanh' | 'henGiao'
   const [openPickerModal, setOpenPickerModal] = useState(null); // 'nhaKhoa' | 'benhNhan'
-  const [datePickerAnchor, setDatePickerAnchor] = useState({ ngayNhan: null, ycHoanThanh: null, henGiao: null });
+  const [datePickerAnchor, setDatePickerAnchor] = useState({
+    ngayNhan: null,
+    ycHoanThanh: null,
+    henGiao: null,
+  });
 
   // Export state
   const [openExport, setOpenExport] = useState(false);
@@ -397,11 +406,11 @@ const DonHangPage = () => {
     const data = nhaKhoaState?.data || [];
     return Array.isArray(data)
       ? data
-        .map((nk) => ({
-          _id: nk._id,
-          name: nk.tenGiaoDich || nk.hoVaTen || "",
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name))
+          .map((nk) => ({
+            _id: nk._id,
+            name: nk.tenGiaoDich || nk.hoVaTen || "",
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }, [nhaKhoaState?.data]);
 
@@ -409,11 +418,11 @@ const DonHangPage = () => {
     const data = benhNhanState?.data || [];
     return Array.isArray(data)
       ? data
-        .map((bn) => ({
-          _id: bn._id,
-          name: bn.hoVaTen || "",
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name))
+          .map((bn) => ({
+            _id: bn._id,
+            name: bn.hoVaTen || "",
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }, [benhNhanState?.data]);
 
@@ -669,10 +678,11 @@ const DonHangPage = () => {
               }));
               if (!p.isCalendar) setOpenDateModal(null);
             }}
-            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${cf.preset === p.key
-              ? "bg-blue-50 text-blue-700 font-semibold"
-              : "text-gray-700 hover:bg-gray-50"
-              }`}
+            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${
+              cf.preset === p.key
+                ? "bg-blue-50 text-blue-700 font-semibold"
+                : "text-gray-700 hover:bg-gray-50"
+            }`}
           >
             {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
             {p.label}
@@ -692,20 +702,31 @@ const DonHangPage = () => {
               >
                 <span>
                   {cf.customFrom && cf.customTo
-                    ? `${dayjs(cf.customFrom).format('DD/MM/YYYY')} – ${dayjs(cf.customTo).format('DD/MM/YYYY')}`
+                    ? `${dayjs(cf.customFrom).format("DD/MM/YYYY")} – ${dayjs(
+                        cf.customTo
+                      ).format("DD/MM/YYYY")}`
                     : cf.customFrom
-                      ? `Từ ${dayjs(cf.customFrom).format('DD/MM/YYYY')}`
-                      : "Chọn khoảng ngày..."}
+                    ? `Từ ${dayjs(cf.customFrom).format("DD/MM/YYYY")}`
+                    : "Chọn khoảng ngày..."}
                 </span>
                 <CalendarTodayIcon sx={{ fontSize: 13 }} />
               </button>
               <CustomDateRangePicker
                 open={Boolean(datePickerAnchor[dateKey])}
                 anchorEl={datePickerAnchor[dateKey]}
-                onClose={() => setDatePickerAnchor((prev) => ({ ...prev, [dateKey]: null }))}
-                initialDates={{ start: cf.customFrom || "", end: cf.customTo || "" }}
+                onClose={() =>
+                  setDatePickerAnchor((prev) => ({ ...prev, [dateKey]: null }))
+                }
+                initialDates={{
+                  start: cf.customFrom || "",
+                  end: cf.customTo || "",
+                }}
                 onApply={(dates) => {
-                  scf((prev) => ({ ...prev, customFrom: dates.start, customTo: dates.end }));
+                  scf((prev) => ({
+                    ...prev,
+                    customFrom: dates.start,
+                    customTo: dates.end,
+                  }));
                   setDatePickerAnchor((prev) => ({ ...prev, [dateKey]: null }));
                 }}
               />
@@ -722,7 +743,12 @@ const DonHangPage = () => {
         <div
           className="flex-1 cursor-pointer bg-yellow-500 hover:bg-yellow-700 text-white px-2 transition-colors"
           onClick={() => {
-            dispatch(setDonHangPageFilter({ appliedTrangThai: ["Chờ xử lý"], appliedHenGiao: { preset: null, customFrom: "", customTo: "" } }));
+            dispatch(
+              setDonHangPageFilter({
+                appliedTrangThai: ["Chờ xử lý"],
+                appliedHenGiao: { preset: null, customFrom: "", customTo: "" },
+              })
+            );
             setPage(1);
           }}
         >
@@ -732,7 +758,12 @@ const DonHangPage = () => {
         <div
           className="flex-1 cursor-pointer bg-blue-500 hover:bg-blue-700 text-white px-2 transition-colors"
           onClick={() => {
-            dispatch(setDonHangPageFilter({ appliedTrangThai: ["Đang sản xuất"], appliedHenGiao: { preset: null, customFrom: "", customTo: "" } }));
+            dispatch(
+              setDonHangPageFilter({
+                appliedTrangThai: ["Đang sản xuất"],
+                appliedHenGiao: { preset: null, customFrom: "", customTo: "" },
+              })
+            );
             setPage(1);
           }}
         >
@@ -742,7 +773,12 @@ const DonHangPage = () => {
         <div
           className="flex-1 cursor-pointer bg-purple-500 hover:bg-purple-700 text-white px-2 transition-colors"
           onClick={() => {
-            dispatch(setDonHangPageFilter({ appliedTrangThai: ["Đang thử"], appliedHenGiao: { preset: null, customFrom: "", customTo: "" } }));
+            dispatch(
+              setDonHangPageFilter({
+                appliedTrangThai: ["Đang thử"],
+                appliedHenGiao: { preset: null, customFrom: "", customTo: "" },
+              })
+            );
             setPage(1);
           }}
         >
@@ -752,7 +788,12 @@ const DonHangPage = () => {
         <div
           className="flex-1 cursor-pointer bg-green-500 hover:bg-green-700 text-white px-2 transition-colors"
           onClick={() => {
-            dispatch(setDonHangPageFilter({ appliedTrangThai: ["Hoàn thành"], appliedHenGiao: { preset: null, customFrom: "", customTo: "" } }));
+            dispatch(
+              setDonHangPageFilter({
+                appliedTrangThai: ["Hoàn thành"],
+                appliedHenGiao: { preset: null, customFrom: "", customTo: "" },
+              })
+            );
             setPage(1);
           }}
         >
@@ -813,12 +854,14 @@ const DonHangPage = () => {
                       ? getDateLabel(draftNgayNhan)
                       : "Ngày nhận"}
                   </span>
-                  <CalendarTodayIcon
-                    sx={{ fontSize: 16, color: "#9ca3af" }}
-                  />
+                  <CalendarTodayIcon sx={{ fontSize: 16, color: "#9ca3af" }} />
                 </button>
                 {openDateModal === "ngayNhan" &&
-                  renderDateDropdown(draftNgayNhan, setDraftNgayNhan, "ngayNhan")}
+                  renderDateDropdown(
+                    draftNgayNhan,
+                    setDraftNgayNhan,
+                    "ngayNhan"
+                  )}
               </div>
               {/* Y/c hoàn thành */}
               <div
@@ -845,12 +888,14 @@ const DonHangPage = () => {
                       ? getDateLabel(draftYcHoanThanh)
                       : "Y/c hoàn thành"}
                   </span>
-                  <CalendarTodayIcon
-                    sx={{ fontSize: 16, color: "#9ca3af" }}
-                  />
+                  <CalendarTodayIcon sx={{ fontSize: 16, color: "#9ca3af" }} />
                 </button>
                 {openDateModal === "ycHoanThanh" &&
-                  renderDateDropdown(draftYcHoanThanh, setDraftYcHoanThanh, "ycHoanThanh")}
+                  renderDateDropdown(
+                    draftYcHoanThanh,
+                    setDraftYcHoanThanh,
+                    "ycHoanThanh"
+                  )}
               </div>
               {/* Hẹn giao */}
               <div
@@ -877,9 +922,7 @@ const DonHangPage = () => {
                       ? getDateLabel(draftHenGiao)
                       : "Hẹn giao"}
                   </span>
-                  <CalendarTodayIcon
-                    sx={{ fontSize: 16, color: "#9ca3af" }}
-                  />
+                  <CalendarTodayIcon sx={{ fontSize: 16, color: "#9ca3af" }} />
                 </button>
                 {openDateModal === "henGiao" &&
                   renderDateDropdown(draftHenGiao, setDraftHenGiao, "henGiao")}
@@ -940,10 +983,11 @@ const DonHangPage = () => {
                           setDraftNhaKhoa(item);
                           setOpenPickerModal(null);
                         }}
-                        className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftNhaKhoa?._id === item._id
-                          ? "bg-blue-50 text-blue-700 font-semibold"
-                          : "text-gray-700 hover:bg-gray-50"
-                          }`}
+                        className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
+                          draftNhaKhoa?._id === item._id
+                            ? "bg-blue-50 text-blue-700 font-semibold"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
                       >
                         {item.name}
                       </button>
@@ -1012,10 +1056,11 @@ const DonHangPage = () => {
                           setDraftBenhNhan(item);
                           setOpenPickerModal(null);
                         }}
-                        className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftBenhNhan?._id === item._id
-                          ? "bg-blue-50 text-blue-700 font-semibold"
-                          : "text-gray-700 hover:bg-gray-50"
-                          }`}
+                        className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
+                          draftBenhNhan?._id === item._id
+                            ? "bg-blue-50 text-blue-700 font-semibold"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
                       >
                         {item.name}
                       </button>
@@ -1117,7 +1162,7 @@ const DonHangPage = () => {
               placeholder="Nhập Số/Nha khoa/Bác sĩ/Bệnh nhân/Sản phẩm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-white shadow text-sm px-10 py-1.5 rounded-full h-10 w-48 sm:w-96 focus:outline-sky-300"
+              className="bg-white shadow text-lg px-10 py-1.5 rounded-full h-10 w-48 sm:w-96 focus:outline-sky-300"
             />
             {searchTerm && (
               <button
@@ -1166,9 +1211,11 @@ const DonHangPage = () => {
                 ` → ${appliedNgayNhan.customTo}`}
               <button
                 onClick={() => {
-                  dispatch(setDonHangPageFilter({
-                    appliedNgayNhan: EMPTY_DATE,
-                  }));
+                  dispatch(
+                    setDonHangPageFilter({
+                      appliedNgayNhan: EMPTY_DATE,
+                    })
+                  );
                   setPage(1);
                 }}
                 className="w-4 h-4 flex items-center justify-center rounded-full bg-gray-400 text-white"
@@ -1188,9 +1235,11 @@ const DonHangPage = () => {
                 ` → ${appliedYcHoanThanh.customTo}`}
               <button
                 onClick={() => {
-                  dispatch(setDonHangPageFilter({
-                    appliedYcHoanThanh: EMPTY_DATE,
-                  }));
+                  dispatch(
+                    setDonHangPageFilter({
+                      appliedYcHoanThanh: EMPTY_DATE,
+                    })
+                  );
                   setPage(1);
                 }}
                 className="w-4 h-4 flex items-center justify-center rounded-full bg-gray-400 text-white"
@@ -1210,9 +1259,11 @@ const DonHangPage = () => {
                 ` → ${appliedHenGiao.customTo}`}
               <button
                 onClick={() => {
-                  dispatch(setDonHangPageFilter({
-                    appliedHenGiao: EMPTY_DATE,
-                  }));
+                  dispatch(
+                    setDonHangPageFilter({
+                      appliedHenGiao: EMPTY_DATE,
+                    })
+                  );
                   setPage(1);
                 }}
                 className="w-4 h-4 flex items-center justify-center rounded-full bg-gray-400 text-white"
@@ -1226,9 +1277,11 @@ const DonHangPage = () => {
               Nha khoa: {appliedNhaKhoa.name}
               <button
                 onClick={() => {
-                  dispatch(setDonHangPageFilter({
-                    appliedNhaKhoa: null,
-                  }));
+                  dispatch(
+                    setDonHangPageFilter({
+                      appliedNhaKhoa: null,
+                    })
+                  );
                   setPage(1);
                 }}
                 className="w-4 h-4 flex items-center justify-center rounded-full bg-gray-400 text-white"
@@ -1242,9 +1295,11 @@ const DonHangPage = () => {
               Bệnh nhân: {appliedBenhNhan.name}
               <button
                 onClick={() => {
-                  dispatch(setDonHangPageFilter({
-                    appliedBenhNhan: null,
-                  }));
+                  dispatch(
+                    setDonHangPageFilter({
+                      appliedBenhNhan: null,
+                    })
+                  );
                   setPage(1);
                 }}
                 className="w-4 h-4 flex items-center justify-center rounded-full bg-gray-400 text-white"
@@ -1261,9 +1316,13 @@ const DonHangPage = () => {
               Trạng thái: {status}
               <button
                 onClick={() => {
-                  dispatch(setDonHangPageFilter({
-                    appliedTrangThai: appliedTrangThai.filter((s) => s !== status),
-                  }));
+                  dispatch(
+                    setDonHangPageFilter({
+                      appliedTrangThai: appliedTrangThai.filter(
+                        (s) => s !== status
+                      ),
+                    })
+                  );
                   setPage(1);
                 }}
                 className="w-4 h-4 flex items-center justify-center rounded-full bg-gray-400 text-white"

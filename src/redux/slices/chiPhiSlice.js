@@ -1,98 +1,71 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { api } from "../../config/api"; // Tự động lấy cấu hình base URL và Token của bạn
+import { api } from "../../config/api";
 
-/* ================= THUNKS QUỸ CHI PHÍ (MỚI) ================= */
-export const fetchQuyChiPhi = createAsyncThunk(
-    "chiPhi/fetchQuyChiPhi",
+/* ================= THUNKS QUỸ CHI PHÍ (MỚI THÊM) ================= */
+export const fetchLichSuNapQuy = createAsyncThunk(
+    "chiPhi/fetchLichSuNapQuy",
     async (_, { rejectWithValue }) => {
         try {
-            const res = await api.get("/chiphi/quy");
+            const res = await api.get("/chiphi/quy/lich-su");
             return res.data.data;
         } catch (err) {
-            return rejectWithValue(err.response?.data?.message || "Lỗi lấy thông tin quỹ");
+            return rejectWithValue(err.response?.data?.message || "Lỗi lấy lịch sử nạp quỹ");
         }
     }
 );
 
-export const napQuyChiPhi = createAsyncThunk(
-    "chiPhi/napQuyChiPhi",
-    async (soTien, { rejectWithValue }) => {
+export const fetchTonQuyNgay = createAsyncThunk(
+    "chiPhi/fetchTonQuyNgay",
+    async (ngay, { rejectWithValue }) => {
         try {
-            const res = await api.post("/chiphi/quy/nap", { soTien });
+            const res = await api.get(`/chiphi/quy/ton-quy-ngay?ngay=${ngay}`);
             return res.data.data;
         } catch (err) {
-            return rejectWithValue(err.response?.data?.message || "Lỗi nạp quỹ");
+            return rejectWithValue(err.response?.data?.message || "Lỗi tính tồn quỹ theo ngày");
         }
     }
 );
+
+/* ================= THUNKS QUỸ CHI PHÍ (HIỆN CÓ) ================= */
+export const fetchQuyChiPhi = createAsyncThunk("chiPhi/fetchQuyChiPhi", async (_, { rejectWithValue }) => {
+    try { const res = await api.get("/chiphi/quy"); return res.data.data; }
+    catch (err) { return rejectWithValue(err.response?.data?.message || "Lỗi lấy thông tin quỹ"); }
+});
+
+export const napQuyChiPhi = createAsyncThunk("chiPhi/napQuyChiPhi", async (soTien, { rejectWithValue }) => {
+    try { const res = await api.post("/chiphi/quy/nap", { soTien }); return res.data.data; }
+    catch (err) { return rejectWithValue(err.response?.data?.message || "Lỗi nạp quỹ"); }
+});
 
 /* ================= GET DANH SÁCH CHI PHÍ ================= */
-export const fetchChiPhi = createAsyncThunk(
-    "chiPhi/fetchChiPhi",
-    async (params, { rejectWithValue }) => {
-        try {
-            const res = await api.get("/chiphi", { params });
-            return res.data.data;
-        } catch (err) {
-            return rejectWithValue(err.response?.data?.message || "Lỗi lấy danh sách chi phí");
-        }
-    }
-);
+export const fetchChiPhi = createAsyncThunk("chiPhi/fetchChiPhi", async (params, { rejectWithValue }) => {
+    try { const res = await api.get("/chiphi", { params }); return res.data.data; }
+    catch (err) { return rejectWithValue(err.response?.data?.message || "Lỗi lấy danh sách chi phí"); }
+});
 
 /* ================= TẠO CHI PHÍ MỚI ================= */
-export const addChiPhi = createAsyncThunk(
-    "chiPhi/addChiPhi",
-    async (data, { dispatch, rejectWithValue }) => {
-        try {
-            const res = await api.post("/chiphi", data);
-            dispatch(fetchQuyChiPhi()); // Đồng bộ lại quỹ sau khi thêm
-            return res.data.data;
-        } catch (err) {
-            return rejectWithValue(err.response?.data?.message || "Lỗi tạo chi phí mới");
-        }
-    }
-);
+export const addChiPhi = createAsyncThunk("chiPhi/addChiPhi", async (data, { dispatch, rejectWithValue }) => {
+    try { const res = await api.post("/chiphi", data); dispatch(fetchQuyChiPhi()); return res.data.data; }
+    catch (err) { return rejectWithValue(err.response?.data?.message || "Lỗi tạo chi phí mới"); }
+});
 
 /* ================= CẬP NHẬT CHI PHÍ ================= */
-export const updateChiPhi = createAsyncThunk(
-    "chiPhi/updateChiPhi",
-    async ({ id, data }, { dispatch, rejectWithValue }) => {
-        try {
-            const res = await api.put(`/chiphi/${id}`, data);
-            dispatch(fetchQuyChiPhi()); // Đồng bộ lại quỹ sau khi sửa
-            return res.data.data;
-        } catch (err) {
-            return rejectWithValue(err.response?.data?.message || "Lỗi cập nhật chi phí");
-        }
-    }
-);
+export const updateChiPhi = createAsyncThunk("chiPhi/updateChiPhi", async ({ id, data }, { dispatch, rejectWithValue }) => {
+    try { const res = await api.put(`/chiphi/${id}`, data); dispatch(fetchQuyChiPhi()); return res.data.data; }
+    catch (err) { return rejectWithValue(err.response?.data?.message || "Lỗi cập nhật chi phí"); }
+});
 
 /* ================= XÓA CHI PHÍ ================= */
-export const deleteChiPhi = createAsyncThunk(
-    "chiPhi/deleteChiPhi",
-    async (id, { dispatch, rejectWithValue }) => {
-        try {
-            await api.delete(`/chiphi/${id}`);
-            dispatch(fetchQuyChiPhi()); // Đồng bộ lại quỹ sau khi xóa
-            return id;
-        } catch (err) {
-            return rejectWithValue(err.response?.data?.message || "Lỗi xóa chi phí");
-        }
-    }
-);
+export const deleteChiPhi = createAsyncThunk("chiPhi/deleteChiPhi", async (id, { dispatch, rejectWithValue }) => {
+    try { await api.delete(`/chiphi/${id}`); dispatch(fetchQuyChiPhi()); return id; }
+    catch (err) { return rejectWithValue(err.response?.data?.message || "Lỗi xóa chi phí"); }
+});
 
 /* ================= GET DANH SÁCH LOẠI CHI PHÍ ================= */
-export const fetchLoaiChiPhi = createAsyncThunk(
-    "chiPhi/fetchLoaiChiPhi",
-    async (_, { rejectWithValue }) => {
-        try {
-            const res = await api.get("/chiphi/loai");
-            return res.data.data;
-        } catch (err) {
-            return rejectWithValue(err.response?.data?.message || "Lỗi lấy loại chi phí");
-        }
-    }
-);
+export const fetchLoaiChiPhi = createAsyncThunk("chiPhi/fetchLoaiChiPhi", async (_, { rejectWithValue }) => {
+    try { const res = await api.get("/chiphi/loai"); return res.data.data; }
+    catch (err) { return rejectWithValue(err.response?.data?.message || "Lỗi lấy loại chi phí"); }
+});
 
 /* ================= SLICE ================= */
 const chiPhiSlice = createSlice({
@@ -100,22 +73,19 @@ const chiPhiSlice = createSlice({
     initialState: {
         danhSachChiPhi: [],
         danhSachLoaiChiPhi: [],
-        thongTinQuy: { soDu: 0, lanNapCuoi: null, soTienNapCuoi: 0 }, // State mới cho Quỹ
+        thongTinQuy: { soDu: 0, lanNapCuoi: null, soTienNapCuoi: 0 },
+        lichSuNapQuy: [], // State mới
         isLoading: false,
         error: null,
     },
     reducers: {
-        clearChiPhiData: (state) => {
-            state.danhSachChiPhi = [];
-            state.error = null;
-        },
+        clearChiPhiData: (state) => { state.danhSachChiPhi = []; state.error = null; },
         themLoaiChiPhiLocal: (state, action) => {
             const loaiMoi = action.payload;
             if (!state.danhSachLoaiChiPhi.includes(loaiMoi)) {
                 state.danhSachLoaiChiPhi.push(loaiMoi);
                 state.danhSachLoaiChiPhi.sort((a, b) => {
-                    if (a === "Khác") return 1;
-                    if (b === "Khác") return -1;
+                    if (a === "Khác") return 1; if (b === "Khác") return -1;
                     return a.localeCompare(b);
                 });
             }
@@ -124,31 +94,18 @@ const chiPhiSlice = createSlice({
     extraReducers: (builder) => {
         builder
             /* ===== CASE THÔNG TIN QUỸ ===== */
-            .addCase(fetchQuyChiPhi.fulfilled, (state, action) => {
-                if (action.payload) {
-                    state.thongTinQuy = action.payload;
-                }
-            })
-            .addCase(napQuyChiPhi.fulfilled, (state, action) => {
-                if (action.payload) {
-                    state.thongTinQuy = action.payload;
-                }
-            })
+            .addCase(fetchQuyChiPhi.fulfilled, (state, action) => { if (action.payload) state.thongTinQuy = action.payload; })
+            .addCase(napQuyChiPhi.fulfilled, (state, action) => { if (action.payload) state.thongTinQuy = action.payload; })
+            .addCase(fetchLichSuNapQuy.fulfilled, (state, action) => { state.lichSuNapQuy = action.payload || []; }) // Lưu lịch sử nạp
 
             /* ===== CASE LẤY DANH SÁCH CHI PHÍ ===== */
             .addCase(fetchChiPhi.pending, (state) => { state.isLoading = true; state.error = null; })
-            .addCase(fetchChiPhi.fulfilled, (state, action) => {
-                state.isLoading = false;
-                state.danhSachChiPhi = action.payload || [];
-            })
+            .addCase(fetchChiPhi.fulfilled, (state, action) => { state.isLoading = false; state.danhSachChiPhi = action.payload || []; })
             .addCase(fetchChiPhi.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
 
             /* ===== CASE TẠO CHI PHÍ MỚI ===== */
             .addCase(addChiPhi.pending, (state) => { state.isLoading = true; state.error = null; })
-            .addCase(addChiPhi.fulfilled, (state, action) => {
-                state.isLoading = false;
-                if (action.payload) state.danhSachChiPhi.unshift(action.payload);
-            })
+            .addCase(addChiPhi.fulfilled, (state, action) => { state.isLoading = false; if (action.payload) state.danhSachChiPhi.unshift(action.payload); })
             .addCase(addChiPhi.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
 
             /* ===== CASE CẬP NHẬT CHI PHÍ ===== */
@@ -171,9 +128,7 @@ const chiPhiSlice = createSlice({
             .addCase(deleteChiPhi.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
 
             /* ===== CASE LẤY LOẠI CHI PHÍ ===== */
-            .addCase(fetchLoaiChiPhi.fulfilled, (state, action) => {
-                state.danhSachLoaiChiPhi = action.payload || [];
-            });
+            .addCase(fetchLoaiChiPhi.fulfilled, (state, action) => { state.danhSachLoaiChiPhi = action.payload || []; });
     },
 });
 

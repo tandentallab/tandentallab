@@ -7,12 +7,26 @@ import {
   Select,
   MenuItem,
   Tooltip,
+  Dialog,
+  DialogContent,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import DownloadIcon from "@mui/icons-material/Download";
 import HistoryIcon from "@mui/icons-material/History";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import CloseIcon from "@mui/icons-material/Close";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Dot,
+} from "recharts";
 import { fetchLichSuLuong } from "../../redux/slices/bangLuongSlice";
 import { exportLichSuLuongToExcel } from "./exportLichSuLuongToExcel";
 
@@ -83,6 +97,8 @@ const LichSuLuongPage = () => {
   const [denThang, setDenThang] = useState(defaultRange.denThang);
   const [denNam, setDenNam] = useState(defaultRange.denNam);
   const [searchTen, setSearchTen] = useState("");
+  const [hoveredRowIdx, setHoveredRowIdx] = useState(null);
+  const [selectedRow, setSelectedRow] = useState(null); // nhân viên đang xem biểu đồ
 
   const rangeInvalid = toKey(tuThang, tuNam) > toKey(denThang, denNam);
 
@@ -171,6 +187,35 @@ const LichSuLuongPage = () => {
     n === undefined || n === null
       ? "—"
       : (Math.round(n / 1000) * 1000).toLocaleString("vi-VN");
+
+  /* ── Dữ liệu biểu đồ đường cho nhân viên đang được chọn ── */
+  const chartData = useMemo(() => {
+    if (!selectedRow) return [];
+    return columns.map((c) => ({
+      key: c.key,
+      label: `T${c.thang}/${String(c.nam).slice(-2)}`,
+      fullLabel: c.label,
+      luong:
+        selectedRow.values[c.key] === undefined
+          ? null
+          : selectedRow.values[c.key],
+    }));
+  }, [selectedRow, columns]);
+
+  const chartHasData = chartData.some((d) => d.luong !== null);
+
+  const chartStats = useMemo(() => {
+    const vals = chartData
+      .map((d) => d.luong)
+      .filter((v) => v !== null && v !== undefined);
+    if (!vals.length) return null;
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const first = vals[0];
+    const last = vals[vals.length - 1];
+    const diff = last - first;
+    return { min, max, first, last, diff };
+  }, [chartData]);
 
   return (
     <div
@@ -456,16 +501,36 @@ const LichSuLuongPage = () => {
                   </thead>
                   <tbody>
                     {displayRows.map((r, idx) => {
-                      const rowBg = idx % 2 === 0 ? "#fff" : "#f8fafc";
+                      const isEven = idx % 2 === 0;
+                      const isHovered = hoveredRowIdx === idx;
+                      // 2 màu nhạt xen kẽ: vàng nhạt & xám nhạt, đậm hơn khi hover
+                      const rowBg = isHovered
+                        ? isEven
+                          ? "#fde68a" // vàng đậm hơn khi hover
+                          : "#cbd5e1" // xám đậm hơn khi hover
+                        : isEven
+                        ? "#fefce8" // vàng nhạt
+                        : "#f1f5f9"; // xám nhạt
                       return (
-                        <tr key={r._id} style={{ background: rowBg }}>
+                        <tr
+                          key={r._id}
+                          onMouseEnter={() => setHoveredRowIdx(idx)}
+                          onMouseLeave={() => setHoveredRowIdx(null)}
+                          onClick={() => setSelectedRow(r)}
+                          style={{
+                            background: rowBg,
+                            transition: "background-color 0.15s ease",
+                            cursor: "pointer",
+                          }}
+                        >
                           <td
                             className="px-4 py-2 text-sm text-slate-500"
                             style={{
-                              borderBottom: "1px solid #f1f5f9",
+                              borderBottom: "1px solid #e2e8f0",
                               position: "sticky",
                               left: 0,
                               background: rowBg,
+                              transition: "background-color 0.15s ease",
                             }}
                           >
                             {r.stt}
@@ -473,10 +538,11 @@ const LichSuLuongPage = () => {
                           <td
                             className="px-4 py-2 text-sm font-semibold text-slate-700 whitespace-nowrap"
                             style={{
-                              borderBottom: "1px solid #f1f5f9",
+                              borderBottom: "1px solid #e2e8f0",
                               position: "sticky",
                               left: 60,
                               background: rowBg,
+                              transition: "background-color 0.15s ease",
                             }}
                           >
                             {r.hoVaTen}
@@ -488,9 +554,9 @@ const LichSuLuongPage = () => {
                                 key={c.key}
                                 className="px-4 py-2 text-right text-sm whitespace-nowrap"
                                 style={{
-                                  borderBottom: "1px solid #f1f5f9",
+                                  borderBottom: "1px solid #e2e8f0",
                                   color:
-                                    val === undefined ? "#cbd5e1" : "#334155",
+                                    val === undefined ? "#94a3b8" : "#334155",
                                 }}
                               >
                                 {val === undefined ? "—" : `${fmt(val)} đ`}
@@ -506,45 +572,239 @@ const LichSuLuongPage = () => {
 
               {/* Mobile: dạng card gọn cho từng nhân viên */}
               <div className="md:hidden flex-1 min-h-0 overflow-auto divide-y divide-slate-100">
-                {displayRows.map((r) => (
-                  <div key={r._id} className="p-3">
-                    <div className="mb-2">
-                      <span className="text-sm font-semibold text-slate-700">
-                        {r.stt}. {r.hoVaTen}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {columns.map((c) => {
-                        const val = r.values[c.key];
-                        return (
-                          <div
-                            key={c.key}
-                            className="flex items-center justify-between rounded-md px-2 py-1 text-xs"
-                            style={{ background: "#f8fafc" }}
-                          >
-                            <span className="text-slate-400">{c.label}</span>
-                            <span
-                              className={
-                                val === undefined ? "italic" : "font-semibold"
-                              }
-                              style={{
-                                color:
-                                  val === undefined ? "#cbd5e1" : "#334155",
-                              }}
+                {displayRows.map((r, idx) => {
+                  const isEven = idx % 2 === 0;
+                  const isHovered = hoveredRowIdx === idx;
+                  const cardBg = isHovered
+                    ? isEven
+                      ? "#fde68a"
+                      : "#cbd5e1"
+                    : isEven
+                    ? "#fefce8"
+                    : "#f1f5f9";
+                  return (
+                    <div
+                      key={r._id}
+                      className="p-3"
+                      onMouseEnter={() => setHoveredRowIdx(idx)}
+                      onMouseLeave={() => setHoveredRowIdx(null)}
+                      onTouchStart={() => setHoveredRowIdx(idx)}
+                      onClick={() => setSelectedRow(r)}
+                      style={{
+                        background: cardBg,
+                        transition: "background-color 0.15s ease",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div className="mb-2">
+                        <span className="text-sm font-semibold text-slate-700">
+                          {r.stt}. {r.hoVaTen}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {columns.map((c) => {
+                          const val = r.values[c.key];
+                          return (
+                            <div
+                              key={c.key}
+                              className="flex items-center justify-between rounded-md px-2 py-1 text-xs"
+                              style={{ background: "rgba(255,255,255,0.5)" }}
                             >
-                              {val === undefined ? "—" : `${fmt(val)} đ`}
-                            </span>
-                          </div>
-                        );
-                      })}
+                              <span className="text-slate-400">{c.label}</span>
+                              <span
+                                className={
+                                  val === undefined ? "italic" : "font-semibold"
+                                }
+                                style={{
+                                  color:
+                                    val === undefined ? "#94a3b8" : "#334155",
+                                }}
+                              >
+                                {val === undefined ? "—" : `${fmt(val)} đ`}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}
         </div>
       </div>
+
+      {/* ── DIALOG: Biểu đồ biến động lương ── */}
+      <Dialog
+        open={!!selectedRow}
+        onClose={() => setSelectedRow(null)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3, overflow: "hidden" },
+        }}
+      >
+        {selectedRow && (
+          <>
+            {/* Header */}
+            <div
+              className="flex items-center justify-between px-5 py-4"
+              style={{
+                background: "linear-gradient(90deg, #0284c7 0%, #0ea5e9 100%)",
+              }}
+            >
+              <div className="flex items-center gap-2 text-white">
+                <ShowChartIcon sx={{ fontSize: 20 }} />
+                <div>
+                  <div className="text-sm font-bold tracking-wide">
+                    {selectedRow.hoVaTen}
+                  </div>
+                  <div className="text-xs text-sky-100">
+                    Biến động lương căn bản · {rangeLabel}
+                  </div>
+                </div>
+              </div>
+              <IconButton
+                size="small"
+                onClick={() => setSelectedRow(null)}
+                sx={{
+                  color: "#e0f2fe",
+                  "&:hover": {
+                    color: "#fff",
+                    background: "rgba(255,255,255,0.15)",
+                  },
+                }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </div>
+
+            <DialogContent sx={{ background: "#fff", p: 3 }}>
+              {!chartHasData ? (
+                <div className="p-10 text-center text-slate-400 text-sm">
+                  Không có dữ liệu lương để vẽ biểu đồ.
+                </div>
+              ) : (
+                <>
+                  {/* Thống kê nhanh */}
+                  {chartStats && (
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div
+                        className="rounded-lg px-3 py-2 text-center"
+                        style={{ background: "#fefce8" }}
+                      >
+                        <div className="text-[11px] text-slate-500">
+                          Thấp nhất
+                        </div>
+                        <div className="text-sm font-bold text-slate-700">
+                          {fmt(chartStats.min)} đ
+                        </div>
+                      </div>
+                      <div
+                        className="rounded-lg px-3 py-2 text-center"
+                        style={{ background: "#f1f5f9" }}
+                      >
+                        <div className="text-[11px] text-slate-500">
+                          Cao nhất
+                        </div>
+                        <div className="text-sm font-bold text-slate-700">
+                          {fmt(chartStats.max)} đ
+                        </div>
+                      </div>
+                      <div
+                        className="rounded-lg px-3 py-2 text-center"
+                        style={{
+                          background:
+                            chartStats.diff > 0
+                              ? "#f0fdf4"
+                              : chartStats.diff < 0
+                              ? "#fef2f2"
+                              : "#f1f5f9",
+                        }}
+                      >
+                        <div className="text-[11px] text-slate-500">
+                          Thay đổi (đầu → cuối)
+                        </div>
+                        <div
+                          className="text-sm font-bold"
+                          style={{
+                            color:
+                              chartStats.diff > 0
+                                ? "#16a34a"
+                                : chartStats.diff < 0
+                                ? "#dc2626"
+                                : "#334155",
+                          }}
+                        >
+                          {chartStats.diff > 0 ? "+" : ""}
+                          {fmt(chartStats.diff)} đ
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Biểu đồ đường */}
+                  <div style={{ width: "100%", height: 320 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={chartData}
+                        margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="#e2e8f0"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fontSize: 11, fill: "#64748b" }}
+                          axisLine={{ stroke: "#cbd5e1" }}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "#64748b" }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(v) =>
+                            `${(v / 1000000).toLocaleString("vi-VN")}tr`
+                          }
+                          width={50}
+                        />
+                        <RechartsTooltip
+                          formatter={(value) => [
+                            value === null ? "—" : `${fmt(value)} đ`,
+                            "Lương căn bản",
+                          ]}
+                          labelFormatter={(_, payload) =>
+                            payload && payload[0]
+                              ? payload[0].payload.fullLabel
+                              : ""
+                          }
+                          contentStyle={{
+                            borderRadius: 8,
+                            border: "1px solid #e2e8f0",
+                            fontSize: 12,
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="luong"
+                          stroke="#0284c7"
+                          strokeWidth={2.5}
+                          dot={{ r: 3.5, fill: "#0284c7", strokeWidth: 0 }}
+                          activeDot={{ r: 5.5 }}
+                          connectNulls
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )}
+            </DialogContent>
+          </>
+        )}
+      </Dialog>
     </div>
   );
 };

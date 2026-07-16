@@ -11,7 +11,7 @@ import UploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import BadgeIcon from "@mui/icons-material/Badge";
 import PhoneIcon from "@mui/icons-material/Phone";
-import EmailIcon from "@mui/icons-material/Email";
+import EventNoteIcon from "@mui/icons-material/EventNote";
 import HomeIcon from "@mui/icons-material/Home";
 import WorkIcon from "@mui/icons-material/Work";
 import PaidIcon from "@mui/icons-material/Paid";
@@ -20,9 +20,11 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth"; // 🔥 Thêm
 import { API_URL } from "../../config/api";
 import { toast } from "sonner";
 
-const InfoRow = ({ icon, label, value, highlight }) => (
+const InfoRow = ({ icon, label, value, highlight, multiline }) => (
   <div
-    className="flex items-center justify-between py-3"
+    className={`flex py-3 ${
+      multiline ? "flex-col gap-1.5" : "items-center justify-between"
+    }`}
     style={{ borderBottom: "1px dashed #e2e8f0" }}
   >
     <div className="flex items-center gap-2.5 text-slate-500">
@@ -32,7 +34,7 @@ const InfoRow = ({ icon, label, value, highlight }) => (
     <span
       className={`text-sm font-semibold ${
         highlight ? "text-blue-600" : "text-slate-700"
-      }`}
+      } ${multiline ? "whitespace-pre-wrap break-words" : ""}`}
     >
       {value || "—"}
     </span>
@@ -219,11 +221,6 @@ const NhanVienDetail = () => {
               value={nhanVien.soDienThoai}
             />
             <InfoRow
-              icon={<EmailIcon />}
-              label="Email"
-              value={nhanVien.email}
-            />
-            <InfoRow
               icon={<HomeIcon />}
               label="Địa chỉ"
               value={nhanVien.diaChi}
@@ -252,6 +249,12 @@ const NhanVienDetail = () => {
               icon={<CalendarMonthIcon />}
               label="Ngày tạo"
               value={formatDateVN(nhanVien.ngayTao)}
+            />
+            <InfoRow
+              icon={<EventNoteIcon />}
+              label="Ghi chú"
+              value={nhanVien.email}
+              multiline
             />
           </div>
 

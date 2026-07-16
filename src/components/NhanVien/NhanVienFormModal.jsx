@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import BadgeIcon from "@mui/icons-material/Badge";
 import PhoneIcon from "@mui/icons-material/Phone";
-import EmailIcon from "@mui/icons-material/Email";
+import EventNoteIcon from "@mui/icons-material/EventNote";
 import HomeIcon from "@mui/icons-material/Home";
 import WorkIcon from "@mui/icons-material/Work";
 import PaymentsIcon from "@mui/icons-material/Payments";
@@ -232,23 +232,7 @@ const NhanVienFormModal = ({ open, onClose, initialData = null }) => {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Email"
-              size="small"
-              value={formData.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              sx={fieldSx}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <EmailIcon sx={{ fontSize: 18, color: "#3b82f6" }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
+
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -351,6 +335,26 @@ const NhanVienFormModal = ({ open, onClose, initialData = null }) => {
                 endAdornment: (
                   <InputAdornment position="end">
                     <span className="text-slate-400 text-xs">Ngày</span>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              multiline
+              minRows={2}
+              label="Ghi chú"
+              size="small"
+              value={formData.email}
+              onChange={(e) => handleChange("email", e.target.value)}
+              sx={fieldSx}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EventNoteIcon sx={{ fontSize: 18, color: "#3b82f6" }} />
                   </InputAdornment>
                 ),
               }}

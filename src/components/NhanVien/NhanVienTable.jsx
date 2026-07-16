@@ -78,11 +78,11 @@ const NhanVienTable = () => {
     "Chức vụ",
     "CCCD",
     "SĐT",
-    "Email",
     "Địa chỉ",
     "Lương cơ bản",
     "Ngày công tháng",
     "Ngày tạo",
+    "Ghi chú",
     "",
   ];
 
@@ -342,8 +342,8 @@ const NhanVienTable = () => {
                         (e.currentTarget.style.background = "#eff6ff")
                       }
                       onMouseLeave={(e) =>
-                      (e.currentTarget.style.background =
-                        idx % 2 === 0 ? "#fff" : "#f8fafc")
+                        (e.currentTarget.style.background =
+                          idx % 2 === 0 ? "#fff" : "#f8fafc")
                       }
                     >
                       {/* ── Sticky: Họ tên ── */}
@@ -387,14 +387,6 @@ const NhanVienTable = () => {
                       </td>
 
                       <td
-                        data-label="Email"
-                        className="px-4 py-3 text-slate-500 text-sm"
-                        style={{ borderBottom: "1px solid #f1f5f9" }}
-                      >
-                        {nv.email || "—"}
-                      </td>
-
-                      <td
                         data-label="Địa chỉ"
                         className="px-4 py-3 text-slate-500 text-sm"
                         style={{ borderBottom: "1px solid #f1f5f9" }}
@@ -424,6 +416,20 @@ const NhanVienTable = () => {
                         style={{ borderBottom: "1px solid #f1f5f9" }}
                       >
                         {formatDateVN(nv.ngayTao)}
+                      </td>
+
+                      <td
+                        data-label="Ghi chú"
+                        className="px-4 py-3 text-slate-500 text-sm"
+                        style={{
+                          borderBottom: "1px solid #f1f5f9",
+                          whiteSpace: "pre-wrap",
+                          wordBreak: "break-word",
+                          minWidth: 180,
+                          maxWidth: 260,
+                        }}
+                      >
+                        {nv.email || "—"}
                       </td>
 
                       <td

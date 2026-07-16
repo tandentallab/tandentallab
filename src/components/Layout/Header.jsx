@@ -361,7 +361,7 @@ const Header = ({ onToggleSidebar }) => {
                 onChange={handleSearchChange}
                 onFocus={() => setIsDropdownOpen(true)}
                 autoFocus={searchOpen}
-                sx={{ ml: 1, width: "100%", fontSize: "14px" }}
+                sx={{ ml: 1, width: "100%", fontSize: "16px" }}
               />
               {isSearching && (
                 <CircularProgress size={20} sx={{ color: "#1DA1F2" }} />

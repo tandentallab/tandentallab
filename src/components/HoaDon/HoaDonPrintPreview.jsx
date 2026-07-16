@@ -11,11 +11,23 @@ const HoaDonPrintPreview = () => {
   const [hoaDon, setHoaDon] = useState(null);
   const [nhaKhoaInfo, setNhaKhoaInfo] = useState(null);
   const [phieuThuList, setPhieuThuList] = useState([]);
+  const [company, setCompany] = useState(null);
 
   const dispatch = useDispatch();
 
   useEffect(() => {
     dispatch(fetchNhaKhoa());
+    const fetchCompany = async () => {
+      try {
+        const res = await api.get('/cong-ty');
+        if (res.data && res.data.data) {
+          setCompany(res.data.data);
+        }
+      } catch (e) {
+        console.error("Lỗi fetch thông tin công ty:", e);
+      }
+    };
+    fetchCompany();
   }, [dispatch]);
 
   useEffect(() => {
@@ -150,10 +162,9 @@ const HoaDonPrintPreview = () => {
               <tbody>
                 <tr>
                   <td className="border border-black p-2 w-1/2 align-top leading-tight font-bold text-center">
-                    <div className="font-bold mb-1 uppercase">DENTAL LAB</div>
-                    <div>Số 43, đường số 14, KDC Hồng Phát, phường An Bình,</div>
-                    <div>TP Cần Thơ</div>
-                    <div>Điện thoại: 0842312828</div>
+                    <div className="font-bold mb-1 uppercase">{company?.Ten || ""}</div>
+                    <div>{company?.DiaChi || ""}</div>
+                    <div>{company?.DienThoai ? `Điện thoại: ${company.DienThoai}` : ""}</div>
                   </td>
                   <td className="border border-black p-2 w-1/2 text-center align-middle font-bold uppercase text-lg">
                     Giấy báo thanh toán

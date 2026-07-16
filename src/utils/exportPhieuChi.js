@@ -1,6 +1,40 @@
-// Đường dẫn: src/utils/exportPhieuChi.js
+import { api, API_URL } from '../config/api';
 
-export const xuatPhieuChi = (chiPhiData) => {
+let companyInfoCache = null;
+
+const getCompanyInfo = async () => {
+    if (companyInfoCache) return companyInfoCache;
+    try {
+        const res = await api.get('/cong-ty');
+        if (res.data && res.data.data) {
+            companyInfoCache = res.data.data;
+            return companyInfoCache;
+        }
+    } catch (err) {
+        console.error("Lỗi lấy thông tin công ty:", err);
+    }
+    return {
+        Ten: "",
+        DiaChi: "",
+        DienThoai: "",
+        Email: "",
+        Avatar: ""
+    };
+};
+
+const getAvatarUrl = (avatar) => {
+    if (!avatar) return "";
+    if (avatar.startsWith("data:") || avatar.startsWith("http")) return avatar;
+    let baseUrl = API_URL ? API_URL.replace(/\/$/, "") : "";
+    const path = avatar.startsWith("/") ? avatar : `/${avatar}`;
+    if (path.startsWith("/api") && baseUrl.endsWith("/api")) {
+        baseUrl = baseUrl.slice(0, -4);
+    }
+    return `${baseUrl}${path}`;
+};
+
+export const xuatPhieuChi = async (chiPhiData) => {
+    const company = await getCompanyInfo();
     // SỬA: Bỏ `ngayTao` đi, chỉ lấy các trường cần thiết
     const { tenChiPhi, loaiChiPhi, gia, ghiChu } = chiPhiData;
     const printWindow = window.open('', '_blank');
@@ -12,6 +46,8 @@ export const xuatPhieuChi = (chiPhiData) => {
     const ngay = dateObj.getDate().toString().padStart(2, '0');
     const thang = (dateObj.getMonth() + 1).toString().padStart(2, '0');
     const nam = dateObj.getFullYear();
+
+    const logoHtml = company.Avatar ? `<img src="${getAvatarUrl(company.Avatar)}" alt="Logo" />` : "";
 
     const htmlContent = `
         <!DOCTYPE html>
@@ -163,12 +199,12 @@ export const xuatPhieuChi = (chiPhiData) => {
                 <div class="header">
                     <div class="company-info">
                         <div class="logo-container">
-                            <img src="${originUrl}/logo_tan_dental.jpg" alt="" />
+                            ${logoHtml}
                         </div>
                         <div class="company-text">
-                            <div class="company-name">DENTAL LAB</div>
-                            <div class="company-detail">(địa chỉ)</div>
-                            <div class="company-detail">Điện thoại: 0842312828</div>
+                            <div class="company-name">${company.Ten || ''}</div>
+                            <div class="company-detail">${company.DiaChi || ''}</div>
+                            <div class="company-detail">${company.DienThoai ? `Điện thoại: ${company.DienThoai}` : ''}</div>
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { api } from '../../config/api';
 
 const EXTERNAL_API =
   'https://sapi.dentalso.com/api/p1/warranty/66022d6a6293fefc6c2e92c3/code';
@@ -36,6 +37,21 @@ const CheckPhieuBaoHanhCuPage = () => {
   const [result, setResult] = useState(null);   // single item
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [company, setCompany] = useState(null);
+
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        const res = await api.get('/cong-ty');
+        if (res.data && res.data.data) {
+          setCompany(res.data.data);
+        }
+      } catch (e) {
+        console.error("Lỗi lấy thông tin công ty:", e);
+      }
+    };
+    fetchCompany();
+  }, []);
 
   useEffect(() => {
     const isZalo = /Zalo/i.test(navigator.userAgent);
@@ -251,7 +267,7 @@ const CheckPhieuBaoHanhCuPage = () => {
         <div className="wcontainer">
           <h4 className="wtitle">
             THÔNG TIN BẢO HÀNH RĂNG SỨ<br />
-            DENTAL LAB
+            {company?.Ten || ""}
           </h4>
 
           <form onSubmit={handleSubmit}>

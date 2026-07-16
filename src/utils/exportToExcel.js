@@ -1,7 +1,38 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { api, API_URL } from '../config/api';
 
-const LOGO_URL = window.location.origin + '/logo_tan_dental.jpg';
+const getAvatarUrl = (avatar) => {
+  if (!avatar) return "";
+  if (avatar.startsWith("data:") || avatar.startsWith("http")) return avatar;
+  let baseUrl = API_URL ? API_URL.replace(/\/$/, "") : "";
+  const path = avatar.startsWith("/") ? avatar : `/${avatar}`;
+  if (path.startsWith("/api") && baseUrl.endsWith("/api")) {
+    baseUrl = baseUrl.slice(0, -4);
+  }
+  return `${baseUrl}${path}`;
+};
+
+let companyInfoCache = null;
+
+const getCompanyInfo = async () => {
+  if (companyInfoCache) return companyInfoCache;
+  try {
+    const res = await api.get('/cong-ty');
+    if (res.data && res.data.data) {
+      companyInfoCache = res.data.data;
+      return companyInfoCache;
+    }
+  } catch (err) {
+    console.error("Lỗi lấy thông tin công ty:", err);
+  }
+  return {
+    Ten: "",
+    DiaChi: "",
+    DienThoai: "",
+    Email: ""
+  };
+};
 
 const applyBorder = (cell, style = 'thin') => {
   cell.border = {
@@ -48,15 +79,17 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
   worksheet.mergeCells('C4:I4');
   worksheet.mergeCells('J1:M4');
 
-  worksheet.getCell('C1').value = 'DENTAL LAB';
+  const company = await getCompanyInfo();
+
+  worksheet.getCell('C1').value = company.Ten || '';
   worksheet.getCell('C1').font = { bold: true, size: 20 };
   worksheet.getCell('C1').alignment = { horizontal: 'center', vertical: 'middle' };
 
-  worksheet.getCell('C3').value = 'Địa chỉ: (địa chỉ)';
+  worksheet.getCell('C3').value = company.DiaChi ? `Địa chỉ: ${company.DiaChi}` : '';
   worksheet.getCell('C3').font = { size: 11 };
   worksheet.getCell('C3').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
-  worksheet.getCell('C4').value = 'Hotline: 0842312828';
+  worksheet.getCell('C4').value = company.DienThoai ? `Hotline: ${company.DienThoai}` : '';
   worksheet.getCell('C4').font = { size: 11 };
   worksheet.getCell('C4').alignment = { horizontal: 'center', vertical: 'middle' };
 
@@ -64,21 +97,40 @@ export const exportHoaDonToExcel = async (hoaDon, nhaKhoaInfo) => {
   worksheet.getCell('J1').font = { bold: true, size: 18 };
   worksheet.getCell('J1').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
-  // Thêm Logo
-  try {
-    const response = await fetch(LOGO_URL);
-    const arrayBuffer = await response.arrayBuffer();
-    const imageId = workbook.addImage({
-      buffer: arrayBuffer,
-      extension: 'jpeg'
-    });
-    worksheet.addImage(imageId, {
-      tl: { col: 0, row: 0 },
-      br: { col: 2, row: 4 }
-    });
-  } catch (error) {
-    worksheet.getCell('A1').value = 'LOGO';
-    worksheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+  // Thêm Logo từ database nếu có (hỗ trợ cả Base64 và URL tĩnh)
+  if (company?.Avatar) {
+    try {
+      const logoUrl = getAvatarUrl(company.Avatar);
+      let imageId;
+
+      if (logoUrl.startsWith("data:")) {
+        const matches = logoUrl.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
+        if (matches) {
+          imageId = workbook.addImage({
+            base64: matches[2],
+            extension: matches[1]
+          });
+        }
+      } else {
+        const response = await fetch(logoUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        const ext = logoUrl.split('.').pop().toLowerCase();
+        const extension = ['png', 'jpg', 'jpeg', 'gif'].includes(ext) ? ext : 'png';
+        imageId = workbook.addImage({
+          buffer: arrayBuffer,
+          extension: extension === 'jpg' ? 'jpeg' : extension
+        });
+      }
+
+      if (imageId !== undefined) {
+        worksheet.addImage(imageId, {
+          tl: { col: 0, row: 0 },
+          br: { col: 2, row: 4 }
+        });
+      }
+    } catch (error) {
+      console.error("Lỗi chèn logo vào Excel:", error);
+    }
   }
 
   ['A1', 'C1', 'J1'].forEach((ref) => {
@@ -271,13 +323,14 @@ export const exportPhieuThuToExcel = async (
   worksheet.mergeCells("A3:D3");
   worksheet.mergeCells("A4:D4");
 
-  worksheet.getCell("A1").value = "DENTAL LAB";
+  const company = await getCompanyInfo();
+
+  worksheet.getCell("A1").value = company.Ten || "";
   worksheet.getCell("A1").font = { bold: true, size: 14 };
 
-  worksheet.getCell("A2").value =
-    "Địa chỉ: (địa chỉ)";
-  worksheet.getCell("A3").value = "Điện thoại: (SĐT)";
-  worksheet.getCell("A4").value = "Email: (email)";
+  worksheet.getCell("A2").value = company.DiaChi ? `Địa chỉ: ${company.DiaChi}` : "";
+  worksheet.getCell("A3").value = company.DienThoai ? `Điện thoại: ${company.DienThoai}` : "";
+  worksheet.getCell("A4").value = company.Email ? `Email: ${company.Email}` : "";
 
   ["A1", "A2", "A3", "A4"].forEach((ref) => {
     worksheet.getCell(ref).alignment = {
@@ -382,11 +435,13 @@ export const exportHoaDonListToExcel = async (
 
   // Header
   worksheet.mergeCells('A1:C1');
-  worksheet.getCell('A1').value = 'DENTAL LAB';
+  const company = await getCompanyInfo();
+
+  worksheet.getCell('A1').value = company.Ten || '';
   worksheet.getCell('A1').font = { bold: true, size: 14 };
-  worksheet.getCell('A2').value = `Địa chỉ: (địa chỉ)`;
-  worksheet.getCell('A3').value = 'Điện thoại: (SĐT)';
-  worksheet.getCell('A4').value = 'Email: (email)';
+  worksheet.getCell('A2').value = company.DiaChi ? `Địa chỉ: ${company.DiaChi}` : '';
+  worksheet.getCell('A3').value = company.DienThoai ? `Điện thoại: ${company.DienThoai}` : '';
+  worksheet.getCell('A4').value = company.Email ? `Email: ${company.Email}` : '';
 
   const fromDateLabel = formatDateSafe(fromDate);
   const toDateLabel = formatDateSafe(toDate);
@@ -501,13 +556,14 @@ export const exportDonHangListToExcel = async (
   worksheet.mergeCells("A3:D3");
   worksheet.mergeCells("A4:D4");
 
-  worksheet.getCell("A1").value = "DENTAL LAB";
+  const company = await getCompanyInfo();
+
+  worksheet.getCell("A1").value = company.Ten || "";
   worksheet.getCell("A1").font = { bold: true, size: 16 };
 
-  worksheet.getCell("A2").value =
-    "Địa chỉ: (địa chỉ)";
-  worksheet.getCell("A3").value = "Điện thoại: (SĐT)";
-  worksheet.getCell("A4").value = "Email: (email)";
+  worksheet.getCell("A2").value = company.DiaChi ? `Địa chỉ: ${company.DiaChi}` : "";
+  worksheet.getCell("A3").value = company.DienThoai ? `Điện thoại: ${company.DienThoai}` : "";
+  worksheet.getCell("A4").value = company.Email ? `Email: ${company.Email}` : "";
 
   ["A1", "A2", "A3", "A4"].forEach((ref) => {
     worksheet.getCell(ref).alignment = {
@@ -824,19 +880,21 @@ export const exportBangGiaRiengToExcel = async (nhaKhoaInfo, bangGiaData = []) =
 
   // ===== PHẦN ĐẦU =====
   worksheet.mergeCells('A1:C1');
-  worksheet.getCell('A1').value = 'DENTAL LAB';
+  const company = await getCompanyInfo();
+
+  worksheet.getCell('A1').value = company.Ten || '';
   worksheet.getCell('A1').font = { bold: true, size: 16 };
 
   worksheet.mergeCells('A2:C2');
-  worksheet.getCell('A2').value = 'Địa chỉ: (địa chỉ)';
+  worksheet.getCell('A2').value = company.DiaChi ? `Địa chỉ: ${company.DiaChi}` : '';
   worksheet.getCell('A2').font = { size: 11 };
 
   worksheet.mergeCells('A3:C3');
-  worksheet.getCell('A3').value = 'Điện thoại: (SĐT)';
+  worksheet.getCell('A3').value = company.DienThoai ? `Điện thoại: ${company.DienThoai}` : '';
   worksheet.getCell('A3').font = { size: 11 };
 
   worksheet.mergeCells('A4:C4');
-  worksheet.getCell('A4').value = 'Email: (email)';
+  worksheet.getCell('A4').value = company.Email ? `Email: ${company.Email}` : '';
   worksheet.getCell('A4').font = { size: 11 };
 
   ['A1', 'A2', 'A3', 'A4'].forEach((ref) => {
@@ -908,19 +966,21 @@ export const exportKeHoachGiaoHangToExcel = async (filteredOrders, formatSingleS
 
   // ===== PHẦN ĐẦU =====
   worksheet.mergeCells('A1:C1');
-  worksheet.getCell('A1').value = 'DENTAL LAB';
+  const company = await getCompanyInfo();
+
+  worksheet.getCell('A1').value = company.Ten || '';
   worksheet.getCell('A1').font = { bold: true, size: 16, name: 'Arial' };
 
   worksheet.mergeCells('A2:C2');
-  worksheet.getCell('A2').value = 'Địa chỉ: (địa chỉ)';
+  worksheet.getCell('A2').value = company.DiaChi ? `Địa chỉ: ${company.DiaChi}` : '';
   worksheet.getCell('A2').font = { size: 11, name: 'Arial' };
 
   worksheet.mergeCells('A3:C3');
-  worksheet.getCell('A3').value = 'Điện thoại: (SĐT)';
+  worksheet.getCell('A3').value = company.DienThoai ? `Điện thoại: ${company.DienThoai}` : '';
   worksheet.getCell('A3').font = { size: 11, name: 'Arial' };
 
   worksheet.mergeCells('A4:C4');
-  worksheet.getCell('A4').value = 'Email: (email)';
+  worksheet.getCell('A4').value = company.Email ? `Email: ${company.Email}` : '';
   worksheet.getCell('A4').font = { size: 11, name: 'Arial' };
 
   ['A1', 'A2', 'A3', 'A4'].forEach((ref) => {
@@ -1006,19 +1066,21 @@ export const exportDanhSachNhaKhoaToExcel = async (data) => {
   const worksheet = workbook.addWorksheet('Danh Sách Nha Khoa');
 
   worksheet.mergeCells('A1:G1');
-  worksheet.getCell('A1').value = 'DENTAL LAB';
+  const company = await getCompanyInfo();
+
+  worksheet.getCell('A1').value = company.Ten || '';
   worksheet.getCell('A1').font = { bold: true, size: 16, name: 'Arial' };
 
   worksheet.mergeCells('A2:G2');
-  worksheet.getCell('A2').value = 'Địa chỉ: (địa chỉ)';
+  worksheet.getCell('A2').value = company.DiaChi ? `Địa chỉ: ${company.DiaChi}` : '';
   worksheet.getCell('A2').font = { size: 11, name: 'Arial' };
 
   worksheet.mergeCells('A3:G3');
-  worksheet.getCell('A3').value = 'Điện thoại: (SĐT)';
+  worksheet.getCell('A3').value = company.DienThoai ? `Điện thoại: ${company.DienThoai}` : '';
   worksheet.getCell('A3').font = { size: 11, name: 'Arial' };
 
   worksheet.mergeCells('A4:G4');
-  worksheet.getCell('A4').value = 'Email: (email)';
+  worksheet.getCell('A4').value = company.Email ? `Email: ${company.Email}` : '';
   worksheet.getCell('A4').font = { size: 11, name: 'Arial' };
 
   ['A1', 'A2', 'A3', 'A4'].forEach((ref) => {
@@ -1033,7 +1095,7 @@ export const exportDanhSachNhaKhoaToExcel = async (data) => {
 
   worksheet.addRow([]);
 
-  const headerRow = worksheet.addRow(['Tên', 'Liên hệ', 'Địa chỉ', 'Website', 'Mô tả', 'Ngày tạo']);
+  const headerRow = worksheet.addRow(['Tên', 'Số điện thoại', 'Email', 'Địa chỉ', 'Website', 'Mô tả', 'Ngày tạo']);
   headerRow.eachCell((cell) => {
     cell.font = { name: 'Arial', size: 12, bold: true };
     cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
@@ -1042,7 +1104,8 @@ export const exportDanhSachNhaKhoaToExcel = async (data) => {
 
   worksheet.columns = [
     { width: 35 }, // Tên
-    { width: 25 }, // Liên hệ
+    { width: 18 }, // Số điện thoại
+    { width: 25 }, // Email
     { width: 45 }, // Địa chỉ
     { width: 25 }, // Website
     { width: 35 }, // Mô tả
@@ -1050,11 +1113,11 @@ export const exportDanhSachNhaKhoaToExcel = async (data) => {
   ];
 
   data.forEach((item) => {
-    const lienHeFull = [item.soDienThoai, item.email].filter(Boolean).join("\n");
     const diaChiFull = [item.diaChiCuThe, item.tinh, item.quocGia].filter(Boolean).join(", ");
     const row = worksheet.addRow([
       item.hoVaTen || item.tenGiaoDich || "",
-      lienHeFull || "",
+      item.soDienThoai || "",
+      item.email || "",
       diaChiFull || "",
       item.website || "",
       item.moTa || "",
@@ -1078,19 +1141,21 @@ export const exportDanhSachNguoiLienHeToExcel = async (data) => {
   const worksheet = workbook.addWorksheet('Danh Sách Người Liên Hệ');
 
   worksheet.mergeCells('A1:E1');
-  worksheet.getCell('A1').value = 'DENTAL LAB';
+  const company = await getCompanyInfo();
+
+  worksheet.getCell('A1').value = company.Ten || '';
   worksheet.getCell('A1').font = { bold: true, size: 16, name: 'Arial' };
 
   worksheet.mergeCells('A2:E2');
-  worksheet.getCell('A2').value = 'Địa chỉ: (địa chỉ)';
+  worksheet.getCell('A2').value = company.DiaChi ? `Địa chỉ: ${company.DiaChi}` : '';
   worksheet.getCell('A2').font = { size: 11, name: 'Arial' };
 
   worksheet.mergeCells('A3:E3');
-  worksheet.getCell('A3').value = 'Điện thoại: (SĐT)';
+  worksheet.getCell('A3').value = company.DienThoai ? `Điện thoại: ${company.DienThoai}` : '';
   worksheet.getCell('A3').font = { size: 11, name: 'Arial' };
 
   worksheet.mergeCells('A4:E4');
-  worksheet.getCell('A4').value = 'Email: (email)';
+  worksheet.getCell('A4').value = company.Email ? `Email: ${company.Email}` : '';
   worksheet.getCell('A4').font = { size: 11, name: 'Arial' };
 
   ['A1', 'A2', 'A3', 'A4'].forEach((ref) => {
@@ -1146,19 +1211,21 @@ export const exportDanhSachBenhNhanToExcel = async (data) => {
   const worksheet = workbook.addWorksheet('Danh Sách Bệnh Nhân');
 
   worksheet.mergeCells('A1:D1');
-  worksheet.getCell('A1').value = 'DENTAL LAB';
+  const company = await getCompanyInfo();
+
+  worksheet.getCell('A1').value = company.Ten || '';
   worksheet.getCell('A1').font = { bold: true, size: 16, name: 'Arial' };
 
   worksheet.mergeCells('A2:D2');
-  worksheet.getCell('A2').value = 'Địa chỉ: (địa chỉ)';
+  worksheet.getCell('A2').value = company.DiaChi ? `Địa chỉ: ${company.DiaChi}` : '';
   worksheet.getCell('A2').font = { size: 11, name: 'Arial' };
 
   worksheet.mergeCells('A3:D3');
-  worksheet.getCell('A3').value = 'Điện thoại: (SĐT)';
+  worksheet.getCell('A3').value = company.DienThoai ? `Điện thoại: ${company.DienThoai}` : '';
   worksheet.getCell('A3').font = { size: 11, name: 'Arial' };
 
   worksheet.mergeCells('A4:D4');
-  worksheet.getCell('A4').value = 'Email: (email)';
+  worksheet.getCell('A4').value = company.Email ? `Email: ${company.Email}` : '';
   worksheet.getCell('A4').font = { size: 11, name: 'Arial' };
 
   ['A1', 'A2', 'A3', 'A4'].forEach((ref) => {

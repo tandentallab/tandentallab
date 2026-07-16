@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -14,10 +14,26 @@ import {
 } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
 import { tinhLuong } from "../../utils/tinhLuong";
+import { api } from "../../config/api";
 
 export default function InBangLuongModal({ open, onClose, salaryData, thang, nam }) {
   const [selectedId, setSelectedId] = useState("");
   const printRef = useRef(null);
+  const [company, setCompany] = useState(null);
+
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        const res = await api.get("/cong-ty");
+        if (res.data && res.data.data) {
+          setCompany(res.data.data);
+        }
+      } catch (err) {
+        console.error("Lỗi lấy thông tin công ty:", err);
+      }
+    };
+    fetchCompany();
+  }, []);
 
   const selectedData = salaryData.find((item) => item._id === selectedId);
 
@@ -110,8 +126,8 @@ export default function InBangLuongModal({ open, onClose, salaryData, thang, nam
           <Box sx={{ p: { xs: 2, sm: 4 }, border: "1px dashed #ccc", borderRadius: 2, bgcolor: "#fff", overflowX: "auto" }}>
             <div ref={printRef} style={{ minWidth: "600px", color: "#000", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
               <div style={{ textAlign: "center", marginBottom: "8px" }}>
-                <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "bold", textTransform: "uppercase" }}>DENTAL LAB</h2>
-                <p style={{ margin: "2px 0 0", fontSize: "13px" }}>(địa chỉ)</p>
+                <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "bold", textTransform: "uppercase" }}>{company?.Ten || ""}</h2>
+                <p style={{ margin: "2px 0 0", fontSize: "13px" }}>{company?.DiaChi || ""}</p>
                 <h3 style={{ margin: "12px 0 4px 0", fontSize: "20px", fontWeight: "bold" }}>PHIẾU LƯƠNG NHÂN VIÊN</h3>
                 <p style={{ margin: 0, fontSize: "14px", fontStyle: "italic" }}>Tháng {thang} Năm {nam}</p>
               </div>

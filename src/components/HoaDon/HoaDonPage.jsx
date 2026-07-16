@@ -755,6 +755,7 @@ const HoaDonPage = () => {
                     );
                   }}
                 >
+                  <MenuItem value="Lưu tạm">Lưu tạm</MenuItem>
                   <MenuItem value="Chưa thanh toán">Chưa thanh toán</MenuItem>
                   <MenuItem value="Thanh toán một phần">Thanh toán một phần</MenuItem>
                   <MenuItem value="Đã thanh toán">Đã thanh toán</MenuItem>

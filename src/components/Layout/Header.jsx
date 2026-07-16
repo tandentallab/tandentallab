@@ -255,6 +255,17 @@ const Header = ({ onToggleSidebar }) => {
     }
   };
 
+  const formatDateTime = (value) => {
+    if (!value) return "---";
+    return new Date(value).toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
     <>
       <AppBar position="fixed" sx={{ zIndex: 1201, background: "#1DA1F2" }}>

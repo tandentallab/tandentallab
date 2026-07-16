@@ -155,7 +155,7 @@ const NhanVienTable = () => {
           padding: 0.45rem 0.75rem 0.45rem 2rem;
           border: 1px solid #e2e8f0;
           border-radius: 0.5rem;
-          font-size: 0.85rem;
+          font-size: 1rem;
           color: #334155;
           background: #fff;
           outline: none;
@@ -342,8 +342,8 @@ const NhanVienTable = () => {
                         (e.currentTarget.style.background = "#eff6ff")
                       }
                       onMouseLeave={(e) =>
-                        (e.currentTarget.style.background =
-                          idx % 2 === 0 ? "#fff" : "#f8fafc")
+                      (e.currentTarget.style.background =
+                        idx % 2 === 0 ? "#fff" : "#f8fafc")
                       }
                     >
                       {/* ── Sticky: Họ tên ── */}

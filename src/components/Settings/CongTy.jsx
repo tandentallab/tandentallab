@@ -1,7 +1,69 @@
 import React, { useState, useEffect } from "react";
-import { api } from "../../config/api";
+import { api, API_URL } from "../../config/api";
 import { CircularProgress, Button } from "@mui/material";
 import { toast } from "sonner";
+
+const getAvatarUrl = (avatar) => {
+  if (!avatar) return "";
+  if (avatar.startsWith("data:") || avatar.startsWith("http")) return avatar;
+  let baseUrl = API_URL ? API_URL.replace(/\/$/, "") : "";
+  const path = avatar.startsWith("/") ? avatar : `/${avatar}`;
+  if (path.startsWith("/api") && baseUrl.endsWith("/api")) {
+    baseUrl = baseUrl.slice(0, -4);
+  }
+  return `${baseUrl}${path}`;
+};
+
+const compressImage = (file, maxWidth, maxHeight, quality) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const newFile = new File([blob], file.name, {
+                type: file.type,
+                lastModified: Date.now(),
+              });
+              resolve(newFile);
+            } else {
+              reject(new Error("Canvas toBlob failed"));
+            }
+          },
+          file.type,
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
 
 export default function CongTyPage() {
   const [company, setCompany] = useState({
@@ -68,14 +130,38 @@ export default function CongTyPage() {
     }
   };
 
-  const handleAvatarUpload = (e) => {
+  const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        handleChange("Avatar", reader.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    try {
+      // Nén ảnh về tối đa 600x600 chất lượng 85% trước khi upload
+      const compressedFile = await compressImage(file, 600, 600, 0.85);
+
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+
+      toast.promise(
+        api.post("/cong-ty/upload-logo", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }),
+        {
+          loading: "Đang tải ảnh logo lên...",
+          success: (res) => {
+            handleChange("Avatar", res.data.url);
+            return "Tải ảnh logo thành công!";
+          },
+          error: (err) => {
+            console.error("Lỗi upload logo:", err);
+            return err.response?.data?.message || "Lỗi khi tải ảnh logo!";
+          }
+        }
+      );
+    } catch (err) {
+      console.error("Lỗi xử lý file ảnh:", err);
+      toast.error("Lỗi xử lý file ảnh!");
     }
   };
 
@@ -100,7 +186,7 @@ export default function CongTyPage() {
       <div className="flex flex-col items-center mb-8 pb-8 border-b">
         <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mb-4">
           {company.Avatar ? (
-            <img src={company.Avatar} alt="Company Logo" className="w-full h-full object-cover" />
+            <img src={getAvatarUrl(company.Avatar)} alt="Company Logo" className="w-full h-full object-cover" />
           ) : (
             <div className="text-4xl text-gray-400">🏢</div>
           )}

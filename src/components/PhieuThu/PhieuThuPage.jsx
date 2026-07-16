@@ -439,10 +439,10 @@ export default function PhieuThuPage() {
                             </span>
                             <input
                                 type="text"
-                                placeholder="Tìm phiếu thu, khách hàng..."
+                                placeholder="Tìm phiếu thu, KH..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="border bg-gray-50 pl-8 pr-8 py-1.5 rounded-full w-full sm:w-64 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                className="border bg-gray-50 pl-8 pr-8 py-1.5 rounded-full w-full sm:w-64 focus:outline-none focus:ring-1 focus:ring-blue-500 text-base"
                             />
                             {searchTerm && (
                                 <button onClick={() => setSearchTerm("")} className="absolute right-2.5 text-gray-400 hover:text-gray-600 flex items-center">
@@ -814,8 +814,8 @@ export default function PhieuThuPage() {
                         <div style={{ marginBottom: "6mm" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "3mm" }}>
                                 <div style={{ flex: 2 }}>
-                                    <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>{congTy?.Ten || "CÔNG TY TNHH TẤN DENTAL"}</p>
-                                    <p style={{ fontSize: "9pt", margin: "1mm 0 0 0" }}>{congTy?.DiaChi || "Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ"}</p>
+                                    <p style={{ margin: 0, fontWeight: "bold", fontSize: "11pt", textTransform: "uppercase" }}>{congTy?.Ten || ""}</p>
+                                    <p style={{ fontSize: "9pt", margin: "1mm 0 0 0" }}>{congTy?.DiaChi || ""}</p>
                                 </div>
                                 <div style={{ marginTop: "1mm", flex: 1, textAlign: "right", fontSize: "9pt" }}>
                                     <div>QĐ số 15/2006/QĐ-BTC</div>

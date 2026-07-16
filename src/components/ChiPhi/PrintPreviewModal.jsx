@@ -1,11 +1,29 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogActions, Button, Box } from '@mui/material';
 import { Print } from '@mui/icons-material';
+import { api } from '../../config/api';
 
 const PrintPreviewModal = ({ isOpen, onClose, data }) => {
     const iframeRef = useRef(null);
+    const [company, setCompany] = useState(null);
 
-    const { items = [], subtitle = "", type = "day" } = data || {};
+    useEffect(() => {
+        const fetchCompany = async () => {
+            try {
+                const res = await api.get('/cong-ty');
+                if (res.data && res.data.data) {
+                    setCompany(res.data.data);
+                }
+            } catch (err) {
+                console.error("Lỗi lấy thông tin công ty:", err);
+            }
+        };
+        if (isOpen) {
+            fetchCompany();
+        }
+    }, [isOpen]);
+
+    const { items = [], subtitle = "", type = "day", tonQuyData } = data || {};
 
     const tongTien = items.reduce((sum, item) => sum + (item.gia || 0), 0);
 
@@ -14,6 +32,17 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
         displaySubtitle = displaySubtitle
             .replace(/ngày\s+\d{1,2}\//i, 'tháng ')
             .replace('ngày ../..', 'tháng tt/nnnn');
+    }
+
+    // Xử lý hiển thị Quỹ và Số Dư
+    let strQuyHienTai = "";
+    let strSoDu = "";
+    let showQuy = false;
+
+    if (tonQuyData && tonQuyData.quyHienTai !== undefined) {
+        showQuy = true;
+        strQuyHienTai = tonQuyData.quyHienTai.toLocaleString('vi-VN');
+        strSoDu = (tonQuyData.quyHienTai - tongTien).toLocaleString('vi-VN');
     }
 
     const htmlContent = `
@@ -25,9 +54,8 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                 @page { size: A5 portrait; margin: 3mm; }
                 body { font-family: 'Times New Roman', serif; color: #000; margin: 0; padding: 0; }
                 
-                /* Thêm class bọc ngoài để tạo khoảng cách an toàn khi in (cỡ p-4) */
                 .print-container {
-                    padding: 12px 12px 0 12px; /* Top, Right, Bottom, Left */
+                    padding: 12px 12px 0 12px; 
                     box-sizing: border-box;
                     width: 100%;
                 }
@@ -35,16 +63,10 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                 table { width: 100%; border-collapse: collapse; margin-top: 10px; }
                 th, td { border: 0.5px solid #000; padding: 2px 8px; font-size: 14px; }
                 
-                /* Class cho header các cột */
                 .col-header { font-weight: bold; text-align: center; background-color: #f8fafc; }
-                
-                /* Định dạng cho phần tiêu đề nằm trong bảng */
                 .main-title { font-size: 14px; font-weight: bold; text-transform: uppercase; text-align: center; }
                 .sub-title { font-size: 13px;  text-align: center; font-weight: normal; }
-                
-                /* Định dạng cho ô SD và N */
-                .sd-n-cell { text-align: left; vertical-align: top; font-weight: normal; line-height: 1.2; padding: 2px 8px; }
-
+                .sd-n-cell { text-align: left; vertical-align: center; font-weight: normal;  padding: 0px 4px; }
                 .text-center { text-align: center; }
                 .text-right { text-align: right; }
                 .font-bold { font-weight: bold; }
@@ -56,13 +78,14 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                     <thead>
                         <tr>
                             <th colspan="3" style="border-top: none; border-left: none;">
-                                <div class="main-title">LAB TẤN DENTAL</div>
+                                <div class="main-title">${company?.Ten ? company.Ten.toUpperCase() : ''}</div>
                                 ${displaySubtitle ? `<div class="sub-title">${displaySubtitle}</div>` : ''}
                             </th>
-                            <th colspan="1" class="sd-n-cell">
-                                <div>SD:</div>
-                                <div>N:</div>
+                            ${showQuy ? `
+                            <th colspan="2" class="sd-n-cell font-bold">
+                                Quỹ: ${strQuyHienTai}
                             </th>
+                            ` : ''}
                         </tr>
                         <tr>
                             <th width="8%" class="col-header">STT</th>
@@ -74,7 +97,6 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                     <tbody>
                         ${items.map((item, index) => {
         let sttDisplay = index + 1;
-
         if (type === 'month') {
             if (item.ngay) {
                 const dateObj = new Date(item.ngay);
@@ -89,7 +111,6 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                 sttDisplay = 'nn/tt';
             }
         }
-
         return `
                                 <tr>
                                     <td class="text-center">${sttDisplay}</td>
@@ -103,10 +124,12 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                             <td colspan="3" class="text-center font-bold">TỔNG CỘNG</td>
                             <td class="text-right font-bold">${tongTien.toLocaleString('vi-VN')}</td>
                         </tr>
+                        ${showQuy ? `
                         <tr>
-                            <td colspan="3" class="text-center font-bold">SỬ DỤNG</td>
-                            <td></td>
+                            <td colspan="3" class="text-center font-bold">SỐ DƯ</td>
+                            <td class="text-right font-bold">${strSoDu}</td>
                         </tr>
+                        ` : ''}
                     </tbody>
                 </table>
             </div>

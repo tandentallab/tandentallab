@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api } from '../../config/api';
+import { api, API_URL } from '../../config/api';
 import { toast } from 'sonner';
 import { CircularProgress } from '@mui/material';
+
+const getAvatarUrl = (avatar) => {
+  if (!avatar) return "";
+  if (avatar.startsWith("data:") || avatar.startsWith("http")) return avatar;
+  let baseUrl = API_URL ? API_URL.replace(/\/$/, "") : "";
+  const path = avatar.startsWith("/") ? avatar : `/${avatar}`;
+  if (path.startsWith("/api") && baseUrl.endsWith("/api")) {
+    baseUrl = baseUrl.slice(0, -4);
+  }
+  return `${baseUrl}${path}`;
+};
 
 // THỨ TỰ SẮP XẾP LƯỚI RĂNG 16 CỘT X 2 HÀNG THEO MẪU GỐC
 const FULL_TEETH_ORDER = [
@@ -75,6 +86,21 @@ const CheckPhieuBaoHanhPage = () => {
   const [loading, setLoading] = useState(false);
   const [warranty, setWarranty] = useState(null);
   const [searched, setSearched] = useState(false);
+  const [company, setCompany] = useState(null);
+
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        const res = await api.get('/cong-ty');
+        if (res.data && res.data.data) {
+          setCompany(res.data.data);
+        }
+      } catch (e) {
+        console.error("Lỗi lấy thông tin công ty:", e);
+      }
+    };
+    fetchCompany();
+  }, []);
 
   // TỰ ĐỘNG NHẬN DIỆN MÃ QR (GIỮ NGUYÊN CHỮ HOA VÀ CHỮ THƯỜNG)
   useEffect(() => {
@@ -146,13 +172,20 @@ const CheckPhieuBaoHanhPage = () => {
   return (
     <div className="warranty-lookup-body">
       <div className="container">
-        <img
-          src="/TẤN 2.png"
-          className="logo"
-          alt="Logo"
-          onError={(e) => e.target.src = '/logo192.png'}
-        />
-        <h4>THÔNG TIN BẢO HÀNH RĂNG SỨ<br />CÔNG TY TNHH TẤN DENTAL</h4>
+        {company?.Avatar ? (
+          <img
+            src={getAvatarUrl(company.Avatar)}
+            className="logo"
+            alt="Logo"
+          />
+        ) : (
+          <img
+            src="/logo192.png"
+            className="logo"
+            alt="Logo"
+          />
+        )}
+        <h4>THÔNG TIN BẢO HÀNH RĂNG SỨ<br />{company?.Ten || ""}</h4>
 
         <div className="search-box">
           <form onSubmit={handleSearch}>

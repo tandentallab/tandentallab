@@ -16,43 +16,52 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LoginModal from "../Login/LoginModal";
 import HeaderUser from "./HeaderUser";
 import QuickAddMenu from "./QuickAddMenu";
 import { useSelector } from "react-redux";
 import { getAuthSelector } from "../../redux/selector";
 import { useNavigate } from "react-router-dom";
-import { api } from "../../config/api";
+import { api, API_URL } from "../../config/api";
 import debounce from "lodash/debounce";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import { hasRouteAccess } from "../../config/permissions";
 import { toast } from "sonner";
-
-// Import trang Tìm kiếm nâng cao vào đây
-import TimKiemNangCaoPage from "./TimKiemNangCaoPage";
-import GhiChuAddModal from "../GhiChu/GhiChuAddModal";
-
-const formatDateTime = (isoString) => {
-  if (!isoString) return "";
-  const d = new Date(isoString);
-  if (isNaN(d.getTime())) return "";
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${hours}:${minutes} ${day}/${month}/${year}`;
-};
 
 const Header = ({ onToggleSidebar }) => {
   const { isAuthenticated, user } = useSelector(getAuthSelector);
   const navigate = useNavigate();
 
   // States
+  const [company, setCompany] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const getAvatarUrl = (avatar) => {
+    if (!avatar) return "";
+    if (avatar.startsWith("data:") || avatar.startsWith("http")) return avatar;
+    let baseUrl = API_URL ? API_URL.replace(/\/$/, "") : "";
+    const path = avatar.startsWith("/") ? avatar : `/${avatar}`;
+    if (path.startsWith("/api") && baseUrl.endsWith("/api")) {
+      baseUrl = baseUrl.slice(0, -4);
+    }
+    return `${baseUrl}${path}`;
+  };
+
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        const res = await api.get('/cong-ty');
+        if (res.data && res.data.data) {
+          setCompany(res.data.data);
+        }
+      } catch (e) {
+        console.error("Lỗi lấy thông tin công ty:", e);
+      }
+    };
+    fetchCompany();
+  }, []);
 
   // Khởi tạo state chỉ chứa donHang
   const [results, setResults] = useState({
@@ -60,8 +69,6 @@ const Header = ({ onToggleSidebar }) => {
   });
   const [isSearching, setIsSearching] = useState(false);
 
-  // State quản lý bật/tắt Tìm kiếm nâng cao
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [openTodoPopover, setOpenTodoPopover] = useState(false);
   const [todoList, setTodoList] = useState([]);
   const [openGhiChuAddModal, setOpenGhiChuAddModal] = useState(false);
@@ -133,6 +140,72 @@ const Header = ({ onToggleSidebar }) => {
   };
 
 
+  const runTodoToastFlow = async () => {
+    try {
+      const res = await api.get("/ghi-chu");
+      if (res.data?.success && res.data.data?.length > 0) {
+        const todos = res.data.data;
+
+        // Dọn dẹp hàng đợi cũ nếu đang chạy dở
+        if (toastIntervalRef.current) {
+          clearInterval(toastIntervalRef.current);
+          toastIntervalRef.current = null;
+        }
+
+        let currentIndex = 0;
+
+        const showNextTodo = () => {
+          if (currentIndex >= todos.length) {
+            if (toastIntervalRef.current) {
+              clearInterval(toastIntervalRef.current);
+              toastIntervalRef.current = null;
+            }
+            return;
+          }
+
+          const note = todos[currentIndex];
+          const labelText = note.maDonHang
+            ? `[Mã ĐH: ${note.maDonHang}] Ghi chú cần xử lý:`
+            : "Ghi chú công việc chung:";
+
+          // Đẩy toast hiển thị với duration: Infinity để tự kiểm soát đóng
+          const toastId = toast.info(labelText, {
+            description: note.noiDung,
+            duration: Infinity,
+            action: {
+              label: "Xem",
+              onClick: () => {
+                if (note.donHang) {
+                  navigate(`/donhang/${note.donHang._id}/edit`);
+                } else {
+                  navigate("/ghi-chu");
+                }
+                toast.dismiss(toastId);
+              }
+            }
+          });
+
+          // Tự động tắt sau đúng 15 giây
+          setTimeout(() => {
+            toast.dismiss(toastId);
+          }, 15000);
+
+          currentIndex++;
+        };
+
+        // Hiện ghi chú đầu tiên ngay lập tức
+        showNextTodo();
+
+        // Cứ mỗi 5 giây thì hiện ghi chú tiếp theo (staggered display)
+        // Với thời gian sống 15s của mỗi toast, trên màn hình sẽ hiển thị tối đa 3 toast cùng lúc
+        toastIntervalRef.current = setInterval(() => {
+          showNextTodo();
+        }, 5000);
+      }
+    } catch (error) {
+      console.error("Lỗi khi chạy luồng toast ghi chú:", error);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -182,6 +255,17 @@ const Header = ({ onToggleSidebar }) => {
     }
   };
 
+  const formatDateTime = (value) => {
+    if (!value) return "---";
+    return new Date(value).toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
     <>
       <AppBar position="fixed" sx={{ zIndex: 1201, background: "#1DA1F2" }}>
@@ -209,11 +293,27 @@ const Header = ({ onToggleSidebar }) => {
               <MenuIcon />
             </IconButton>
 
-            <div className="w-10 h-10 p-1 rounded-full shadow-md bg-white flex items-center justify-center">
-              <img className="w-full" src="/icon.png" alt="Tấn Dental" />
-            </div>
+            <Box
+              onClick={() => navigate("/")}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                cursor: "pointer",
+                userSelect: "none",
+                "&:hover": { opacity: 0.85 }
+              }}
+            >
+              <div className="w-10 h-10 p-1 rounded-full shadow-md bg-white flex items-center justify-center overflow-hidden">
+                {company?.Avatar ? (
+                  <img className="w-full h-full object-cover" src={getAvatarUrl(company.Avatar)} alt={company?.Ten || "Logo"} />
+                ) : (
+                  <img className="w-full h-full object-cover" src="/icon.png" alt="Logo" />
+                )}
+              </div>
 
-            <p className="hidden sm:block font-medium text-xl tracking-wide">CÔNG TY TNHH TẤN DENTAL</p>
+              <p className="hidden sm:block font-medium text-xl tracking-wide">{company?.Ten || ""}</p>
+            </Box>
           </Box>
 
           {/* 👉 THANH TÌM KIẾM CHO CẢ PC & MOBILE */}
@@ -272,7 +372,7 @@ const Header = ({ onToggleSidebar }) => {
                 onChange={handleSearchChange}
                 onFocus={() => setIsDropdownOpen(true)}
                 autoFocus={searchOpen}
-                sx={{ ml: 1, width: "100%", fontSize: "14px" }}
+                sx={{ ml: 1, width: "100%", fontSize: "16px" }}
               />
               {isSearching && (
                 <CircularProgress size={20} sx={{ color: "#1DA1F2" }} />
@@ -310,23 +410,6 @@ const Header = ({ onToggleSidebar }) => {
                   <Typography variant="body2" sx={{ fontSize: "13px", fontWeight: "bold", color: "#64748b", pl: 1 }}>
                     KẾT QUẢ ĐƠN HÀNG
                   </Typography>
-
-                  <Button
-                    size="small"
-                    endIcon={<OpenInNewIcon fontSize="small" />}
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      setSearchOpen(false);
-                      setShowAdvancedSearch(true);
-                    }}
-                    sx={{
-                      textTransform: "none",
-                      fontWeight: "bold",
-                      fontSize: "12px",
-                    }}
-                  >
-                    Tìm nâng cao
-                  </Button>
                 </Box>
 
                 {/* DANH SÁCH HIỂN THỊ */}
@@ -457,9 +540,9 @@ const Header = ({ onToggleSidebar }) => {
                     {/* Todo Popover */}
                     {openTodoPopover && (
                       <Paper
-                        className="fixed sm:absolute top-[60px] sm:top-[45px] left-4 sm:left-auto right-4 sm:right-0 w-[calc(100vw-32px)] sm:w-[480px] max-w-md sm:max-w-none bg-white rounded-2xl shadow-2xl border border-gray-100 z-[1200] flex flex-col overflow-hidden text-gray-800"
+                        className="fixed sm:absolute top-[60px] sm:top-[45px] left-4 sm:left-auto right-4 sm:right-0 w-[calc(100vw-32px)] sm:w-[580px] max-w-md sm:max-w-none bg-white rounded-2xl shadow-2xl border border-gray-100 z-[1200] flex flex-col overflow-hidden text-gray-800"
                         style={{
-                          maxHeight: "450px",
+                          maxHeight: "650px",
                         }}
                       >
                         {/* Header */}
@@ -472,7 +555,7 @@ const Header = ({ onToggleSidebar }) => {
                         {/* List */}
                         <div
                           className="flex-grow overflow-y-auto divide-y divide-gray-100 p-2"
-                          style={{ maxHeight: "250px" }}
+                          style={{ maxHeight: "450px" }}
                         >
                           {activeTodoList.length > 0 ? (
                             activeTodoList.map((todo, idx) => (
@@ -485,25 +568,26 @@ const Header = ({ onToggleSidebar }) => {
                                     <p className="text-gray-800 font-semibold text-sm whitespace-pre-wrap leading-relaxed">
                                       {todo.noiDung}
                                     </p>
-                                    <div className="flex items-center justify-start mt-1 text-xs text-gray-400 gap-1.5 flex-wrap">
+                                    <div className="flex items-start justify-between mt-1 text-xs text-gray-400 w-full">
                                       {todo.donHang ? (
                                         <span
                                           onClick={() => {
                                             setOpenTodoPopover(false);
                                             navigate(`/donhang/${todo.donHang._id}/edit`);
                                           }}
-                                          className="font-bold text-blue-600 hover:underline cursor-pointer"
+                                          className="font-bold text-blue-600 hover:underline cursor-pointer whitespace-normal break-words mr-2"
+                                          title={`BN: ${todo.donHang.benhNhan?.hoVaTen || "Trống"} - NK: ${todo.donHang.nhaKhoa?.tenGiaoDich || todo.donHang.nhaKhoa?.hoVaTen || "Trống"}`}
                                         >
-                                          {`${todo.donHang.benhNhan?.hoVaTen || "Trống"} - ${todo.donHang.nhaKhoa?.tenGiaoDich || todo.donHang.nhaKhoa?.hoVaTen || "Trống"}`}
+                                          {`BN: ${todo.donHang.benhNhan?.hoVaTen || "Trống"} - NK: ${todo.donHang.nhaKhoa?.tenGiaoDich || todo.donHang.nhaKhoa?.hoVaTen || "Trống"}`}
                                         </span>
                                       ) : (
-                                        todo.maDonHang && (
-                                          <span className="font-bold text-gray-500">
+                                        todo.maDonHang ? (
+                                          <span className="font-bold text-gray-500 whitespace-normal break-words mr-2">
                                             {todo.maDonHang}
                                           </span>
-                                        )
+                                        ) : <span />
                                       )}
-                                      <span className="text-[10px] text-gray-400 font-medium bg-gray-100 px-1.5 py-0.5 rounded select-none">
+                                      <span className="text-[10.5px] text-blue-700 font-semibold bg-blue-50 px-1.5 py-0.5 rounded select-none shrink-0">
                                         {formatDateTime(todo.createdAt)}
                                       </span>
                                     </div>
@@ -566,18 +650,6 @@ const Header = ({ onToggleSidebar }) => {
           </Box>
         </Toolbar>
       </AppBar>
-
-      {/* HIỂN THỊ MÀN HÌNH TÌM KIẾM NÂNG CAO */}
-      {showAdvancedSearch && (
-        <TimKiemNangCaoPage onClose={() => setShowAdvancedSearch(false)} />
-      )}
-
-      <GhiChuAddModal
-        open={openGhiChuAddModal}
-        onClose={() => setOpenGhiChuAddModal(false)}
-        onSuccess={fetchTodos}
-      />
-
     </>
   );
 };

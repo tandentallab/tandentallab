@@ -63,7 +63,11 @@ const ChiPhiForm = ({ isLoading, onAdd }) => {
 
     return (
         <Paper elevation={0} className="rounded-xl border border-slate-200 overflow-hidden w-full">
-            <Box component="form" onSubmit={handleSubmit} className="px-5 py-4 flex flex-wrap gap-3 items-end w-full">
+            <Box
+                component="form"
+                onSubmit={handleSubmit}
+                className="px-5 py-4 flex flex-wrap gap-3 items-end w-full"
+            >
                 <TextField
                     size="small"
                     name="tenChiPhi"
@@ -71,35 +75,82 @@ const ChiPhiForm = ({ isLoading, onAdd }) => {
                     value={formData.tenChiPhi}
                     onChange={handleChangeForm}
                     required
-                    sx={{ flex: '1 1 180px', '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                    sx={{
+                        flex: '1 1 180px',
+                        '& .MuiOutlinedInput-root': {
+                            borderRadius: '8px',
+                            '& input': {
+                                fontSize: '16px',
+                            },
+                        },
+                    }}
                 />
 
-                <FormControl size="small" required sx={{ minWidth: 180, width: { xs: '100%', sm: 160 } }}>
-                    <InputLabel id="loai-chi-phi-label">Loại chi phí</InputLabel>
-                    <Select
-                        labelId="loai-chi-phi-label"
-                        name="loaiChiPhi"
-                        value={formData.loaiChiPhi}
-                        onChange={handleChangeForm}
-                        label="Loại chi phí"
+                {/* Loại chi phí + Số tiền */}
+                <Box
+                    sx={{
+                        width: { xs: '100%', sm: 'auto' },
+                        display: 'flex',
+                        gap: 1.5,
+                        alignItems: 'flex-end',
+                        flex: { sm: '0 0 auto' },
+                    }}
+                >
+                    <FormControl
+                        size="small"
                         required
-                        sx={{ borderRadius: '8px' }}
+                        sx={{
+                            flex: { xs: 6, sm: '0 0 180px' },
+                            minWidth: 0,
+                        }}
                     >
-                        <MenuItem value="ADD_NEW" sx={{ fontWeight: 'bold', color: '#0284c7', borderBottom: '1px solid #e2e8f0', mb: 1 }}>
-                            + Thêm loại mới
-                        </MenuItem>
-                        {danhSachLoaiChiPhi.map(opt => (
-                            <MenuItem key={opt} value={opt}>{opt}</MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+                        <InputLabel id="loai-chi-phi-label">Loại chi phí</InputLabel>
+                        <Select
+                            labelId="loai-chi-phi-label"
+                            name="loaiChiPhi"
+                            value={formData.loaiChiPhi}
+                            onChange={handleChangeForm}
+                            label="Loại chi phí"
+                            required
+                            sx={{ borderRadius: '8px' }}
+                        >
+                            <MenuItem
+                                value="ADD_NEW"
+                                sx={{
+                                    fontWeight: 'bold',
+                                    color: '#0284c7',
+                                    borderBottom: '1px solid #e2e8f0',
+                                    mb: 1,
+                                }}
+                            >
+                                + Thêm loại mới
+                            </MenuItem>
 
-                <Box sx={{ width: { xs: '100%', sm: '160px' } }}>
-                    <MoneyInput
-                        value={formData.gia}
-                        onValueChange={(val) => setFormData((prev) => ({ ...prev, gia: val }))}
-                        required
-                    />
+                            {danhSachLoaiChiPhi.map((opt) => (
+                                <MenuItem key={opt} value={opt}>
+                                    {opt}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    <Box
+                        sx={{
+                            flex: { xs: 4, sm: '0 0 160px' },
+                            minWidth: 0,
+                        }}
+                    >
+                        <MoneyInput
+                            value={formData.gia}
+                            onValueChange={(val) =>
+                                setFormData((prev) => ({
+                                    ...prev,
+                                    gia: val,
+                                }))
+                            }
+                            required
+                        />
+                    </Box>
                 </Box>
 
                 <TextField
@@ -108,8 +159,24 @@ const ChiPhiForm = ({ isLoading, onAdd }) => {
                     label="Ghi chú"
                     value={formData.ghiChu}
                     onChange={handleChangeForm}
-                    sx={{ flex: '1 1 180px', '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
-                    slotProps={{ input: { startAdornment: (<InputAdornment position="start"><NoteIcon fontSize="small" className="text-slate-300" /></InputAdornment>) } }}
+                    sx={{
+                        flex: '1 1 180px',
+                        '& .MuiOutlinedInput-root': {
+                            borderRadius: '8px',
+                        },
+                    }}
+                    slotProps={{
+                        input: {
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <NoteIcon
+                                        fontSize="small"
+                                        className="text-slate-300"
+                                    />
+                                </InputAdornment>
+                            ),
+                        },
+                    }}
                 />
 
                 <IconButton
@@ -117,18 +184,40 @@ const ChiPhiForm = ({ isLoading, onAdd }) => {
                     disabled={isLoading}
                     aria-label="Thêm chi phí"
                     sx={{
-                        width: 40, height: 40, borderRadius: '50%', bgcolor: '#22c55e', color: 'white',
-                        '&:hover': { bgcolor: '#16a34a' }, '&.Mui-disabled': { bgcolor: '#86efac', color: 'white' },
-                        alignSelf: { xs: 'flex-end', sm: 'auto' }
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        bgcolor: '#22c55e',
+                        color: 'white',
+                        '&:hover': {
+                            bgcolor: '#16a34a',
+                        },
+                        '&.Mui-disabled': {
+                            bgcolor: '#86efac',
+                            color: 'white',
+                        },
+                        alignSelf: { xs: 'flex-end', sm: 'auto' },
                     }}
                 >
-                    {isLoading ? <CircularProgress size={18} color="inherit" /> : <AddIcon />}
+                    {isLoading ? (
+                        <CircularProgress size={18} color="inherit" />
+                    ) : (
+                        <AddIcon />
+                    )}
                 </IconButton>
             </Box>
 
             {/* Modal Thêm Loại Chi Phí Mới */}
-            <Dialog open={isAddTypeModalOpen} onClose={() => setIsAddTypeModalOpen(false)} maxWidth="xs" fullWidth>
-                <DialogTitle sx={{ fontWeight: 700, color: '#0c4a6e' }}>Thêm loại chi phí mới</DialogTitle>
+            <Dialog
+                open={isAddTypeModalOpen}
+                onClose={() => setIsAddTypeModalOpen(false)}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle sx={{ fontWeight: 700, color: '#0c4a6e' }}>
+                    Thêm loại chi phí mới
+                </DialogTitle>
+
                 <DialogContent dividers>
                     <TextField
                         autoFocus
@@ -145,9 +234,21 @@ const ChiPhiForm = ({ isLoading, onAdd }) => {
                         }}
                     />
                 </DialogContent>
+
                 <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setIsAddTypeModalOpen(false)} color="inherit">Hủy</Button>
-                    <Button onClick={handleAddNewType} variant="contained" color="primary">Xác nhận</Button>
+                    <Button
+                        onClick={() => setIsAddTypeModalOpen(false)}
+                        color="inherit"
+                    >
+                        Hủy
+                    </Button>
+                    <Button
+                        onClick={handleAddNewType}
+                        variant="contained"
+                        color="primary"
+                    >
+                        Xác nhận
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Paper>

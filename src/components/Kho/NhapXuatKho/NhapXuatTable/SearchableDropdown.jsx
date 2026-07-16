@@ -43,7 +43,7 @@ export default function SearchableDropdown({ options, value, onChange, placehold
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder={`Tìm ${placeholder.toLowerCase()}...`}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded outline-none focus:border-sky-400"
+                            className="w-full px-2 py-1.5 md:text-sm text-base border border-gray-200 rounded outline-none focus:border-sky-400"
                         />
                     </div>
                     <ul className="max-h-48 overflow-y-auto py-1">

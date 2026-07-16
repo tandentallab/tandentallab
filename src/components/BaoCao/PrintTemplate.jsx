@@ -1,7 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
+import { api, API_URL } from '../../config/api';
+
+const getAvatarUrl = (avatar) => {
+    if (!avatar) return "";
+    if (avatar.startsWith("data:") || avatar.startsWith("http")) return avatar;
+    let baseUrl = API_URL ? API_URL.replace(/\/$/, "") : "";
+    const path = avatar.startsWith("/") ? avatar : `/${avatar}`;
+    if (path.startsWith("/api") && baseUrl.endsWith("/api")) {
+        baseUrl = baseUrl.slice(0, -4);
+    }
+    return `${baseUrl}${path}`;
+};
 
 const PrintTemplate = ({ data, startDate, endDate }) => {
+    const [company, setCompany] = useState(null);
+
+    useEffect(() => {
+        api.get('/cong-ty')
+            .then(res => {
+                if (res.data && res.data.data) {
+                    setCompany(res.data.data);
+                }
+            })
+            .catch(err => console.error("Lỗi lấy thông tin công ty:", err));
+    }, []);
     // Tính tổng cộng hệ thống
     const totals = data?.reduce((acc, curr) => ({
         m: acc.m + (curr.t_moi || 0),
@@ -20,17 +43,19 @@ const PrintTemplate = ({ data, startDate, endDate }) => {
             {/* THÔNG TIN DOANH NGHIỆP */}
             <div className="flex items-center justify-between border-b-2 border-black pb-4 mb-6">
                 <div className="flex items-center gap-6">
-                    <div className="w-24 h-24">
-                        <img
-                            src="/logo_tan_dental.jpg"
-                            alt="Logo"
-                            className="w-full h-full object-contain"
-                        />
-                    </div>
+                    {company?.Avatar && (
+                        <div className="w-24 h-24">
+                            <img
+                                src={getAvatarUrl(company.Avatar)}
+                                alt="Logo"
+                                className="w-full h-full object-contain"
+                            />
+                        </div>
+                    )}
                     <div>
-                        <h1 className="text-center text-xl font-bold">Công ty TNHH Tấn Dental</h1>
-                        <p className="text-center text-lg">Số 43, đường số 14, KDC Hồng Phát, phường An Bình, TP Cần Thơ</p>
-                        <p className="text-center text-lg">Điện thoại: 0842312828</p>
+                        <h1 className="text-center text-xl font-bold">{company?.Ten || ""}</h1>
+                        <p className="text-center text-lg">{company?.DiaChi || ""}</p>
+                        <p className="text-center text-lg">{company?.DienThoai ? `Điện thoại: ${company.DienThoai}` : ""}</p>
                     </div>
                 </div>
             </div>

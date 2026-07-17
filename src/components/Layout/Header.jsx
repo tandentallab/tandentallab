@@ -27,6 +27,7 @@ import debounce from "lodash/debounce";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import { hasRouteAccess } from "../../config/permissions";
 import { toast } from "sonner";
+import GhiChuAddModal from "../GhiChu/GhiChuAddModal";
 
 const Header = ({ onToggleSidebar }) => {
   const { isAuthenticated, user } = useSelector(getAuthSelector);
@@ -650,6 +651,11 @@ const Header = ({ onToggleSidebar }) => {
           </Box>
         </Toolbar>
       </AppBar>
+
+      <GhiChuAddModal
+        open={openGhiChuAddModal}
+        onClose={() => setOpenGhiChuAddModal(false)}
+      />
     </>
   );
 };

@@ -6,10 +6,12 @@ import {
   Button,
   CircularProgress,
   Typography,
+  MenuItem,
 } from "@mui/material";
 
 import { useDispatch, useSelector } from "react-redux";
 import { updateNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
+import vietnamProvinces from "../../utils/vietNamProvinces";
 
 export default function NhaKhoaUpdateModal({ open, setOpen, data }) {
   const dispatch = useDispatch();
@@ -162,11 +164,18 @@ export default function NhaKhoaUpdateModal({ open, setOpen, data }) {
           />
 
           <TextField
-            label="Tỉnh"
+            select
+            label="Tỉnh / Thành phố"
+            fullWidth
             value={form.tinh}
             onChange={(e) => handleChange("tinh", e.target.value)}
-            fullWidth
-          />
+          >
+            {vietnamProvinces.map((item) => (
+              <MenuItem key={item} value={item}>
+                {item}
+              </MenuItem>
+            ))}
+          </TextField>
 
           <TextField
             label="Quốc gia"

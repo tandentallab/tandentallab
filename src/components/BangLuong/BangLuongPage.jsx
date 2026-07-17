@@ -401,11 +401,11 @@ const BangLuongPage = () => {
           label: "Tổng phụ cấp",
           value: fmt(
             tongPhuCap ||
-            (emp.com || 0) +
-            (emp.dienThoai || 0) +
-            (emp.thuong || 0) -
-            (emp.phat || 0) -
-            (emp.ungTruoc || 0)
+              (emp.com || 0) +
+                (emp.dienThoai || 0) +
+                (emp.thuong || 0) -
+                (emp.phat || 0) -
+                (emp.ungTruoc || 0)
           ),
           color: "#0369a1",
         },
@@ -675,6 +675,8 @@ const BangLuongPage = () => {
       className="fixed h-full w-full inset-0 z-[1299] flex flex-col overflow-hidden"
       style={{ background: "#f1f5f9" }}
     >
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+
       {/* ── TOP BAR ── */}
       <div
         className="shrink-0 flex flex-col md:flex-row md:items-center justify-between px-4 py-4 md:px-5 md:py-3 shadow-md gap-4 md:gap-2"
@@ -720,15 +722,15 @@ const BangLuongPage = () => {
             style={
               hasData
                 ? {
-                  background: "#166534",
-                  color: "#86efac",
-                  border: "1px solid #166534",
-                }
+                    background: "#166534",
+                    color: "#86efac",
+                    border: "1px solid #166534",
+                  }
                 : {
-                  background: "#78350f",
-                  color: "#fde68a",
-                  border: "1px solid #78350f",
-                }
+                    background: "#78350f",
+                    color: "#fde68a",
+                    border: "1px solid #78350f",
+                  }
             }
           >
             {hasData ? "✓ Đã có bảng lương" : "⚠ Chưa tạo bảng lương"}
@@ -808,8 +810,8 @@ const BangLuongPage = () => {
                 background: isSaving
                   ? "#075985"
                   : !isDirty
-                    ? "rgba(255,255,255,0.08)"
-                    : "#0284c7",
+                  ? "rgba(255,255,255,0.08)"
+                  : "#0284c7",
                 color: !isDirty ? "#94a3b8" : "#fff",
                 border: !isDirty ? "1px solid rgba(255,255,255,0.13)" : "none",
                 cursor: isSaving || !isDirty ? "not-allowed" : "pointer",
@@ -999,10 +1001,10 @@ const BangLuongPage = () => {
               label: "Lương TB/người",
               value: salaryData.length
                 ? (
-                  Math.round(
-                    Math.round(tongLuong / salaryData.length) / 1000
-                  ) * 1000
-                ).toLocaleString("vi-VN")
+                    Math.round(
+                      Math.round(tongLuong / salaryData.length) / 1000
+                    ) * 1000
+                  ).toLocaleString("vi-VN")
                 : "—",
               accent: "#f59e0b",
               suffix: salaryData.length ? " đ" : "",
@@ -1102,254 +1104,290 @@ const BangLuongPage = () => {
         </div>
 
         {/* ── TABLE ── */}
-        {/* Mobile card view */}
-        <div className="block md:hidden space-y-3">
-          {displayData.map((item, idx) => {
-            const fmt = (n) =>
-              (Math.round((n || 0) / 1000) * 1000).toLocaleString("vi-VN") +
-              " đ";
-            const { thanhTienCong, tongPhuCap } = tinhLuong({
-              luongCoBan: item.luongCanBan,
-              ngayCongThang: item.ngayCongThang,
-              soNgayCong: item.soNgayCong,
-              com: item.com,
-              dienThoai: item.dienThoai,
-              thuong: item.thuong,
-              phat: item.phat,
-              ungTruoc: item.ungTruoc,
-            });
-            return (
-              <div
-                key={item._id}
-                className="rounded-xl shadow p-4 cursor-pointer"
-                style={{ background: "#fff", borderLeft: "4px solid #0284c7" }}
-                onClick={() => setSelectedEmployee(item)}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-bold text-slate-800 text-sm">
-                    {item.hoVaTen}
-                  </span>
-                  <span
-                    className="text-xs font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: "#dcfce7", color: "#166534" }}
-                  >
-                    {fmt(item.thucNhan)}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
-                  <div>
-                    <span className="font-medium text-slate-600">LCB:</span>{" "}
-                    {fmt(item.luongCanBan)}
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-600">Công:</span>{" "}
-                    {item.soNgayCong}/{item.ngayCongThang}
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-600">
-                      Thành tiền:
-                    </span>{" "}
-                    {fmt(thanhTienCong)}
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-600">Thưởng:</span>{" "}
-                    {fmt(item.thuong)}
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-600">Phạt:</span>{" "}
-                    {fmt(item.phat)}
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-600">
-                      Ứng trước:
-                    </span>{" "}
-                    {fmt(item.ungTruoc)}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          {/* Mobile total card */}
-          {salaryData.length > 0 && (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
             <div
-              className="rounded-xl shadow p-4"
-              style={{ background: "#f0fdf4", borderLeft: "4px solid #10b981" }}
-            >
-              <div className="font-bold text-emerald-700 mb-2 text-sm">
-                Tổng ({salaryData.length} NV)
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="font-medium text-slate-600">Tổng LCB:</span>{" "}
-                  <span className="font-bold" style={{ color: "#0284c7" }}>
-                    {(
-                      Math.round((colTotals.luongCanBan || 0) / 1000) * 1000
-                    ).toLocaleString("vi-VN")}{" "}
-                    đ
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium text-slate-600">Thực nhận:</span>{" "}
-                  <span className="font-bold text-emerald-700">
-                    {(
-                      Math.round((colTotals.thucNhan || 0) / 1000) * 1000
-                    ).toLocaleString("vi-VN")}{" "}
-                    đ
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Desktop table view */}
-        <div
-          className="hidden md:block rounded-xl shadow overflow-hidden"
-          style={{ background: "#fff" }}
-        >
-          <div
-            className="overflow-x-auto"
-            style={{ maxHeight: "72vh", overflowY: "auto" }}
-          >
-            <table
-              className="w-full text-sm"
-              style={{ borderCollapse: "collapse", minWidth: 1100 }}
-            >
-              <thead>
-                <tr
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: "50%",
+                border: "4px solid #e0f2fe",
+                borderTopColor: "#0284c7",
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
+            <span className="text-sm text-slate-400 font-medium">
+              Đang tải dữ liệu bảng lương…
+            </span>
+          </div>
+        ) : (
+          <>
+            {/* Mobile card view */}
+            <div className="block md:hidden space-y-3">
+              {displayData.map((item, idx) => {
+                const fmt = (n) =>
+                  (Math.round((n || 0) / 1000) * 1000).toLocaleString("vi-VN") +
+                  " đ";
+                const { thanhTienCong, tongPhuCap } = tinhLuong({
+                  luongCoBan: item.luongCanBan,
+                  ngayCongThang: item.ngayCongThang,
+                  soNgayCong: item.soNgayCong,
+                  com: item.com,
+                  dienThoai: item.dienThoai,
+                  thuong: item.thuong,
+                  phat: item.phat,
+                  ungTruoc: item.ungTruoc,
+                });
+                return (
+                  <div
+                    key={item._id}
+                    className="rounded-xl shadow p-4 cursor-pointer"
+                    style={{
+                      background: "#fff",
+                      borderLeft: "4px solid #0284c7",
+                    }}
+                    onClick={() => setSelectedEmployee(item)}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-bold text-slate-800 text-sm">
+                        {item.hoVaTen}
+                      </span>
+                      <span
+                        className="text-xs font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: "#dcfce7", color: "#166534" }}
+                      >
+                        {fmt(item.thucNhan)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+                      <div>
+                        <span className="font-medium text-slate-600">LCB:</span>{" "}
+                        {fmt(item.luongCanBan)}
+                      </div>
+                      <div>
+                        <span className="font-medium text-slate-600">
+                          Công:
+                        </span>{" "}
+                        {item.soNgayCong}/{item.ngayCongThang}
+                      </div>
+                      <div>
+                        <span className="font-medium text-slate-600">
+                          Thành tiền:
+                        </span>{" "}
+                        {fmt(thanhTienCong)}
+                      </div>
+                      <div>
+                        <span className="font-medium text-slate-600">
+                          Thưởng:
+                        </span>{" "}
+                        {fmt(item.thuong)}
+                      </div>
+                      <div>
+                        <span className="font-medium text-slate-600">
+                          Phạt:
+                        </span>{" "}
+                        {fmt(item.phat)}
+                      </div>
+                      <div>
+                        <span className="font-medium text-slate-600">
+                          Ứng trước:
+                        </span>{" "}
+                        {fmt(item.ungTruoc)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Mobile total card */}
+              {salaryData.length > 0 && (
+                <div
+                  className="rounded-xl shadow p-4"
                   style={{
-                    background: "#0284c7",
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 10,
+                    background: "#f0fdf4",
+                    borderLeft: "4px solid #10b981",
                   }}
                 >
-                  {COLUMNS.map((col) => (
-                    <th
-                      key={col}
-                      className="px-4 py-3 text-left whitespace-nowrap text-xs font-bold uppercase tracking-wider"
+                  <div className="font-bold text-emerald-700 mb-2 text-sm">
+                    Tổng ({salaryData.length} NV)
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="font-medium text-slate-600">
+                        Tổng LCB:
+                      </span>{" "}
+                      <span className="font-bold" style={{ color: "#0284c7" }}>
+                        {(
+                          Math.round((colTotals.luongCanBan || 0) / 1000) * 1000
+                        ).toLocaleString("vi-VN")}{" "}
+                        đ
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-slate-600">
+                        Thực nhận:
+                      </span>{" "}
+                      <span className="font-bold text-emerald-700">
+                        {(
+                          Math.round((colTotals.thucNhan || 0) / 1000) * 1000
+                        ).toLocaleString("vi-VN")}{" "}
+                        đ
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop table view */}
+            <div
+              className="hidden md:block rounded-xl shadow overflow-hidden"
+              style={{ background: "#fff" }}
+            >
+              <div
+                className="overflow-x-auto"
+                style={{ maxHeight: "72vh", overflowY: "auto" }}
+              >
+                <table
+                  className="w-full text-sm"
+                  style={{ borderCollapse: "collapse", minWidth: 1100 }}
+                >
+                  <thead>
+                    <tr
                       style={{
-                        color: "#e0f2fe",
-                        borderBottom: "2px solid #0369a1",
                         background: "#0284c7",
-                        ...(col === "Nhân viên" && {
-                          position: "sticky",
-                          left: 0,
-                          zIndex: 12,
-                        }),
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 10,
                       }}
                     >
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-                {/* Sticky Total Row — right below header */}
-                {salaryData.length > 0 &&
-                  (() => {
-                    const fmt = (n) =>
-                      (Math.round((n || 0) / 1000) * 1000).toLocaleString(
-                        "vi-VN"
-                      ) + " đ";
-                    return (
-                      <tr
-                        style={{
-                          background: "#f0fdf4",
-                          borderBottom: "2px solid #d1fae5",
-                          position: "sticky",
-                          top: 41,
-                          zIndex: 9,
-                        }}
-                      >
-                        {/* Nhân viên */}
-                        <td
-                          className="px-4 py-2 text-xs font-bold text-emerald-700 whitespace-nowrap"
+                      {COLUMNS.map((col) => (
+                        <th
+                          key={col}
+                          className="px-4 py-3 text-left whitespace-nowrap text-xs font-bold uppercase tracking-wider"
                           style={{
-                            position: "sticky",
-                            left: 0,
-                            background: "#f0fdf4",
-                            zIndex: 8,
+                            color: "#e0f2fe",
+                            borderBottom: "2px solid #0369a1",
+                            background: "#0284c7",
+                            ...(col === "Nhân viên" && {
+                              position: "sticky",
+                              left: 0,
+                              zIndex: 12,
+                            }),
                           }}
                         >
-                          Tổng ({salaryData.length} NV)
-                        </td>
-                        {/* LCB */}
-                        <td
-                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
-                          style={{ color: "#0284c7" }}
-                        >
-                          {fmt(colTotals.luongCanBan)}
-                        </td>
-                        {/* Ngày công tháng */}
-                        <td className="px-4 py-2" />
-                        {/* Lương/ngày */}
-                        <td className="px-4 py-2" />
-                        {/* Công */}
-                        <td className="px-4 py-2" />
-                        {/* Thành tiền */}
-                        <td
-                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
-                          style={{ color: "#0284c7" }}
-                        >
-                          {fmt(colTotals.thanhTienCong)}
-                        </td>
-                        {/* Cơm */}
-                        <td
-                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
-                          style={{ color: "#0284c7" }}
-                        >
-                          {fmt(colTotals.com)}
-                        </td>
-                        {/* Điện thoại */}
-                        <td
-                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
-                          style={{ color: "#0284c7" }}
-                        >
-                          {fmt(colTotals.dienThoai)}
-                        </td>
-                        {/* Thưởng */}
-                        <td
-                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
-                          style={{ color: "#0284c7" }}
-                        >
-                          {fmt(colTotals.thuong)}
-                        </td>
-                        {/* Phạt */}
-                        <td className="px-4 py-2" />
-                        {/* Ứng trước */}
-                        <td
-                          className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
-                          style={{ color: "#b91c1c" }}
-                        >
-                          {fmt(colTotals.ungTruoc)}
-                        </td>
-                        {/* Tổng phụ cấp */}
-                        <td className="px-4 py-2" />
-                        {/* Thực nhận */}
-                        <td
-                          className="px-4 py-2 text-right text-sm font-extrabold whitespace-nowrap"
-                          style={{ color: "#059669" }}
-                        >
-                          {fmt(colTotals.thucNhan)}
-                        </td>
-                      </tr>
-                    );
-                  })()}
-              </thead>
-              <tbody>
-                {displayData.map((item, idx) => (
-                  <BangLuongRow
-                    key={item._id}
-                    item={item}
-                    onChange={handleChange}
-                    isEven={idx % 2 === 0}
-                    onRowClick={() => setSelectedEmployee(item)}
-                    onDelete={handleDeleteRow}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                    {/* Sticky Total Row — right below header */}
+                    {salaryData.length > 0 &&
+                      (() => {
+                        const fmt = (n) =>
+                          (Math.round((n || 0) / 1000) * 1000).toLocaleString(
+                            "vi-VN"
+                          ) + " đ";
+                        return (
+                          <tr
+                            style={{
+                              background: "#f0fdf4",
+                              borderBottom: "2px solid #d1fae5",
+                              position: "sticky",
+                              top: 41,
+                              zIndex: 9,
+                            }}
+                          >
+                            {/* Nhân viên */}
+                            <td
+                              className="px-4 py-2 text-xs font-bold text-emerald-700 whitespace-nowrap"
+                              style={{
+                                position: "sticky",
+                                left: 0,
+                                background: "#f0fdf4",
+                                zIndex: 8,
+                              }}
+                            >
+                              Tổng ({salaryData.length} NV)
+                            </td>
+                            {/* LCB */}
+                            <td
+                              className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                              style={{ color: "#0284c7" }}
+                            >
+                              {fmt(colTotals.luongCanBan)}
+                            </td>
+                            {/* Ngày công tháng */}
+                            <td className="px-4 py-2" />
+                            {/* Lương/ngày */}
+                            <td className="px-4 py-2" />
+                            {/* Công */}
+                            <td className="px-4 py-2" />
+                            {/* Thành tiền */}
+                            <td
+                              className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                              style={{ color: "#0284c7" }}
+                            >
+                              {fmt(colTotals.thanhTienCong)}
+                            </td>
+                            {/* Cơm */}
+                            <td
+                              className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                              style={{ color: "#0284c7" }}
+                            >
+                              {fmt(colTotals.com)}
+                            </td>
+                            {/* Điện thoại */}
+                            <td
+                              className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                              style={{ color: "#0284c7" }}
+                            >
+                              {fmt(colTotals.dienThoai)}
+                            </td>
+                            {/* Thưởng */}
+                            <td
+                              className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                              style={{ color: "#0284c7" }}
+                            >
+                              {fmt(colTotals.thuong)}
+                            </td>
+                            {/* Phạt */}
+                            <td className="px-4 py-2" />
+                            {/* Ứng trước */}
+                            <td
+                              className="px-4 py-2 text-right text-xs font-bold whitespace-nowrap"
+                              style={{ color: "#b91c1c" }}
+                            >
+                              {fmt(colTotals.ungTruoc)}
+                            </td>
+                            {/* Tổng phụ cấp */}
+                            <td className="px-4 py-2" />
+                            {/* Thực nhận */}
+                            <td
+                              className="px-4 py-2 text-right text-sm font-extrabold whitespace-nowrap"
+                              style={{ color: "#059669" }}
+                            >
+                              {fmt(colTotals.thucNhan)}
+                            </td>
+                          </tr>
+                        );
+                      })()}
+                  </thead>
+                  <tbody>
+                    {displayData.map((item, idx) => (
+                      <BangLuongRow
+                        key={item._id}
+                        item={item}
+                        onChange={handleChange}
+                        isEven={idx % 2 === 0}
+                        onRowClick={() => setSelectedEmployee(item)}
+                        onDelete={handleDeleteRow}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* ── EMPLOYEE DETAIL DRAWER (portal) ── */}
         {drawerPortal}

@@ -77,7 +77,7 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                 <table>
                     <thead>
                         <tr>
-                            <th colspan="3" style="border-top: none; border-left: none;">
+                            <th colspan="${showQuy ? '2' : '4'}" style="border-top: none; border-left: none; ${!showQuy ? 'border-right: none;' : ''}">
                                 <div class="main-title">${company?.Ten ? company.Ten.toUpperCase() : ''}</div>
                                 ${displaySubtitle ? `<div class="sub-title">${displaySubtitle}</div>` : ''}
                             </th>

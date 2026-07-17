@@ -62,7 +62,17 @@ export const deletePhieuNhapKho = createAsyncThunk(
         }
     }
 );
-
+export const appendPhieuNhapKho = createAsyncThunk(
+    "phieuNhapKho/append",
+    async (params, thunkAPI) => {
+        try {
+            const response = await api.get("/phieu-nhap-kho", { params });
+            return response.data;
+        } catch (error) {
+            return thunkAPI.rejectWithValue(error.response?.data);
+        }
+    }
+);
 // ── Slice ─────────────────────────────────────────────────────────────────────
 
 const phieuNhapKhoSlice = createSlice({
@@ -72,9 +82,11 @@ const phieuNhapKhoSlice = createSlice({
         selected: null,   // phiếu đang xem / sửa
         total: 0,
         page: 1,
-        limit: 10,
+        limit: 20,
         loading: false,
+        loadingMore: false,
         loadingDetail: false,
+        hasMore: true,
         error: null,
     },
 
@@ -100,7 +112,8 @@ const phieuNhapKhoSlice = createSlice({
                 state.phieuNhapKhos = action.payload.data || [];
                 state.total = action.payload.total || 0;
                 state.page = action.payload.page || 1;
-                state.limit = action.payload.limit || 10;
+                state.limit = action.payload.limit || 20;
+                state.hasMore = (action.payload.data || []).length >= (action.payload.limit || 20);
             })
             .addCase(fetchAllPhieuNhapKho.rejected, rejected)
 
@@ -155,7 +168,18 @@ const phieuNhapKhoSlice = createSlice({
                 );
                 state.total -= 1;
             })
-            .addCase(deletePhieuNhapKho.rejected, rejected);
+            .addCase(deletePhieuNhapKho.rejected, rejected)
+
+            // appendPhieuNhapKho (infinite scroll)
+            .addCase(appendPhieuNhapKho.pending, (state) => { state.loadingMore = true; })
+            .addCase(appendPhieuNhapKho.fulfilled, (state, action) => {
+                state.loadingMore = false;
+                const newData = action.payload.data || [];
+                state.phieuNhapKhos = [...state.phieuNhapKhos, ...newData];
+                state.total = action.payload.total || state.total;
+                state.hasMore = state.phieuNhapKhos.length < state.total;
+            })
+            .addCase(appendPhieuNhapKho.rejected, (state) => { state.loadingMore = false; });
     },
 });
 

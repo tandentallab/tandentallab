@@ -23,11 +23,13 @@ import {
   Select,
   MenuItem,
   Box,
+  InputAdornment,
 } from "@mui/material";
 
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -313,11 +315,13 @@ function StaffEditModal({ staffId, onClose }) {
   const [loading, setLoading] = useState(false);
   const [quyens, setQuyens] = useState([]);
   const [loadingQuyens, setLoadingQuyens] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
     MSNV: "",
     HoTenNV: "",
     Email: "",
+    Password: "",
     quyenSuDung: "",
     DienThoai: "",
     DiaChi: "",
@@ -334,6 +338,7 @@ function StaffEditModal({ staffId, onClose }) {
         MSNV: staff.MSNV || "",
         HoTenNV: staff.HoTenNV || "",
         Email: staff.Email || "",
+        Password: staff.plainPassword || "",
         quyenSuDung: staff.quyenSuDung?._id || staff.quyenSuDung || "",
         DienThoai: staff.DienThoai || "",
         DiaChi: staff.DiaChi || "",
@@ -366,7 +371,19 @@ function StaffEditModal({ staffId, onClose }) {
     try {
       setLoading(true);
 
+      const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+      const isEditingSelf = currentUser._id === staffId;
+      const hasPasswordChanged = !!form.Password && form.Password !== staff?.plainPassword;
+
       await dispatch(updateStaff({ id: staffId, data: form })).unwrap();
+
+      if (isEditingSelf && hasPasswordChanged) {
+        alert("Mật khẩu của bạn đã thay đổi. Vui lòng đăng nhập lại với mật khẩu mới!");
+        localStorage.removeItem("token");
+        localStorage.removeItem("currentUser");
+        window.location.href = "/login";
+        return;
+      }
 
       await dispatch(fetchStaff());
 
@@ -440,6 +457,28 @@ function StaffEditModal({ staffId, onClose }) {
             label="Điện thoại"
             value={form.DienThoai}
             onChange={(e) => handleChange("DienThoai", e.target.value)}
+          />
+
+          <TextField
+            fullWidth
+            label="Mật khẩu"
+            type={showPassword ? "text" : "password"}
+            value={form.Password}
+            onChange={(e) => handleChange("Password", e.target.value)}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }
+            }}
           />
 
           <FormControl fullWidth>

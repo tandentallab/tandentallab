@@ -4,6 +4,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { login } from "../../redux/slices/authSlice";
+import { api, API_URL } from "../../config/api";
 
 export default function LoginPage() {
   const dispatch = useDispatch();
@@ -12,11 +13,37 @@ export default function LoginPage() {
     (state) => state.auth
   );
 
+  const [company, setCompany] = useState(null);
   const [form, setForm] = useState({ identifier: "", Password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [focused, setFocused] = useState(null);
   const [mounted, setMounted] = useState(false);
+
+  const getAvatarUrl = (avatar) => {
+    if (!avatar) return "";
+    if (avatar.startsWith("data:") || avatar.startsWith("http")) return avatar;
+    let baseUrl = API_URL ? API_URL.replace(/\/$/, "") : "";
+    const path = avatar.startsWith("/") ? avatar : `/${avatar}`;
+    if (path.startsWith("/api") && baseUrl.endsWith("/api")) {
+      baseUrl = baseUrl.slice(0, -4);
+    }
+    return `${baseUrl}${path}`;
+  };
+
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        const res = await api.get('/cong-ty');
+        if (res.data && res.data.data) {
+          setCompany(res.data.data);
+        }
+      } catch (e) {
+        console.error("Lỗi lấy thông tin công ty:", e);
+      }
+    };
+    fetchCompany();
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -423,12 +450,16 @@ export default function LoginPage() {
         <div className="login-shell">
           {/* ── LEFT: Brand ── */}
           <div className="brand-panel">
-            <div className="brand-logo-wrap">
-              <img src="/logo3.png" alt="Tấn Dental" />
+            <div className="brand-logo-wrap" style={{ overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {company?.Avatar ? (
+                <img src={getAvatarUrl(company.Avatar)} alt={company?.Ten || "Logo"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <img src="/icon.png" alt="Logo" />
+              )}
             </div>
             <div className="brand-divider" />
-            <div className="brand-title">Tấn Dental</div>
-            <div className="brand-sub">Dental Laboratory</div>
+            <div className="brand-title">{company?.Ten || "Lab Manager"}</div>
+            <div className="brand-sub">{company?.GioiThieu || "Dental Laboratory"}</div>
             <div className="brand-badge">
               <div className="brand-badge-dot" />
               <span className="brand-badge-text">

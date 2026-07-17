@@ -19,7 +19,6 @@ import NhaKhoaPage from "../NhaKhoa/NhaKhoaPage";
 import NguoiLienHePage from "../NguoiLienHe/NguoiLienHePage";
 import BenhNhanPage from "../BenhNhan/BenhNhanPage";
 import StaffPage from "../Staff/StaffPage";
-import NhapDuLieu from "../Settings/NhapDuLieu";
 import CongTy from "../Settings/CongTy";
 import VaiTro from "../Settings/VaiTro";
 import StaffProfile from "../Staff/StaffProfile";
@@ -47,7 +46,11 @@ import NhanVienDetail from "../NhanVien/NhanVienDetail";
 import GhiChuPage from "../GhiChu/GhiChuPage";
 import NhaCungCapPage from "../NhaCungCap/NhaCungCapPage";
 import KhoPage from "../Kho/KhoPage";
+import NhapKhoPrintPreview from "../Kho/NhapXuatKho/NhapKhoPrintPreview";
+import XuatKhoPrintPreview from "../Kho/NhapXuatKho/XuatKhoPrintPreview";
+import NhapXuatPrintPreview from "../Kho/NhapXuatKho/NhapXuatPrintPreview";
 import ChiPhiPage from "../ChiPhi/ChiPhiPage.jsx";
+import LichSuLuongPage from "../BangLuong/LichSuLuongPage.jsx";
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -101,7 +104,9 @@ const Dashboard = () => {
           flexGrow: 1,
           minWidth: 0,
           mt: isPrintPage ? 0 : `${headerMarginTop}px`,
-          minHeight: isPrintPage ? "100vh" : `calc(100vh - ${headerMarginTop}px)`,
+          minHeight: isPrintPage
+            ? "100vh"
+            : `calc(100vh - ${headerMarginTop}px)`,
           display: "flex",
           flexDirection: "column",
           transition: theme.transitions.create("margin-left", {
@@ -161,10 +166,6 @@ const Dashboard = () => {
           <Route
             path="/tai-khoan"
             element={renderProtected("/tai-khoan", <StaffPage />)}
-          />
-          <Route
-            path="/nhap-du-lieu"
-            element={renderProtected("/nhap-du-lieu", <NhapDuLieu />)}
           />
           <Route
             path="/cong-ty"
@@ -254,10 +255,6 @@ const Dashboard = () => {
             element={renderProtected("/tai-khoan", <StaffPage />)}
           />
           <Route
-            path="/nhap-du-lieu"
-            element={renderProtected("/nhap-du-lieu", <NhapDuLieu />)}
-          />
-          <Route
             path="/cong-ty"
             element={renderProtected("/cong-ty", <CongTy />)}
           />
@@ -320,6 +317,13 @@ const Dashboard = () => {
             )}
           ></Route>
           <Route
+            path="/lich-su-luong"
+            element={renderProtected(
+              "/lich-su-luong",
+              <LichSuLuongPage></LichSuLuongPage>
+            )}
+          ></Route>
+          <Route
             path="/nhan-vien/:id"
             element={renderProtected(
               "/nhan-vien",
@@ -333,15 +337,28 @@ const Dashboard = () => {
               <BangLuongPage></BangLuongPage>
             )}
           ></Route>
+
           <Route
             path="/ghi-chu"
-            element={renderProtected(
-              "/ghi-chu",
-              <GhiChuPage></GhiChuPage>
-            )}
+            element={renderProtected("/ghi-chu", <GhiChuPage></GhiChuPage>)}
+          />
+          <Route
             path="/kho"
             element={renderProtected("/kho", <KhoPage></KhoPage>)}
-          ></Route>
+          />
+          <Route
+            path="/kho/phieu-nhap/:id/print"
+            element={renderProtected("/kho", <NhapKhoPrintPreview />)}
+          />
+          <Route
+            path="/kho/phieu-xuat/:id/print"
+            element={renderProtected("/kho", <XuatKhoPrintPreview />)}
+          />
+          <Route
+            path="/nhap-xuat/in-danh-sach"
+            element={renderProtected("/kho", <NhapXuatPrintPreview />)}
+          />
+
           <Route path="*" element={<Navigate to={fallbackPath} replace />} />
         </Routes>
       </Box>

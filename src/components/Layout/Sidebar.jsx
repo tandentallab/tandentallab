@@ -41,14 +41,28 @@ import BadgeIcon from "@mui/icons-material/Badge";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-
-// IMPORT HÀM PHÂN QUYỀN
+import { api } from "../../config/api";
 import { hasRouteAccess } from "../../config/permissions";
 import { MAIN_MENU, CUSTOMER_MENU, OTHER_MENU, SETTING_MENU } from "../../config/menuConfig";
 
 const Sidebar = ({ collapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [company, setCompany] = useState(null);
+
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        const res = await api.get('/cong-ty');
+        if (res.data && res.data.data) {
+          setCompany(res.data.data);
+        }
+      } catch (e) {
+        console.error("Lỗi lấy thông tin công ty:", e);
+      }
+    };
+    fetchCompany();
+  }, []);
 
   // 1. LOGIC LẤY THÔNG TIN USER TỪ FILE 1
   const auth = useSelector((state) => state.auth);
@@ -168,7 +182,7 @@ const Sidebar = ({ collapsed }) => {
             whiteSpace: "nowrap",
           }}
         >
-          TẤN DENTAL
+          {company?.Ten ? company.Ten.toUpperCase() : ""}
         </Box>
         {isMobileSize && (
           <IconButton onClick={() => setMobileOpen(false)} sx={{ ml: "auto" }}>

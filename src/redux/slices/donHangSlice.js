@@ -136,6 +136,21 @@ export const advanceTrangThai = createAsyncThunk(
     }
 );
 
+/* ================= GET STATUS COUNTS (without trangThai filter) ================= */
+export const fetchDonHangStatusCounts = createAsyncThunk(
+    "donHang/fetchStatusCounts",
+    async (params = {}, { rejectWithValue }) => {
+        try {
+            const res = await api.get("/donhang", { params: { ...params, limit: 1 } });
+            return res.data.stats || {};
+        } catch (err) {
+            return rejectWithValue(
+                err.response?.data?.message || "Lỗi tải thống kê trạng thái"
+            );
+        }
+    }
+);
+
 /* ================= GET THONG KE ================= */
 export const fetchThongKe = createAsyncThunk(
     "donHang/fetchThongKe",
@@ -223,6 +238,7 @@ const donHangSlice = createSlice({
         error: null,
         pagination: { total: 0, totalPages: 1, currentPage: 1 },
         stats: {},
+        statusCounts: {},
         thongKe: {
             giaoHomNay: 0,
             treHenGiao: 0,
@@ -321,8 +337,14 @@ const donHangSlice = createSlice({
                     const oldTrangThai = state.data[index].trangThai;
                     const newTrangThai = action.payload.trangThai;
                     if (oldTrangThai !== newTrangThai) {
-                        if (oldTrangThai) state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
-                        if (newTrangThai) state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                        if (oldTrangThai) {
+                            state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
+                            state.statusCounts[oldTrangThai] = Math.max((state.statusCounts[oldTrangThai] || 1) - 1, 0);
+                        }
+                        if (newTrangThai) {
+                            state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                            state.statusCounts[newTrangThai] = (state.statusCounts[newTrangThai] || 0) + 1;
+                        }
                     }
                     state.data[index] = action.payload;
                 }
@@ -337,8 +359,14 @@ const donHangSlice = createSlice({
                     const oldTrangThai = state.data[index].trangThai;
                     const newTrangThai = action.payload.trangThai;
                     if (oldTrangThai !== newTrangThai) {
-                        if (oldTrangThai) state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
-                        if (newTrangThai) state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                        if (oldTrangThai) {
+                            state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
+                            state.statusCounts[oldTrangThai] = Math.max((state.statusCounts[oldTrangThai] || 1) - 1, 0);
+                        }
+                        if (newTrangThai) {
+                            state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                            state.statusCounts[newTrangThai] = (state.statusCounts[newTrangThai] || 0) + 1;
+                        }
                     }
                     state.data[index] = {
                         ...state.data[index],
@@ -367,8 +395,14 @@ const donHangSlice = createSlice({
                     if (action.payload.trangThai && action.payload.trangThai !== state.data[index].trangThai) {
                         const oldTrangThai = state.data[index].trangThai;
                         const newTrangThai = action.payload.trangThai;
-                        if (oldTrangThai) state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
-                        if (newTrangThai) state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                        if (oldTrangThai) {
+                            state.stats[oldTrangThai] = Math.max((state.stats[oldTrangThai] || 1) - 1, 0);
+                            state.statusCounts[oldTrangThai] = Math.max((state.statusCounts[oldTrangThai] || 1) - 1, 0);
+                        }
+                        if (newTrangThai) {
+                            state.stats[newTrangThai] = (state.stats[newTrangThai] || 0) + 1;
+                            state.statusCounts[newTrangThai] = (state.statusCounts[newTrangThai] || 0) + 1;
+                        }
                         state.data[index].trangThai = newTrangThai;
                     }
                 }
@@ -391,6 +425,11 @@ const donHangSlice = createSlice({
             })
             .addCase(fetchThongKe.rejected, (state) => {
                 state.loadingThongKe = false;
+            })
+
+            /* ===== STATUS COUNTS (no trangThai filter) ===== */
+            .addCase(fetchDonHangStatusCounts.fulfilled, (state, action) => {
+                state.statusCounts = action.payload;
             });
     },
 });

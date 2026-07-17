@@ -137,6 +137,40 @@ export const deleteBangLuongByMonthYear =
     }
   );
 
+/* ================= LỊCH SỬ LƯƠNG CĂN BẢN (KHOẢNG THỜI GIAN) ================= */
+
+export const fetchLichSuLuong =
+  createAsyncThunk(
+    "bangLuong/fetchLichSuLuong",
+
+    async (
+      { tuThang, tuNam, denThang, denNam },
+      thunkAPI
+    ) => {
+      try {
+        const res = await api.get(
+          "/bang-luong/lich-su/tong-hop",
+          {
+            params: {
+              tuThang,
+              tuNam,
+              denThang,
+              denNam,
+            },
+          }
+        );
+
+        // { success, periods, data }
+        return res.data;
+      } catch (err) {
+        return thunkAPI.rejectWithValue(
+          err.response?.data
+            ?.message || err.message
+        );
+      }
+    }
+  );
+
 const bangLuongSlice =
   createSlice({
     name: "bangLuong",
@@ -149,6 +183,15 @@ const bangLuongSlice =
       loading: false,
 
       error: null,
+
+      // ── Lịch sử lương căn bản theo khoảng thời gian ──
+      lichSuData: [],
+
+      lichSuPeriods: [],
+
+      lichSuLoading: false,
+
+      lichSuError: null,
     },
 
     reducers: {},
@@ -248,6 +291,41 @@ const bangLuongSlice =
     state.data = [];
   }
 )
+
+        /* ================= LỊCH SỬ LƯƠNG CĂN BẢN ================= */
+
+        .addCase(fetchLichSuLuong.pending, (state) => {
+  state.lichSuLoading = true;
+
+  state.lichSuError = null;
+})
+
+        .addCase(
+          fetchLichSuLuong.fulfilled,
+          (state, action) => {
+            state.lichSuLoading = false;
+
+            state.lichSuData =
+              action.payload?.data || [];
+
+            state.lichSuPeriods =
+              action.payload?.periods || [];
+          }
+        )
+
+        .addCase(
+          fetchLichSuLuong.rejected,
+          (state, action) => {
+            state.lichSuLoading = false;
+
+            state.lichSuError =
+              action.payload;
+
+            state.lichSuData = [];
+
+            state.lichSuPeriods = [];
+          }
+        )
     },
   });
 

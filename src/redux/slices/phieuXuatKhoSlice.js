@@ -63,6 +63,18 @@ export const deletePhieuXuatKho = createAsyncThunk(
     }
 );
 
+export const appendPhieuXuatKho = createAsyncThunk(
+    "phieuXuatKho/append",
+    async (params, thunkAPI) => {
+        try {
+            const response = await api.get("/phieu-xuat-kho", { params });
+            return response.data;
+        } catch (error) {
+            return thunkAPI.rejectWithValue(error.response?.data);
+        }
+    }
+);
+
 export const fetchXuatKhoOptions = createAsyncThunk(
     "phieuXuatKho/fetchOptions",
     async (_, thunkAPI) => {
@@ -84,9 +96,11 @@ const phieuXuatKhoSlice = createSlice({
         selected: null,
         total: 0,
         page: 1,
-        limit: 10,
+        limit: 20,
         loading: false,
+        loadingMore: false,
         loadingDetail: false,
+        hasMore: true,
         error: null,
         boPhanList: [],
         nhanVienList: [],
@@ -113,7 +127,8 @@ const phieuXuatKhoSlice = createSlice({
                 state.phieuXuatKhos = action.payload.data || [];
                 state.total = action.payload.total || 0;
                 state.page = action.payload.page || 1;
-                state.limit = action.payload.limit || 10;
+                state.limit = action.payload.limit || 20;
+                state.hasMore = (action.payload.data || []).length >= (action.payload.limit || 20);
             })
             .addCase(fetchAllPhieuXuatKho.rejected, rejected)
 
@@ -169,6 +184,17 @@ const phieuXuatKhoSlice = createSlice({
                 state.total -= 1;
             })
             .addCase(deletePhieuXuatKho.rejected, rejected)
+
+            // appendPhieuXuatKho (infinite scroll)
+            .addCase(appendPhieuXuatKho.pending, (state) => { state.loadingMore = true; })
+            .addCase(appendPhieuXuatKho.fulfilled, (state, action) => {
+                state.loadingMore = false;
+                const newData = action.payload.data || [];
+                state.phieuXuatKhos = [...state.phieuXuatKhos, ...newData];
+                state.total = action.payload.total || state.total;
+                state.hasMore = state.phieuXuatKhos.length < state.total;
+            })
+            .addCase(appendPhieuXuatKho.rejected, (state) => { state.loadingMore = false; })
 
             // fetchOptions
             .addCase(fetchXuatKhoOptions.fulfilled, (state, action) => {

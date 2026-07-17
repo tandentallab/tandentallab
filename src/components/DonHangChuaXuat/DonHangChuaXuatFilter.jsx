@@ -111,7 +111,7 @@ export default function DonHangChuaXuatFilter({
             placeholder="Tìm nha khoa..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
+            className="flex-1 md:text-sm text-base bg-transparent outline-none text-gray-700 placeholder-gray-400"
           />
           {searchText && (
             <button

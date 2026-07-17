@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import {
     fetchPhieuXuatKhoById,
     updatePhieuXuatKho,
@@ -12,6 +13,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LockIcon from "@mui/icons-material/Lock";
+import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
 
 function formatNgay(dateStr) {
     if (!dateStr) return "—";
@@ -42,6 +44,7 @@ function InfoRow({ label, value }) {
  */
 export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
 
     const [isOpen, setIsOpen] = useState(false);
     const [fullPhieu, setFullPhieu] = useState(null);
@@ -49,6 +52,8 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [confirmingXuat, setConfirmingXuat] = useState(false);
+
+    const { user } = useSelector(state => state.auth);
 
     // Trigger slide animation
     useEffect(() => {
@@ -83,10 +88,12 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
         if (!fullPhieu) return;
         setConfirmingXuat(true);
         try {
-            const res = await dispatch(
+            await dispatch(
                 updatePhieuXuatKho({ id: fullPhieu._id, trangThai: "Đã xuất" })
             ).unwrap();
-            setFullPhieu((prev) => ({ ...prev, trangThai: "Đã xuất", ...(res.data || {}) }));
+            // Re-fetch để lấy dữ liệu đầy đủ (populate vật liệu)
+            const res = await dispatch(fetchPhieuXuatKhoById(fullPhieu._id)).unwrap();
+            setFullPhieu(res.data || res);
             toast.success("Đã xác nhận xuất kho — tồn kho đã cập nhật");
             onUpdated?.();
         } catch (err) {
@@ -121,7 +128,7 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
     }
 
     const panelTop = 70;
-    const isLocked = fullPhieu?.trangThai === "Đã xuất";
+    const isLocked = fullPhieu?.trangThai === "Đã xuất" && user?.quyenSuDung?.ten !== "Admin";
 
     return (
         <>
@@ -129,7 +136,7 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
             <div
                 className={`fixed inset-0 bg-black/20 transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
                     }`}
-                style={{ zIndex: 9999, top: `${panelTop}px` }}
+                style={{ zIndex: 999, top: `${panelTop}px` }}
                 onClick={handleClose}
             />
 
@@ -138,9 +145,10 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
                 className={`fixed right-0 flex flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
                     }`}
                 style={{
-                    zIndex: 9999,
+                    zIndex: 999,
                     top: `${panelTop}px`,
                     width: "600px",
+                    maxWidth: "100vw",
                     height: `calc(100vh - ${panelTop}px)`,
                 }}
             >
@@ -192,6 +200,13 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
                         >
                             <DeleteIcon sx={{ fontSize: 20 }} />
                         </button>
+                        <button
+                            onClick={() => navigate(`/kho/phieu-xuat/${fullPhieu?._id || phieu?._id}/print`)}
+                            title="In phiếu"
+                            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-green-600 transition"
+                        >
+                            <LocalPrintshopIcon sx={{ fontSize: 20 }} />
+                        </button>
                     </div>
                 </div>
 
@@ -232,6 +247,7 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
                                         <thead>
                                             <tr className="bg-green-100">
                                                 <th className="text-left py-1 px-2 font-normal text-gray-700">Vật liệu</th>
+                                                <th className="text-left py-1 px-2 font-normal text-gray-700">ĐVT</th>
                                                 <th className="text-right py-1 px-2 font-normal text-gray-700">Số lượng</th>
                                                 {fullPhieu.danhSachVatLieu?.some((i) => i.moTa) && (
                                                     <th className="text-left py-1 px-2 font-normal text-gray-700">Ghi chú</th>
@@ -247,13 +263,11 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
                                                     <td className="py-1 px-2 max-w-[120px] truncate">
                                                         {item.vatLieu?.tenVatLieu || "—"}
                                                     </td>
+                                                    <td className="py-1 px-2 max-w-[120px] truncate">
+                                                        {item.vatLieu?.donViTinh || "—"}
+                                                    </td>
                                                     <td className="py-1 px-2 text-right">
                                                         {item.soLuong}
-                                                        {item.vatLieu?.donViTinh && (
-                                                            <span className="text-gray-400 ml-1">
-                                                                {item.vatLieu.donViTinh}
-                                                            </span>
-                                                        )}
                                                     </td>
                                                     {fullPhieu.danhSachVatLieu?.some((i) => i.moTa) && (
                                                         <td className="py-1 px-2">
@@ -265,7 +279,7 @@ export default function XuatKhoDetailPanel({ phieu, onClose, onUpdated }) {
                                         </tbody>
                                         <tfoot>
                                             <tr className="bg-green-100 border-t border-gray-200">
-                                                <td className="py-1 px-2 font-normal text-gray-700">Tổng</td>
+                                                <td className="py-1 px-2 font-normal text-gray-700" colSpan={2}>Tổng</td>
                                                 <td className="py-1 px-2 text-right font-medium">
                                                     {(fullPhieu.danhSachVatLieu || []).reduce(
                                                         (s, i) => s + (i.soLuong || 0),

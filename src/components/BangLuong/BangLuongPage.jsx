@@ -42,6 +42,7 @@ import { FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PrintIcon from "@mui/icons-material/Print";
 import InBangLuongModal from "./InBangLuongModal";
+import HistoryIcon from "@mui/icons-material/History";
 
 const COLUMNS = [
   "Nhân viên",
@@ -400,11 +401,11 @@ const BangLuongPage = () => {
           label: "Tổng phụ cấp",
           value: fmt(
             tongPhuCap ||
-              (emp.com || 0) +
-                (emp.dienThoai || 0) +
-                (emp.thuong || 0) -
-                (emp.phat || 0) -
-                (emp.ungTruoc || 0)
+            (emp.com || 0) +
+            (emp.dienThoai || 0) +
+            (emp.thuong || 0) -
+            (emp.phat || 0) -
+            (emp.ungTruoc || 0)
           ),
           color: "#0369a1",
         },
@@ -719,15 +720,15 @@ const BangLuongPage = () => {
             style={
               hasData
                 ? {
-                    background: "#166534",
-                    color: "#86efac",
-                    border: "1px solid #166534",
-                  }
+                  background: "#166534",
+                  color: "#86efac",
+                  border: "1px solid #166534",
+                }
                 : {
-                    background: "#78350f",
-                    color: "#fde68a",
-                    border: "1px solid #78350f",
-                  }
+                  background: "#78350f",
+                  color: "#fde68a",
+                  border: "1px solid #78350f",
+                }
             }
           >
             {hasData ? "✓ Đã có bảng lương" : "⚠ Chưa tạo bảng lương"}
@@ -807,8 +808,8 @@ const BangLuongPage = () => {
                 background: isSaving
                   ? "#075985"
                   : !isDirty
-                  ? "rgba(255,255,255,0.08)"
-                  : "#0284c7",
+                    ? "rgba(255,255,255,0.08)"
+                    : "#0284c7",
                 color: !isDirty ? "#94a3b8" : "#fff",
                 border: !isDirty ? "1px solid rgba(255,255,255,0.13)" : "none",
                 cursor: isSaving || !isDirty ? "not-allowed" : "pointer",
@@ -872,6 +873,27 @@ const BangLuongPage = () => {
             >
               <PeopleAltIcon sx={{ fontSize: 16 }} />
               <span className="whitespace-nowrap">Nhân viên</span>
+            </button>
+
+            {/* Staff */}
+            <button
+              onClick={() => safeNavigate("/lich-su-luong")}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all w-full sm:w-auto"
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                color: "#cbd5e1",
+                border: "1px solid rgba(255,255,255,0.13)",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "rgba(255,255,255,0.14)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "rgba(255,255,255,0.08)")
+              }
+            >
+              <HistoryIcon sx={{ fontSize: 16 }} />
+              <span className="whitespace-nowrap">Lịch sử LCB</span>
             </button>
 
             {/* Export */}
@@ -949,45 +971,57 @@ const BangLuongPage = () => {
       {/* ── CONTENT ── */}
       <div className="flex-1 overflow-auto p-4 space-y-4">
         {/* Summary strip */}
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
           {[
             {
               label: "Số nhân viên",
               value: salaryData.length,
               accent: "#0284c7",
+              suffix: "",
+            },
+            {
+              label: "Tổng thực nhận",
+              value: (Math.round(tongLuong / 1000) * 1000).toLocaleString(
+                "vi-VN"
+              ),
+              accent: "#10b981",
+              suffix: " đ",
             },
             {
               label: "Tổng quỹ lương",
-              value: `${(Math.round(tongLuong / 1000) * 1000).toLocaleString(
-                "vi-VN"
-              )}`,
-              accent: "#10b981",
+              value: (
+                Math.round((colTotals.ungTruoc + tongLuong || 0) / 1000) * 1000
+              ).toLocaleString("vi-VN"),
+              accent: "#dc2626",
+              suffix: " đ",
             },
             {
               label: "Lương TB/người",
               value: salaryData.length
-                ? `${(
-                    Math.round(
-                      Math.round(tongLuong / salaryData.length) / 1000
-                    ) * 1000
-                  ).toLocaleString("vi-VN")}`
+                ? (
+                  Math.round(
+                    Math.round(tongLuong / salaryData.length) / 1000
+                  ) * 1000
+                ).toLocaleString("vi-VN")
                 : "—",
               accent: "#f59e0b",
+              suffix: salaryData.length ? " đ" : "",
             },
-          ].map(({ label, value, accent }) => (
+          ].map(({ label, value, accent, suffix }) => (
             <div
               key={label}
-              className="flex-1 min-w-[180px] rounded-xl px-5 py-3 flex flex-col gap-0.5 shadow-sm"
-              style={{ background: "#fff", borderLeft: `4px solid ${accent}` }}
+              className="flex-1 min-w-[150px] rounded-lg px-3 py-2 flex items-center justify-between gap-2 shadow-sm"
+              style={{ background: "#fff", borderLeft: `3px solid ${accent}` }}
             >
-              <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+              <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wide leading-tight">
                 {label}
               </span>
               <span
-                className="text-xl font-extrabold"
+                className="text-sm font-extrabold whitespace-nowrap"
                 style={{ color: accent }}
               >
                 {value}
+                {suffix}
               </span>
             </div>
           ))}
@@ -1016,7 +1050,7 @@ const BangLuongPage = () => {
               placeholder="Tìm theo tên nhân viên…"
               value={searchTen}
               onChange={(e) => setSearchTen(e.target.value)}
-              className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all"
+              className="w-full pl-9 pr-9 py-2 md:text-sm text-base rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all"
               style={{ color: "#1e293b" }}
             />
             {searchTen && (

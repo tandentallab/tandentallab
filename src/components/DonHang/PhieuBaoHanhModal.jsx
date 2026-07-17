@@ -92,9 +92,13 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
         const orderId = donHang?._id || warranty?.donHang?._id || warranty?.donHang;
         let orderData = null;
         if (orderId) {
-          const res = await api.get(`/donhang/${orderId}`);
-          orderData = res.data?.data;
-          setFullDonHang(orderData);
+          try {
+            const res = await api.get(`/donhang/${orderId}`);
+            orderData = res.data?.data;
+            setFullDonHang(orderData);
+          } catch (orderErr) {
+            console.warn("Đơn hàng liên kết không tồn tại hoặc đã bị xóa:", orderErr);
+          }
         }
 
         // 3. Khởi tạo form dựa theo chế độ
@@ -143,9 +147,11 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
   }, [open, donHang?._id, warranty?._id]);
 
   const maDonHang = useMemo(() => {
-    if (!fullDonHang) return "";
-    return fullDonHang.maDonHang || `TAN${fullDonHang._id.substring(fullDonHang._id.length - 8).toUpperCase()}`;
-  }, [fullDonHang]);
+    if (fullDonHang) {
+      return fullDonHang.maDonHang || `TAN${fullDonHang._id.substring(fullDonHang._id.length - 8).toUpperCase()}`;
+    }
+    return warranty?.maBaoHanh || "";
+  }, [fullDonHang, warranty]);
 
   // Lọc sản phẩm đã có phiếu bảo hành từ database
   const sanPhamDaCoPhieu = fullDonHang?.phieuBaoHanh?.danhSachBaoHanh?.map(item =>
@@ -258,13 +264,21 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
             const product = availableProducts[k];
             const pId = product?.sanPham?._id || product?.sanPham;
             const opId = op.sanPham?._id || op.sanPham;
-            const pViTri = product?.viTriRang || "";
-            return pId === opId && pViTri === op.viTriRang;
+            return pId === opId; // So khớp theo sản phẩm ID để đồng bộ
           });
 
           if (existingIdx !== undefined) {
             newConfigs[idx] = productWarrantyConfigs[existingIdx];
-            return availableProducts[existingIdx];
+            const oldProduct = availableProducts[existingIdx];
+            // Đồng bộ dữ liệu mới nhất (vị trí răng, số lượng, ngày bảo hành, màu sắc...) từ đơn hàng
+            return {
+              ...oldProduct,
+              viTriRang: op.viTriRang,
+              soLuong: op.soLuong,
+              mau: op.mau || oldProduct.mau,
+              baoHanhTu: op.baoHanhTu,
+              baoHanhDen: op.baoHanhDen,
+            };
           }
 
           newConfigs[idx] = {
@@ -330,7 +344,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
       });
 
       const payload = {
-        donHang: fullDonHang?._id,
+        donHang: fullDonHang?._id || warranty?.donHang?._id || warranty?.donHang,
         danhSachBaoHanh,
         mauTheId: selectedMauTheId,
         mauThe: selectedMauTheId,
@@ -370,7 +384,7 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
     }
   };
 
-  if (!open || !fullDonHang) return null;
+  if (!open || (!fullDonHang && !warranty)) return null;
 
   return (
     <>
@@ -464,20 +478,42 @@ const PhieuBaoHanhModal = ({ open, onClose, donHang, warranty, onSuccess }) => {
               return (
                 <div key={idx} className="border border-blue-100 rounded-xl p-4 bg-blue-50/10 flex flex-col gap-4 shadow-sm">
                   <div className="flex justify-between items-start">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-bold text-sm text-slate-800">
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <span className="font-bold text-base text-slate-800">
                         {idx + 1}. {sp.sanPham?.tenSanPham || `Sản phẩm ${idx + 1}`}
                       </span>
-                      <span className="text-xs text-slate-500 font-medium">
-                        Vị trí: {sp.viTriRang || (sp.viTri?.map((v) => {
-                          if (!v.soRang || v.soRang.length === 0) return "";
-                          if (v.kieu === "Rời" || v.soRang.length === 1) return v.soRang.join(", ");
-                          return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
-                        }).filter(Boolean).join("; ") || "---")} | Số lượng: {sp.soLuong || 1} {sp.mau ? ` | Màu: ${sp.mau}` : ""}
-                      </span>
-                      <span className="text-[11px] text-slate-400">
-                        Ngày bắt đầu: <span className="font-semibold text-slate-600">{formatDateVN(sp.baoHanhTu || fullDonHang?.ngayNhan)}</span>
-                      </span>
+                      
+                      <div className="flex flex-wrap gap-2 mt-1 w-full">
+                        <div className="bg-sky-50 border border-sky-200 text-sky-800 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                          <span className="text-slate-500 font-medium">Vị trí:</span>
+                          <span className="text-sm font-bold">
+                            {sp.viTriRang || (sp.viTri?.map((v) => {
+                              if (!v.soRang || v.soRang.length === 0) return "";
+                              if (v.kieu === "Rời" || v.soRang.length === 1) return v.soRang.join(", ");
+                              return `${v.soRang[0]}->${v.soRang[v.soRang.length - 1]}`;
+                            }).filter(Boolean).join("; ") || "---")}
+                          </span>
+                        </div>
+
+                        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                          <span className="text-slate-500 font-medium">Số lượng:</span>
+                          <span className="text-sm font-bold">{sp.soLuong || 1}</span>
+                        </div>
+
+                        {sp.mau && (
+                          <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                            <span className="text-slate-500 font-medium">Màu:</span>
+                            <span className="text-sm font-bold">{sp.mau}</span>
+                          </div>
+                        )}
+
+                        <div className="bg-slate-50 border border-slate-200 text-slate-700 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                          <span className="text-slate-500 font-medium">Ngày bắt đầu:</span>
+                          <span className="text-sm font-bold text-slate-800">
+                            {formatDateVN(sp.baoHanhTu || fullDonHang?.ngayNhan)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

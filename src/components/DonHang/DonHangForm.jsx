@@ -460,19 +460,33 @@ const DonHangForm = () => {
 
   // <-- THÊM MỚI: Xử lý bật Modal khi chọn Hàng sửa/Làm lại
   const handleSanPhamChange = (index, field, value) => {
+    // SearchInput gọi onChange("") khi người dùng bấm nút x hoặc bắt đầu gõ lại để tìm sản phẩm khác
+    // (chỉ là thao tác xoá tạm ô tìm kiếm, chưa phải chọn sản phẩm mới) -> bỏ qua, không đụng tới formData,
+    // để tránh xoá mất vị trí/số lượng/... trước khi người dùng thực sự chọn xong sản phẩm B.
+    if (field === "sanPham" && !value) return;
+
     markDirty();
     const newDsSp = [...formData.danhSachSanPham];
+    const oldRow = newDsSp[index]; // giữ lại dòng cũ để so sánh loaiTinh trước khi ghi đè
     // FIX: Clone object con để tránh mutate state trực tiếp
-    newDsSp[index] = { ...newDsSp[index], [field]: value };
+    newDsSp[index] = { ...oldRow, [field]: value };
 
-    // Khi đổi sản phẩm → reset các trường phụ thuộc
+    // Khi thực sự chọn 1 sản phẩm mới → chỉ reset các trường phụ thuộc nếu loaiTinh thay đổi.
+    // Nếu sản phẩm mới cùng loaiTinh với sản phẩm cũ, giữ nguyên vị trí/số lượng/màu/ghi chú/yêu cầu thử.
     if (field === "sanPham") {
-      newDsSp[index].viTri = [];
-      newDsSp[index].viTriText = "";
-      newDsSp[index].soLuong = 1;
-      newDsSp[index].mau = "";
-      newDsSp[index].ghiChu = "";
-      newDsSp[index].yeuCauThu = [];
+      const oldLoaiTinh = getLoaiTinh(oldRow.sanPham);
+      const newLoaiTinh = getLoaiTinh(value);
+      const sameLoaiTinh = Boolean(oldRow.sanPham) && oldLoaiTinh != null && oldLoaiTinh === newLoaiTinh;
+
+      if (!sameLoaiTinh) {
+        newDsSp[index].viTri = [];
+        newDsSp[index].viTriText = "";
+        newDsSp[index].soLuong = 1;
+        newDsSp[index].mau = "";
+        newDsSp[index].ghiChu = "";
+        newDsSp[index].yeuCauThu = [];
+      }
+      // else: cùng loaiTinh → giữ nguyên toàn bộ các trường khác
     }
 
     // Nếu đổi loại đơn sang Sửa/Bảo hành/Làm lại
@@ -885,216 +899,416 @@ const DonHangForm = () => {
             </div>
 
             {/* Section 2: Products table */}
-            <div className="w-full bg-white shadow-sm border-t border-b border-gray-200 overflow-y-scroll md:overflow-y-visible">
-              <table className="w-full min-w-[600px] text-sm text-left">
-                <thead className="bg-[#f0f9ff] text-gray-600 border-b">
-                  <tr>
-                    <th className="p-3 w-32 font-medium">Loại</th>
-                    <th className="p-3 w-[30%] font-medium">Sản phẩm</th>
-                    <th className="p-3 w-40 font-medium">Vị trí</th>
-                    <th className="p-3 w-20 text-center font-medium">
-                      Số lượng
-                    </th>
-                    <th className="p-3 w-28 font-medium">Màu</th>
-                    <th className="p-3 font-medium">Ghi chú</th>
-                    <th className="p-3 w-28 text-center font-medium">Yêu cầu thử</th>
-                    <th className="p-3 w-10 text-center"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {formData.danhSachSanPham.map((sp, index) => (
-                    <React.Fragment key={index}>
-                      <tr className="border-b bg-[#e1f5fe]">
-                        <td className="p-2">
-                          <select
-                            value={sp.loaiDon}
-                            onChange={(e) =>
-                              handleSanPhamChange(
-                                index,
-                                "loaiDon",
-                                e.target.value
-                              )
-                            }
-                            className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
-                          >
-                            <option value="Mới">Mới</option>
-                            <option value="Hàng sửa">Hàng sửa</option>
-                            <option value="Hàng làm lại">Hàng làm lại</option>
-                            <option value="Hàng bảo hành">Hàng bảo hành</option>
-                          </select>
-                          {["Hàng sửa", "Hàng làm lại", "Hàng bảo hành"].includes(sp.loaiDon) && sp.donHangCu && (
-                            <button
-                              type="button"
-                              onClick={() => handleViewDonHangGoc(sp.donHangCu)}
-                              className="text-xs text-blue-600 px-3 py-1 underline"
+            <div className="w-full bg-white shadow-sm border-t border-b border-gray-200">
+
+              {/* ── Desktop table (md+) ── */}
+              <div className="hidden md:block">
+                <table className="w-full min-w-[600px] text-sm text-left">
+                  <thead className="bg-[#f0f9ff] text-gray-600 border-b">
+                    <tr>
+                      <th className="p-3 w-32 font-medium">Loại</th>
+                      <th className="p-3 w-[30%] font-medium">Sản phẩm</th>
+                      <th className="p-3 w-40 font-medium">Vị trí</th>
+                      <th className="p-3 w-20 text-center font-medium">
+                        Số lượng
+                      </th>
+                      <th className="p-3 w-28 font-medium">Màu</th>
+                      <th className="p-3 font-medium">Ghi chú</th>
+                      <th className="p-3 w-28 text-center font-medium">Yêu cầu thử</th>
+                      <th className="p-3 w-10 text-center"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formData.danhSachSanPham.map((sp, index) => (
+                      <React.Fragment key={index}>
+                        <tr className="border-b bg-[#e1f5fe]">
+                          <td className="p-2">
+                            <select
+                              value={sp.loaiDon}
+                              onChange={(e) =>
+                                handleSanPhamChange(
+                                  index,
+                                  "loaiDon",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
                             >
-                              Xem đh gốc
-                            </button>
-                          )}
-                        </td>
-                        <td className="p-2 align-top pt-3">
-                          <SearchInput
-                            placeholder="Tìm sản phẩm..."
-                            options={sanPhamList}
-                            value={sp.sanPham}
-                            onChange={(val) =>
-                              handleSanPhamChange(index, "sanPham", val)
-                            }
-                            showAddNew={true}
-                            onAddNew={(term) => {
-                              setSanPhamModalIndex(index);
-                              setQuickAddSanPhamName(term || "");
-                              setIsSanPhamModalOpen(true);
-                            }}
-                          />
-                        </td>
-                        <td className="p-2">
-                          {(() => {
-                            const loaiTinh = getLoaiTinh(sp.sanPham);
-                            if (loaiTinh === "Bán hàm" || loaiTinh === "Hàm") {
+                              <option value="Mới">Mới</option>
+                              <option value="Hàng sửa">Hàng sửa</option>
+                              <option value="Hàng làm lại">Hàng làm lại</option>
+                              <option value="Hàng bảo hành">Hàng bảo hành</option>
+                            </select>
+                            {["Hàng sửa", "Hàng làm lại", "Hàng bảo hành"].includes(sp.loaiDon) && sp.donHangCu && (
+                              <button
+                                type="button"
+                                onClick={() => handleViewDonHangGoc(sp.donHangCu)}
+                                className="text-xs text-blue-600 px-3 py-1 underline"
+                              >
+                                Xem đh gốc
+                              </button>
+                            )}
+                          </td>
+                          <td className="p-2 align-top pt-3">
+                            <SearchInput
+                              placeholder="Tìm sản phẩm..."
+                              options={sanPhamList}
+                              value={sp.sanPham}
+                              onChange={(val) =>
+                                handleSanPhamChange(index, "sanPham", val)
+                              }
+                              showAddNew={true}
+                              onAddNew={(term) => {
+                                setSanPhamModalIndex(index);
+                                setQuickAddSanPhamName(term || "");
+                                setIsSanPhamModalOpen(true);
+                              }}
+                            />
+                          </td>
+                          <td className="p-2">
+                            {(() => {
+                              const loaiTinh = getLoaiTinh(sp.sanPham);
+                              if (loaiTinh === "Bán hàm" || loaiTinh === "Hàm") {
+                                return (
+                                  <div
+                                    onClick={() => setViTriHamModal({ open: true, index })}
+                                    className="w-full border-b border-blue-200 p-1 bg-transparent cursor-pointer text-blue-600 hover:text-blue-800 min-h-[30px] flex items-center"
+                                  >
+                                    {sp.viTriText || (
+                                      <span className="text-blue-400 italic font-medium">Chọn vị trí...</span>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              if (loaiTinh === "Khác") {
+                                return (
+                                  <input
+                                    type="text"
+                                    value={sp.viTriText || ""}
+                                    onChange={(e) => handleSanPhamChange(index, "viTriText", e.target.value)}
+                                    placeholder="Nhập vị trí..."
+                                    className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-sm"
+                                  />
+                                );
+                              }
                               return (
                                 <div
-                                  onClick={() => setViTriHamModal({ open: true, index })}
+                                  onClick={() => {
+                                    setEditingSpIndex(index);
+                                    setIsViTriModalOpen(true);
+                                  }}
                                   className="w-full border-b border-blue-200 p-1 bg-transparent cursor-pointer text-blue-600 hover:text-blue-800 min-h-[30px] flex items-center"
                                 >
-                                  {sp.viTriText || (
-                                    <span className="text-blue-400 italic font-medium">Chọn vị trí...</span>
+                                  {renderViTriText(sp) || (
+                                    <span className="text-blue-400 italic font-medium">
+                                      Chọn răng...
+                                    </span>
                                   )}
                                 </div>
                               );
-                            }
-                            if (loaiTinh === "Khác") {
-                              return (
-                                <input
-                                  type="text"
-                                  value={sp.viTriText || ""}
-                                  onChange={(e) => handleSanPhamChange(index, "viTriText", e.target.value)}
-                                  placeholder="Nhập vị trí..."
-                                  className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-sm"
-                                />
-                              );
-                            }
-                            // "Răng", "Răng (không đếm)", or null → open modal
-                            return (
-                              <div
-                                onClick={() => {
-                                  setEditingSpIndex(index);
-                                  setIsViTriModalOpen(true);
-                                }}
-                                className="w-full border-b border-blue-200 p-1 bg-transparent cursor-pointer text-blue-600 hover:text-blue-800 min-h-[30px] flex items-center"
-                              >
-                                {renderViTriText(sp) || (
-                                  <span className="text-blue-400 italic font-medium">
-                                    Chọn răng...
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </td>
-                        <td className="p-2">
-                          <input
-                            type="number"
-                            min="0"
-                            value={sp.soLuong}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) =>
-                              handleSanPhamChange(index, "soLuong", parseInt(e.target.value))
-                            }
-                            className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-center font-bold text-gray-700"
-                          />
-                        </td>
-                        <td className="p-2">
-                          <input
-                            type="text"
-                            value={sp.mau}
-                            onChange={(e) =>
-                              handleSanPhamChange(index, "mau", e.target.value)
-                            }
-                            className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
-                          />
-                        </td>
-                        <td className="p-2">
-                          <input
-                            type="text"
-                            value={sp.ghiChu}
-                            onChange={(e) =>
-                              handleSanPhamChange(index, "ghiChu", e.target.value)
-                            }
-                            className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
-                          />
-                        </td>
-                        <td className="p-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => setYeuCauThuModal({ open: true, spIndex: index })}
-                            className={`text-xs rounded px-2 py-1 whitespace-nowrap transition font-medium border ${(sp.yeuCauThu || []).length > 0
-                              ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
-                              : "bg-white text-blue-500 border-blue-300 hover:bg-blue-50"
-                              }`}
-                          >
-                            {(sp.yeuCauThu || []).length > 0
-                              ? `Yêu cầu thử (${sp.yeuCauThu.length})`
-                              : "Yêu cầu thử"}
-                          </button>
-                        </td>
-                        <td className="p-2 text-center">
-                          <button
-                            onClick={() => handleRemoveSanPham(index)}
-                            className="text-gray-400 hover:text-red-500 transition"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              strokeWidth={2}
-                              stroke="currentColor"
-                              className="w-5 h-5 mx-auto"
+                            })()}
+                          </td>
+                          <td className="p-2">
+                            <input
+                              type="number"
+                              min="0"
+                              value={sp.soLuong}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) =>
+                                handleSanPhamChange(index, "soLuong", parseInt(e.target.value))
+                              }
+                              className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-center font-bold text-gray-700"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <input
+                              type="text"
+                              value={sp.mau}
+                              onChange={(e) =>
+                                handleSanPhamChange(index, "mau", e.target.value)
+                              }
+                              className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <input
+                              type="text"
+                              value={sp.ghiChu}
+                              onChange={(e) =>
+                                handleSanPhamChange(index, "ghiChu", e.target.value)
+                              }
+                              className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
+                            />
+                          </td>
+                          <td className="p-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => setYeuCauThuModal({ open: true, spIndex: index })}
+                              className={`text-xs rounded px-2 py-1 whitespace-nowrap transition font-medium border ${(sp.yeuCauThu || []).length > 0
+                                ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
+                                : "bg-white text-blue-500 border-blue-300 hover:bg-blue-50"
+                                }`}
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                              />
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    </React.Fragment>
-                  ))}
-                  <tr>
-                    <td colSpan="8" className="p-0 bg-[#f0f9ff]">
+                              {(sp.yeuCauThu || []).length > 0
+                                ? `Yêu cầu thử (${sp.yeuCauThu.length})`
+                                : "Yêu cầu thử"}
+                            </button>
+                          </td>
+                          <td className="p-2 text-center">
+                            <button
+                              onClick={() => handleRemoveSanPham(index)}
+                              className="text-gray-400 hover:text-red-500 transition"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={2}
+                                stroke="currentColor"
+                                className="w-5 h-5 mx-auto"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                                />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    ))}
+                    <tr>
+                      <td colSpan="8" className="p-0 bg-[#f0f9ff]">
+                        <button
+                          onClick={() => {
+                            markDirty();
+                            setFormData({
+                              ...formData,
+                              danhSachSanPham: [
+                                ...formData.danhSachSanPham,
+                                {
+                                  loaiDon: "Mới",
+                                  sanPham: "",
+                                  viTri: [],
+                                  viTriText: "",
+                                  soLuong: 1,
+                                  mau: "",
+                                  ghiChu: "",
+                                  yeuCauThu: [],
+                                },
+                              ],
+                            });
+                          }}
+                          className="w-full py-4 px-6 text-green-600 font-bold hover:bg-blue-100 cursor-pointer flex items-center justify-start gap-2 transition"
+                        >
+                          <span className="text-3xl leading-none font-black">+</span>
+                          <span className="text-sm mt-1">Thêm sản phẩm</span>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* ── Mobile card layout (< md) ── */}
+              <div className="block md:hidden">
+                {formData.danhSachSanPham.map((sp, index) => (
+                  <div key={index} className="border-b border-blue-100 bg-[#e1f5fe] p-3 space-y-2">
+                    {/* Card header */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                        Sản phẩm #{index + 1}
+                      </span>
                       <button
-                        onClick={() => {
-                          markDirty();
-                          setFormData({
-                            ...formData,
-                            danhSachSanPham: [
-                              ...formData.danhSachSanPham,
-                              {
-                                loaiDon: "Mới",
-                                sanPham: "",
-                                viTri: [],
-                                viTriText: "",
-                                soLuong: 1,
-                                mau: "",
-                                ghiChu: "",
-                                yeuCauThu: [],
-                              },
-                            ],
-                          });
-                        }}
-                        className="w-full py-4 px-6 text-green-600 font-bold hover:bg-blue-100 cursor-pointer flex items-center justify-start gap-2 transition"
+                        onClick={() => handleRemoveSanPham(index)}
+                        className="text-gray-400 hover:text-red-500 transition"
                       >
-                        <span className="text-3xl leading-none font-black">
-                          +
-                        </span>
-                        <span className="text-sm mt-1">Thêm sản phẩm</span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                          />
+                        </svg>
                       </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                    </div>
+
+                    {/* Loại */}
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Loại</label>
+                      <select
+                        value={sp.loaiDon}
+                        onChange={(e) => handleSanPhamChange(index, "loaiDon", e.target.value)}
+                        className="w-full border border-blue-200 rounded p-2 text-sm outline-none bg-white"
+                      >
+                        <option value="Mới">Mới</option>
+                        <option value="Hàng sửa">Hàng sửa</option>
+                        <option value="Hàng làm lại">Hàng làm lại</option>
+                        <option value="Hàng bảo hành">Hàng bảo hành</option>
+                      </select>
+                      {["Hàng sửa", "Hàng làm lại", "Hàng bảo hành"].includes(sp.loaiDon) && sp.donHangCu && (
+                        <button
+                          type="button"
+                          onClick={() => handleViewDonHangGoc(sp.donHangCu)}
+                          className="text-xs text-blue-600 underline mt-1"
+                        >
+                          Xem đh gốc
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Sản phẩm */}
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Sản phẩm</label>
+                      <SearchInput
+                        placeholder="Tìm sản phẩm..."
+                        options={sanPhamList}
+                        value={sp.sanPham}
+                        onChange={(val) => handleSanPhamChange(index, "sanPham", val)}
+                        showAddNew={true}
+                        onAddNew={(term) => {
+                          setSanPhamModalIndex(index);
+                          setQuickAddSanPhamName(term || "");
+                          setIsSanPhamModalOpen(true);
+                        }}
+                      />
+                    </div>
+
+                    {/* Vị trí */}
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Vị trí</label>
+                      {(() => {
+                        const loaiTinh = getLoaiTinh(sp.sanPham);
+                        if (loaiTinh === "Bán hàm" || loaiTinh === "Hàm") {
+                          return (
+                            <div
+                              onClick={() => setViTriHamModal({ open: true, index })}
+                              className="w-full border border-blue-200 rounded p-2 bg-white cursor-pointer text-blue-600 hover:text-blue-800 min-h-[38px] flex items-center text-sm"
+                            >
+                              {sp.viTriText || (
+                                <span className="text-blue-400 italic">Chọn vị trí...</span>
+                              )}
+                            </div>
+                          );
+                        }
+                        if (loaiTinh === "Khác") {
+                          return (
+                            <input
+                              type="text"
+                              value={sp.viTriText || ""}
+                              onChange={(e) => handleSanPhamChange(index, "viTriText", e.target.value)}
+                              placeholder="Nhập vị trí..."
+                              className="w-full border border-blue-200 rounded p-2 outline-none bg-white text-sm"
+                            />
+                          );
+                        }
+                        return (
+                          <div
+                            onClick={() => {
+                              setEditingSpIndex(index);
+                              setIsViTriModalOpen(true);
+                            }}
+                            className="w-full border border-blue-200 rounded p-2 bg-white cursor-pointer text-blue-600 hover:text-blue-800 min-h-[38px] flex items-center text-sm"
+                          >
+                            {renderViTriText(sp) || (
+                              <span className="text-blue-400 italic">Chọn răng...</span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Số lượng + Màu */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Số lượng</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={sp.soLuong}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) =>
+                            handleSanPhamChange(index, "soLuong", parseInt(e.target.value))
+                          }
+                          className="w-full border border-blue-200 rounded p-2 outline-none bg-white text-center font-bold text-gray-700 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Màu</label>
+                        <input
+                          type="text"
+                          value={sp.mau}
+                          onChange={(e) => handleSanPhamChange(index, "mau", e.target.value)}
+                          className="w-full border border-blue-200 rounded p-2 outline-none bg-white text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Ghi chú */}
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Ghi chú</label>
+                      <input
+                        type="text"
+                        value={sp.ghiChu}
+                        onChange={(e) => handleSanPhamChange(index, "ghiChu", e.target.value)}
+                        className="w-full border border-blue-200 rounded p-2 outline-none bg-white text-sm"
+                      />
+                    </div>
+
+                    {/* Yêu cầu thử */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setYeuCauThuModal({ open: true, spIndex: index })}
+                        className={`w-full text-sm rounded px-3 py-2 transition font-medium border ${(sp.yeuCauThu || []).length > 0
+                          ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
+                          : "bg-white text-blue-500 border-blue-300 hover:bg-blue-50"
+                          }`}
+                      >
+                        {(sp.yeuCauThu || []).length > 0
+                          ? `Yêu cầu thử (${sp.yeuCauThu.length})`
+                          : "Yêu cầu thử"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add product button (mobile) */}
+                <button
+                  onClick={() => {
+                    markDirty();
+                    setFormData({
+                      ...formData,
+                      danhSachSanPham: [
+                        ...formData.danhSachSanPham,
+                        {
+                          loaiDon: "Mới",
+                          sanPham: "",
+                          viTri: [],
+                          viTriText: "",
+                          soLuong: 1,
+                          mau: "",
+                          ghiChu: "",
+                          yeuCauThu: [],
+                        },
+                      ],
+                    });
+                  }}
+                  className="w-full py-4 px-6 bg-[#f0f9ff] text-green-600 font-bold hover:bg-blue-100 cursor-pointer flex items-center justify-start gap-2 transition"
+                >
+                  <span className="text-3xl leading-none font-black">+</span>
+                  <span className="text-sm mt-1">Thêm sản phẩm</span>
+                </button>
+              </div>
+
             </div>
             {/* Bottom notes + accessories section */}
             <div className="w-full bg-white border-t border-gray-200 shadow-sm">

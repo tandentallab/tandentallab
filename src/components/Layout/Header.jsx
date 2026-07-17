@@ -15,7 +15,6 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
-import NotificationsIcon from "@mui/icons-material/Notifications";
 import CloseIcon from "@mui/icons-material/Close";
 import LoginModal from "../Login/LoginModal";
 import HeaderUser from "./HeaderUser";
@@ -23,7 +22,7 @@ import QuickAddMenu from "./QuickAddMenu";
 import { useSelector } from "react-redux";
 import { getAuthSelector } from "../../redux/selector";
 import { useNavigate } from "react-router-dom";
-import { api } from "../../config/api";
+import { api, API_URL } from "../../config/api";
 import debounce from "lodash/debounce";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import { hasRouteAccess } from "../../config/permissions";
@@ -34,9 +33,35 @@ const Header = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
 
   // States
+  const [company, setCompany] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const getAvatarUrl = (avatar) => {
+    if (!avatar) return "";
+    if (avatar.startsWith("data:") || avatar.startsWith("http")) return avatar;
+    let baseUrl = API_URL ? API_URL.replace(/\/$/, "") : "";
+    const path = avatar.startsWith("/") ? avatar : `/${avatar}`;
+    if (path.startsWith("/api") && baseUrl.endsWith("/api")) {
+      baseUrl = baseUrl.slice(0, -4);
+    }
+    return `${baseUrl}${path}`;
+  };
+
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        const res = await api.get('/cong-ty');
+        if (res.data && res.data.data) {
+          setCompany(res.data.data);
+        }
+      } catch (e) {
+        console.error("Lỗi lấy thông tin công ty:", e);
+      }
+    };
+    fetchCompany();
+  }, []);
 
   // Khởi tạo state chỉ chứa donHang
   const [results, setResults] = useState({
@@ -46,8 +71,7 @@ const Header = ({ onToggleSidebar }) => {
 
   const [openTodoPopover, setOpenTodoPopover] = useState(false);
   const [todoList, setTodoList] = useState([]);
-  const [checkedTodoIds, setCheckedTodoIds] = useState([]);
-  const [isCompleting, setIsCompleting] = useState(false);
+  const [openGhiChuAddModal, setOpenGhiChuAddModal] = useState(false);
 
   const searchContainerRef = useRef(null);
 
@@ -105,15 +129,16 @@ const Header = ({ onToggleSidebar }) => {
     try {
       const res = await api.get("/ghi-chu");
       if (res.data?.success) {
-        setTodoList(res.data.data);
+        const sorted = [...res.data.data].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setTodoList(sorted);
       }
     } catch (error) {
       console.error("Lỗi lấy danh sách ghi chú:", error);
     }
   };
 
-  const toastIntervalRef = useRef(null);
-  const checkIntervalRef = useRef(null);
 
   const runTodoToastFlow = async () => {
     try {
@@ -191,43 +216,23 @@ const Header = ({ onToggleSidebar }) => {
   useEffect(() => {
     if (isAuthenticated && hasRouteAccess(user, "/ghi-chu")) {
       fetchTodos();
-
-      // 🔥 Hiển thị thông báo ngay lập tức khi mới đăng nhập hoặc mới mở website lên (lần đầu tiên của session)
-      const hasShownInitial = sessionStorage.getItem("has_shown_initial_toast");
-      if (!hasShownInitial) {
-        runTodoToastFlow();
-        sessionStorage.setItem("has_shown_initial_toast", "true");
-      }
-
-      // Tính số mili-giây đến phút tròn chục gần nhất (xx:00, xx:10, xx:20, xx:30, xx:40, xx:50)
-      const now = new Date();
-      const currentMinutes = now.getMinutes();
-      const currentSeconds = now.getSeconds();
-      const currentMs = now.getMilliseconds();
-      const minutesPastRound = currentMinutes % 10;
-      const minutesToNextRound = minutesPastRound === 0 ? 10 : (10 - minutesPastRound);
-      const msUntilNextRound = (minutesToNextRound * 60 - currentSeconds) * 1000 - currentMs;
-
-      // Đợi đến phút tròn chục gần nhất rồi mới bắt đầu đẩy thông báo
-      const initialTimeout = setTimeout(() => {
-        runTodoToastFlow();
-
-        // Sau đó cứ đúng mỗi 10 phút thì đẩy tiếp (đã căn chỉnh theo đồng hồ)
-        checkIntervalRef.current = setInterval(() => {
-          runTodoToastFlow();
-        }, 10 * 60 * 1000);
-      }, msUntilNextRound);
-
-      return () => {
-        clearTimeout(initialTimeout);
-        if (checkIntervalRef.current) {
-          clearInterval(checkIntervalRef.current);
-        }
-        if (toastIntervalRef.current) {
-          clearInterval(toastIntervalRef.current);
-        }
-      };
     }
+  }, [isAuthenticated, user]);
+
+  const activeTodoList = React.useMemo(() => {
+    return todoList.filter((todo) => todo.trangThai === "Chưa hoàn thành");
+  }, [todoList]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (isAuthenticated && hasRouteAccess(user, "/ghi-chu")) {
+        fetchTodos();
+      }
+    };
+    window.addEventListener("refresh-ghi-chu", handleRefresh);
+    return () => {
+      window.removeEventListener("refresh-ghi-chu", handleRefresh);
+    };
   }, [isAuthenticated, user]);
 
   const handleToggleTodoPopover = () => {
@@ -237,27 +242,28 @@ const Header = ({ onToggleSidebar }) => {
     setOpenTodoPopover(!openTodoPopover);
   };
 
-  const handleToggleCheckTodo = (id) => {
-    setCheckedTodoIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
-  const handleConfirmComplete = async () => {
-    if (checkedTodoIds.length === 0) return;
-    setIsCompleting(true);
+  const handleToggleCheckTodo = async (id) => {
     try {
-      await Promise.all(
-        checkedTodoIds.map((id) => api.delete(`/ghi-chu/${id}`))
-      );
-      toast.success("Đã hoàn thành và xóa các ghi chú được chọn!");
-      setCheckedTodoIds([]);
-      fetchTodos();
+      const res = await api.patch(`/ghi-chu/${id}/trang-thai`, { trangThai: "Đã hoàn thành" });
+      if (res.data?.success) {
+        toast.success("Đã hoàn thành ghi chú!");
+        fetchTodos();
+        window.dispatchEvent(new CustomEvent("refresh-ghi-chu"));
+      }
     } catch (error) {
       toast.error("Lỗi khi hoàn thành ghi chú: " + error.message);
-    } finally {
-      setIsCompleting(false);
     }
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return "---";
+    return new Date(value).toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -287,11 +293,27 @@ const Header = ({ onToggleSidebar }) => {
               <MenuIcon />
             </IconButton>
 
-            <div className="w-10 h-10 p-1 rounded-full shadow-md bg-white flex items-center justify-center">
-              <img className="w-full" src="/logo3.png" alt="Tấn Dental" />
-            </div>
+            <Box
+              onClick={() => navigate("/")}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                cursor: "pointer",
+                userSelect: "none",
+                "&:hover": { opacity: 0.85 }
+              }}
+            >
+              <div className="w-10 h-10 p-1 rounded-full shadow-md bg-white flex items-center justify-center overflow-hidden">
+                {company?.Avatar ? (
+                  <img className="w-full h-full object-cover" src={getAvatarUrl(company.Avatar)} alt={company?.Ten || "Logo"} />
+                ) : (
+                  <img className="w-full h-full object-cover" src="/icon.png" alt="Logo" />
+                )}
+              </div>
 
-            <p className="hidden sm:block font-medium text-xl tracking-wide">CÔNG TY TNHH TẤN DENTAL</p>
+              <p className="hidden sm:block font-medium text-xl tracking-wide">{company?.Ten || ""}</p>
+            </Box>
           </Box>
 
           {/* 👉 THANH TÌM KIẾM CHO CẢ PC & MOBILE */}
@@ -350,7 +372,7 @@ const Header = ({ onToggleSidebar }) => {
                 onChange={handleSearchChange}
                 onFocus={() => setIsDropdownOpen(true)}
                 autoFocus={searchOpen}
-                sx={{ ml: 1, width: "100%", fontSize: "14px" }}
+                sx={{ ml: 1, width: "100%", fontSize: "16px" }}
               />
               {isSearching && (
                 <CircularProgress size={20} sx={{ color: "#1DA1F2" }} />
@@ -500,9 +522,9 @@ const Header = ({ onToggleSidebar }) => {
                       className="flex items-center justify-center w-10 h-10 bg-white text-blue-600 rounded-lg border border-gray-200 hover:bg-gray-50 transition shadow-sm relative shrink-0"
                     >
                       <NoteAddIcon className="!w-6 !h-6" />
-                      {todoList.length > 0 && (
+                      {activeTodoList.length > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center font-bold animate-pulse shadow-sm">
-                          {todoList.length}
+                          {activeTodoList.length}
                         </span>
                       )}
                     </button>
@@ -518,58 +540,66 @@ const Header = ({ onToggleSidebar }) => {
                     {/* Todo Popover */}
                     {openTodoPopover && (
                       <Paper
-                        className="absolute right-[-100px] sm:right-0 mt-2 w-[calc(100vw-32px)] sm:w-80 max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 z-[1200] flex flex-col overflow-hidden text-gray-800"
+                        className="fixed sm:absolute top-[60px] sm:top-[45px] left-4 sm:left-auto right-4 sm:right-0 w-[calc(100vw-32px)] sm:w-[580px] max-w-md sm:max-w-none bg-white rounded-2xl shadow-2xl border border-gray-100 z-[1200] flex flex-col overflow-hidden text-gray-800"
                         style={{
-                          top: "45px",
-                          maxHeight: "450px",
+                          maxHeight: "650px",
                         }}
                       >
                         {/* Header */}
                         <div className="bg-blue-50 px-4 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
-                          <span className="font-bold text-blue-900 text-sm">
-                            Ghi chú cần xử lý ({todoList.length})
+                          <span className="font-bold text-blue-900 text-base">
+                            Ghi chú cần xử lý ({activeTodoList.length})
                           </span>
                         </div>
 
                         {/* List */}
-                        <div className="flex-grow overflow-y-auto divide-y divide-gray-100 p-2 max-h-[300px]">
-                          {todoList.length > 0 ? (
-                            todoList.map((todo) => (
+                        <div
+                          className="flex-grow overflow-y-auto divide-y divide-gray-100 p-2"
+                          style={{ maxHeight: "450px" }}
+                        >
+                          {activeTodoList.length > 0 ? (
+                            activeTodoList.map((todo, idx) => (
                               <div
                                 key={todo._id}
-                                className="p-2 flex items-start gap-2.5 hover:bg-gray-50 transition rounded-lg"
+                                className="p-2 flex items-center justify-between gap-2.5 hover:bg-gray-50 transition rounded-lg"
                               >
-                                <input
-                                  type="checkbox"
-                                  checked={checkedTodoIds.includes(todo._id)}
-                                  onChange={() => handleToggleCheckTodo(todo._id)}
-                                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                                />
-                                <div className="flex-1 min-w-0 text-left">
-                                  <p className="text-gray-800 font-medium text-xs whitespace-pre-wrap leading-relaxed">
-                                    {todo.noiDung}
-                                  </p>
-                                  <div className="flex items-center justify-between mt-1.5 text-[10px] text-gray-400">
-                                    <span>Người tạo: {todo.nguoiGhiChu}</span>
-                                    {todo.donHang ? (
-                                      <span
-                                        onClick={() => {
-                                          setOpenTodoPopover(false);
-                                          navigate(`/donhang/${todo.donHang._id}/edit`);
-                                        }}
-                                        className="font-bold text-blue-600 hover:underline cursor-pointer"
-                                      >
-                                        {todo.maDonHang}
-                                      </span>
-                                    ) : (
-                                      todo.maDonHang && (
-                                        <span className="font-bold text-gray-500">
-                                          {todo.maDonHang}
+                                <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                                  <div className="flex-1 min-w-0 text-left">
+                                    <p className="text-gray-800 font-semibold text-sm whitespace-pre-wrap leading-relaxed">
+                                      {todo.noiDung}
+                                    </p>
+                                    <div className="flex items-start justify-between mt-1 text-xs text-gray-400 w-full">
+                                      {todo.donHang ? (
+                                        <span
+                                          onClick={() => {
+                                            setOpenTodoPopover(false);
+                                            navigate(`/donhang/${todo.donHang._id}/edit`);
+                                          }}
+                                          className="font-bold text-blue-600 hover:underline cursor-pointer whitespace-normal break-words mr-2"
+                                          title={`BN: ${todo.donHang.benhNhan?.hoVaTen || "Trống"} - NK: ${todo.donHang.nhaKhoa?.tenGiaoDich || todo.donHang.nhaKhoa?.hoVaTen || "Trống"}`}
+                                        >
+                                          {`BN: ${todo.donHang.benhNhan?.hoVaTen || "Trống"} - NK: ${todo.donHang.nhaKhoa?.tenGiaoDich || todo.donHang.nhaKhoa?.hoVaTen || "Trống"}`}
                                         </span>
-                                      )
-                                    )}
+                                      ) : (
+                                        todo.maDonHang ? (
+                                          <span className="font-bold text-gray-500 whitespace-normal break-words mr-2">
+                                            {todo.maDonHang}
+                                          </span>
+                                        ) : <span />
+                                      )}
+                                      <span className="text-[10.5px] text-blue-700 font-semibold bg-blue-50 px-1.5 py-0.5 rounded select-none shrink-0">
+                                        {formatDateTime(todo.createdAt)}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
+                                {/* Checkbox đặt ở bên phải hàng */}
+                                <input
+                                  type="checkbox"
+                                  checked={false}
+                                  onChange={() => handleToggleCheckTodo(todo._id)}
+                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer shrink-0"
+                                />
                               </div>
                             ))
                           ) : (
@@ -595,14 +625,16 @@ const Header = ({ onToggleSidebar }) => {
                           </Button>
                           <Button
                             size="small"
-                            disabled={checkedTodoIds.length === 0 || isCompleting}
-                            onClick={handleConfirmComplete}
+                            onClick={() => {
+                              setOpenTodoPopover(false);
+                              setOpenGhiChuAddModal(true);
+                            }}
                             variant="contained"
-                            color="success"
-                            className="bg-green-600 hover:bg-green-700 text-white font-bold text-[11px] px-3 py-1 rounded-lg disabled:opacity-50"
+                            color="primary"
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] px-3 py-1 rounded-lg"
                             style={{ textTransform: "none" }}
                           >
-                            {isCompleting ? "Đang xử lý..." : "Hoàn thành"}
+                            Thêm
                           </Button>
                         </div>
                       </Paper>
@@ -610,9 +642,6 @@ const Header = ({ onToggleSidebar }) => {
                   </div>
                 )}
                 <QuickAddMenu />
-                <IconButton color="inherit">
-                  <NotificationsIcon />
-                </IconButton>
                 <HeaderUser />
               </>
             ) : (

@@ -17,20 +17,24 @@ export default function GhiChuAddModal({
   onClose,
   initialMaDonHang = "",
   initialDonHangId = "",
+  noteToEdit = null,
   onSuccess,
 }) {
-  const [maDonHang, setMaDonHang] = useState(initialMaDonHang);
+  const [maDonHang, setMaDonHang] = useState("");
   const [noiDung, setNoiDung] = useState("");
-  const [nguoiGhiChu, setNguoiGhiChu] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setMaDonHang(initialMaDonHang);
-      setNoiDung("");
-      setNguoiGhiChu("");
+      if (noteToEdit) {
+        setMaDonHang(noteToEdit.maDonHang || "");
+        setNoiDung(noteToEdit.noiDung || "");
+      } else {
+        setMaDonHang(initialMaDonHang);
+        setNoiDung("");
+      }
     }
-  }, [open, initialMaDonHang]);
+  }, [open, initialMaDonHang, noteToEdit]);
 
   const handleSave = async () => {
     if (!noiDung.trim()) {
@@ -40,22 +44,29 @@ export default function GhiChuAddModal({
 
     try {
       setSubmitting(true);
-      // If we have initialDonHangId, we can pass it or let backend resolve from maDonHang.
-      // Passing both is safest.
       const payload = {
         maDonHang: maDonHang.trim(),
         noiDung: noiDung.trim(),
-        nguoiGhiChu: nguoiGhiChu.trim(),
       };
 
-      const res = await api.post("/ghi-chu", payload);
+      let res;
+      if (noteToEdit) {
+        res = await api.put(`/ghi-chu/${noteToEdit._id}`, payload);
+      } else {
+        res = await api.post("/ghi-chu", payload);
+      }
+
       if (res.data?.success) {
-        toast.success("Thêm ghi chú thành công!");
+        toast.success(noteToEdit ? "Cập nhật ghi chú thành công!" : "Thêm ghi chú thành công!");
+        window.dispatchEvent(new CustomEvent("refresh-ghi-chu"));
         if (onSuccess) onSuccess(res.data.data);
         onClose();
       }
     } catch (err) {
-      toast.error("Lỗi khi thêm ghi chú: " + (err.response?.data?.message || err.message));
+      toast.error(
+        (noteToEdit ? "Lỗi khi cập nhật ghi chú: " : "Lỗi khi thêm ghi chú: ") +
+          (err.response?.data?.message || err.message)
+      );
     } finally {
       setSubmitting(false);
     }
@@ -71,7 +82,7 @@ export default function GhiChuAddModal({
       sx={{ zIndex: 10000 }}
     >
       <DialogTitle className="font-bold text-gray-800 flex justify-between items-center">
-        <span>Tạo Ghi Chú Mới</span>
+        <span>{noteToEdit ? "Cập nhật Ghi Chú" : "Tạo Ghi Chú Mới"}</span>
         <IconButton onClick={onClose} size="small" className="text-gray-400 hover:text-gray-600">
           <CloseIcon />
         </IconButton>
@@ -87,15 +98,6 @@ export default function GhiChuAddModal({
           size="small"
           InputProps={{ className: "rounded-xl" }}
           sx={{ mt: 1.5 }}
-        />
-        <TextField
-          fullWidth
-          label="Người ghi chú"
-          value={nguoiGhiChu}
-          onChange={(e) => setNguoiGhiChu(e.target.value)}
-          placeholder="Nhập tên người ghi chú (để trống nếu ẩn danh)..."
-          size="small"
-          InputProps={{ className: "rounded-xl" }}
         />
         <TextField
           fullWidth
@@ -120,7 +122,7 @@ export default function GhiChuAddModal({
           disabled={submitting || !noiDung.trim()}
           className="bg-blue-600 hover:bg-blue-700 font-semibold px-4 rounded-xl shadow-sm"
         >
-          {submitting ? "Đang lưu..." : "Lưu ghi chú"}
+          {submitting ? "Đang lưu..." : noteToEdit ? "Cập nhật" : "Lưu ghi chú"}
         </Button>
       </DialogActions>
     </Dialog>

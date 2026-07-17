@@ -14,6 +14,7 @@ import { updateBenhNhan } from "../../redux/slices/benhNhanSlice";
 import { fetchNhaKhoa } from "../../redux/slices/nhaKhoaSlice";
 
 import vietnamAddress from "../../data/vietNameAddress";
+import vietnamProvinces from "../../utils/vietNamProvinces";
 
 export default function BenhNhanUpdateModal({ open, setOpen, data }) {
   const dispatch = useDispatch();
@@ -197,9 +198,9 @@ export default function BenhNhanUpdateModal({ open, setOpen, data }) {
             value={form.tinh}
             onChange={handleProvince}
           >
-            {vietnamAddress.map((p) => (
-              <MenuItem key={p.name} value={p.name}>
-                {p.name}
+            {vietnamProvinces.map((item) => (
+              <MenuItem key={item} value={item}>
+                {item}
               </MenuItem>
             ))}
           </TextField>

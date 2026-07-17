@@ -43,7 +43,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { api } from "../../config/api";
 import { hasRouteAccess } from "../../config/permissions";
-import { MAIN_MENU, CUSTOMER_MENU, OTHER_MENU, SETTING_MENU } from "../../config/menuConfig";
+import {
+  MAIN_MENU,
+  CUSTOMER_MENU,
+  OTHER_MENU,
+  SETTING_MENU,
+} from "../../config/menuConfig";
 
 const Sidebar = ({ collapsed }) => {
   const navigate = useNavigate();
@@ -53,7 +58,7 @@ const Sidebar = ({ collapsed }) => {
   useEffect(() => {
     const fetchCompany = async () => {
       try {
-        const res = await api.get('/cong-ty');
+        const res = await api.get("/cong-ty");
         if (res.data && res.data.data) {
           setCompany(res.data.data);
         }
@@ -102,7 +107,10 @@ const Sidebar = ({ collapsed }) => {
   /* ===== ACTIVE STATE & ĐIỀU HƯỚNG ===== */
   const checkActive = (path) => {
     if (path === "/") return location.pathname === "/";
-    if (path === "/bao-cao" && location.pathname.startsWith("/bao-cao/doanh-thu")) {
+    if (
+      path === "/bao-cao" &&
+      location.pathname.startsWith("/bao-cao/doanh-thu")
+    ) {
       return false;
     }
     return location.pathname.startsWith(path);

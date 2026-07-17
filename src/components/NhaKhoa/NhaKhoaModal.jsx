@@ -223,10 +223,6 @@ export default function NhaKhoaModal({ isQuickMenu }) {
                 </MenuItem>
               ))}
             </TextField>
-          </Box>
-
-          {/* ĐỊA CHỈ */}
-          <Box mt={3}>
             <TextField
               label="Địa chỉ cụ thể"
               fullWidth
@@ -236,7 +232,7 @@ export default function NhaKhoaModal({ isQuickMenu }) {
           </Box>
 
           {/* MÔ TẢ */}
-          <Box mt={3}>
+          <Box mt={3} sx={{ mt: "16px" }}>
             <TextField
               label="Mô tả"
               fullWidth

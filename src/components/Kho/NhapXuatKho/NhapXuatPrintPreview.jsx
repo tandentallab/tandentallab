@@ -182,8 +182,12 @@ const NhapXuatPrintPreview = () => {
     }
 
     const tongTienNhap = nhapData.reduce((s, p) => s + (p.tongTien || 0), 0);
-    const vatLieuNhap = aggregateVatLieu(nhapData).sort((a, b) => b.soLuong - a.soLuong);
-    const vatLieuXuat = aggregateVatLieu(xuatData).sort((a, b) => b.soLuong - a.soLuong);
+    const vatLieuNhap = aggregateVatLieu(nhapData).sort((a, b) =>
+        (a.tenVatLieu || "").localeCompare(b.tenVatLieu || "", "vi", { sensitivity: "base" })
+    );
+    const vatLieuXuat = aggregateVatLieu(xuatData).sort((a, b) =>
+        (a.tenVatLieu || "").localeCompare(b.tenVatLieu || "", "vi", { sensitivity: "base" })
+    );
 
     // Thứ tự cố định để xác định phần nào là phần cuối (không chèn page-break sau nó)
     const sections = [

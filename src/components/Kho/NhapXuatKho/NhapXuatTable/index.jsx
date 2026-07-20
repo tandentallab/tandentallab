@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   fetchAllPhieuNhapKho,
@@ -15,7 +15,6 @@ import {
 } from "../../../../redux/slices/phieuXuatKhoSlice";
 import {
   fetchNhaCungCap,
-  fetchVatLieu,
   setNhapXuatFilters,
   resetNhapXuatFilters,
 } from "../../../../redux/slices/khoSlice";
@@ -28,13 +27,7 @@ import XuatKhoDetailPanel from "../XuatKhoDetailPanel";
 import FilterToolbar from "./FilterToolbar";
 import PhieuNhapTable from "./PhieuNhapTable";
 import PhieuXuatTable from "./PhieuXuatTable";
-import VatLieuNhapTable from "./VatLieuNhapTable";
-import VatLieuXuatTable from "./VatLieuXuatTable";
-import {
-  scrollbarStyle,
-  monthToDateRange,
-  aggregateVatLieu,
-} from "./constants";
+import { scrollbarStyle, monthToDateRange } from "./constants";
 import { exportPhieuNhapXuatToExcel } from "./exportPhieuNhapXuatToExcel";
 
 export default function NhapXuatTable() {
@@ -53,14 +46,21 @@ export default function NhapXuatTable() {
     loadingMore: loadingMoreXuat,
     hasMore: xuatHasMore,
     boPhanList,
+    nhanVienList,
   } = useSelector((state) => state.phieuXuatKho);
   const { nhaCungCap: nhaCungCapList, nhapXuatFilters } = useSelector(
     (state) => state.kho
   );
 
   // Lấy các bộ lọc từ Redux thay vì useState cục bộ
-  const { selectedMonth, selectedNCC, selectedBoPhan, selectedTrangThai } =
-    nhapXuatFilters;
+  const {
+    selectedMonth,
+    selectedNCC,
+    selectedBoPhan,
+    selectedNhanVien,
+    selectedTimKiem,
+    selectedTrangThai,
+  } = nhapXuatFilters;
 
   // Các hàm wrapper để set giá trị thông qua Redux
   const setSelectedMonth = (val) =>
@@ -69,6 +69,10 @@ export default function NhapXuatTable() {
     dispatch(setNhapXuatFilters({ selectedNCC: val }));
   const setSelectedBoPhan = (val) =>
     dispatch(setNhapXuatFilters({ selectedBoPhan: val }));
+  const setSelectedNhanVien = (val) =>
+    dispatch(setNhapXuatFilters({ selectedNhanVien: val }));
+  const setSelectedTimKiem = (val) =>
+    dispatch(setNhapXuatFilters({ selectedTimKiem: val }));
 
   // ── Pagination pages ──
   const [pageNhap, setPageNhap] = useState(1);
@@ -89,17 +93,6 @@ export default function NhapXuatTable() {
   const [selectedXuat, setSelectedXuat] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const [selectedVatLieuNhap, setSelectedVatLieuNhap] = useState(null); // { id, tenVatLieu }
-  const [selectedVatLieuXuat, setSelectedVatLieuXuat] = useState(null);
-
-  function handleVatLieuNhapClick(row) {
-    setSelectedVatLieuNhap((prev) => (prev?.id === row.id ? null : row));
-  }
-
-  function handleVatLieuXuatClick(row) {
-    setSelectedVatLieuXuat((prev) => (prev?.id === row.id ? null : row));
-  }
-
   function togglePrintSelection(key) {
     setPrintSelection((prev) => ({ ...prev, [key]: !prev[key] }));
   }
@@ -115,6 +108,8 @@ export default function NhapXuatTable() {
     if (selectedMonth) params.set("thang", selectedMonth);
     if (selectedNCC) params.set("ncc", selectedNCC);
     if (selectedBoPhan) params.set("boPhan", selectedBoPhan);
+    if (selectedNhanVien) params.set("nhanVien", selectedNhanVien);
+    if (selectedTimKiem) params.set("timKiem", selectedTimKiem);
     if (selectedTrangThai.length) params.set("trangThai", selectedTrangThai.join(","));
     params.set("pages", pages.join(","));
 
@@ -126,6 +121,8 @@ export default function NhapXuatTable() {
     selectedNCC !== "" ||
     selectedMonth !== "" ||
     selectedBoPhan !== "" ||
+    selectedNhanVien !== "" ||
+    selectedTimKiem !== "" ||
     selectedTrangThai.length > 0;
   const isLoading = loadingNhap || loadingXuat;
 
@@ -146,6 +143,7 @@ export default function NhapXuatTable() {
       page,
       ...dateRange,
       ...(selectedNCC ? { nhaCungCap: selectedNCC } : {}),
+      ...(selectedTimKiem ? { timKiem: selectedTimKiem } : {}),
       ...(nhapVals.length ? { trangThaiNhap: nhapVals.join(",") } : {}),
       ...(toanVals.length ? { trangThaiThanhToan: toanVals.join(",") } : {}),
       ...(vatVals.length === 1
@@ -164,6 +162,8 @@ export default function NhapXuatTable() {
       page,
       ...dateRange,
       ...(selectedBoPhan ? { boPhan: selectedBoPhan } : {}),
+      ...(selectedNhanVien ? { nhanVien: selectedNhanVien } : {}),
+      ...(selectedTimKiem ? { timKiem: selectedTimKiem } : {}),
       ...(xuatTrangThai.length ? { trangThai: xuatTrangThai.join(",") } : {}),
     };
   }
@@ -181,7 +181,14 @@ export default function NhapXuatTable() {
     dispatch(fetchAllPhieuNhapKho(buildNhapParams(1)));
     dispatch(fetchAllPhieuXuatKho(buildXuatParams(1)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMonth, selectedNCC, selectedBoPhan, selectedTrangThai]);
+  }, [
+    selectedMonth,
+    selectedNCC,
+    selectedBoPhan,
+    selectedNhanVien,
+    selectedTimKiem,
+    selectedTrangThai,
+  ]);
 
   function handleToggleTrangThai(value) {
     const nextTrangThai = selectedTrangThai.includes(value)
@@ -199,7 +206,6 @@ export default function NhapXuatTable() {
     setPageXuat(1);
     dispatch(fetchAllPhieuNhapKho(buildNhapParams(1)));
     dispatch(fetchAllPhieuXuatKho(buildXuatParams(1)));
-    dispatch(fetchVatLieu());
   }
 
   async function handleExport() {
@@ -209,6 +215,8 @@ export default function NhapXuatTable() {
         selectedMonth,
         selectedNCC,
         selectedBoPhan,
+        selectedNhanVien,
+        selectedTimKiem,
         selectedTrangThai,
       });
     } catch (err) {
@@ -223,14 +231,14 @@ export default function NhapXuatTable() {
     setPageNhap(next);
     dispatch(appendPhieuNhapKho(buildNhapParams(next)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageNhap, selectedMonth, selectedNCC, selectedTrangThai, dispatch]);
+  }, [pageNhap, selectedMonth, selectedNCC, selectedTimKiem, selectedTrangThai, dispatch]);
 
   const handleLoadMoreXuat = useCallback(() => {
     const next = pageXuat + 1;
     setPageXuat(next);
     dispatch(appendPhieuXuatKho(buildXuatParams(next)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageXuat, selectedMonth, selectedBoPhan, selectedTrangThai, dispatch]);
+  }, [pageXuat, selectedMonth, selectedBoPhan, selectedNhanVien, selectedTimKiem, selectedTrangThai, dispatch]);
 
   function handleNhapModalClose() {
     setShowNhapModal(false);
@@ -255,38 +263,7 @@ export default function NhapXuatTable() {
     setSelectedXuat((prev) => (prev?._id === row._id ? null : row));
   }
 
-  const vatLieuNhap = useMemo(
-    () => aggregateVatLieu(phieuNhapKhos),
-    [phieuNhapKhos]
-  );
-
-  const vatLieuXuat = useMemo(
-    () => aggregateVatLieu(phieuXuatKhos),
-    [phieuXuatKhos]
-  );
-
-  const filteredPhieuNhapKhos = useMemo(() => {
-    if (!selectedVatLieuNhap) return phieuNhapKhos;
-    return phieuNhapKhos.filter((p) =>
-      (p.danhSachVatLieu || []).some(
-        (item) => (item.vatLieu?._id || item.vatLieu?.tenVatLieu) === selectedVatLieuNhap.id
-      )
-    );
-  }, [phieuNhapKhos, selectedVatLieuNhap]);
-
-  const filteredPhieuXuatKhos = useMemo(() => {
-    if (!selectedVatLieuXuat) return phieuXuatKhos;
-    return phieuXuatKhos.filter((p) =>
-      (p.danhSachVatLieu || []).some(
-        (item) => (item.vatLieu?._id || item.vatLieu?.tenVatLieu) === selectedVatLieuXuat.id
-      )
-    );
-  }, [phieuXuatKhos, selectedVatLieuXuat]);
-
-  const nccOptions = useMemo(
-    () => nhaCungCapList.map((n) => n.ten),
-    [nhaCungCapList]
-  );
+  const nccOptions = nhaCungCapList.map((n) => n.ten);
 
   const handleToggleVAT = (row, checked) => {
     dispatch(updatePhieuNhapKho({ id: row._id, VAT: checked }));
@@ -303,10 +280,15 @@ export default function NhapXuatTable() {
         setSelectedNCC={setSelectedNCC}
         selectedBoPhan={selectedBoPhan}
         setSelectedBoPhan={setSelectedBoPhan}
+        selectedNhanVien={selectedNhanVien}
+        setSelectedNhanVien={setSelectedNhanVien}
+        selectedTimKiem={selectedTimKiem}
+        setSelectedTimKiem={setSelectedTimKiem}
         selectedTrangThai={selectedTrangThai}
         onToggleTrangThai={handleToggleTrangThai}
         nccOptions={nccOptions}
         boPhanList={boPhanList}
+        nhanVienList={nhanVienList}
         isFiltered={isFiltered}
         onClearFilter={handleClearFilter}
         isLoading={isLoading}
@@ -332,22 +314,11 @@ export default function NhapXuatTable() {
       </p>
       <div className="flex flex-col md:flex-row w-full">
         <div className="flex-1 min-w-0">
-          {selectedVatLieuNhap && (
-            <div className="flex items-center gap-2 bg-sky-50 border border-sky-200 text-sky-700 text-xs px-3 py-1.5">
-              Đang lọc theo vật liệu: <span className="font-medium">{selectedVatLieuNhap.tenVatLieu}</span>
-              <button
-                onClick={() => setSelectedVatLieuNhap(null)}
-                className="ml-auto text-sky-500 hover:text-sky-700"
-              >
-                ✕
-              </button>
-            </div>
-          )}
           <PhieuNhapTable
-            data={filteredPhieuNhapKhos}
+            data={phieuNhapKhos}
             selectedId={selectedNhap?._id}
             onRowClick={handleNhapRowClick}
-            hasMore={!selectedVatLieuNhap && nhapHasMore}
+            hasMore={nhapHasMore}
             loadingMore={loadingMoreNhap}
             onLoadMore={handleLoadMoreNhap}
             onToggleVAT={handleToggleVAT}
@@ -358,49 +329,15 @@ export default function NhapXuatTable() {
           Phiếu xuất
         </p>
         <div className="flex-1 min-w-0">
-          {selectedVatLieuXuat && (
-            <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-xs px-3 py-1.5">
-              Đang lọc theo vật liệu: <span className="font-medium">{selectedVatLieuXuat.tenVatLieu}</span>
-              <button
-                onClick={() => setSelectedVatLieuXuat(null)}
-                className="ml-auto text-green-500 hover:text-green-700"
-              >
-                ✕
-              </button>
-            </div>
-          )}
           <PhieuXuatTable
-            data={filteredPhieuXuatKhos}
+            data={phieuXuatKhos}
             selectedId={selectedXuat?._id}
             onRowClick={handleXuatRowClick}
-            hasMore={!selectedVatLieuXuat && xuatHasMore}
+            hasMore={xuatHasMore}
             loadingMore={loadingMoreXuat}
             onLoadMore={handleLoadMoreXuat}
           />
         </div>
-      </div>
-
-      <p className="hidden md:block mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
-        Vật liệu
-      </p>
-      <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
-        Vật liệu nhập
-      </p>
-      <div className="flex flex-col md:flex-row w-full">
-        <VatLieuNhapTable
-          data={vatLieuNhap}
-          selectedId={selectedVatLieuNhap?.id}
-          onRowClick={handleVatLieuNhapClick}
-        />
-        <div className="w-px bg-gray-300 self-stretch" />
-        <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
-          Vật liệu xuất
-        </p>
-        <VatLieuXuatTable
-          data={vatLieuXuat}
-          selectedId={selectedVatLieuXuat?.id}
-          onRowClick={handleVatLieuXuatClick}
-        />
       </div>
 
       {/* Modals tạo mới */}

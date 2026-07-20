@@ -21,7 +21,7 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
 
     return (
         <div className="flex flex-col flex-1 min-w-0">
-            <div className="max-h-[500px] overflow-y-auto table-scroll">
+            <div className="max-h-[600px] overflow-y-auto table-scroll">
 
                 {/* ── TABLE — desktop (sm+) ── */}
                 <table className="hidden sm:table w-full border-collapse text-sm text-left bg-white">

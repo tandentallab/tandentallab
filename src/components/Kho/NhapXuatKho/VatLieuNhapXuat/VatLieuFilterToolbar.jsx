@@ -1,10 +1,7 @@
 import { useRef, useEffect, useState } from "react";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import AddIcon from "@mui/icons-material/Add";
-import DownloadIcon from "@mui/icons-material/Download";
-import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
 import CloseIcon from '@mui/icons-material/Close';
 import { MONTH_OPTIONS } from "./constants";
 
@@ -14,8 +11,8 @@ const XUAT_STATUSES = ["Chưa xuất", "Đã xuất"];
 const VAT_STATUSES = ["Có VAT", "Không VAT"];
 
 const PRINT_OPTIONS = [
-    { key: "phieuNhap", label: "Phiếu nhập" },
-    { key: "phieuXuat", label: "Phiếu xuất" },
+    { key: "vatLieuNhap", label: "Vật liệu nhập" },
+    { key: "vatLieuXuat", label: "Vật liệu xuất" },
 ];
 
 function StatusCheckboxGroup({ selectedTrangThai, onToggle }) {
@@ -263,6 +260,7 @@ function FilterModal({
     );
 }
 
+// In vật liệu nhập/xuất — theo bộ lọc hiện tại
 function PrintMenu({ printSelection, onTogglePrintSelection, onPrintConfirm }) {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
@@ -322,8 +320,8 @@ function PrintMenu({ printSelection, onTogglePrintSelection, onPrintConfirm }) {
     );
 }
 
-// Ô search chung — debounce, tìm đồng thời số phiếu / nhà cung cấp / bộ phận / nhân viên
-function GlobalSearchInput({ value, onChange, delay = 400 }) {
+// Ô search tên vật liệu — debounce, nằm ngoài modal, cạnh icon Lọc
+function VatLieuSearchInput({ value, onChange, delay = 400 }) {
     const [localValue, setLocalValue] = useState(value || "");
 
     useEffect(() => {
@@ -348,63 +346,43 @@ function GlobalSearchInput({ value, onChange, delay = 400 }) {
                 type="text"
                 value={localValue}
                 onChange={(e) => setLocalValue(e.target.value)}
-                placeholder="Nhập Số/NCC/Bộ phận/Nhân viên"
-                className="h-10 w-[280px] pl-8 pr-3 text-sm bg-white shadow rounded-full outline-none hover:border-gray-400 focus:border-sky-400 transition"
+                placeholder="Nhập tên vật liệu"
+                className="h-10 w-[240px] pl-8 pr-3 text-sm bg-white shadow rounded-full outline-none hover:border-gray-400 focus:border-sky-400 transition"
             />
         </div>
     );
 }
 
-export default function FilterToolbar({
-    // filter state
+export default function VatLieuFilterToolbar({
     selectedMonth, setSelectedMonth,
     selectedNCC, setSelectedNCC,
     selectedBoPhan, setSelectedBoPhan,
     selectedNhanVien, setSelectedNhanVien,
-    selectedTimKiem, setSelectedTimKiem,
+    selectedTenVatLieu, setSelectedTenVatLieu,
     selectedTrangThai, onToggleTrangThai,
     nccOptions,
     boPhanList,
     nhanVienList,
     onClearFilter,
-    // toolbar actions
-    isLoading,
-    onRefresh,
-    onExport,
-    isExporting,
-    onOpenNhapModal,
-    onOpenXuatModal,
-    addMenuOpen,
-    setAddMenuOpen,
     // print
     printSelection,
     onTogglePrintSelection,
     onPrintConfirm,
 }) {
-    const addMenuRef = useRef(null);
     const [filterModalOpen, setFilterModalOpen] = useState(false);
 
-    // Tự tính isFiltered từ chính các giá trị filter thật — không phụ thuộc prop từ component cha
+    // Tự tính isFiltered từ chính các giá trị filter thật
     const isFiltered = Boolean(
         selectedMonth ||
         selectedNCC ||
         selectedBoPhan ||
         selectedNhanVien ||
+        selectedTenVatLieu ||
         (selectedTrangThai && selectedTrangThai.length > 0)
     );
 
-    useEffect(() => {
-        function handleClickOutside(e) {
-            if (addMenuRef.current && !addMenuRef.current.contains(e.target)) {
-                setAddMenuOpen(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [setAddMenuOpen]);
-
     return (
-        <div className="mb-3 flex flex-wrap-reverse justify-end gap-3 md:flex-nowrap md:gap-0 md:justify-between md:items-center">
+        <div className="flex justify-between items-center">
             <div className="flex gap-2">
                 <div className="relative">
                     <button
@@ -433,70 +411,20 @@ export default function FilterToolbar({
                         onClearFilter={onClearFilter}
                     />
                 </div>
-                {/* Search chung — số phiếu / NCC / bộ phận / nhân viên */}
-                <GlobalSearchInput value={selectedTimKiem} onChange={setSelectedTimKiem} />
-            </div>
 
-            <div className="flex items-center gap-2">
-                {/* Add button với dropdown */}
-                <div ref={addMenuRef} className="relative">
-                    <button
-                        title="Tạo phiếu nhập/xuất"
-                        onClick={() => setAddMenuOpen((o) => !o)}
-                        className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition"
-                    >
-                        <AddIcon sx={{ fontSize: 20 }} />
-                    </button>
-                    {addMenuOpen && (
-                        <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded shadow-lg z-50">
-                            <button
-                                onClick={() => { onOpenNhapModal(); setAddMenuOpen(false); }}
-                                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-700 transition"
-                            >
-                                Phiếu nhập kho
-                            </button>
-                            <button
-                                onClick={() => { onOpenXuatModal(); setAddMenuOpen(false); }}
-                                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-green-50 hover:text-green-700 transition"
-                            >
-                                Phiếu xuất kho
-                            </button>
-                        </div>
-                    )}
-                </div>
-
-                {/* Print button với dropdown chọn nội dung */}
-                <PrintMenu
-                    printSelection={printSelection}
-                    onTogglePrintSelection={onTogglePrintSelection}
-                    onPrintConfirm={onPrintConfirm}
+                {/* Search tên vật liệu — ngoài modal, áp dụng ngay khi gõ (debounce) */}
+                <VatLieuSearchInput
+                    value={selectedTenVatLieu}
+                    onChange={setSelectedTenVatLieu}
                 />
-
-                <button
-                    title="Xuất Excel"
-                    onClick={onExport}
-                    disabled={isExporting || isLoading}
-                    className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition disabled:opacity-50"
-                >
-                    <div>
-                        <DownloadIcon sx={{ fontSize: 20 }} />
-                    </div>
-                </button>
-
-                <button
-                    title="Tải lại"
-                    onClick={() => {
-                        onClearFilter();
-                        onRefresh();
-                    }}
-                    disabled={isLoading}
-                    className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition disabled:opacity-50"
-                >
-                    <div className={isLoading ? "animate-spin" : ""}>
-                        <RefreshIcon sx={{ fontSize: 20 }} />
-                    </div>
-                </button>
             </div>
+
+            {/* In vật liệu nhập/xuất — theo bộ lọc hiện tại */}
+            <PrintMenu
+                printSelection={printSelection}
+                onTogglePrintSelection={onTogglePrintSelection}
+                onPrintConfirm={onPrintConfirm}
+            />
         </div>
     );
 }

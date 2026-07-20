@@ -734,7 +734,7 @@ const DonHangForm = () => {
       {/* Body: main form */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Main form (scrollable) */}
-        <div className="flex-1 overflow-y-auto pb-4">
+        <div className="flex-1 overflow-y-auto pb-4 min-h-0">
           <div className="w-full flex flex-col gap-0">
             {/* Section 1: Customer info + clinic info + dates */}
             <div className="flex flex-col sm:flex-row gap-0 w-full border-b border-gray-200">
@@ -1310,74 +1310,70 @@ const DonHangForm = () => {
               </div>
 
             </div>
-            {/* Bottom notes + accessories section */}
-            <div className="w-full bg-white border-t border-gray-200 shadow-sm">
-              <div className="flex flex-col sm:flex-row">
-                {/* Left: notes (flex-1) */}
-                <div className="flex-1 flex flex-col min-w-0">
-                  <div className="flex flex-col sm:flex-row border-b border-gray-100">
-                    {/* Chỉ định của bác sĩ */}
-                    <div className="flex-1 p-4 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col gap-1">
-                      <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Chỉ định của bác sĩ</label>
-                      <textarea
-                        name="chiDinhBacSi"
-                        value={formData.chiDinhBacSi}
-                        onChange={handleInputChange}
-                        rows={4}
-                        className="w-full outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
-                        placeholder="Nhập chỉ định bác sĩ..."
-                      />
-                    </div>
-                    {/* Ghi chú */}
-                    <div className="flex-1 p-4 flex flex-col gap-1">
-                      <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Ghi chú</label>
-                      <textarea
-                        name="ghiChuChung"
-                        value={formData.ghiChuChung}
-                        onChange={handleInputChange}
-                        rows={4}
-                        className="w-full outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
-                        placeholder="Nhập ghi chú..."
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row border-gray-100">
-                    {/* Ghi chú tài chính */}
-                    <div className="flex-1 p-4 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col gap-1">
-                      <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Ghi chú về tài chính</label>
-                      <textarea
-                        name="ghiChuTaiChinh"
-                        value={formData.ghiChuTaiChinh}
-                        onChange={handleInputChange}
-                        rows={3}
-                        className="w-full outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
-                        placeholder="Nhập ghi chú tài chính..."
-                      />
-                    </div>
-                    {/* Ghi chú sản xuất */}
-                    <div className="flex-1 p-4 flex flex-col gap-1">
-                      <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Ghi chú sản xuất</label>
-                      <textarea
-                        name="ghiChuSanXuat"
-                        value={formData.ghiChuSanXuat || ""}
-                        onChange={handleInputChange}
-                        rows={3}
-                        className="w-full outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
-                        placeholder="Ghi chú sản xuất (hiển thị khi in)..."
-                      />
-                    </div>
-                  </div>
+          </div>
+        </div>
+        {/* Bottom notes + accessories section - giãn chiếm hết phần chiều cao còn lại */}
+        <div className="w-full bg-white border-t border-gray-200 shadow-sm flex-1 min-h-[220px] flex flex-col overflow-hidden">
+          <div className="flex flex-col sm:flex-row flex-1 min-h-0">
+            {/* Left: notes (flex-1), 4 ô chia đều chiều cao */}
+            <div className="flex-1 flex flex-col min-w-0 min-h-0">
+              <div className="flex flex-col sm:flex-row border-b border-gray-100 flex-1 min-h-0">
+                {/* Chỉ định của bác sĩ */}
+                <div className="flex-1 p-4 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col gap-1 min-h-0">
+                  <label className="text-xs text-gray-400 font-medium uppercase tracking-wide shrink-0">Chỉ định của bác sĩ</label>
+                  <textarea
+                    name="chiDinhBacSi"
+                    value={formData.chiDinhBacSi}
+                    onChange={handleInputChange}
+                    className="w-full flex-1 min-h-0 outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
+                    placeholder="Nhập chỉ định bác sĩ..."
+                  />
                 </div>
-                {/* Right: phụ kiện */}
-                <div className="sm:w-[260px] border-t sm:border-t-0 sm:border-l border-gray-200 p-4 shrink-0">
-                  <DanhSachPhuKien
-                    phuKienDaChon={formData.danhSachPhuKien}
-                    setPhuKienDaChon={(data) =>
-                      setFormData({ ...formData, danhSachPhuKien: data })
-                    }
+                {/* Ghi chú */}
+                <div className="flex-1 p-4 flex flex-col gap-1 min-h-0">
+                  <label className="text-xs text-gray-400 font-medium uppercase tracking-wide shrink-0">Ghi chú</label>
+                  <textarea
+                    name="ghiChuChung"
+                    value={formData.ghiChuChung}
+                    onChange={handleInputChange}
+                    className="w-full flex-1 min-h-0 outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
+                    placeholder="Nhập ghi chú..."
                   />
                 </div>
               </div>
+              <div className="flex flex-col sm:flex-row border-gray-100 flex-1 min-h-0">
+                {/* Ghi chú tài chính */}
+                <div className="flex-1 p-4 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col gap-1 min-h-0">
+                  <label className="text-xs text-gray-400 font-medium uppercase tracking-wide shrink-0">Ghi chú về tài chính</label>
+                  <textarea
+                    name="ghiChuTaiChinh"
+                    value={formData.ghiChuTaiChinh}
+                    onChange={handleInputChange}
+                    className="w-full flex-1 min-h-0 outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
+                    placeholder="Nhập ghi chú tài chính..."
+                  />
+                </div>
+                {/* Ghi chú sản xuất */}
+                <div className="flex-1 p-4 flex flex-col gap-1 min-h-0">
+                  <label className="text-xs text-gray-400 font-medium uppercase tracking-wide shrink-0">Ghi chú sản xuất</label>
+                  <textarea
+                    name="ghiChuSanXuat"
+                    value={formData.ghiChuSanXuat || ""}
+                    onChange={handleInputChange}
+                    className="w-full flex-1 min-h-0 outline-none resize-none text-sm text-gray-700 bg-transparent placeholder-gray-300"
+                    placeholder="Nhập ghi chú sản xuất"
+                  />
+                </div>
+              </div>
+            </div>
+            {/* Right: phụ kiện */}
+            <div className="sm:w-[260px] border-t sm:border-t-0 sm:border-l border-gray-200 p-4 shrink-0 overflow-y-auto">
+              <DanhSachPhuKien
+                phuKienDaChon={formData.danhSachPhuKien}
+                setPhuKienDaChon={(data) =>
+                  setFormData({ ...formData, danhSachPhuKien: data })
+                }
+              />
             </div>
           </div>
         </div>

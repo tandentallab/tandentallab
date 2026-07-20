@@ -8,6 +8,7 @@ import { fetchAllPhieuMuonVatLieu, resetLoai } from "../../../redux/slices/phieu
 import PhieuMuonModal from "./PhieuMuonModal";
 import PhieuMuonDetailPanel from "./PhieuMuonDetailPanel";
 import PhieuMuonTable from "./PhieuMuonTable";
+import PhieuMuonFilterToolbar from "./PhieuMuonFilterToolbar";
 
 import { scrollbarStyle } from "../NhapXuatKho/NhapXuatTable/constants";
 
@@ -42,6 +43,8 @@ function getMonthRange(year, month) {
     return { tuNgay: fmt(tuNgay), denNgay: fmt(denNgay) };
 }
 
+const NHAN_TRA_STATUSES = ["Chưa nhận", "Đã nhận", "Chưa trả", "Đã trả"];
+
 export default function PhieuMuonSection() {
     const dispatch = useDispatch();
     const { byLoai } = useSelector((state) => state.phieuMuonVatLieu);
@@ -54,6 +57,20 @@ export default function PhieuMuonSection() {
 
     const monthOptions = useMemo(() => getRecentMonths(12), []);
     const [selectedMonth, setSelectedMonth] = useState("");
+    const [selectedTrangThai, setSelectedTrangThai] = useState([]);
+    const [selectedTimKiem, setSelectedTimKiem] = useState("");
+
+    function toggleTrangThai(s) {
+        setSelectedTrangThai((prev) =>
+            prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+        );
+    }
+
+    function handleClearFilter() {
+        setSelectedMonth("");
+        setSelectedTrangThai([]);
+        setSelectedTimKiem("");
+    }
 
     const buildDateParams = useCallback(() => {
         if (!selectedMonth) return {};
@@ -62,23 +79,38 @@ export default function PhieuMuonSection() {
         return getMonthRange(opt.year, opt.month);
     }, [selectedMonth, monthOptions]);
 
+    const buildStatusParams = useCallback(() => {
+        const nhanVals = selectedTrangThai.filter((t) =>
+            ["Chưa nhận", "Đã nhận"].includes(t)
+        );
+        const traVals = selectedTrangThai.filter((t) =>
+            ["Chưa trả", "Đã trả"].includes(t)
+        );
+        return {
+            ...(nhanVals.length ? { trangThaiNhan: nhanVals.join(",") } : {}),
+            ...(traVals.length ? { trangThaiTra: traVals.join(",") } : {}),
+        };
+    }, [selectedTrangThai]);
+
     const fetchPage = useCallback((loai, page) => {
         dispatch(fetchAllPhieuMuonVatLieu({
             loai,
             page,
             limit: PAGE_LIMIT,
             ...buildDateParams(),
+            ...buildStatusParams(),
+            ...(selectedTimKiem ? { timKiem: selectedTimKiem } : {}),
         }));
-    }, [dispatch, buildDateParams]);
+    }, [dispatch, buildDateParams, buildStatusParams, selectedTimKiem]);
 
-    // Đổi filter tháng → reset cả 2 bucket, tải lại trang 1
+    // Đổi bộ lọc → reset cả 2 bucket, tải lại trang 1
     useEffect(() => {
         dispatch(resetLoai("Mượn"));
         dispatch(resetLoai("Cho mượn"));
         fetchPage("Mượn", 1);
         fetchPage("Cho mượn", 1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedMonth]);
+    }, [selectedMonth, selectedTrangThai, selectedTimKiem]);
 
     function handleRowClick(row) {
         setSelectedPhieu((prev) => (prev?._id === row._id ? null : row));
@@ -109,24 +141,19 @@ export default function PhieuMuonSection() {
             <style>{scrollbarStyle}</style>
 
             <div className="mb-3 flex justify-between items-center">
-                <div>
-                    <select
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="border rounded px-3 py-2 text-sm text-gray-700 focus:outline-none cursor-pointer"
-                    >
-                        <option value="">Tất cả các tháng</option>
-                        {monthOptions.map((m) => (
-                            <option key={m.value} value={m.value}>{m.label}</option>
-                        ))}
-                    </select>
-                </div>
+                <PhieuMuonFilterToolbar
+                    selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth}
+                    selectedTrangThai={selectedTrangThai} onToggleTrangThai={toggleTrangThai}
+                    selectedTimKiem={selectedTimKiem} setSelectedTimKiem={setSelectedTimKiem}
+                    monthOptions={monthOptions}
+                    onClearFilter={handleClearFilter}
+                />
                 <div className="flex items-center gap-2">
                     <button title="Tạo phiếu mượn" onClick={openCreate}
                         className="text-white rounded-full h-9 w-9 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition">
                         <AddIcon sx={{ fontSize: 18 }} />
                     </button>
-                    <button title="Tải lại" onClick={handleRefresh} disabled={isLoading}
+                    <button title="Tải lại" onClick={() => { handleClearFilter(); handleRefresh(); }} disabled={isLoading}
                         className="text-white rounded-full h-9 w-9 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition disabled:opacity-50">
                         <div className={isLoading ? "animate-spin" : ""}>
                             <RefreshIcon sx={{ fontSize: 18 }} />

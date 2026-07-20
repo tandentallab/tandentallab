@@ -406,11 +406,11 @@ const DonHangPage = () => {
     const data = nhaKhoaState?.data || [];
     return Array.isArray(data)
       ? data
-          .map((nk) => ({
-            _id: nk._id,
-            name: nk.tenGiaoDich || nk.hoVaTen || "",
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name))
+        .map((nk) => ({
+          _id: nk._id,
+          name: nk.tenGiaoDich || nk.hoVaTen || "",
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }, [nhaKhoaState?.data]);
 
@@ -418,11 +418,11 @@ const DonHangPage = () => {
     const data = benhNhanState?.data || [];
     return Array.isArray(data)
       ? data
-          .map((bn) => ({
-            _id: bn._id,
-            name: bn.hoVaTen || "",
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name))
+        .map((bn) => ({
+          _id: bn._id,
+          name: bn.hoVaTen || "",
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
       : [];
   }, [benhNhanState?.data]);
 
@@ -678,11 +678,10 @@ const DonHangPage = () => {
               }));
               if (!p.isCalendar) setOpenDateModal(null);
             }}
-            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${
-              cf.preset === p.key
+            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-b border-gray-100 transition ${cf.preset === p.key
                 ? "bg-blue-50 text-blue-700 font-semibold"
                 : "text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             {p.isCalendar && <CalendarTodayIcon sx={{ fontSize: 14 }} />}
             {p.label}
@@ -703,11 +702,11 @@ const DonHangPage = () => {
                 <span>
                   {cf.customFrom && cf.customTo
                     ? `${dayjs(cf.customFrom).format("DD/MM/YYYY")} – ${dayjs(
-                        cf.customTo
-                      ).format("DD/MM/YYYY")}`
+                      cf.customTo
+                    ).format("DD/MM/YYYY")}`
                     : cf.customFrom
-                    ? `Từ ${dayjs(cf.customFrom).format("DD/MM/YYYY")}`
-                    : "Chọn khoảng ngày..."}
+                      ? `Từ ${dayjs(cf.customFrom).format("DD/MM/YYYY")}`
+                      : "Chọn khoảng ngày..."}
                 </span>
                 <CalendarTodayIcon sx={{ fontSize: 13 }} />
               </button>
@@ -983,11 +982,10 @@ const DonHangPage = () => {
                           setDraftNhaKhoa(item);
                           setOpenPickerModal(null);
                         }}
-                        className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
-                          draftNhaKhoa?._id === item._id
+                        className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftNhaKhoa?._id === item._id
                             ? "bg-blue-50 text-blue-700 font-semibold"
                             : "text-gray-700 hover:bg-gray-50"
-                        }`}
+                          }`}
                       >
                         {item.name}
                       </button>
@@ -1056,11 +1054,10 @@ const DonHangPage = () => {
                           setDraftBenhNhan(item);
                           setOpenPickerModal(null);
                         }}
-                        className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${
-                          draftBenhNhan?._id === item._id
+                        className={`w-full text-left px-4 py-2 text-sm border-b border-gray-50 transition ${draftBenhNhan?._id === item._id
                             ? "bg-blue-50 text-blue-700 font-semibold"
                             : "text-gray-700 hover:bg-gray-50"
-                        }`}
+                          }`}
                       >
                         {item.name}
                       </button>

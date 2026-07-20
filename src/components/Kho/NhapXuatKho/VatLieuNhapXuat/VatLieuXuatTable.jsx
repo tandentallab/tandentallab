@@ -1,4 +1,4 @@
-import { rowBase, borderBottom, exBg } from "./constants";
+import { rowBase, borderBottom, exBg } from "../NhapXuatTable/constants";
 
 export default function VatLieuXuatTable({ data, selectedId, onRowClick }) {
     const tongSoLuong = data.reduce((s, r) => s + r.soLuong, 0);

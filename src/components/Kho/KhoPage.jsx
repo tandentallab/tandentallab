@@ -10,6 +10,7 @@ import {
 } from "../../redux/slices/khoSlice";
 import VatLieuTable from "./VatLieuTable";
 import NhapXuatTable from "./NhapXuatKho/NhapXuatTable";
+import VatLieuNhapXuat from "./NhapXuatKho/VatLieuNhapXuat";
 import NhaCungCapTable from "./NhaCungCapTable";
 import MuonVatLieu from "./MuonVatLieu/PhieuMuonSection";
 import { Box, Tab, Tabs, useMediaQuery, useTheme } from "@mui/material";
@@ -18,6 +19,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import CategoryIcon from "@mui/icons-material/Category";
 import BookmarkIcon from '@mui/icons-material/Bookmark';
+import ImportExportIcon from '@mui/icons-material/ImportExport';
 
 export default function KhoPage() {
   const dispatch = useDispatch();
@@ -132,6 +134,11 @@ export default function KhoPage() {
             label={isMobile ? "Nhập/Xuất" : "Phiếu Nhập - Xuất"}
           />
           <Tab
+            icon={<ImportExportIcon sx={{ fontSize: { xs: 0, sm: 18 } }} />}
+            iconPosition="start"
+            label={isMobile ? "VL Nhập/Xuất" : "Vật liệu Nhập - Xuất"}
+          />
+          <Tab
             icon={<BookmarkIcon sx={{ fontSize: { xs: 0, sm: 18 } }} />}
             iconPosition="start"
             label={isMobile ? "Mượn" : "Mượn vật liệu"}
@@ -201,8 +208,9 @@ export default function KhoPage() {
 
       {tab === 0 && <VatLieuTable />}
       {tab === 1 && <NhapXuatTable />}
-      {tab === 2 && <MuonVatLieu />}
-      {tab === 3 && <NhaCungCapTable />}
+      {tab === 2 && <VatLieuNhapXuat />}
+      {tab === 3 && <MuonVatLieu />}
+      {tab === 4 && <NhaCungCapTable />}
     </div>
   );
 }

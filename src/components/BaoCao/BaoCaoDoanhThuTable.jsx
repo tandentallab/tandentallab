@@ -33,7 +33,7 @@ const SORT_COLS = [
 ];
 
 // ─── Memoized Desktop Row ────────────────────────────────────────────────────
-const MemoizedTableRow = memo(function MemoizedTableRow({ row, rowNote, onOpenNote }) {
+const MemoizedTableRow = memo(function MemoizedTableRow({ row, stt, rowNote, onOpenNote }) {
     const hasDebt = row.conNo > 0;
 
     // Nền: Có nợ -> Đỏ nhạt | Hết nợ -> Trắng
@@ -42,7 +42,7 @@ const MemoizedTableRow = memo(function MemoizedTableRow({ row, rowNote, onOpenNo
 
     return (
         <TableRow sx={{ bgcolor: rowBg, '&:hover': { bgcolor: '#f5f5f5' }, transition: 'background 0.15s' }}>
-            <TableCell align="center" sx={{ ...cellSx, color: '#9e9e9e', width: 44 }}>{row.stt}</TableCell>
+            <TableCell align="center" sx={{ ...cellSx, color: '#9e9e9e', width: 44 }}>{stt}</TableCell>
 
             <TableCell sx={{ ...cellSx, fontWeight: 600, minWidth: 150, maxWidth: 180, color: '#212121' }}>
                 {row.tenNhaKhoa}
@@ -81,7 +81,7 @@ function StatCell({ label, value, valueColor }) {
 }
 
 // ─── Mobile Card Row ─────────────────────────────────────────────────────────
-const MobileCard = memo(function MobileCard({ row, rowNote, onOpenNote }) {
+const MobileCard = memo(function MobileCard({ row, stt, rowNote, onOpenNote }) {
     const hasDebt = row.conNo > 0;
     const isZeroDebt = row.conNo === 0;
 
@@ -98,7 +98,7 @@ const MobileCard = memo(function MobileCard({ row, rowNote, onOpenNote }) {
             {/* Header ko có viền phân cách */}
             <Box sx={{ px: 1.5, pt: 1.5, pb: 0.5, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                 <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, opacity: 0.7, minWidth: 20 }}>
-                    {row.stt}
+                    {stt}
                 </Typography>
                 <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', flex: 1, lineHeight: 1.3 }}>
                     {row.tenNhaKhoa}
@@ -252,9 +252,10 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam,
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pb: 3 }}>
                         <MobileSummaryBar tongHop={dynamicTongHop} thang={thang} nam={nam} count={filteredData.length} />
 
-                        {sortedData.map((row) => (
+                        {sortedData.map((row, index) => (
                             <MobileCard
                                 key={row.nhaKhoaId}
+                                stt={index + 1}
                                 row={row}
                                 rowNote={notes[row.nhaKhoaId]}
                                 onOpenNote={handleOpenNote}
@@ -309,9 +310,10 @@ export default function BaoCaoDoanhThuTable({ data, notes, setNotes, thang, nam,
                                     <TableCell sx={{ ...totalCellSx }}></TableCell>
                                 </TableRow>
                             )}
-                            {sortedData.map((row) => (
+                            {sortedData.map((row, index) => (
                                 <MemoizedTableRow
                                     key={row.nhaKhoaId}
+                                    stt={index + 1}
                                     row={row}
                                     rowNote={notes[row.nhaKhoaId]}
                                     onOpenNote={handleOpenNote}

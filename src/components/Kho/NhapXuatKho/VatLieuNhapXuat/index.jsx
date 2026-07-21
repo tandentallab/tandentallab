@@ -204,7 +204,7 @@ export default function VatLieuNhapXuat() {
         />
       </div>
 
-      <div className="flex flex-col md:flex-row w-full">
+      <div className="flex flex-col gap-3 md:gap-0 md:flex-row w-full">
         <div className="flex-1">
           <p className="py-2 font-medium text-center bg-white border border-gray-200">
             Vật liệu nhập

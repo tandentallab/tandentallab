@@ -26,7 +26,7 @@ export default function VatLieuXuatTable({ data, selectedId, onRowClick }) {
                                     onClick={() => onRowClick?.(row)}
                                     className={`cursor-pointer transition-colors ${isSelected ? "bg-green-100" : "hover:bg-gray-100"}`}
                                 >
-                                    <td className={`${rowBase} ${borderBottom}`}>{row.tenVatLieu}</td>
+                                    <td className={`${rowBase} ${borderBottom} max-w-60`}>{row.tenVatLieu}</td>
                                     <td className={`${rowBase} ${borderBottom}`}>{row.donViTinh}</td>
                                     <td className={`${rowBase} ${borderBottom}`}>{row.soLuong}</td>
                                 </tr>

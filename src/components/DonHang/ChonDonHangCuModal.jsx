@@ -118,6 +118,7 @@ const ChonDonHangCuModal = ({ isOpen, onClose, onSelect, patientId, nhaKhoaName,
                                     <tr>
                                         <th className="p-3 font-medium">Ngày nhận</th>
                                         <th className="p-3 font-medium">Đơn hàng</th>
+                                        <th className="p-3 font-medium">Loại đơn</th>
                                         <th className="p-3 font-medium">Người liên hệ</th>
                                         <th className="p-3 font-medium">Bệnh nhân</th>
                                         <th className="p-3 font-medium">Sản phẩm</th>
@@ -138,6 +139,11 @@ const ChonDonHangCuModal = ({ isOpen, onClose, onSelect, patientId, nhaKhoaName,
                                             >
                                                 <td className="p-3">{new Date(order.ngayNhan).toLocaleDateString('vi-VN')}</td>
                                                 <td className="p-3 font-medium text-gray-800">{order.maDonHang || 'TAN...'}</td>
+                                                <td className="p-3">
+                                                    {order.danhSachSanPham.map((sp, idx) => (
+                                                        <p key={idx}>{sp.loaiDon}</p>
+                                                    ))}
+                                                </td>
                                                 <td className="p-3">{order.bacSi?.hoVaTen || bacSiName}</td>
                                                 <td className="p-3">{order.benhNhan?.hoVaTen || benhNhanName}</td>
                                                 <td className="p-3 text-gray-600 font-medium">{renderSpSummary(order.danhSachSanPham)}</td>

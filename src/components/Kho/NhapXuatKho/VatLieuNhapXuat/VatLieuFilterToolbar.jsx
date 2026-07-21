@@ -347,7 +347,7 @@ function VatLieuSearchInput({ value, onChange, delay = 400 }) {
                 value={localValue}
                 onChange={(e) => setLocalValue(e.target.value)}
                 placeholder="Nhập tên vật liệu"
-                className="h-10 w-[240px] pl-8 pr-3 text-sm bg-white shadow rounded-full outline-none hover:border-gray-400 focus:border-sky-400 transition"
+                className="h-10 w-[280px] pl-8 pr-3 text-sm bg-white shadow rounded-full outline-none hover:border-gray-400 focus:border-sky-400 transition"
             />
         </div>
     );

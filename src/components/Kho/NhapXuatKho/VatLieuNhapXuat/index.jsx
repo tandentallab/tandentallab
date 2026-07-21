@@ -204,27 +204,28 @@ export default function VatLieuNhapXuat() {
         />
       </div>
 
-      <p className="hidden md:block mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
-        Vật liệu
-      </p>
-      <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
-        Vật liệu nhập
-      </p>
       <div className="flex flex-col md:flex-row w-full">
-        <VatLieuNhapTable
-          data={vatLieuNhap}
-          selectedId={selectedVatLieuNhap?.id}
-          onRowClick={handleVatLieuNhapClick}
-        />
-        <div className="w-px bg-gray-300 self-stretch" />
-        <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
-          Vật liệu xuất
-        </p>
-        <VatLieuXuatTable
-          data={vatLieuXuat}
-          selectedId={selectedVatLieuXuat?.id}
-          onRowClick={handleVatLieuXuatClick}
-        />
+        <div className="flex-1">
+          <p className="py-2 font-medium text-center bg-white border border-gray-200">
+            Vật liệu nhập
+          </p>
+          <VatLieuNhapTable
+            data={vatLieuNhap}
+            selectedId={selectedVatLieuNhap?.id}
+            onRowClick={handleVatLieuNhapClick}
+          />
+        </div>
+
+        <div className="flex-1">
+          <p className="py-2 font-medium text-center bg-white border border-gray-200">
+            Vật liệu xuất
+          </p>
+          <VatLieuXuatTable
+            data={vatLieuXuat}
+            selectedId={selectedVatLieuXuat?.id}
+            onRowClick={handleVatLieuXuatClick}
+          />
+        </div>
       </div>
     </div>
   );

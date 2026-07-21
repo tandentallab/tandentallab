@@ -306,37 +306,38 @@ export default function NhapXuatTable() {
         setAddMenuOpen={setAddMenuOpen}
       />
 
-      <p className="hidden md:block mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
-        Phiếu nhập/xuất
-      </p>
-      <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
-        Phiếu nhập
-      </p>
       <div className="flex flex-col md:flex-row w-full">
-        <div className="flex-1 min-w-0">
-          <PhieuNhapTable
-            data={phieuNhapKhos}
-            selectedId={selectedNhap?._id}
-            onRowClick={handleNhapRowClick}
-            hasMore={nhapHasMore}
-            loadingMore={loadingMoreNhap}
-            onLoadMore={handleLoadMoreNhap}
-            onToggleVAT={handleToggleVAT}
-          />
+        <div className="flex-1">
+          <p className="py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
+            Phiếu nhập
+          </p>
+          <div className="flex-1 min-w-0">
+            <PhieuNhapTable
+              data={phieuNhapKhos}
+              selectedId={selectedNhap?._id}
+              onRowClick={handleNhapRowClick}
+              hasMore={nhapHasMore}
+              loadingMore={loadingMoreNhap}
+              onLoadMore={handleLoadMoreNhap}
+              onToggleVAT={handleToggleVAT}
+            />
+          </div>
         </div>
-        <div className="w-px bg-gray-300 self-stretch" />
-        <p className="block md:hidden mt-6 py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
-          Phiếu xuất
-        </p>
-        <div className="flex-1 min-w-0">
-          <PhieuXuatTable
-            data={phieuXuatKhos}
-            selectedId={selectedXuat?._id}
-            onRowClick={handleXuatRowClick}
-            hasMore={xuatHasMore}
-            loadingMore={loadingMoreXuat}
-            onLoadMore={handleLoadMoreXuat}
-          />
+
+        <div className="flex-1">
+          <p className="py-2 font-medium text-center bg-white border border-gray-200 border-b-0">
+            Phiếu xuất
+          </p>
+          <div className="flex-1 min-w-0">
+            <PhieuXuatTable
+              data={phieuXuatKhos}
+              selectedId={selectedXuat?._id}
+              onRowClick={handleXuatRowClick}
+              hasMore={xuatHasMore}
+              loadingMore={loadingMoreXuat}
+              onLoadMore={handleLoadMoreXuat}
+            />
+          </div>
         </div>
       </div>
 

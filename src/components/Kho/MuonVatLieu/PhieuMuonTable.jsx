@@ -39,7 +39,7 @@ export default function PhieuMuonTable({
     return (
         <div className="flex flex-col flex-1 min-w-0">
             <div ref={scrollRef} className="max-h-[650px] overflow-y-auto table-scroll">
-                <div className={`sticky top-0 h-10 flex items-center justify-center border-b font-medium uppercase text-sm ${themeBg}`}>
+                <div className="sticky top-0 h-10 py-2 font-medium text-center bg-white border-b border-gray-200">
                     {loai}
                 </div>
 

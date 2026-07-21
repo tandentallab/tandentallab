@@ -105,9 +105,6 @@ export default function KhoPage() {
         <Tabs
           value={tab}
           onChange={handleTabChange}
-          // variant="scrollable"
-          // scrollButtons="auto"
-          // allowScrollButtonsMobile
           sx={{
             minHeight: { xs: 40, sm: 48 },
             "& .MuiTab-root": {
@@ -124,29 +121,29 @@ export default function KhoPage() {
           }}
         >
           <Tab
-            icon={<CategoryIcon sx={{ fontSize: { xs: 0, sm: 18 } }} />}
+            icon={<CategoryIcon sx={{ margin: { md: "0 0", xs: "0px 8px" }, fontSize: { md: 18, xs: 26 } }} />}
             iconPosition="start"
-            label="Vật liệu"
+            label={!isMobile && "Vật liệu"}
           />
           <Tab
-            icon={<AssignmentIcon sx={{ fontSize: { xs: 0, sm: 18 } }} />}
+            icon={<AssignmentIcon sx={{ margin: { md: "0 0", xs: "0px 8px" }, fontSize: { md: 18, xs: 26 } }} />}
             iconPosition="start"
-            label={isMobile ? "Nhập/Xuất" : "Phiếu Nhập - Xuất"}
+            label={!isMobile && "Phiếu nhập / xuất"}
           />
           <Tab
-            icon={<ImportExportIcon sx={{ fontSize: { xs: 0, sm: 18 } }} />}
+            icon={<ImportExportIcon sx={{ margin: { md: "0 0", xs: "0px 8px" }, fontSize: { md: 18, xs: 26 } }} />}
             iconPosition="start"
-            label={isMobile ? "VL Nhập/Xuất" : "Vật liệu Nhập - Xuất"}
+            label={!isMobile && "Vật liệu nhập / xuất"}
           />
           <Tab
-            icon={<BookmarkIcon sx={{ fontSize: { xs: 0, sm: 18 } }} />}
+            icon={<BookmarkIcon sx={{ margin: { md: "0 0", xs: "0px 8px" }, fontSize: { md: 18, xs: 26 } }} />}
             iconPosition="start"
-            label={isMobile ? "Mượn" : "Mượn vật liệu"}
+            label={!isMobile && "Mượn vật liệu"}
           />
           <Tab
-            icon={<StorefrontIcon sx={{ fontSize: { xs: 0, sm: 18 } }} />}
+            icon={<StorefrontIcon sx={{ margin: { md: "0 0", xs: "0px 8px" }, fontSize: { md: 18, xs: 26 } }} />}
             iconPosition="start"
-            label={isMobile ? "NCC" : "Nhà cung cấp"}
+            label={!isMobile && "Nhà cung cấp"}
           />
         </Tabs>
 

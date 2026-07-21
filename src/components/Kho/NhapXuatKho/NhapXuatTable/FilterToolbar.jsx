@@ -349,7 +349,7 @@ function GlobalSearchInput({ value, onChange, delay = 400 }) {
                 value={localValue}
                 onChange={(e) => setLocalValue(e.target.value)}
                 placeholder="Nhập Số/NCC/Bộ phận/Nhân viên"
-                className="h-10 w-[280px] pl-8 pr-3 text-sm bg-white shadow rounded-full outline-none hover:border-gray-400 focus:border-sky-400 transition"
+                className="h-10 w-[334px] pl-8 pr-3 text-sm bg-white shadow rounded-full outline-none hover:border-gray-400 focus:border-sky-400 transition"
             />
         </div>
     );
@@ -404,7 +404,7 @@ export default function FilterToolbar({
     }, [setAddMenuOpen]);
 
     return (
-        <div className="mb-3 flex flex-wrap-reverse justify-end gap-3 md:flex-nowrap md:gap-0 md:justify-between md:items-center">
+        <div className="mb-3 flex flex-wrap justify-start gap-3 md:flex-nowrap md:gap-0 md:justify-between md:items-center">
             <div className="flex gap-2">
                 <div className="relative">
                     <button

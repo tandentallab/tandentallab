@@ -368,7 +368,7 @@ export default function NhapKhoDetailModal({ phieu, onClose, onUpdated }) {
                                                             >
                                                                 {item.vatLieu?.tenVatLieu || "—"}
                                                             </td>
-                                                            <td className="py-1 px-2 w-8 md:w-20">
+                                                            <td className="py-1 px-2 w-8 md:w-30">
                                                                 {item.vatLieu?.donViTinh || "—"}
                                                             </td>
                                                             <td className="py-1 px-2 text-right w-8 md:w-20">{item.soLuong}</td>

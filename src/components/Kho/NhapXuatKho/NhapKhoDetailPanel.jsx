@@ -368,14 +368,22 @@ export default function NhapKhoDetailModal({ phieu, onClose, onUpdated }) {
                                                             >
                                                                 {item.vatLieu?.tenVatLieu || "—"}
                                                             </td>
-                                                            <td className="py-1 px-2 w-8 md:w-30">
+                                                            <td className="py-1 px-2 w-8 md:max-w-36 truncate"
+                                                                title={item.vatLieu?.donViTinh || "—"}
+                                                            >
                                                                 {item.vatLieu?.donViTinh || "—"}
                                                             </td>
-                                                            <td className="py-1 px-2 text-right w-8 md:w-20">{item.soLuong}</td>
-                                                            <td className="py-1 px-2 text-right w-20 md:w-40">
+                                                            <td className="py-1 px-2 text-right w-8 md:w-20"
+                                                                title={item.soLuong}
+                                                            >{item.soLuong}</td>
+                                                            <td className="py-1 px-2 text-right w-20 md:w-40"
+                                                                title={(item.donGia || 0).toLocaleString("vi-VN")}
+                                                            >
                                                                 {(item.donGia || 0).toLocaleString("vi-VN")}
                                                             </td>
-                                                            <td className="py-1 px-2 text-right font-medium w-20 md:w-40">
+                                                            <td className="py-1 px-2 text-right font-medium w-20 md:w-40"
+                                                                title={(item.thanhTien || 0).toLocaleString("vi-VN")}
+                                                            >
                                                                 {(item.thanhTien || 0).toLocaleString("vi-VN")}
                                                             </td>
                                                         </tr>

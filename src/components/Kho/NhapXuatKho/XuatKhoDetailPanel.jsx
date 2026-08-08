@@ -247,14 +247,20 @@ export default function XuatKhoDetailModal({ phieu, onClose, onUpdated }) {
                                                             >
                                                                 {item.vatLieu?.tenVatLieu || "—"}
                                                             </td>
-                                                            <td className="py-1 px-2 w-10 md:w-32">
+                                                            <td className="py-1 px-2 w-10 md:max-w-36 truncate"
+                                                                title={item.vatLieu?.donViTinh || "—"}
+                                                            >
                                                                 {item.vatLieu?.donViTinh || "—"}
                                                             </td>
-                                                            <td className="py-1 px-2 text-right w-10 md:w-32">
+                                                            <td className="py-1 px-2 text-right w-10 md:w-32"
+                                                                title={item.soLuong}
+                                                            >
                                                                 {item.soLuong}
                                                             </td>
                                                             {fullPhieu.danhSachVatLieu?.some((i) => i.moTa) && (
-                                                                <td className="py-1 px-2">
+                                                                <td className="py-1 px-2"
+                                                                    title={item.moTa || ""}
+                                                                >
                                                                     {item.moTa || ""}
                                                                 </td>
                                                             )}

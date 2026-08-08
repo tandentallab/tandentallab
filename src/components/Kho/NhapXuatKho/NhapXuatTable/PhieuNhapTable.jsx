@@ -17,8 +17,6 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
         return () => observer.disconnect();
     }, [hasMore, loadingMore, onLoadMore]);
 
-    const tongTien = data.reduce((s, r) => s + (r.tongTien || 0) + (r.phiPhatSinh || 0), 0);
-
     return (
         <div className="flex flex-col flex-1 min-w-0">
             <div className="max-h-[600px] overflow-y-auto table-scroll">
@@ -142,14 +140,6 @@ export default function PhieuNhapTable({ data, selectedId, onRowClick, hasMore, 
                             </div>
                         );
                     })}
-
-                    {/* Tổng mobile */}
-                    {data.length > 0 && (
-                        <div className="sticky bottom-0 flex justify-between items-center rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-base font-medium text-gray-700">
-                            <span>Tổng</span>
-                            <span>{tongTien.toLocaleString("vi-VN")} ₫</span>
-                        </div>
-                    )}
                 </div>
             </div>
 

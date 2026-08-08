@@ -79,8 +79,9 @@ const phieuNhapKhoSlice = createSlice({
     name: "phieuNhapKho",
     initialState: {
         phieuNhapKhos: [],
-        selected: null,   // phiếu đang xem / sửa
+        selected: null,
         total: 0,
+        tongTienNhap: 0,
         page: 1,
         limit: 20,
         loading: false,
@@ -111,6 +112,7 @@ const phieuNhapKhoSlice = createSlice({
                 state.loading = false;
                 state.phieuNhapKhos = action.payload.data || [];
                 state.total = action.payload.total || 0;
+                state.tongTienNhap = action.payload.tongTien || 0;
                 state.page = action.payload.page || 1;
                 state.limit = action.payload.limit || 20;
                 state.hasMore = (action.payload.data || []).length >= (action.payload.limit || 20);

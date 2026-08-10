@@ -99,6 +99,11 @@ const BangLuongRow = ({ item, onChange, isEven, onRowClick, onDelete }) => {
         >
           {item.hoVaTen}
         </button>
+        {(item.trangThai === "Nghỉ việc" || item.trangThai === "Đã nghỉ") && (
+          <span className="ml-2 px-1.5 py-0.5 text-[10px] font-normal rounded bg-rose-100 text-rose-700">
+            Đã nghỉ
+          </span>
+        )}
       </td>
 
       {/* Lương cơ bản */}

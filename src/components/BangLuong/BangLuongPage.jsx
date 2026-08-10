@@ -78,6 +78,7 @@ const BangLuongPage = () => {
   const [openPrintModal, setOpenPrintModal] = useState(false);
   const [searchTen, setSearchTen] = useState("");
   const [filterChucVu, setFilterChucVu] = useState("all");
+  const [filterTrangThai, setFilterTrangThai] = useState("Đang làm"); // "Đang làm", "Đã nghỉ", "Tất cả"
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -112,6 +113,7 @@ const BangLuongPage = () => {
         _id: item.nhanVien?._id,
         bangLuongId: item._id,
         hoVaTen: item.nhanVien?.hoVaTen,
+        trangThai: item.nhanVien?.trangThai || "Đang làm",
         luongCanBan: item.luongCanBan,
         ngayCongThang: item.ngayCongThang,
         soNgayCong: item.soNgayCong,
@@ -126,10 +128,7 @@ const BangLuongPage = () => {
       setSalaryData(rows);
       setIsDirty(false); // data came from server, not dirty
     } else if (nhanVienData?.length > 0) {
-      const activeNhanVien = nhanVienData.filter(
-        (nv) => nv?.trangThai?.trim() === "Đang làm"
-      );
-      const rows = activeNhanVien.map((nv) => {
+      const rows = nhanVienData.map((nv) => {
         const result = tinhLuong({
           luongCoBan: nv.luongCanBan,
           ngayCongThang: nv.ngayCongThang || 28,
@@ -137,6 +136,7 @@ const BangLuongPage = () => {
         });
         return {
           ...nv,
+          trangThai: nv.trangThai || "Đang làm",
           soNgayCong: 0,
           com: 0,
           dienThoai: 0,
@@ -211,39 +211,6 @@ const BangLuongPage = () => {
     }
   };
 
-  const tongLuong = useMemo(
-    () => salaryData.reduce((sum, item) => sum + Number(item.thucNhan || 0), 0),
-    [salaryData]
-  );
-
-  const colTotals = useMemo(
-    () => ({
-      luongCanBan: salaryData.reduce(
-        (s, i) => s + Number(i.luongCanBan || 0),
-        0
-      ),
-      thanhTienCong: salaryData.reduce((s, i) => {
-        const { thanhTienCong } = tinhLuong({
-          luongCoBan: i.luongCanBan,
-          ngayCongThang: i.ngayCongThang,
-          soNgayCong: i.soNgayCong,
-          com: i.com,
-          dienThoai: i.dienThoai,
-          thuong: i.thuong,
-          phat: i.phat,
-          ungTruoc: i.ungTruoc,
-        });
-        return s + (thanhTienCong || 0);
-      }, 0),
-      com: salaryData.reduce((s, i) => s + Number(i.com || 0), 0),
-      dienThoai: salaryData.reduce((s, i) => s + Number(i.dienThoai || 0), 0),
-      thuong: salaryData.reduce((s, i) => s + Number(i.thuong || 0), 0),
-      ungTruoc: salaryData.reduce((s, i) => s + Number(i.ungTruoc || 0), 0),
-      thucNhan: tongLuong,
-    }),
-    [salaryData, tongLuong]
-  );
-
   const chucVuList = useMemo(() => {
     const set = new Set();
     (nhanVienData || []).forEach((nv) => {
@@ -261,6 +228,15 @@ const BangLuongPage = () => {
     return map;
   }, [nhanVienData]);
 
+  // Map nhanVien._id -> trangThai để tra nhanh
+  const trangThaiMap = useMemo(() => {
+    const map = {};
+    (nhanVienData || []).forEach((nv) => {
+      if (nv?._id) map[nv._id] = nv.trangThai?.trim() || "Đang làm";
+    });
+    return map;
+  }, [nhanVienData]);
+
   const displayData = useMemo(() => {
     return salaryData.filter((item) => {
       const matchTen =
@@ -270,9 +246,51 @@ const BangLuongPage = () => {
           .includes(searchTen.toLowerCase().trim());
       const matchChucVu =
         filterChucVu === "all" || (chucVuMap[item._id] || "") === filterChucVu;
-      return matchTen && matchChucVu;
+
+      const tt = (item.trangThai || trangThaiMap[item._id] || "Đang làm").trim();
+      let matchTrangThai = true;
+      if (filterTrangThai === "Đang làm") {
+        matchTrangThai = tt !== "Nghỉ việc" && tt !== "Đã nghỉ";
+      } else if (filterTrangThai === "Đã nghỉ") {
+        matchTrangThai = tt === "Nghỉ việc" || tt === "Đã nghỉ";
+      }
+
+      return matchTen && matchChucVu && matchTrangThai;
     });
-  }, [salaryData, searchTen, filterChucVu, chucVuMap]);
+  }, [salaryData, searchTen, filterChucVu, filterTrangThai, chucVuMap, trangThaiMap]);
+
+  const tongLuong = useMemo(
+    () => displayData.reduce((sum, item) => sum + Number(item.thucNhan || 0), 0),
+    [displayData]
+  );
+
+  const colTotals = useMemo(
+    () => ({
+      luongCanBan: displayData.reduce(
+        (s, i) => s + Number(i.luongCanBan || 0),
+        0
+      ),
+      thanhTienCong: displayData.reduce((s, i) => {
+        const { thanhTienCong } = tinhLuong({
+          luongCoBan: i.luongCanBan,
+          ngayCongThang: i.ngayCongThang,
+          soNgayCong: i.soNgayCong,
+          com: i.com,
+          dienThoai: i.dienThoai,
+          thuong: i.thuong,
+          phat: i.phat,
+          ungTruoc: i.ungTruoc,
+        });
+        return s + (thanhTienCong || 0);
+      }, 0),
+      com: displayData.reduce((s, i) => s + Number(i.com || 0), 0),
+      dienThoai: displayData.reduce((s, i) => s + Number(i.dienThoai || 0), 0),
+      thuong: displayData.reduce((s, i) => s + Number(i.thuong || 0), 0),
+      ungTruoc: displayData.reduce((s, i) => s + Number(i.ungTruoc || 0), 0),
+      thucNhan: tongLuong,
+    }),
+    [displayData, tongLuong]
+  );
 
   const handleSave = async () => {
     if (isSaving) return;
@@ -304,7 +322,7 @@ const BangLuongPage = () => {
 
   const handleExport = async () => {
     try {
-      await exportBangLuongToExcel(salaryData, thang, nam);
+      await exportBangLuongToExcel(displayData, thang, nam);
     } catch (err) {
       console.error("Xuất Excel thất bại", err);
     }
@@ -935,7 +953,7 @@ const BangLuongPage = () => {
           {[
             {
               label: "Số nhân viên",
-              value: salaryData.length,
+              value: displayData.length,
               accent: "#0284c7",
               suffix: "",
             },
@@ -957,15 +975,15 @@ const BangLuongPage = () => {
             },
             {
               label: "Lương TB/người",
-              value: salaryData.length
+              value: displayData.length
                 ? (
                   Math.round(
-                    Math.round(tongLuong / salaryData.length) / 1000
+                    Math.round(tongLuong / displayData.length) / 1000
                   ) * 1000
                 ).toLocaleString("vi-VN")
                 : "—",
               accent: "#f59e0b",
-              suffix: salaryData.length ? " đ" : "",
+              suffix: displayData.length ? " đ" : "",
             },
           ].map(({ label, value, accent, suffix }) => (
             <div
@@ -1053,9 +1071,36 @@ const BangLuongPage = () => {
             </svg>
           </div>
 
+          {/* Filter theo trạng thái nhân viên */}
+          <div className="relative">
+            <select
+              value={filterTrangThai}
+              onChange={(e) => setFilterTrangThai(e.target.value)}
+              className="appearance-none pl-3 pr-8 py-2 text-sm font-medium rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all cursor-pointer"
+              style={{ color: "#1e293b" }}
+            >
+              <option value="Đang làm">Đang làm</option>
+              <option value="Đã nghỉ">Đã nghỉ</option>
+              <option value="Tất cả">Tất cả trạng thái</option>
+            </select>
+            <svg
+              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+
           {/* Result count when filtering */}
-          {(searchTen || filterChucVu !== "all") && (
-            <span className="text-base text-slate-400 whitespace-nowrap">
+          {(searchTen || filterChucVu !== "all" || filterTrangThai !== "Tất cả") && (
+            <span className="text-xs text-slate-400 whitespace-nowrap">
               {displayData.length} / {salaryData.length} nhân viên
             </span>
           )}
@@ -1107,9 +1152,16 @@ const BangLuongPage = () => {
                     onClick={() => setSelectedEmployee(item)}
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-bold text-slate-800 text-base">
-                        {item.hoVaTen}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800 text-sm">
+                          {item.hoVaTen}
+                        </span>
+                        {(item.trangThai === "Nghỉ việc" || item.trangThai === "Đã nghỉ") && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-normal rounded bg-rose-100 text-rose-700">
+                            Đã nghỉ
+                          </span>
+                        )}
+                      </div>
                       <span
                         className="text-base font-bold px-2 py-0.5 rounded-full"
                         style={{ background: "#dcfce7", color: "#166534" }}
@@ -1358,7 +1410,7 @@ const BangLuongPage = () => {
       <InBangLuongModal
         open={openPrintModal}
         onClose={() => setOpenPrintModal(false)}
-        salaryData={salaryData}
+        salaryData={displayData}
         thang={thang}
         nam={nam}
       />

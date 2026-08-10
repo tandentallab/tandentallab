@@ -97,6 +97,7 @@ const LichSuLuongPage = () => {
   const [denThang, setDenThang] = useState(defaultRange.denThang);
   const [denNam, setDenNam] = useState(defaultRange.denNam);
   const [searchTen, setSearchTen] = useState("");
+  const [filterTrangThai, setFilterTrangThai] = useState("Đang làm"); // "Đang làm", "Đã nghỉ", "Tất cả"
   const [hoveredRowIdx, setHoveredRowIdx] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null); // nhân viên đang xem biểu đồ
 
@@ -150,24 +151,44 @@ const LichSuLuongPage = () => {
         map.set(nv._id, {
           _id: nv._id,
           hoVaTen: nv.hoVaTen,
+          trangThai: nv.trangThai || "Đang làm",
           values: {},
         });
       }
-      map.get(nv._id).values[key] = item.luongCanBan;
+      const soNgayCong = Number(item.soNgayCong || 0);
+      // Nếu số ngày công trong tháng bằng 0 thì không hiện lương căn bản (đặt là null -> hiện _)
+      map.get(nv._id).values[key] = soNgayCong > 0 ? item.luongCanBan : null;
     });
 
     const list = Array.from(map.values()).sort((a, b) =>
       (a.hoVaTen || "").localeCompare(b.hoVaTen || "", "vi")
     );
 
-    return list.map((r, idx) => ({ ...r, stt: idx + 1 }));
+    return list;
   }, [lichSuData]);
 
   const displayRows = useMemo(() => {
-    if (!searchTen.trim()) return rows;
-    const q = searchTen.toLowerCase().trim();
-    return rows.filter((r) => (r.hoVaTen || "").toLowerCase().includes(q));
-  }, [rows, searchTen]);
+    let result = rows;
+
+    // Lọc theo trạng thái nhân viên (mặc định: Đang làm)
+    if (filterTrangThai === "Đang làm") {
+      result = result.filter(
+        (r) => r.trangThai !== "Nghỉ việc" && r.trangThai !== "Đã nghỉ"
+      );
+    } else if (filterTrangThai === "Đã nghỉ") {
+      result = result.filter(
+        (r) => r.trangThai === "Nghỉ việc" || r.trangThai === "Đã nghỉ"
+      );
+    }
+
+    // Lọc theo tên tìm kiếm
+    if (searchTen.trim()) {
+      const q = searchTen.toLowerCase().trim();
+      result = result.filter((r) => (r.hoVaTen || "").toLowerCase().includes(q));
+    }
+
+    return result.map((r, idx) => ({ ...r, stt: idx + 1 }));
+  }, [rows, filterTrangThai, searchTen]);
 
   const rangeLabel = `${periodLabel(tuThang, tuNam)} - ${periodLabel(
     denThang,
@@ -185,7 +206,7 @@ const LichSuLuongPage = () => {
 
   const fmt = (n) =>
     n === undefined || n === null
-      ? "—"
+      ? "_"
       : (Math.round(n / 1000) * 1000).toLocaleString("vi-VN");
 
   /* ── Dữ liệu biểu đồ đường cho nhân viên đang được chọn ── */
@@ -259,13 +280,26 @@ const LichSuLuongPage = () => {
 
         {/* Right controls */}
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full md:w-auto justify-start md:justify-end">
+          {/* Lọc trạng thái nhân viên */}
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <Select
+              value={filterTrangThai}
+              onChange={(e) => setFilterTrangThai(e.target.value)}
+              sx={selectSx}
+            >
+              <MenuItem value="Đang làm">Đang làm</MenuItem>
+              <MenuItem value="Đã nghỉ">Đã nghỉ</MenuItem>
+              <MenuItem value="Tất cả">Tất cả</MenuItem>
+            </Select>
+          </FormControl>
+
           <input
             type="text"
             placeholder="Tìm nhân viên..."
             value={searchTen}
             onChange={(e) => setSearchTen(e.target.value)}
-            className="md:text-base text-base rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 focus:outline-none focus:border-sky-400 flex-1"
-            style={{ minWidth: 160, maxWidth: 260 }}
+            className="md:text-sm text-base rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 focus:outline-none focus:border-sky-400 flex-1"
+            style={{ minWidth: 160, maxWidth: 220 }}
           />
           {/* Từ tháng/năm */}
           <div className="flex items-center gap-1.5">
@@ -546,6 +580,11 @@ const LichSuLuongPage = () => {
                             }}
                           >
                             {r.hoVaTen}
+                            {(r.trangThai === "Nghỉ việc" || r.trangThai === "Đã nghỉ") && (
+                              <span className="ml-2 px-1.5 py-0.5 text-[10px] font-normal rounded bg-rose-100 text-rose-700">
+                                Đã nghỉ
+                              </span>
+                            )}
                           </td>
                           {columns.map((c) => {
                             const val = r.values[c.key];
@@ -556,10 +595,12 @@ const LichSuLuongPage = () => {
                                 style={{
                                   borderBottom: "1px solid #e2e8f0",
                                   color:
-                                    val === undefined ? "#94a3b8" : "#334155",
+                                    val === undefined || val === null
+                                      ? "#94a3b8"
+                                      : "#334155",
                                 }}
                               >
-                                {val === undefined ? "—" : `${fmt(val)} đ`}
+                                {val === undefined || val === null ? "_" : `${fmt(val)} đ`}
                               </td>
                             );
                           })}
@@ -596,10 +637,15 @@ const LichSuLuongPage = () => {
                         cursor: "pointer",
                       }}
                     >
-                      <div className="mb-2">
-                        <span className="text-base font-semibold text-slate-700">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-700">
                           {r.stt}. {r.hoVaTen}
                         </span>
+                        {(r.trangThai === "Nghỉ việc" || r.trangThai === "Đã nghỉ") && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-normal rounded bg-rose-100 text-rose-700">
+                            Đã nghỉ
+                          </span>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-1.5">
                         {columns.map((c) => {
@@ -613,14 +659,18 @@ const LichSuLuongPage = () => {
                               <span className="text-slate-400">{c.label}</span>
                               <span
                                 className={
-                                  val === undefined ? "italic" : "font-semibold"
+                                  val === undefined || val === null
+                                    ? "italic"
+                                    : "font-semibold"
                                 }
                                 style={{
                                   color:
-                                    val === undefined ? "#94a3b8" : "#334155",
+                                    val === undefined || val === null
+                                      ? "#94a3b8"
+                                      : "#334155",
                                 }}
                               >
-                                {val === undefined ? "—" : `${fmt(val)} đ`}
+                                {val === undefined || val === null ? "_" : `${fmt(val)} đ`}
                               </span>
                             </div>
                           );
@@ -773,7 +823,7 @@ const LichSuLuongPage = () => {
                         />
                         <RechartsTooltip
                           formatter={(value) => [
-                            value === null ? "—" : `${fmt(value)} đ`,
+                            value === null ? "_" : `${fmt(value)} đ`,
                             "Lương căn bản",
                           ]}
                           labelFormatter={(_, payload) =>

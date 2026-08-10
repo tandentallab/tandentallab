@@ -66,6 +66,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 // =====================================================
 // SelectWithAdd — dropdown có thể chọn hoặc thêm mới
+// (đã thêm ô tìm kiếm để lọc nhanh danh sách lựa chọn)
 // =====================================================
 function SelectWithAdd({
   label,
@@ -79,14 +80,30 @@ function SelectWithAdd({
   const [open, setOpen] = useState(false);
   const [addingNew, setAddingNew] = useState(false);
   const [newVal, setNewVal] = useState("");
+  const [query, setQuery] = useState(""); // ô tìm kiếm lọc option
   const anchorRef = useRef(null);
   const inputRef = useRef(null);
+  const searchRef = useRef(null);
+
+  // Lọc options theo query (không phân biệt hoa/thường)
+  const filteredOptions = useMemo(() => {
+    if (!query.trim()) return options;
+    const q = query.toLowerCase();
+    return options.filter((opt) => opt.toLowerCase().includes(q));
+  }, [options, query]);
 
   // Đóng dropdown khi click ra ngoài
   const handleClose = () => {
     setOpen(false);
     setAddingNew(false);
     setNewVal("");
+    setQuery("");
+  };
+
+  const handleOpen = () => {
+    setOpen(true);
+    setQuery("");
+    setTimeout(() => searchRef.current?.focus(), 50);
   };
 
   const handleSelect = (val) => {
@@ -117,7 +134,7 @@ function SelectWithAdd({
         {/* Trigger field */}
         <Box
           ref={anchorRef}
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => (open ? handleClose() : handleOpen())}
           sx={{
             border: "1px solid",
             borderColor: open ? "#1976d2" : "#c4c4c4",
@@ -183,14 +200,74 @@ function SelectWithAdd({
               overflow: "hidden",
             }}
           >
-            {/* Danh sách options */}
+            {/* Ô tìm kiếm lọc danh sách */}
+            <Box
+              sx={{
+                px: 1.5,
+                py: 1,
+                borderBottom: "1px solid #f0f0f0",
+                display: "flex",
+                alignItems: "center",
+                gap: 0.75,
+              }}
+            >
+              <SearchIcon
+                sx={{ fontSize: 16, color: "#9ca3af", flexShrink: 0 }}
+              />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") handleClose();
+                  if (e.key === "Enter" && filteredOptions.length === 1)
+                    handleSelect(filteredOptions[0]);
+                }}
+                placeholder={`Tìm ${label ? label.toLowerCase() : "..."}`}
+                style={{
+                  flex: 1,
+                  border: "none",
+                  outline: "none",
+                  fontSize: 14,
+                  fontFamily: "inherit",
+                  background: "transparent",
+                  color: "#1a1a1a",
+                  padding: "4px 0",
+                }}
+              />
+              {query && (
+                <Box
+                  onClick={() => {
+                    setQuery("");
+                    searchRef.current?.focus();
+                  }}
+                  sx={{
+                    cursor: "pointer",
+                    color: "#9ca3af",
+                    fontSize: 14,
+                    lineHeight: 1,
+                    px: 0.5,
+                    "&:hover": { color: "#555" },
+                  }}
+                >
+                  ✕
+                </Box>
+              )}
+            </Box>
+
+            {/* Danh sách options (đã lọc) */}
             <Box sx={{ maxHeight: 220, overflowY: "auto" }}>
               {options.length === 0 && (
                 <Box sx={{ px: 2, py: 1.5, color: "#9ca3af", fontSize: 13 }}>
                   Chưa có lựa chọn nào
                 </Box>
               )}
-              {options.map((opt) => (
+              {options.length > 0 && filteredOptions.length === 0 && (
+                <Box sx={{ px: 2, py: 1.5, color: "#9ca3af", fontSize: 13 }}>
+                  Không tìm thấy "{query}"
+                </Box>
+              )}
+              {filteredOptions.map((opt) => (
                 <Box
                   key={opt}
                   onClick={() => handleSelect(opt)}
@@ -284,6 +361,8 @@ function SelectWithAdd({
                     onAddNew();
                     setOpen(false);
                   } else {
+                    // Nếu người dùng đang gõ tìm kiếm, dùng luôn giá trị đó làm gợi ý tên mới
+                    setNewVal(query);
                     setAddingNew(true);
                   }
                 }}

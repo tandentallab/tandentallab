@@ -107,7 +107,7 @@ export const exportLichSuLuongToExcel = async (rows, columns, rangeLabel) => {
       const cell = row.getCell(3 + ci);
       const val = r.values[c.key];
       if (val === undefined || val === null) {
-        cell.value = "—";
+        cell.value = "_";
         cell.alignment = { horizontal: "center", vertical: "middle" };
         cell.font = { size: 10, italic: true, color: { argb: COLOR.emptyText } };
       } else {

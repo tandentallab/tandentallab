@@ -49,6 +49,19 @@ export const addChiPhi = createAsyncThunk("chiPhi/addChiPhi", async (data, { dis
     catch (err) { return rejectWithValue(err.response?.data?.message || "Lỗi tạo chi phí mới"); }
 });
 
+/* ================= TẠO CHI PHÍ PHÁT SINH ================= */
+export const addChiPhiPhatSinh = createAsyncThunk(
+    "chiPhi/addChiPhiPhatSinh",
+    async (data, { dispatch, rejectWithValue }) => {
+        try {
+            const res = await api.post("/chiphi/phatsinh", data);
+            return res.data.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.message || "Lỗi tạo chi phí phát sinh");
+        }
+    }
+);
+
 /* ================= CẬP NHẬT CHI PHÍ ================= */
 export const updateChiPhi = createAsyncThunk("chiPhi/updateChiPhi", async ({ id, data }, { dispatch, rejectWithValue }) => {
     try { const res = await api.put(`/chiphi/${id}`, data); dispatch(fetchQuyChiPhi()); return res.data.data; }
@@ -107,6 +120,13 @@ const chiPhiSlice = createSlice({
             .addCase(addChiPhi.pending, (state) => { state.isLoading = true; state.error = null; })
             .addCase(addChiPhi.fulfilled, (state, action) => { state.isLoading = false; if (action.payload) state.danhSachChiPhi.unshift(action.payload); })
             .addCase(addChiPhi.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
+
+            /* ===== CASE TẠO CHI PHÍ PHÁT SINH ===== */
+            .addCase(addChiPhiPhatSinh.pending, (state) => { state.isLoading = true; state.error = null; })
+            .addCase(addChiPhiPhatSinh.fulfilled, (state, action) => {
+                state.isLoading = false;
+            })
+            .addCase(addChiPhiPhatSinh.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
 
             /* ===== CASE CẬP NHẬT CHI PHÍ ===== */
             .addCase(updateChiPhi.pending, (state) => { state.isLoading = true; state.error = null; })

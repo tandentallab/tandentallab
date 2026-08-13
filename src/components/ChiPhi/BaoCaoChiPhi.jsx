@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
     Box, TableRow, TableCell, Typography, Dialog, DialogTitle,
@@ -16,13 +16,15 @@ import PrintPreviewModal from './PrintPreviewModal';
 import BaseTable from './common/BaseTable';
 import SalaryDetailModal from './SalaryDetailModal';
 import ChiPhiForm from './ChiPhiForm';
+import EditExpenseModal from './EditExpenseModal'; // Import Component Edit
 
 // Redux & Utils
-import { addChiPhiPhatSinh, fetchChiPhi } from '../../redux/slices/chiPhiSlice';
+import { addChiPhiPhatSinh, fetchChiPhi, updateChiPhi, themLoaiChiPhiLocal } from '../../redux/slices/chiPhiSlice';
 import { formatVND } from '../../utils/chiPhiUtils';
 
 const BaoCaoChiPhi = ({ danhSachChiPhi, filter, isLoading, onDelete }) => {
     const dispatch = useDispatch();
+    const danhSachLoaiChiPhi = useSelector(state => state.chiPhi?.danhSachLoaiChiPhi || []);
 
     // States cho các modal hiển thị chi tiết
     const [selectedGroup, setSelectedGroup] = useState(null);
@@ -30,11 +32,50 @@ const BaoCaoChiPhi = ({ danhSachChiPhi, filter, isLoading, onDelete }) => {
     const [selectedPhatSinh, setSelectedPhatSinh] = useState(null);
     const [printData, setPrintData] = useState(null);
 
+    // States cho việc sửa chi phí
+    const [editItem, setEditItem] = useState(null);
+    const [editFormData, setEditFormData] = useState({ tenChiPhi: '', loaiChiPhi: '', gia: '', ghiChu: '' });
+
     // States cho Filter Phân Loại
     const [filterAnchorEl, setFilterAnchorEl] = useState(null);
     const [appliedSelectedLoai, setAppliedSelectedLoai] = useState([]);
     const [tempSelectedLoai, setTempSelectedLoai] = useState([]);
     const [visibleCount, setVisibleCount] = useState(20);
+
+
+    // --- ĐỒNG BỘ DỮ LIỆU KHI UPDATE/DELETE ---
+    // Rút trích các giá trị cần thiết ra ngoài để đưa vào dependency array
+    const dateStrTarget = selectedGroup?.dateStr;
+    const isPhatSinhOpen = !!selectedPhatSinh;
+
+    useEffect(() => {
+        // 1. Cập nhật lại Modal Phát Sinh nếu đang mở
+        if (isPhatSinhOpen) {
+            const updatedPhatSinh = danhSachChiPhi.find(item => item._id === "auto_chi_phi_phat_sinh");
+            setSelectedPhatSinh(updatedPhatSinh || null);
+        }
+
+        // 2. Cập nhật lại Modal Nhóm Ngày nếu đang mở
+        if (dateStrTarget) {
+            const groupItems = danhSachChiPhi.filter(item =>
+                !item.isAuto &&
+                dayjs(item.ngayTao).tz('Asia/Ho_Chi_Minh').format('DD/MM/YYYY') === dateStrTarget
+            );
+
+            if (groupItems.length > 0) {
+                // Dùng prev state (dạng callback) để không phải đưa nguyên object selectedGroup vào mảng theo dõi
+                setSelectedGroup(prev => ({
+                    ...prev,
+                    dateStr: dateStrTarget,
+                    items: groupItems,
+                    tongTien: groupItems.reduce((sum, item) => sum + (item.gia || 0), 0)
+                }));
+            } else {
+                setSelectedGroup(null); // Tự đóng modal nếu xóa hết các dòng của ngày đó
+            }
+        }
+    }, [danhSachChiPhi, isPhatSinhOpen, dateStrTarget]);
+
 
     // --- XỬ LÝ DATA BẢNG ---
     const filteredByDate = danhSachChiPhi.filter(item => {
@@ -96,7 +137,7 @@ const BaoCaoChiPhi = ({ danhSachChiPhi, filter, isLoading, onDelete }) => {
         setPrintData({ items: mappedItems, subtitle, type });
     };
 
-    // --- HÀM SUBMIT FORM PHÁT SINH ---
+    // --- HÀM SUBMIT THÊM PHÁT SINH ---
     const handleAddPhatSinh = async (formData) => {
         try {
             await dispatch(addChiPhiPhatSinh(formData)).unwrap();
@@ -104,6 +145,27 @@ const BaoCaoChiPhi = ({ danhSachChiPhi, filter, isLoading, onDelete }) => {
         } catch (error) {
             alert('Có lỗi xảy ra: ' + error);
         }
+    };
+
+    // --- CÁC HÀM XỬ LÝ EDIT PHÁT SINH ---
+    const handleOpenEdit = (item) => {
+        setEditItem(item);
+        setEditFormData({ tenChiPhi: item.tenChiPhi, loaiChiPhi: item.loaiChiPhi, gia: item.gia, ghiChu: item.ghiChu || '' });
+    };
+
+    const handleSaveEdit = () => {
+        if (!editFormData.tenChiPhi || !editFormData.loaiChiPhi || !editFormData.gia) {
+            alert('Vui lòng nhập đầy đủ thông tin!'); return;
+        }
+        dispatch(updateChiPhi({ id: editItem._id, data: { ...editFormData, gia: Number(editFormData.gia) } })).then(() => {
+            dispatch(fetchChiPhi(filter)); // Refresh data
+        });
+        setEditItem(null);
+    };
+
+    const handleAddNewType = (trimmedType) => {
+        dispatch(themLoaiChiPhiLocal(trimmedType));
+        setEditFormData(prev => ({ ...prev, loaiChiPhi: trimmedType }));
     };
 
     const columns = [
@@ -209,7 +271,6 @@ const BaoCaoChiPhi = ({ danhSachChiPhi, filter, isLoading, onDelete }) => {
                                 <TableCell className="mobile-card-header" sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                     <Box sx={{ flex: 1, textAlign: 'left' }}>
                                         <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500, fontSize: '0.85rem' }}>
-                                            {/* Sửa format ở đây (Mobile) */}
                                             {dayjs(row.ngayTao).tz('Asia/Ho_Chi_Minh').format('MM/YYYY')}
                                         </Typography>
                                     </Box>
@@ -228,7 +289,6 @@ const BaoCaoChiPhi = ({ danhSachChiPhi, filter, isLoading, onDelete }) => {
                                 </TableCell>
 
                                 <TableCell className="hide-on-mobile-card" data-label="Ngày" sx={{ color: '#c2410c', fontSize: '0.82rem', fontWeight: 500, py: 0.75 }}>
-                                    {/* Sửa format ở đây (Desktop) */}
                                     {dayjs(row.ngayTao).tz('Asia/Ho_Chi_Minh').format('MM/YYYY')}
                                 </TableCell>
                                 <TableCell data-label="Tên chi phí" sx={{ py: 0.75 }}>
@@ -321,12 +381,12 @@ const BaoCaoChiPhi = ({ danhSachChiPhi, filter, isLoading, onDelete }) => {
                         <ChiPhiTable
                             danhSachChiPhi={selectedPhatSinh.chiTiet}
                             isLoading={isLoading}
-                            isViewOnly={true}
+                            isViewOnly={false} // Chuyển thành false để hiện Edit/Delete
                             onPrintTable={(data) => {
                                 setPrintData({ items: data.map(item => ({ ...item, ngay: item.ngayTao })), subtitle: `Phiếu chi phí phát sinh tháng ${filter.thang}`, type: 'month' });
                             }}
-                            onEdit={() => { }}
-                            onDelete={(id) => { onDelete(id); setSelectedPhatSinh(null); }}
+                            onEdit={handleOpenEdit}
+                            onDelete={(id) => { onDelete(id); }}
                         />
                     )}
                 </DialogContent>
@@ -334,6 +394,17 @@ const BaoCaoChiPhi = ({ danhSachChiPhi, filter, isLoading, onDelete }) => {
 
             {selectedLuong && <SalaryDetailModal selectedLuong={selectedLuong} filter={filter} onClose={() => setSelectedLuong(null)} />}
             <PrintPreviewModal isOpen={!!printData} data={printData} onClose={() => setPrintData(null)} />
+
+            {/* COMPONENT MODAL SỬA */}
+            <EditExpenseModal
+                editItem={editItem}
+                editFormData={editFormData}
+                setEditFormData={setEditFormData}
+                danhSachLoaiChiPhi={danhSachLoaiChiPhi}
+                onSave={handleSaveEdit}
+                onClose={() => setEditItem(null)}
+                onAddNewType={handleAddNewType}
+            />
         </Box>
     );
 };

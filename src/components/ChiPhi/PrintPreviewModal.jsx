@@ -25,7 +25,11 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
 
     const { items = [], subtitle = "", type = "day", tonQuyData } = data || {};
 
-    const tongTien = items.reduce((sum, item) => sum + (item.gia || 0), 0);
+    // KHÔNG TỰ Ý LỌC DỮ LIỆU NỮA - TRUYỀN GÌ IN NẤY
+    const validItems = items;
+
+    // Tính tổng tiền từ tất cả items truyền vào
+    const tongTien = validItems.reduce((sum, item) => sum + (item.gia || 0), 0);
 
     let displaySubtitle = subtitle;
     if (type === 'month' && displaySubtitle) {
@@ -34,7 +38,7 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
             .replace('ngày ../..', 'tháng tt/nnnn');
     }
 
-    // Xử lý hiển thị Quỹ và Số Dư
+    // Xử lý hiển thị Quỹ và Số Dư (Chỉ khi nào tonQuyData tồn tại thì mới hiển thị)
     let strQuyHienTai = "";
     let strSoDu = "";
     let showQuy = false;
@@ -95,7 +99,7 @@ const PrintPreviewModal = ({ isOpen, onClose, data }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        ${items.map((item, index) => {
+                        ${validItems.map((item, index) => {
         let sttDisplay = index + 1;
         if (type === 'month') {
             if (item.ngay) {

@@ -41,7 +41,7 @@ const ChiPhiTable = ({ danhSachChiPhi, isLoading, onPrintTable, onEdit, onDelete
         }
     };
 
-    // Popover lọc — dùng chung cho cả mobile toolbar và desktop header
+    // Popover lọc
     const filterPopover = (
         <Popover open={Boolean(filterAnchorEl)} anchorEl={filterAnchorEl} onClose={handleCloseFilter} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
             <Box sx={{ p: 2, minWidth: 220 }}>
@@ -67,10 +67,6 @@ const ChiPhiTable = ({ danhSachChiPhi, isLoading, onPrintTable, onEdit, onDelete
         </Popover>
     );
 
-    // Desktop: topBar truyền vào BaseTable (nằm trong header row, không scroll)
-    const desktopTopBar = null; // BaseTable tự render header — không cần topBar riêng cho desktop
-
-    // Columns cho desktop
     const columns = [
         { label: 'Ngày', width: 100, className: 'hide-on-mobile-card' },
         { label: 'Tên chi phí', width: 'auto' },
@@ -104,18 +100,11 @@ const ChiPhiTable = ({ danhSachChiPhi, isLoading, onPrintTable, onEdit, onDelete
     ];
 
     return (
-        // Container bao ngoài: flex column, chiều cao 100% từ cha
         <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
-
-            {/* ── MOBILE ONLY: Form + Toolbar cố định, KHÔNG scroll ─────────── */}
             <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 1.5, flexShrink: 0, mb: 1.5 }}>
-
-                {/* Form thêm chi phí (topContent từ cha) */}
                 {topContent && (
                     <Box>{topContent}</Box>
                 )}
-
-                {/* Toolbar: Lọc + In */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 0.5 }}>
                     <Box
                         onClick={handleOpenFilter}
@@ -138,12 +127,9 @@ const ChiPhiTable = ({ danhSachChiPhi, isLoading, onPrintTable, onEdit, onDelete
                     )}
                 </Box>
             </Box>
-            {/* ── END MOBILE TOOLBAR ───────────────────────────────────────── */}
 
-            {/* Popover lọc (dùng chung, không ảnh hưởng layout) */}
             {filterPopover}
 
-            {/* BaseTable chiếm toàn bộ chiều cao còn lại và tự xử lý scroll */}
             <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                 <BaseTable
                     columns={columns}
@@ -167,7 +153,6 @@ const ChiPhiTable = ({ danhSachChiPhi, isLoading, onPrintTable, onEdit, onDelete
                                     '& td': { borderBottom: '1px solid #e0f2fe' }
                                 }}
                             >
-                                {/* DÒNG 1 (MOBILE HEADER) */}
                                 <TableCell className="mobile-card-header" sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                     <Box sx={{ flex: 1, textAlign: 'left' }}>
                                         <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500, fontSize: '0.85rem' }}>
@@ -211,16 +196,15 @@ const ChiPhiTable = ({ danhSachChiPhi, isLoading, onPrintTable, onEdit, onDelete
                                 <TableCell className="hide-on-mobile-card" align="right" sx={{ pr: 1.5, py: 0.75 }}>
                                     {!item.isAuto && !isViewOnly && (
                                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                                            <Tooltip title="Sửa">
-                                                <IconButton size="small" onClick={() => onEdit(item)} sx={{ color: '#f59e0b', borderRadius: '6px', '&:hover': { bgcolor: '#fef3c7' } }}>
-                                                    <EditIcon sx={{ fontSize: 17 }} />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Xóa">
-                                                <IconButton size="small" onClick={() => onDelete(item._id)} sx={{ color: '#ef4444', borderRadius: '6px', '&:hover': { bgcolor: '#fef2f2' } }}>
-                                                    <DeleteIcon sx={{ fontSize: 17 }} />
-                                                </IconButton>
-                                            </Tooltip>
+                                            {/* Đã xóa thẻ Tooltip theo yêu cầu */}
+                                            <IconButton size="small" onClick={() => onEdit(item)} sx={{ color: '#f59e0b', borderRadius: '6px', '&:hover': { bgcolor: '#fef3c7' } }}>
+                                                <EditIcon sx={{ fontSize: 17 }} />
+                                            </IconButton>
+
+                                            {/* Đã xóa thẻ Tooltip theo yêu cầu */}
+                                            <IconButton size="small" onClick={() => onDelete(item._id)} sx={{ color: '#ef4444', borderRadius: '6px', '&:hover': { bgcolor: '#fef2f2' } }}>
+                                                <DeleteIcon sx={{ fontSize: 17 }} />
+                                            </IconButton>
                                         </Stack>
                                     )}
                                 </TableCell>

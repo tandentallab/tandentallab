@@ -1,22 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Select, MenuItem } from '@mui/material';
+import { Box } from '@mui/material';
 import dayjs from 'dayjs';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateChiPhi, themLoaiChiPhiLocal, fetchTonQuyNgay } from '../../redux/slices/chiPhiSlice';
 import PrintPreviewModal from './PrintPreviewModal';
 import ChiPhiForm from './ChiPhiForm';
 import ChiPhiTable from './ChiPhiTable';
+import EditExpenseModal from './EditExpenseModal'; // Import Component Edit
 
 const ChiPhiHangNgay = ({ danhSachChiPhi, isLoading, filter, onAdd, onDelete }) => {
     const dispatch = useDispatch();
-    const danhSachLoaiChiPhi = useSelector(state => state.chiPhi.danhSachLoaiChiPhi);
+    const danhSachLoaiChiPhi = useSelector(state => state.chiPhi?.danhSachLoaiChiPhi || []);
 
     const [printData, setPrintData] = useState(null);
     const [editItem, setEditItem] = useState(null);
     const [editFormData, setEditFormData] = useState({ tenChiPhi: '', loaiChiPhi: '', gia: '', ghiChu: '' });
-
-    const [isAddTypeModalOpen, setIsAddTypeModalOpen] = useState(false);
-    const [newTypeValue, setNewTypeValue] = useState('');
 
     const dailyData = useMemo(() => {
         return danhSachChiPhi.filter(item => {
@@ -75,23 +73,17 @@ const ChiPhiHangNgay = ({ danhSachChiPhi, isLoading, filter, onAdd, onDelete }) 
         setEditItem(null);
     };
 
-    const handleAddNewType = () => {
-        const trimmedType = newTypeValue.trim();
-        if (trimmedType) {
-            dispatch(themLoaiChiPhiLocal(trimmedType));
-            setEditFormData(prev => ({ ...prev, loaiChiPhi: trimmedType }));
-        }
-        setIsAddTypeModalOpen(false);
+    const handleAddNewType = (trimmedType) => {
+        dispatch(themLoaiChiPhiLocal(trimmedType));
+        setEditFormData(prev => ({ ...prev, loaiChiPhi: trimmedType }));
     };
 
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            {/* Form thêm chi phí: hiển thị cố định trên Desktop, nhúng vào topContent trên Mobile */}
             <Box sx={{ display: { xs: 'none', md: 'block' }, flexShrink: 0, mb: 2 }}>
                 <ChiPhiForm isLoading={isLoading} onAdd={onAdd} />
             </Box>
 
-            {/* Bảng chiếm toàn bộ chiều cao còn lại, scroll do BaseTable bên trong xử lý */}
             <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <ChiPhiTable
                     danhSachChiPhi={dailyData}
@@ -105,33 +97,15 @@ const ChiPhiHangNgay = ({ danhSachChiPhi, isLoading, filter, onAdd, onDelete }) 
 
             <PrintPreviewModal isOpen={!!printData} data={printData} onClose={() => setPrintData(null)} />
 
-            <Dialog open={!!editItem} onClose={() => setEditItem(null)} fullWidth maxWidth="sm">
-                <DialogTitle sx={{ fontWeight: 700, color: '#0c4a6e' }}>Chỉnh sửa chi phí</DialogTitle>
-                <DialogContent dividers className="space-y-4">
-                    <TextField fullWidth size="small" label="Tên chi phí" value={editFormData.tenChiPhi} onChange={(e) => setEditFormData(prev => ({ ...prev, tenChiPhi: e.target.value }))} sx={{ mt: 1 }} />
-                    <Select fullWidth size="small" value={editFormData.loaiChiPhi} onChange={(e) => { if (e.target.value === 'ADD_NEW') { setNewTypeValue(''); setIsAddTypeModalOpen(true); } else { setEditFormData(prev => ({ ...prev, loaiChiPhi: e.target.value })); } }}>
-                        <MenuItem value="ADD_NEW" sx={{ fontWeight: 'bold', color: '#0284c7', borderBottom: '1px solid #e2e8f0', mb: 1 }}>+ Thêm loại mới</MenuItem>
-                        {danhSachLoaiChiPhi.map(opt => (<MenuItem key={opt} value={opt}>{opt}</MenuItem>))}
-                    </Select>
-                    <TextField fullWidth size="small" type="number" label="Số tiền" value={editFormData.gia} onChange={(e) => setEditFormData(prev => ({ ...prev, gia: e.target.value }))} />
-                    <TextField fullWidth size="small" label="Ghi chú" value={editFormData.ghiChu} onChange={(e) => setEditFormData(prev => ({ ...prev, ghiChu: e.target.value }))} />
-                </DialogContent>
-                <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setEditItem(null)} color="inherit">Hủy</Button>
-                    <Button onClick={handleSaveEdit} variant="contained" color="primary">Cập nhật</Button>
-                </DialogActions>
-            </Dialog>
-
-            <Dialog open={isAddTypeModalOpen} onClose={() => setIsAddTypeModalOpen(false)} maxWidth="xs" fullWidth>
-                <DialogTitle sx={{ fontWeight: 700, color: '#0c4a6e' }}>Thêm loại chi phí mới</DialogTitle>
-                <DialogContent dividers>
-                    <TextField autoFocus fullWidth size="small" label="Tên loại chi phí" value={newTypeValue} onChange={(e) => setNewTypeValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddNewType(); } }} />
-                </DialogContent>
-                <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setIsAddTypeModalOpen(false)} color="inherit">Hủy</Button>
-                    <Button onClick={handleAddNewType} variant="contained" color="primary">Xác nhận</Button>
-                </DialogActions>
-            </Dialog>
+            <EditExpenseModal
+                editItem={editItem}
+                editFormData={editFormData}
+                setEditFormData={setEditFormData}
+                danhSachLoaiChiPhi={danhSachLoaiChiPhi}
+                onSave={handleSaveEdit}
+                onClose={() => setEditItem(null)}
+                onAddNewType={handleAddNewType}
+            />
         </Box>
     );
 };

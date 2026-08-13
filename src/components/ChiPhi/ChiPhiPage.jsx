@@ -126,11 +126,14 @@ const ChiPhiPage = () => {
 
     const handleConfirmDelete = useCallback(() => {
         if (itemToDelete) {
-            dispatch(deleteChiPhi(itemToDelete));
+            // Thêm .then() để đợi xóa xong thì tải lại dữ liệu mới nhất
+            dispatch(deleteChiPhi(itemToDelete)).then(() => {
+                dispatch(fetchChiPhi(filter));
+            });
         }
         setIsConfirmOpen(false);
         setItemToDelete(null);
-    }, [dispatch, itemToDelete]);
+    }, [dispatch, itemToDelete, filter]);
 
     const handleCommitSearch = useCallback((value) => {
         setSearchTerm(value);

@@ -19,7 +19,7 @@ import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 import PhieuBaoHanhList from "./PhieuBaoHanhList";
 import WarrantyCardPrint from "./WarrantyCardPrint";
 import { toast } from "sonner";
-import { hasRouteAccess } from "../../config/permissions";
+import { hasPermission, hasRouteAccess, ORDER_DELIVERY_TIME_PERMISSION } from "../../config/permissions";
 import GhiChuAddModal from "../GhiChu/GhiChuAddModal";
 import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
 
@@ -191,6 +191,7 @@ const DonHangForm = () => {
   // Current user for nhật ký
   const { user } = useSelector((state) => state.auth);
   const nguoiThuc = user?.HoTenNV || "Điều Phối";
+  const canEditDeliveryTime = !isEditMode || hasPermission(user, ORDER_DELIVERY_TIME_PERMISSION);
 
   const [nhaKhoasList, setNhaKhoasList] = useState([]);
   const [allBacSi, setAllBacSi] = useState([]);
@@ -577,6 +578,7 @@ const DonHangForm = () => {
   };
 
   const handleDateChange = (field, date, time) => {
+    if (field === "henGiao" && !canEditDeliveryTime) return;
     markDirty();
     if (!date) { setFormData(f => ({ ...f, [field]: "" })); return; }
     setFormData(f => ({ ...f, [field]: `${date}T${time || "00:00"}` }));
@@ -870,6 +872,7 @@ const DonHangForm = () => {
                   <button
                     type="button"
                     onClick={(e) => setHenGiaoAnchor(e.currentTarget)}
+                    disabled={!canEditDeliveryTime || isViewOnly}
                     className="border-b border-gray-400 px-1 py-1 min-w-[90px] text-left hover:border-blue-500 transition-colors"
                   >
                     {formData.henGiao?.split("T")[0]
@@ -889,6 +892,7 @@ const DonHangForm = () => {
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <TimePicker
                       ampm={false}
+                      disabled={!canEditDeliveryTime || isViewOnly}
                       value={formData.henGiao?.split("T")[1] ? dayjs(`2000-01-01T${formData.henGiao.split("T")[1]}`) : null}
                       onChange={val => handleDateChange("henGiao", formData.henGiao?.split("T")[0] || "", val ? val.format("HH:mm") : "00:00")}
                       slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "6rem" } } } }}

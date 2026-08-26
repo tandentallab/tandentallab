@@ -26,6 +26,7 @@ import {
 import { Edit, Delete, Add } from "@mui/icons-material";
 import { api } from "../../config/api";
 import { ALL_MENUS } from "../../config/menuConfig";
+import { ORDER_DELIVERY_TIME_PERMISSION } from "../../config/permissions";
 
 export default function QuyenSuDung() {
   const [quyens, setQuyens] = useState([]);
@@ -263,6 +264,25 @@ export default function QuyenSuDung() {
                   {index < ALL_MENUS.length - 1 && <Divider className="my-2" />}
                 </Box>
               ))}
+              <Box mb={1}>
+                <Typography variant="body2" className="font-bold text-gray-600 mb-1">
+                  Quyền thao tác
+                </Typography>
+                <FormGroup row>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={formData.permissions.includes(ORDER_DELIVERY_TIME_PERMISSION)}
+                        onChange={() => handleTogglePermission(ORDER_DELIVERY_TIME_PERMISSION)}
+                        color="primary"
+                        size="small"
+                      />
+                    }
+                    label={<Typography variant="body2">Sửa giờ giao</Typography>}
+                    sx={{ width: "45%", mb: 0.5 }}
+                  />
+                </FormGroup>
+              </Box>
             </Paper>
           </Box>
         </DialogContent>

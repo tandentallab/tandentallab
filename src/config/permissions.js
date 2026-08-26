@@ -4,6 +4,13 @@ export const APP_ROLES = {
   NHAN_VIEN: "nhan-vien",
 };
 
+export const ORDER_DELIVERY_TIME_PERMISSION = "/don-hang/sua-gio-giao";
+
+export const hasPermission = (user, permission) => {
+  const appRole = resolveAppRoleFromUser(user);
+  return appRole === APP_ROLES.ADMIN || user?.quyenSuDung?.permissions?.includes(permission);
+};
+
 const normalizeRoleName = (value = "") =>
   String(value)
     .toLowerCase()

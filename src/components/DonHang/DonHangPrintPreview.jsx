@@ -4,6 +4,85 @@ import { api } from "../../config/api";
 import { QRCodeSVG } from "qrcode.react";
 
 import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshop';
+import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
+
+const PRODUCTION_STAGE_CONFIG = {
+  "Report Toàn Sứ": {
+    stages: ["Đai", "CAD/CAM", "Sườn", "Đắp", "Mài"],
+    percentages: [20, 30, 15, 15, 15],
+  },
+  "Report Hợp Kim": {
+    stages: ["Đai", "Sáp", "Sườn", "Đắp", "Mài"],
+    percentages: [20, 10, 20, 25, 25],
+  },
+};
+
+const getActualProductionHours = (startValue, endValue) => {
+  const start = new Date(startValue);
+  const end = new Date(endValue);
+  if (!startValue || !endValue || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return 0;
+
+  let totalMilliseconds = 0;
+  const currentDay = new Date(start);
+  currentDay.setHours(0, 0, 0, 0);
+  const lastDay = new Date(end);
+  lastDay.setHours(0, 0, 0, 0);
+
+  while (currentDay <= lastDay) {
+    const shiftStart = new Date(currentDay);
+    shiftStart.setHours(8, 0, 0, 0);
+    const shiftEnd = new Date(currentDay);
+    shiftEnd.setHours(20, 0, 0, 0);
+    const overlapStart = Math.max(start.getTime(), shiftStart.getTime());
+    const overlapEnd = Math.min(end.getTime(), shiftEnd.getTime());
+    if (overlapEnd > overlapStart) totalMilliseconds += overlapEnd - overlapStart;
+    currentDay.setDate(currentDay.getDate() + 1);
+  }
+
+  return totalMilliseconds / (60 * 60 * 1000);
+};
+
+const addProductionHours = (startValue, hours) => {
+  const result = new Date(startValue);
+  let remainingMilliseconds = hours * 60 * 60 * 1000;
+
+  while (remainingMilliseconds > 0) {
+    const shiftStart = new Date(result);
+    shiftStart.setHours(8, 0, 0, 0);
+    const shiftEnd = new Date(result);
+    shiftEnd.setHours(20, 0, 0, 0);
+
+    if (result < shiftStart) {
+      result.setHours(8, 0, 0, 0);
+    } else if (result >= shiftEnd) {
+      result.setDate(result.getDate() + 1);
+      result.setHours(8, 0, 0, 0);
+    } else {
+      const availableMilliseconds = shiftEnd.getTime() - result.getTime();
+      const elapsedMilliseconds = Math.min(remainingMilliseconds, availableMilliseconds);
+      result.setTime(result.getTime() + elapsedMilliseconds);
+      remainingMilliseconds -= elapsedMilliseconds;
+    }
+  }
+
+  return result;
+};
+
+const getProductionStages = (donHang) => {
+  const hasToanSu = (donHang.danhSachSanPham || []).some(
+    (sp) => sp.sanPham?.nhomSanPham === "Report Toàn Sứ"
+  );
+  const group = hasToanSu ? "Report Toàn Sứ" : "Report Hợp Kim";
+  const config = PRODUCTION_STAGE_CONFIG[group];
+  if (!(donHang.danhSachSanPham || []).some((sp) => sp.sanPham?.nhomSanPham === group)) return [];
+
+  const totalHours = getActualProductionHours(donHang.ngayNhan, donHang.henGiao);
+  return config.stages.map((stage, index) => ({
+    stage,
+    percentage: config.percentages[index],
+    hours: totalHours * config.percentages[index] / 100,
+  }));
+};
 
 const DonHangPrintPreview = () => {
   const navigate = useNavigate();
@@ -64,6 +143,20 @@ const DonHangPrintPreview = () => {
   const benhNhan = donHang.benhNhan?.hoVaTen || "";
   const nhaKhoa =
     donHang.nhaKhoa?.tenGiaoDich || donHang.nhaKhoa?.hoVaTen || "";
+  const productionStages = getProductionStages(donHang);
+  let stageStartTime = new Date(donHang.ngayNhan);
+  const productionSchedule = productionStages.map((productionStage) => {
+    const deadline = addProductionHours(stageStartTime, productionStage.hours);
+    const schedule = {
+      ...productionStage,
+      startTime: stageStartTime,
+      deadline,
+    };
+    stageStartTime = deadline;
+    return {
+      ...schedule,
+    };
+  });
 
   const buildTeethText = (viTri = []) => {
     if (!Array.isArray(viTri)) return "";
@@ -169,7 +262,7 @@ const DonHangPrintPreview = () => {
             <tbody>
               {donHang.danhSachSanPham && donHang.danhSachSanPham.length > 0 ? (
                 donHang.danhSachSanPham.map((sp, index) => (
-                  <tr key={index}>
+                  <tr key={index} className={`${index % 2 === 0 ? 'bg-gray-100' : ''}`}>
                     <td style={{ border: "1px solid #000", padding: "0 6px", fontWeight: "bold" }}>
                       {sp.sanPham?.tenSanPham || "---"}
                     </td>
@@ -227,7 +320,7 @@ const DonHangPrintPreview = () => {
                   </thead>
                   <tbody>
                     {donHang.danhSachPhuKien.map((pk, index) => (
-                      <tr key={index}>
+                      <tr key={index} className={`${index % 2 === 0 ? 'bg-gray-100' : ''}`}>
                         <td style={{ border: "1px solid #000", padding: "0 6px", fontWeight: "bold" }}>{pk.tenPhuKien}</td>
                         <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold" }}>{pk.soLuong}</td>
                       </tr>
@@ -237,6 +330,36 @@ const DonHangPrintPreview = () => {
               </div>
             )}
           </div>
+
+          {productionStages.length > 0 && (
+            <div style={{ marginBottom: "8px" }}>
+              <div style={{ marginBottom: "3px" }}>
+                Mốc thời gian sản xuất:
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={{ border: "1px solid #000", textAlign: "center", fontWeight: "normal" }}>Giai đoạn</th>
+                    <th style={{ border: "1px solid #000", textAlign: "center", fontWeight: "normal", width: "50%" }}>Mốc thời gian</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productionSchedule.map(({ stage, startTime, deadline }, index) => (
+                    <tr key={index} className={`${index % 2 === 0 ? 'bg-gray-100' : ''}`}>
+                      <td style={{ border: "1px solid #000", padding: "0 6px", fontWeight: "bold" }}>{stage}</td>
+                      <td style={{ border: "1px solid #000", padding: "0 6px" }}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 text-center font-medium">{formatDateTime(startTime)}</div>
+                          <ArrowRightAltIcon sx={{ fontSize: 14 }} />
+                          <div className="flex-1 text-center font-medium">{formatDateTime(deadline)}</div >
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 

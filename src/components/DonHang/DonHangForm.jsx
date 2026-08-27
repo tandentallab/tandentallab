@@ -19,7 +19,7 @@ import PhieuBaoHanhModal from "./PhieuBaoHanhModal";
 import PhieuBaoHanhList from "./PhieuBaoHanhList";
 import WarrantyCardPrint from "./WarrantyCardPrint";
 import { toast } from "sonner";
-import { hasPermission, hasRouteAccess, ORDER_DELIVERY_TIME_PERMISSION } from "../../config/permissions";
+import { hasExplicitPermission, hasRouteAccess, ORDER_DELIVERY_TIME_PERMISSION } from "../../config/permissions";
 import GhiChuAddModal from "../GhiChu/GhiChuAddModal";
 import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
 
@@ -191,7 +191,7 @@ const DonHangForm = () => {
   // Current user for nhật ký
   const { user } = useSelector((state) => state.auth);
   const nguoiThuc = user?.HoTenNV || "Điều Phối";
-  const canEditDeliveryTime = !isEditMode || hasPermission(user, ORDER_DELIVERY_TIME_PERMISSION);
+  const canEditDeliveryTime = !isEditMode || hasExplicitPermission(user, ORDER_DELIVERY_TIME_PERMISSION);
 
   const [nhaKhoasList, setNhaKhoasList] = useState([]);
   const [allBacSi, setAllBacSi] = useState([]);

@@ -11,6 +11,9 @@ export const hasPermission = (user, permission) => {
   return appRole === APP_ROLES.ADMIN || user?.quyenSuDung?.permissions?.includes(permission);
 };
 
+export const hasExplicitPermission = (user, permission) =>
+  Array.isArray(user?.quyenSuDung?.permissions) && user.quyenSuDung.permissions.includes(permission);
+
 const normalizeRoleName = (value = "") =>
   String(value)
     .toLowerCase()

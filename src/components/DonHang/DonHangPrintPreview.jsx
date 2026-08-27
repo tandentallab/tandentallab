@@ -134,7 +134,7 @@ const DonHangPrintPreview = () => {
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const hh = String(d.getHours()).padStart(2, "0");
     const min = String(d.getMinutes()).padStart(2, "0");
-    return `${dd}/${mm} ${hh}:${min}`;
+    return `${hh}:${min} - ${dd}/${mm}`;
   };
 
   const maDonHang = donHang.maDonHang || `TAN${donHang._id.substring(donHang._id.length - 8).toUpperCase()}`;
@@ -197,6 +197,7 @@ const DonHangPrintPreview = () => {
           className="print-area bg-white shadow-xl"
           style={{ width: "148mm", minHeight: "210mm", padding: "5mm", paddingTop: "20mm", fontFamily: "Segoe UI, serif", fontSize: "9pt", color: "#000", boxSizing: "border-box" }}
         >
+
           {/* Header: 3 cột */}
           <div style={{ display: "grid", gridTemplateColumns: "auto 50px auto", gap: "8px", marginBottom: "8px" }}>
             {/* Left */}
@@ -247,6 +248,18 @@ const DonHangPrintPreview = () => {
               </div>
             </div>
           </div>
+
+          {/* Mốc thời gian sản xuất */}
+          {productionStages.length > 0 && (
+            <div className="mb-3 flex justify-between border border-black border-r-0">
+              {productionSchedule.map(({ stage, deadline }) => (
+                <div key={stage} className="flex-1 border-r border-black">
+                  <div className="py-0.5 pl-1 border-b border-b-black">{stage}</div>
+                  <div className="py-0.5 pl-1 font-bold">{formatDateTime(deadline)}</div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Main product table */}
           <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "8px" }}>
@@ -330,36 +343,6 @@ const DonHangPrintPreview = () => {
               </div>
             )}
           </div>
-
-          {productionStages.length > 0 && (
-            <div style={{ marginBottom: "8px" }}>
-              <div style={{ marginBottom: "3px" }}>
-                Mốc thời gian sản xuất:
-              </div>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    <th style={{ border: "1px solid #000", textAlign: "center", fontWeight: "normal" }}>Giai đoạn</th>
-                    <th style={{ border: "1px solid #000", textAlign: "center", fontWeight: "normal", width: "50%" }}>Mốc thời gian</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {productionSchedule.map(({ stage, startTime, deadline }, index) => (
-                    <tr key={index} className={`${index % 2 === 0 ? 'bg-gray-100' : ''}`}>
-                      <td style={{ border: "1px solid #000", padding: "0 6px", fontWeight: "bold" }}>{stage}</td>
-                      <td style={{ border: "1px solid #000", padding: "0 6px" }}>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 text-center font-medium">{formatDateTime(startTime)}</div>
-                          <ArrowRightAltIcon sx={{ fontSize: 14 }} />
-                          <div className="flex-1 text-center font-medium">{formatDateTime(deadline)}</div >
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       </div>
 

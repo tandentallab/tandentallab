@@ -275,7 +275,7 @@ const DonHangPrintPreview = () => {
             <tbody>
               {donHang.danhSachSanPham && donHang.danhSachSanPham.length > 0 ? (
                 donHang.danhSachSanPham.map((sp, index) => (
-                  <tr key={index} className={`${index % 2 === 0 ? 'bg-gray-100' : ''}`}>
+                  <tr key={index}>
                     <td style={{ border: "1px solid #000", padding: "0 6px", fontWeight: "bold" }}>
                       {sp.sanPham?.tenSanPham || "---"}
                     </td>
@@ -333,7 +333,7 @@ const DonHangPrintPreview = () => {
                   </thead>
                   <tbody>
                     {donHang.danhSachPhuKien.map((pk, index) => (
-                      <tr key={index} className={`${index % 2 === 0 ? 'bg-gray-100' : ''}`}>
+                      <tr key={index}>
                         <td style={{ border: "1px solid #000", padding: "0 6px", fontWeight: "bold" }}>{pk.tenPhuKien}</td>
                         <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold" }}>{pk.soLuong}</td>
                       </tr>

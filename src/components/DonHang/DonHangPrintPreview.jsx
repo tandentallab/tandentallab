@@ -62,6 +62,7 @@ const addProductionHours = (startValue, hours) => {
       const elapsedMilliseconds = Math.min(remainingMilliseconds, availableMilliseconds);
       result.setTime(result.getTime() + elapsedMilliseconds);
       remainingMilliseconds -= elapsedMilliseconds;
+      if (remainingMilliseconds < 1) remainingMilliseconds = 0;
     }
   }
 
@@ -145,8 +146,12 @@ const DonHangPrintPreview = () => {
     donHang.nhaKhoa?.tenGiaoDich || donHang.nhaKhoa?.hoVaTen || "";
   const productionStages = getProductionStages(donHang);
   let stageStartTime = new Date(donHang.ngayNhan);
-  const productionSchedule = productionStages.map((productionStage) => {
-    const deadline = addProductionHours(stageStartTime, productionStage.hours);
+  const orderDeadline = new Date(donHang.henGiao);
+  const productionSchedule = productionStages.map((productionStage, index) => {
+    const calculatedDeadline = addProductionHours(stageStartTime, productionStage.hours);
+    const deadline = index === productionStages.length - 1
+      ? new Date(Math.min(calculatedDeadline.getTime(), orderDeadline.getTime()))
+      : calculatedDeadline;
     const schedule = {
       ...productionStage,
       startTime: stageStartTime,

@@ -202,6 +202,16 @@ const DonHangPage = () => {
   const [selectedDonHangId, setSelectedDonHangId] = useState(null);
   const sentinelRef = useRef(null);
 
+  // Chỉ fetch danh sách Nha khoa / Bệnh nhân khi thực sự cần (mở filter hoặc mở export),
+  // tránh gọi API ngay khi vào trang.
+  const hasFetchedListsRef = useRef(false);
+  const ensureListsLoaded = useCallback(() => {
+    if (hasFetchedListsRef.current) return;
+    hasFetchedListsRef.current = true;
+    dispatch(fetchNhaKhoa());
+    dispatch(fetchBenhNhan());
+  }, [dispatch]);
+
   //
   const { donHangPageFilter } = useSelector((state) => state.donHang);
 
@@ -255,11 +265,6 @@ const DonHangPage = () => {
   const [exportTrangThai, setExportTrangThai] = useState([]);
   const [exportNhaKhoa, setExportNhaKhoa] = useState("");
   const [exportBenhNhan, setExportBenhNhan] = useState("");
-
-  useEffect(() => {
-    dispatch(fetchNhaKhoa());
-    dispatch(fetchBenhNhan());
-  }, [dispatch]);
 
   // Debounce search
   useEffect(() => {
@@ -439,6 +444,9 @@ const DonHangPage = () => {
   }, [benhNhanOptions, benhNhanSearch]);
 
   const handleOpenFilter = () => {
+    // Lazy-load danh sách Nha khoa/Bệnh nhân đúng lúc mở bộ lọc
+    ensureListsLoaded();
+
     setDraftNgayNhan(donHangPageFilter.appliedNgayNhan);
 
     setDraftYcHoanThanh(donHangPageFilter.appliedYcHoanThanh);
@@ -1178,7 +1186,11 @@ const DonHangPage = () => {
             <AddIcon sx={{ fontSize: 20 }} />
           </button>
           <button
-            onClick={() => setOpenExport(true)}
+            onClick={() => {
+              // Lazy-load danh sách Nha khoa/Bệnh nhân đúng lúc mở export
+              ensureListsLoaded();
+              setOpenExport(true);
+            }}
             title="Xuất Excel"
             className="text-white rounded-full h-10 w-10 flex items-center justify-center bg-sky-500 shadow hover:bg-sky-600 transition"
           >

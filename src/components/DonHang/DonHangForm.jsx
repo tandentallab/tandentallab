@@ -44,6 +44,14 @@ const QuickAddModal = ({ open, onClose, title, children, onSubmit, loading }) =>
   );
 };
 
+// ===== LOADING SPINNER =====
+const LoadingSpinner = ({ label = "Đang tải..." }) => (
+  <div className="flex-1 flex flex-col items-center justify-center gap-3 py-16 text-gray-500">
+    <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+    <span className="text-base">{label}</span>
+  </div>
+);
+
 const QuickAddField = ({ label, value, onChange, placeholder, type = "text" }) => (
   <div>
     <label className="text-base text-gray-500">{label}</label>
@@ -70,6 +78,8 @@ const SearchInput = ({
   label,
   showAddNew = false,
   onAddNew,
+  onOpen,
+  loading = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -79,7 +89,7 @@ const SearchInput = ({
     if (value && options.length > 0) {
       const selectedOpt = options.find((o) => o._id === value);
       if (selectedOpt) setSearchTerm(selectedOpt.nameDisplay || "");
-    } else {
+    } else if (!value) {
       setSearchTerm("");
     }
   }, [value, options]);
@@ -92,6 +102,12 @@ const SearchInput = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Mở dropdown + gọi callback để component cha lazy-fetch dữ liệu khi cần
+  const openDropdown = () => {
+    setIsOpen(true);
+    if (onOpen) onOpen();
+  };
 
   const filteredOptions = options.filter((opt) =>
     (opt?.nameDisplay || "")
@@ -119,10 +135,10 @@ const SearchInput = ({
           value={searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);
-            setIsOpen(true);
+            openDropdown();
             if (value) onChange("");
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={openDropdown}
         />
         {searchTerm && (
           <button
@@ -137,7 +153,11 @@ const SearchInput = ({
         )}
         {isOpen && (
           <div className="absolute top-full left-0 w-full mt-1 bg-white border shadow-lg rounded z-[100] max-h-60 overflow-y-auto">
-            {filteredOptions.length > 0 ? (
+            {loading ? (
+              <div className="px-3 py-2 text-base text-gray-500 italic">
+                Đang tải...
+              </div>
+            ) : filteredOptions.length > 0 ? (
               filteredOptions.map((opt) => (
                 <div
                   key={opt._id}
@@ -199,6 +219,15 @@ const DonHangForm = () => {
   const [sanPhamList, setSanPhamList] = useState([]);
   const [selectedNhaKhoaInfo, setSelectedNhaKhoaInfo] = useState(null);
 
+  // Cờ đánh dấu đã fetch xong / đang fetch dữ liệu lớn (nha khoa, bác sĩ, bệnh nhân)
+  // để chỉ fetch 1 lần khi người dùng thực sự mở dropdown, không fetch ngay khi vào trang
+  const [nhaKhoaLoaded, setNhaKhoaLoaded] = useState(false);
+  const [bacSiLoaded, setBacSiLoaded] = useState(false);
+  const [benhNhanLoaded, setBenhNhanLoaded] = useState(false);
+  const [loadingNhaKhoa, setLoadingNhaKhoa] = useState(false);
+  const [loadingBacSi, setLoadingBacSi] = useState(false);
+  const [loadingBenhNhan, setLoadingBenhNhan] = useState(false);
+
   // Quick-add modal states
   const [yeuCauThuModal, setYeuCauThuModal] = useState({ open: false, spIndex: null });
   const [quickAddNhaKhoa, setQuickAddNhaKhoa] = useState({ open: false, loading: false, form: { hoVaTen: "", tenGiaoDich: "", soDienThoai: "", email: "", website: "", diaChiCuThe: "", tinh: "", moTa: "" } });
@@ -206,6 +235,8 @@ const DonHangForm = () => {
   const [quickAddBenhNhan, setQuickAddBenhNhan] = useState({ open: false, loading: false, form: { hoVaTen: "", soHoSo: "", gioiTinh: "", tinh: "", quanHuyen: "" } });
 
   const [isViewOnly, setIsViewOnly] = useState(false);
+  // Khi ở chế độ sửa đơn, trang cần gọi API lấy dữ liệu đơn hàng trước khi hiển thị form
+  const [isPageLoading, setIsPageLoading] = useState(isEditMode);
   const [isDirty, setIsDirty] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -289,40 +320,74 @@ const DonHangForm = () => {
     }
   };
 
+  // Gộp danh sách cũ + danh sách mới fetch về, loại trùng theo _id
+  // (dùng để giữ lại các bản ghi đã "seed" tạm từ dữ liệu populate khi sửa đơn)
+  const mergeById = (prev, incoming) => {
+    const map = new Map(prev.map((x) => [x._id, x]));
+    incoming.forEach((item) => map.set(item._id, item));
+    return Array.from(map.values());
+  };
+
+  // ===== LAZY FETCH: chỉ gọi API khi người dùng thực sự mở dropdown =====
+  const fetchNhaKhoaData = async () => {
+    if (nhaKhoaLoaded || loadingNhaKhoa) return;
+    setLoadingNhaKhoa(true);
+    try {
+      const res = await api.get("/nhakhoa");
+      const list = (res.data.data || res.data || []).map((nk) => ({
+        ...nk,
+        nameDisplay: nk.tenGiaoDich || nk.hoVaTen,
+      }));
+      setNhaKhoasList((prev) => mergeById(prev, list));
+      setNhaKhoaLoaded(true);
+    } catch (err) {
+      console.error("Lỗi tải nha khoa:", err);
+      toast.error("Không thể tải danh sách nha khoa");
+    } finally {
+      setLoadingNhaKhoa(false);
+    }
+  };
+
+  const fetchBacSiData = async () => {
+    if (bacSiLoaded || loadingBacSi) return;
+    setLoadingBacSi(true);
+    try {
+      const res = await api.get("/nguoilienhe");
+      const list = (res.data.data || res.data || []).map((bs) => ({
+        ...bs,
+        nameDisplay: bs.hoVaTen,
+      }));
+      setAllBacSi((prev) => mergeById(prev, list));
+      setBacSiLoaded(true);
+    } catch (err) {
+      console.error("Lỗi tải bác sĩ:", err);
+      toast.error("Không thể tải danh sách bác sĩ");
+    } finally {
+      setLoadingBacSi(false);
+    }
+  };
+
+  const fetchBenhNhanData = async () => {
+    if (benhNhanLoaded || loadingBenhNhan) return;
+    setLoadingBenhNhan(true);
+    try {
+      const res = await api.get("/benhnhan");
+      const list = (res.data.data || res.data || []).map((bn) => ({
+        ...bn,
+        nameDisplay: bn.hoVaTen,
+      }));
+      setAllBenhNhan((prev) => mergeById(prev, list));
+      setBenhNhanLoaded(true);
+    } catch (err) {
+      console.error("Lỗi tải bệnh nhân:", err);
+      toast.error("Không thể tải danh sách bệnh nhân");
+    } finally {
+      setLoadingBenhNhan(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchMasterData = async () => {
-      try {
-        const [resNk, resBs, resBn] = await Promise.all([
-          api.get("/nhakhoa"),
-          api.get("/nguoilienhe"),
-          api.get("/benhnhan"),
-        ]);
-
-        setNhaKhoasList(
-          (resNk.data.data || resNk.data || []).map((nk) => ({
-            ...nk,
-            nameDisplay: nk.tenGiaoDich || nk.hoVaTen,
-          }))
-        );
-        setAllBacSi(
-          (resBs.data.data || resBs.data || []).map((bs) => ({
-            ...bs,
-            nameDisplay: bs.hoVaTen,
-          }))
-        );
-        setAllBenhNhan(
-          (resBn.data.data || resBn.data || []).map((bn) => ({
-            ...bn,
-            nameDisplay: bn.hoVaTen,
-          }))
-        );
-
-        await fetchSanPhamData();
-      } catch (err) {
-        console.error("Lỗi tải DB:", err);
-      }
-    };
-    fetchMasterData();
+    fetchSanPhamData();
   }, []);
 
   const bacSiList = formData.nhaKhoa
@@ -345,6 +410,42 @@ const DonHangForm = () => {
           if (dh.trangThai === "Đã giao" || dh.daXuatHoaDon) {
             setIsViewOnly(true);
           }
+
+          // Seed tạm nha khoa/bác sĩ/bệnh nhân đang chọn từ dữ liệu populate sẵn có
+          // của đơn hàng, để hiển thị đúng tên mà KHÔNG cần fetch cả danh sách lớn.
+          // Danh sách đầy đủ (để tìm kiếm/đổi lựa chọn) vẫn sẽ chỉ fetch khi mở dropdown.
+          if (dh.nhaKhoa && typeof dh.nhaKhoa === "object") {
+            setNhaKhoasList((prev) =>
+              mergeById(prev, [
+                { ...dh.nhaKhoa, nameDisplay: dh.nhaKhoa.tenGiaoDich || dh.nhaKhoa.hoVaTen },
+              ])
+            );
+          }
+          if (dh.bacSi && typeof dh.bacSi === "object") {
+            const nhaKhoaId = dh.nhaKhoa?._id || dh.nhaKhoa;
+            setAllBacSi((prev) =>
+              mergeById(prev, [
+                {
+                  ...dh.bacSi,
+                  nhaKhoa: dh.bacSi.nhaKhoa ?? nhaKhoaId,
+                  nameDisplay: dh.bacSi.hoVaTen,
+                },
+              ])
+            );
+          }
+          if (dh.benhNhan && typeof dh.benhNhan === "object") {
+            const nhaKhoaId = dh.nhaKhoa?._id || dh.nhaKhoa;
+            setAllBenhNhan((prev) =>
+              mergeById(prev, [
+                {
+                  ...dh.benhNhan,
+                  nhaKhoa: dh.benhNhan.nhaKhoa ?? nhaKhoaId,
+                  nameDisplay: dh.benhNhan.hoVaTen,
+                },
+              ])
+            );
+          }
+
           setFormData({
             ...dh,
             nhaKhoa: dh.nhaKhoa?._id || dh.nhaKhoa,
@@ -362,7 +463,8 @@ const DonHangForm = () => {
             })),
           });
         })
-        .catch(() => toast.error("Không thể tải thông tin đơn hàng"));
+        .catch(() => toast.error("Không thể tải thông tin đơn hàng"))
+        .finally(() => setIsPageLoading(false));
     }
   }, [id, isEditMode]);
 
@@ -735,284 +837,515 @@ const DonHangForm = () => {
 
       {/* Body: main form */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Main form (scrollable) */}
-        <div className="flex-1 overflow-y-auto pb-4">
-          <div className="w-full flex flex-col">
-            {/* Section 1: Customer info + clinic info + dates */}
-            <div className="flex flex-col sm:flex-row gap-0 w-full border-b border-gray-200">
-              <div className="w-full sm:w-[30%] p-4 flex flex-col gap-6 border-b sm:border-b-0">
-                <SearchInput
-                  label="Nha khoa"
-                  options={nhaKhoasList}
-                  value={formData.nhaKhoa}
-                  onChange={(val) => {
-                    setFormData({
-                      ...formData,
-                      nhaKhoa: val,
-                      bacSi: "",
-                      benhNhan: "",
-                    });
-                  }}
-                  showAddNew={true}
-                  onAddNew={(term) => setQuickAddNhaKhoa(s => ({ ...s, open: true, form: { ...s.form, hoVaTen: term || "" } }))}
-                />
-                <SearchInput
-                  label="Bác sĩ"
-                  options={bacSiList}
-                  value={formData.bacSi}
-                  onChange={(val) => setFormData({ ...formData, bacSi: val })}
-                  showAddNew={true}
-                  onAddNew={(term) => setQuickAddBacSi(s => ({ ...s, open: true, form: { ...s.form, hoVaTen: term || "" } }))}
-                />
-                <SearchInput
-                  label="Bệnh nhân"
-                  options={benhNhanList}
-                  value={formData.benhNhan}
-                  onChange={(val) =>
-                    setFormData({ ...formData, benhNhan: val })
-                  }
-                  showAddNew={true}
-                  onAddNew={(term) => setQuickAddBenhNhan(s => ({ ...s, open: true, form: { ...s.form, hoVaTen: term || "" } }))}
-                />
-              </div>
-              <div className="w-full sm:w-[40%] p-4 flex flex-col gap-2">
-                <div className="bg-[#d7f3ff] w-full h-full p-3 rounded-xl">
-                  <div>
-                    <span className="text-gray-600">Tên nha khoa:</span>
-                    <span className="font-bold text-gray-800 ml-1">
-                      {selectedNhaKhoaInfo?.nameDisplay || ""}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Địa chỉ:</span>
-                    <span className="font-bold text-gray-800 ml-1">
-                      {selectedNhaKhoaInfo?.diaChiCuThe || ""}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Điện thoại:</span>
-                    <span className="font-bold text-gray-800 ml-1">
-                      {selectedNhaKhoaInfo?.soDienThoai || ""}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Mô tả:</span>
-                    <span className="font-bold text-gray-800 ml-1">
-                      {selectedNhaKhoaInfo?.moTa || ""}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="w-full sm:w-[30%] p-4 flex flex-col gap-4 border-t sm:border-t-0">
-                {/* Ngày nhận */}
-                <div className="flex items-center gap-2">
-                  <label className="text-gray-500 inline-block w-32">Ngày nhận:</label>
-                  <button
-                    type="button"
-                    onClick={(e) => setNgayNhanAnchor(e.currentTarget)}
-                    className="border-b border-gray-400 px-1 py-1 min-w-[90px] text-left hover:border-blue-500 transition-colors"
-                  >
-                    {formData.ngayNhan?.split("T")[0]
-                      ? dayjs(formData.ngayNhan.split("T")[0]).format("DD/MM/YYYY")
-                      : "--/--/----"}
-                  </button>
-                  <CustomDateRangePicker
-                    open={Boolean(ngayNhanAnchor)}
-                    anchorEl={ngayNhanAnchor}
-                    onClose={() => setNgayNhanAnchor(null)}
-                    initialDates={{ start: formData.ngayNhan?.split("T")[0] || "", end: "" }}
-                    onApply={(dates) => {
-                      if (dates.start) handleDateChange("ngayNhan", dates.start, formData.ngayNhan?.split("T")[1] || "00:00");
-                      setNgayNhanAnchor(null);
-                    }}
-                  />
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <TimePicker
-                      ampm={false}
-                      value={formData.ngayNhan?.split("T")[1] ? dayjs(`2000-01-01T${formData.ngayNhan.split("T")[1]}`) : null}
-                      onChange={val => handleDateChange("ngayNhan", formData.ngayNhan?.split("T")[0] || "", val ? val.format("HH:mm") : "00:00")}
-                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "6rem" } } } }}
+        {isPageLoading ? (
+          <LoadingSpinner label="Đang tải thông tin đơn hàng..." />
+        ) : (
+          <>
+            {/* Main form (scrollable) */}
+            <div className="flex-1 overflow-y-auto pb-4">
+              <div className="w-full flex flex-col">
+                {/* Section 1: Customer info + clinic info + dates */}
+                <div className="flex flex-col sm:flex-row gap-0 w-full border-b border-gray-200">
+                  <div className="w-full sm:w-[30%] p-4 flex flex-col gap-6 border-b sm:border-b-0">
+                    <SearchInput
+                      label="Nha khoa"
+                      options={nhaKhoasList}
+                      value={formData.nhaKhoa}
+                      onChange={(val) => {
+                        setFormData({
+                          ...formData,
+                          nhaKhoa: val,
+                          bacSi: "",
+                          benhNhan: "",
+                        });
+                      }}
+                      showAddNew={true}
+                      onAddNew={(term) => setQuickAddNhaKhoa(s => ({ ...s, open: true, form: { ...s.form, hoVaTen: term || "" } }))}
+                      onOpen={fetchNhaKhoaData}
+                      loading={loadingNhaKhoa}
                     />
-                  </LocalizationProvider>
-                </div>
-                {/* Y/c hoàn thành */}
-                <div className="flex items-center gap-2">
-                  <label className="text-gray-500 inline-block w-32">Y/c hoàn thành:</label>
-                  <button
-                    type="button"
-                    onClick={(e) => setYeuCauHoanThanhAnchor(e.currentTarget)}
-                    className="border-b border-gray-400 px-1 py-1 min-w-[90px] text-left hover:border-blue-500 transition-colors"
-                  >
-                    {formData.yeuCauHoanThanh?.split("T")[0]
-                      ? dayjs(formData.yeuCauHoanThanh.split("T")[0]).format("DD/MM/YYYY")
-                      : "--/--/----"}
-                  </button>
-                  <CustomDateRangePicker
-                    open={Boolean(yeuCauHoanThanhAnchor)}
-                    anchorEl={yeuCauHoanThanhAnchor}
-                    onClose={() => setYeuCauHoanThanhAnchor(null)}
-                    initialDates={{ start: formData.yeuCauHoanThanh?.split("T")[0] || "", end: "" }}
-                    onApply={(dates) => {
-                      if (dates.start) handleDateChange("yeuCauHoanThanh", dates.start, formData.yeuCauHoanThanh?.split("T")[1] || "00:00");
-                      setYeuCauHoanThanhAnchor(null);
-                    }}
-                  />
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <TimePicker
-                      ampm={false}
-                      value={formData.yeuCauHoanThanh?.split("T")[1] ? dayjs(`2000-01-01T${formData.yeuCauHoanThanh.split("T")[1]}`) : null}
-                      onChange={val => handleDateChange("yeuCauHoanThanh", formData.yeuCauHoanThanh?.split("T")[0] || "", val ? val.format("HH:mm") : "00:00")}
-                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "6rem" } } } }}
+                    <SearchInput
+                      label="Bác sĩ"
+                      options={bacSiList}
+                      value={formData.bacSi}
+                      onChange={(val) => setFormData({ ...formData, bacSi: val })}
+                      showAddNew={true}
+                      onAddNew={(term) => setQuickAddBacSi(s => ({ ...s, open: true, form: { ...s.form, hoVaTen: term || "" } }))}
+                      onOpen={fetchBacSiData}
+                      loading={loadingBacSi}
                     />
-                  </LocalizationProvider>
-                </div>
-                {/* Hẹn giao */}
-                <div className="flex items-center gap-2">
-                  <label className="text-gray-500 inline-block w-32">Hẹn giao:</label>
-                  <button
-                    type="button"
-                    onClick={(e) => setHenGiaoAnchor(e.currentTarget)}
-                    disabled={!canEditDeliveryTime || isViewOnly}
-                    className="border-b border-gray-400 px-1 py-1 min-w-[90px] text-left hover:border-blue-500 transition-colors"
-                  >
-                    {formData.henGiao?.split("T")[0]
-                      ? dayjs(formData.henGiao.split("T")[0]).format("DD/MM/YYYY")
-                      : "--/--/----"}
-                  </button>
-                  <CustomDateRangePicker
-                    open={Boolean(henGiaoAnchor)}
-                    anchorEl={henGiaoAnchor}
-                    onClose={() => setHenGiaoAnchor(null)}
-                    initialDates={{ start: formData.henGiao?.split("T")[0] || "", end: "" }}
-                    onApply={(dates) => {
-                      if (dates.start) handleDateChange("henGiao", dates.start, formData.henGiao?.split("T")[1] || "00:00");
-                      setHenGiaoAnchor(null);
-                    }}
-                  />
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <TimePicker
-                      ampm={false}
-                      disabled={!canEditDeliveryTime || isViewOnly}
-                      value={formData.henGiao?.split("T")[1] ? dayjs(`2000-01-01T${formData.henGiao.split("T")[1]}`) : null}
-                      onChange={val => handleDateChange("henGiao", formData.henGiao?.split("T")[0] || "", val ? val.format("HH:mm") : "00:00")}
-                      slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "6rem" } } } }}
+                    <SearchInput
+                      label="Bệnh nhân"
+                      options={benhNhanList}
+                      value={formData.benhNhan}
+                      onChange={(val) =>
+                        setFormData({ ...formData, benhNhan: val })
+                      }
+                      showAddNew={true}
+                      onAddNew={(term) => setQuickAddBenhNhan(s => ({ ...s, open: true, form: { ...s.form, hoVaTen: term || "" } }))}
+                      onOpen={fetchBenhNhanData}
+                      loading={loadingBenhNhan}
                     />
-                  </LocalizationProvider>
+                  </div>
+                  <div className="w-full sm:w-[40%] p-4 flex flex-col gap-2">
+                    <div className="bg-[#d7f3ff] w-full h-full p-3 rounded-xl">
+                      <div>
+                        <span className="text-gray-600">Tên nha khoa:</span>
+                        <span className="font-bold text-gray-800 ml-1">
+                          {selectedNhaKhoaInfo?.nameDisplay || ""}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Địa chỉ:</span>
+                        <span className="font-bold text-gray-800 ml-1">
+                          {selectedNhaKhoaInfo?.diaChiCuThe || ""}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Điện thoại:</span>
+                        <span className="font-bold text-gray-800 ml-1">
+                          {selectedNhaKhoaInfo?.soDienThoai || ""}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Mô tả:</span>
+                        <span className="font-bold text-gray-800 ml-1">
+                          {selectedNhaKhoaInfo?.moTa || ""}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-full sm:w-[30%] p-4 flex flex-col gap-4 border-t sm:border-t-0">
+                    {/* Ngày nhận */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-gray-500 inline-block w-32">Ngày nhận:</label>
+                      <button
+                        type="button"
+                        onClick={(e) => setNgayNhanAnchor(e.currentTarget)}
+                        className="border-b border-gray-400 px-1 py-1 min-w-[90px] text-left hover:border-blue-500 transition-colors"
+                      >
+                        {formData.ngayNhan?.split("T")[0]
+                          ? dayjs(formData.ngayNhan.split("T")[0]).format("DD/MM/YYYY")
+                          : "--/--/----"}
+                      </button>
+                      <CustomDateRangePicker
+                        open={Boolean(ngayNhanAnchor)}
+                        anchorEl={ngayNhanAnchor}
+                        onClose={() => setNgayNhanAnchor(null)}
+                        initialDates={{ start: formData.ngayNhan?.split("T")[0] || "", end: "" }}
+                        onApply={(dates) => {
+                          if (dates.start) handleDateChange("ngayNhan", dates.start, formData.ngayNhan?.split("T")[1] || "00:00");
+                          setNgayNhanAnchor(null);
+                        }}
+                      />
+                      <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <TimePicker
+                          ampm={false}
+                          value={formData.ngayNhan?.split("T")[1] ? dayjs(`2000-01-01T${formData.ngayNhan.split("T")[1]}`) : null}
+                          onChange={val => handleDateChange("ngayNhan", formData.ngayNhan?.split("T")[0] || "", val ? val.format("HH:mm") : "00:00")}
+                          slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "6rem" } } } }}
+                        />
+                      </LocalizationProvider>
+                    </div>
+                    {/* Y/c hoàn thành */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-gray-500 inline-block w-32">Y/c hoàn thành:</label>
+                      <button
+                        type="button"
+                        onClick={(e) => setYeuCauHoanThanhAnchor(e.currentTarget)}
+                        className="border-b border-gray-400 px-1 py-1 min-w-[90px] text-left hover:border-blue-500 transition-colors"
+                      >
+                        {formData.yeuCauHoanThanh?.split("T")[0]
+                          ? dayjs(formData.yeuCauHoanThanh.split("T")[0]).format("DD/MM/YYYY")
+                          : "--/--/----"}
+                      </button>
+                      <CustomDateRangePicker
+                        open={Boolean(yeuCauHoanThanhAnchor)}
+                        anchorEl={yeuCauHoanThanhAnchor}
+                        onClose={() => setYeuCauHoanThanhAnchor(null)}
+                        initialDates={{ start: formData.yeuCauHoanThanh?.split("T")[0] || "", end: "" }}
+                        onApply={(dates) => {
+                          if (dates.start) handleDateChange("yeuCauHoanThanh", dates.start, formData.yeuCauHoanThanh?.split("T")[1] || "00:00");
+                          setYeuCauHoanThanhAnchor(null);
+                        }}
+                      />
+                      <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <TimePicker
+                          ampm={false}
+                          value={formData.yeuCauHoanThanh?.split("T")[1] ? dayjs(`2000-01-01T${formData.yeuCauHoanThanh.split("T")[1]}`) : null}
+                          onChange={val => handleDateChange("yeuCauHoanThanh", formData.yeuCauHoanThanh?.split("T")[0] || "", val ? val.format("HH:mm") : "00:00")}
+                          slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "6rem" } } } }}
+                        />
+                      </LocalizationProvider>
+                    </div>
+                    {/* Hẹn giao */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-gray-500 inline-block w-32">Hẹn giao:</label>
+                      <button
+                        type="button"
+                        onClick={(e) => setHenGiaoAnchor(e.currentTarget)}
+                        disabled={!canEditDeliveryTime || isViewOnly}
+                        className="border-b border-gray-400 px-1 py-1 min-w-[90px] text-left hover:border-blue-500 transition-colors"
+                      >
+                        {formData.henGiao?.split("T")[0]
+                          ? dayjs(formData.henGiao.split("T")[0]).format("DD/MM/YYYY")
+                          : "--/--/----"}
+                      </button>
+                      <CustomDateRangePicker
+                        open={Boolean(henGiaoAnchor)}
+                        anchorEl={henGiaoAnchor}
+                        onClose={() => setHenGiaoAnchor(null)}
+                        initialDates={{ start: formData.henGiao?.split("T")[0] || "", end: "" }}
+                        onApply={(dates) => {
+                          if (dates.start) handleDateChange("henGiao", dates.start, formData.henGiao?.split("T")[1] || "00:00");
+                          setHenGiaoAnchor(null);
+                        }}
+                      />
+                      <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <TimePicker
+                          ampm={false}
+                          disabled={!canEditDeliveryTime || isViewOnly}
+                          value={formData.henGiao?.split("T")[1] ? dayjs(`2000-01-01T${formData.henGiao.split("T")[1]}`) : null}
+                          onChange={val => handleDateChange("henGiao", formData.henGiao?.split("T")[0] || "", val ? val.format("HH:mm") : "00:00")}
+                          slotProps={{ textField: { size: "small", variant: "standard", inputProps: { style: { fontSize: "0.875rem", width: "6rem" } } } }}
+                        />
+                      </LocalizationProvider>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Section 2: Products table */}
-            <div className="w-full bg-white shadow-sm border-t border-b border-gray-200">
+                {/* Section 2: Products table */}
+                <div className="w-full bg-white shadow-sm border-t border-b border-gray-200">
 
-              {/* ── Desktop table (md+) ── */}
-              <div className="hidden md:block">
-                <table className="w-full min-w-[600px] text-base text-left">
-                  <thead className="bg-[#f0f9ff] text-gray-600 border-b">
-                    <tr>
-                      <th className="p-3 w-32 font-medium">Loại</th>
-                      <th className="p-3 w-[30%] font-medium">Sản phẩm</th>
-                      <th className="p-3 w-40 font-medium">Vị trí</th>
-                      <th className="p-3 w-20 text-center font-medium">
-                        Số lượng
-                      </th>
-                      <th className="p-3 w-28 font-medium">Màu</th>
-                      <th className="p-3 font-medium">Ghi chú</th>
-                      <th className="p-3 w-28 text-center font-medium">Yêu cầu thử</th>
-                      <th className="p-3 w-10 text-center"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formData.danhSachSanPham.map((sp, index) => (
-                      <React.Fragment key={index}>
-                        <tr className="border-b bg-[#e1f5fe]">
-                          <td className="p-2">
-                            <select
-                              value={sp.loaiDon}
-                              onChange={(e) =>
-                                handleSanPhamChange(
-                                  index,
-                                  "loaiDon",
-                                  e.target.value
-                                )
-                              }
-                              className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
-                            >
-                              <option value="Mới">Mới</option>
-                              <option value="Hàng sửa">Hàng sửa</option>
-                              <option value="Hàng làm lại">Hàng làm lại</option>
-                              <option value="Hàng bảo hành">Hàng bảo hành</option>
-                            </select>
-                            {["Hàng sửa", "Hàng làm lại", "Hàng bảo hành"].includes(sp.loaiDon) && sp.donHangCu && (
-                              <button
-                                type="button"
-                                onClick={() => handleViewDonHangGoc(sp.donHangCu)}
-                                className="text-base text-blue-600 px-3 py-1 underline"
-                              >
-                                Xem đh gốc
-                              </button>
-                            )}
-                          </td>
-                          <td className="p-2 align-top pt-3">
-                            <SearchInput
-                              placeholder="Tìm sản phẩm..."
-                              options={sanPhamList}
-                              value={sp.sanPham}
-                              onChange={(val) =>
-                                handleSanPhamChange(index, "sanPham", val)
-                              }
-                              showAddNew={true}
-                              onAddNew={(term) => {
-                                setSanPhamModalIndex(index);
-                                setQuickAddSanPhamName(term || "");
-                                setIsSanPhamModalOpen(true);
-                              }}
-                            />
-                          </td>
-                          <td className="p-2">
-                            {(() => {
-                              const loaiTinh = getLoaiTinh(sp.sanPham);
-                              if (loaiTinh === "Bán hàm" || loaiTinh === "Hàm") {
-                                return (
-                                  <div
-                                    onClick={() => setViTriHamModal({ open: true, index })}
-                                    className="w-full border-b border-blue-200 p-1 bg-transparent cursor-pointer text-blue-600 hover:text-blue-800 min-h-[30px] flex items-center"
+                  {/* ── Desktop table (md+) ── */}
+                  <div className="hidden md:block">
+                    <table className="w-full min-w-[600px] text-base text-left">
+                      <thead className="bg-[#f0f9ff] text-gray-600 border-b">
+                        <tr>
+                          <th className="p-3 w-32 font-medium">Loại</th>
+                          <th className="p-3 w-[30%] font-medium">Sản phẩm</th>
+                          <th className="p-3 w-52 font-medium">Vị trí</th>
+                          <th className="p-3 w-52 text-center font-medium">
+                            Số lượng
+                          </th>
+                          <th className="p-3 w-52 font-medium">Màu</th>
+                          <th className="p-3 font-medium">Ghi chú</th>
+                          <th className="p-3 w-32 text-center font-medium">Yêu cầu thử</th>
+                          <th className="p-3 w-12 text-center"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {formData.danhSachSanPham.map((sp, index) => (
+                          <React.Fragment key={index}>
+                            <tr className="border-b bg-[#e1f5fe]">
+                              <td className="p-2">
+                                <select
+                                  value={sp.loaiDon}
+                                  onChange={(e) =>
+                                    handleSanPhamChange(
+                                      index,
+                                      "loaiDon",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
+                                >
+                                  <option value="Mới">Mới</option>
+                                  <option value="Hàng sửa">Hàng sửa</option>
+                                  <option value="Hàng làm lại">Hàng làm lại</option>
+                                  <option value="Hàng bảo hành">Hàng bảo hành</option>
+                                </select>
+                                {["Hàng sửa", "Hàng làm lại", "Hàng bảo hành"].includes(sp.loaiDon) && sp.donHangCu && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleViewDonHangGoc(sp.donHangCu)}
+                                    className="text-base text-blue-600 px-3 py-1 underline"
                                   >
-                                    {sp.viTriText || (
-                                      <span className="text-blue-400 italic font-medium">Chọn vị trí...</span>
-                                    )}
-                                  </div>
-                                );
-                              }
-                              if (loaiTinh === "Khác") {
-                                return (
-                                  <input
-                                    type="text"
-                                    value={sp.viTriText || ""}
-                                    onChange={(e) => handleSanPhamChange(index, "viTriText", e.target.value)}
-                                    placeholder="Nhập vị trí..."
-                                    className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-base"
-                                  />
-                                );
-                              }
+                                    Xem đh gốc
+                                  </button>
+                                )}
+                              </td>
+                              <td className="p-2 align-top pt-3">
+                                <SearchInput
+                                  placeholder="Tìm sản phẩm..."
+                                  options={sanPhamList}
+                                  value={sp.sanPham}
+                                  onChange={(val) =>
+                                    handleSanPhamChange(index, "sanPham", val)
+                                  }
+                                  showAddNew={true}
+                                  onAddNew={(term) => {
+                                    setSanPhamModalIndex(index);
+                                    setQuickAddSanPhamName(term || "");
+                                    setIsSanPhamModalOpen(true);
+                                  }}
+                                />
+                              </td>
+                              <td className="p-2">
+                                {(() => {
+                                  const loaiTinh = getLoaiTinh(sp.sanPham);
+                                  if (loaiTinh === "Bán hàm" || loaiTinh === "Hàm") {
+                                    return (
+                                      <div
+                                        onClick={() => setViTriHamModal({ open: true, index })}
+                                        className="w-full border-b border-blue-200 p-1 bg-transparent cursor-pointer text-blue-600 hover:text-blue-800 min-h-[30px] flex items-center"
+                                      >
+                                        {sp.viTriText || (
+                                          <span className="text-blue-400 italic font-medium">Chọn vị trí...</span>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+                                  if (loaiTinh === "Khác") {
+                                    return (
+                                      <input
+                                        type="text"
+                                        value={sp.viTriText || ""}
+                                        onChange={(e) => handleSanPhamChange(index, "viTriText", e.target.value)}
+                                        placeholder="Nhập vị trí..."
+                                        className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-base"
+                                      />
+                                    );
+                                  }
+                                  return (
+                                    <div
+                                      onClick={() => {
+                                        setEditingSpIndex(index);
+                                        setIsViTriModalOpen(true);
+                                      }}
+                                      className="w-full border-b border-blue-200 p-1 bg-transparent cursor-pointer text-blue-600 hover:text-blue-800 min-h-[30px] flex items-center"
+                                    >
+                                      {renderViTriText(sp) || (
+                                        <span className="text-blue-400 italic font-medium">
+                                          Chọn răng...
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                              <td className="p-2">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={sp.soLuong}
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) =>
+                                    handleSanPhamChange(index, "soLuong", parseInt(e.target.value))
+                                  }
+                                  className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-center font-bold text-gray-700"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <input
+                                  type="text"
+                                  value={sp.mau}
+                                  onChange={(e) =>
+                                    handleSanPhamChange(index, "mau", e.target.value)
+                                  }
+                                  className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <input
+                                  type="text"
+                                  value={sp.ghiChu}
+                                  onChange={(e) =>
+                                    handleSanPhamChange(index, "ghiChu", e.target.value)
+                                  }
+                                  className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
+                                />
+                              </td>
+                              <td className="p-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => setYeuCauThuModal({ open: true, spIndex: index })}
+                                  className={`text-base rounded px-2 py-1 whitespace-nowrap transition font-medium border ${(sp.yeuCauThu || []).length > 0
+                                    ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
+                                    : "bg-white text-blue-500 border-blue-300 hover:bg-blue-50"
+                                    }`}
+                                >
+                                  {(sp.yeuCauThu || []).length > 0
+                                    ? `Yêu cầu thử (${sp.yeuCauThu.length})`
+                                    : "Yêu cầu thử"}
+                                </button>
+                              </td>
+                              <td className="p-2 text-center">
+                                <button
+                                  onClick={() => handleRemoveSanPham(index)}
+                                  className="text-gray-400 hover:text-red-500 transition"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={2}
+                                    stroke="currentColor"
+                                    className="w-5 h-5 mx-auto"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                                    />
+                                  </svg>
+                                </button>
+                              </td>
+                            </tr>
+                          </React.Fragment>
+                        ))}
+                        <tr>
+                          <td colSpan="8" className="p-0 bg-[#f0f9ff]">
+                            <button
+                              onClick={() => {
+                                markDirty();
+                                setFormData({
+                                  ...formData,
+                                  danhSachSanPham: [
+                                    ...formData.danhSachSanPham,
+                                    {
+                                      loaiDon: "Mới",
+                                      sanPham: "",
+                                      viTri: [],
+                                      viTriText: "",
+                                      soLuong: 1,
+                                      mau: "",
+                                      ghiChu: "",
+                                      yeuCauThu: [],
+                                    },
+                                  ],
+                                });
+                              }}
+                              className="w-full py-4 px-6 text-green-600 font-bold hover:bg-blue-100 cursor-pointer flex items-center justify-start gap-2 transition"
+                            >
+                              <span className="text-3xl leading-none font-black">+</span>
+                              <span className="text-base mt-1">Thêm sản phẩm</span>
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* ── Mobile card layout (< md) ── */}
+                  <div className="block md:hidden">
+                    {formData.danhSachSanPham.map((sp, index) => (
+                      <div key={index} className="border-b border-blue-100 bg-[#e1f5fe] p-3 space-y-2">
+                        {/* Card header */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-base font-semibold text-blue-700 uppercase tracking-wide">
+                            Sản phẩm #{index + 1}
+                          </span>
+                          <button
+                            onClick={() => handleRemoveSanPham(index)}
+                            className="text-gray-400 hover:text-red-500 transition"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={2}
+                              stroke="currentColor"
+                              className="w-5 h-5"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+
+                        {/* Loại */}
+                        <div>
+                          <label className="block text-base text-gray-500 mb-1">Loại</label>
+                          <select
+                            value={sp.loaiDon}
+                            onChange={(e) => handleSanPhamChange(index, "loaiDon", e.target.value)}
+                            className="w-full border border-blue-200 rounded p-2 text-base outline-none bg-white"
+                          >
+                            <option value="Mới">Mới</option>
+                            <option value="Hàng sửa">Hàng sửa</option>
+                            <option value="Hàng làm lại">Hàng làm lại</option>
+                            <option value="Hàng bảo hành">Hàng bảo hành</option>
+                          </select>
+                          {["Hàng sửa", "Hàng làm lại", "Hàng bảo hành"].includes(sp.loaiDon) && sp.donHangCu && (
+                            <button
+                              type="button"
+                              onClick={() => handleViewDonHangGoc(sp.donHangCu)}
+                              className="text-base text-blue-600 underline mt-1"
+                            >
+                              Xem đh gốc
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Sản phẩm */}
+                        <div>
+                          <label className="block text-base text-gray-500 mb-1">Sản phẩm</label>
+                          <SearchInput
+                            placeholder="Tìm sản phẩm..."
+                            options={sanPhamList}
+                            value={sp.sanPham}
+                            onChange={(val) => handleSanPhamChange(index, "sanPham", val)}
+                            showAddNew={true}
+                            onAddNew={(term) => {
+                              setSanPhamModalIndex(index);
+                              setQuickAddSanPhamName(term || "");
+                              setIsSanPhamModalOpen(true);
+                            }}
+                          />
+                        </div>
+
+                        {/* Vị trí */}
+                        <div>
+                          <label className="block text-base text-gray-500 mb-1">Vị trí</label>
+                          {(() => {
+                            const loaiTinh = getLoaiTinh(sp.sanPham);
+                            if (loaiTinh === "Bán hàm" || loaiTinh === "Hàm") {
                               return (
                                 <div
-                                  onClick={() => {
-                                    setEditingSpIndex(index);
-                                    setIsViTriModalOpen(true);
-                                  }}
-                                  className="w-full border-b border-blue-200 p-1 bg-transparent cursor-pointer text-blue-600 hover:text-blue-800 min-h-[30px] flex items-center"
+                                  onClick={() => setViTriHamModal({ open: true, index })}
+                                  className="w-full border border-blue-200 rounded p-2 bg-white cursor-pointer text-blue-600 hover:text-blue-800 min-h-[38px] flex items-center text-base"
                                 >
-                                  {renderViTriText(sp) || (
-                                    <span className="text-blue-400 italic font-medium">
-                                      Chọn răng...
-                                    </span>
+                                  {sp.viTriText || (
+                                    <span className="text-blue-400 italic">Chọn vị trí...</span>
                                   )}
                                 </div>
                               );
-                            })()}
-                          </td>
-                          <td className="p-2">
+                            }
+                            if (loaiTinh === "Khác") {
+                              return (
+                                <input
+                                  type="text"
+                                  value={sp.viTriText || ""}
+                                  onChange={(e) => handleSanPhamChange(index, "viTriText", e.target.value)}
+                                  placeholder="Nhập vị trí..."
+                                  className="w-full border border-blue-200 rounded p-2 outline-none bg-white text-base"
+                                />
+                              );
+                            }
+                            return (
+                              <div
+                                onClick={() => {
+                                  setEditingSpIndex(index);
+                                  setIsViTriModalOpen(true);
+                                }}
+                                className="w-full border border-blue-200 rounded p-2 bg-white cursor-pointer text-blue-600 hover:text-blue-800 min-h-[38px] flex items-center text-base"
+                              >
+                                {renderViTriText(sp) || (
+                                  <span className="text-blue-400 italic">Chọn răng...</span>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Số lượng + Màu */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-base text-gray-500 mb-1">Số lượng</label>
                             <input
                               type="number"
                               min="0"
@@ -1021,438 +1354,221 @@ const DonHangForm = () => {
                               onChange={(e) =>
                                 handleSanPhamChange(index, "soLuong", parseInt(e.target.value))
                               }
-                              className="w-full border-b border-blue-200 p-1 outline-none bg-transparent text-center font-bold text-gray-700"
+                              className="w-full border border-blue-200 rounded p-2 outline-none bg-white text-center font-bold text-gray-700 text-base"
                             />
-                          </td>
-                          <td className="p-2">
+                          </div>
+                          <div>
+                            <label className="block text-base text-gray-500 mb-1">Màu</label>
                             <input
                               type="text"
                               value={sp.mau}
-                              onChange={(e) =>
-                                handleSanPhamChange(index, "mau", e.target.value)
-                              }
-                              className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={sp.ghiChu}
-                              onChange={(e) =>
-                                handleSanPhamChange(index, "ghiChu", e.target.value)
-                              }
-                              className="w-full border-b border-blue-200 p-1 outline-none bg-transparent"
-                            />
-                          </td>
-                          <td className="p-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => setYeuCauThuModal({ open: true, spIndex: index })}
-                              className={`text-base rounded px-2 py-1 whitespace-nowrap transition font-medium border ${(sp.yeuCauThu || []).length > 0
-                                ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
-                                : "bg-white text-blue-500 border-blue-300 hover:bg-blue-50"
-                                }`}
-                            >
-                              {(sp.yeuCauThu || []).length > 0
-                                ? `Yêu cầu thử (${sp.yeuCauThu.length})`
-                                : "Yêu cầu thử"}
-                            </button>
-                          </td>
-                          <td className="p-2 text-center">
-                            <button
-                              onClick={() => handleRemoveSanPham(index)}
-                              className="text-gray-400 hover:text-red-500 transition"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth={2}
-                                stroke="currentColor"
-                                className="w-5 h-5 mx-auto"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                                />
-                              </svg>
-                            </button>
-                          </td>
-                        </tr>
-                      </React.Fragment>
-                    ))}
-                    <tr>
-                      <td colSpan="8" className="p-0 bg-[#f0f9ff]">
-                        <button
-                          onClick={() => {
-                            markDirty();
-                            setFormData({
-                              ...formData,
-                              danhSachSanPham: [
-                                ...formData.danhSachSanPham,
-                                {
-                                  loaiDon: "Mới",
-                                  sanPham: "",
-                                  viTri: [],
-                                  viTriText: "",
-                                  soLuong: 1,
-                                  mau: "",
-                                  ghiChu: "",
-                                  yeuCauThu: [],
-                                },
-                              ],
-                            });
-                          }}
-                          className="w-full py-4 px-6 text-green-600 font-bold hover:bg-blue-100 cursor-pointer flex items-center justify-start gap-2 transition"
-                        >
-                          <span className="text-3xl leading-none font-black">+</span>
-                          <span className="text-base mt-1">Thêm sản phẩm</span>
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* ── Mobile card layout (< md) ── */}
-              <div className="block md:hidden">
-                {formData.danhSachSanPham.map((sp, index) => (
-                  <div key={index} className="border-b border-blue-100 bg-[#e1f5fe] p-3 space-y-2">
-                    {/* Card header */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-base font-semibold text-blue-700 uppercase tracking-wide">
-                        Sản phẩm #{index + 1}
-                      </span>
-                      <button
-                        onClick={() => handleRemoveSanPham(index)}
-                        className="text-gray-400 hover:text-red-500 transition"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                          stroke="currentColor"
-                          className="w-5 h-5"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* Loại */}
-                    <div>
-                      <label className="block text-base text-gray-500 mb-1">Loại</label>
-                      <select
-                        value={sp.loaiDon}
-                        onChange={(e) => handleSanPhamChange(index, "loaiDon", e.target.value)}
-                        className="w-full border border-blue-200 rounded p-2 text-base outline-none bg-white"
-                      >
-                        <option value="Mới">Mới</option>
-                        <option value="Hàng sửa">Hàng sửa</option>
-                        <option value="Hàng làm lại">Hàng làm lại</option>
-                        <option value="Hàng bảo hành">Hàng bảo hành</option>
-                      </select>
-                      {["Hàng sửa", "Hàng làm lại", "Hàng bảo hành"].includes(sp.loaiDon) && sp.donHangCu && (
-                        <button
-                          type="button"
-                          onClick={() => handleViewDonHangGoc(sp.donHangCu)}
-                          className="text-base text-blue-600 underline mt-1"
-                        >
-                          Xem đh gốc
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Sản phẩm */}
-                    <div>
-                      <label className="block text-base text-gray-500 mb-1">Sản phẩm</label>
-                      <SearchInput
-                        placeholder="Tìm sản phẩm..."
-                        options={sanPhamList}
-                        value={sp.sanPham}
-                        onChange={(val) => handleSanPhamChange(index, "sanPham", val)}
-                        showAddNew={true}
-                        onAddNew={(term) => {
-                          setSanPhamModalIndex(index);
-                          setQuickAddSanPhamName(term || "");
-                          setIsSanPhamModalOpen(true);
-                        }}
-                      />
-                    </div>
-
-                    {/* Vị trí */}
-                    <div>
-                      <label className="block text-base text-gray-500 mb-1">Vị trí</label>
-                      {(() => {
-                        const loaiTinh = getLoaiTinh(sp.sanPham);
-                        if (loaiTinh === "Bán hàm" || loaiTinh === "Hàm") {
-                          return (
-                            <div
-                              onClick={() => setViTriHamModal({ open: true, index })}
-                              className="w-full border border-blue-200 rounded p-2 bg-white cursor-pointer text-blue-600 hover:text-blue-800 min-h-[38px] flex items-center text-base"
-                            >
-                              {sp.viTriText || (
-                                <span className="text-blue-400 italic">Chọn vị trí...</span>
-                              )}
-                            </div>
-                          );
-                        }
-                        if (loaiTinh === "Khác") {
-                          return (
-                            <input
-                              type="text"
-                              value={sp.viTriText || ""}
-                              onChange={(e) => handleSanPhamChange(index, "viTriText", e.target.value)}
-                              placeholder="Nhập vị trí..."
+                              onChange={(e) => handleSanPhamChange(index, "mau", e.target.value)}
                               className="w-full border border-blue-200 rounded p-2 outline-none bg-white text-base"
                             />
-                          );
-                        }
-                        return (
-                          <div
-                            onClick={() => {
-                              setEditingSpIndex(index);
-                              setIsViTriModalOpen(true);
-                            }}
-                            className="w-full border border-blue-200 rounded p-2 bg-white cursor-pointer text-blue-600 hover:text-blue-800 min-h-[38px] flex items-center text-base"
-                          >
-                            {renderViTriText(sp) || (
-                              <span className="text-blue-400 italic">Chọn răng...</span>
-                            )}
                           </div>
-                        );
-                      })()}
-                    </div>
+                        </div>
 
-                    {/* Số lượng + Màu */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-base text-gray-500 mb-1">Số lượng</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={sp.soLuong}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) =>
-                            handleSanPhamChange(index, "soLuong", parseInt(e.target.value))
-                          }
-                          className="w-full border border-blue-200 rounded p-2 outline-none bg-white text-center font-bold text-gray-700 text-base"
-                        />
+                        {/* Ghi chú */}
+                        <div>
+                          <label className="block text-base text-gray-500 mb-1">Ghi chú</label>
+                          <input
+                            type="text"
+                            value={sp.ghiChu}
+                            onChange={(e) => handleSanPhamChange(index, "ghiChu", e.target.value)}
+                            className="w-full border border-blue-200 rounded p-2 outline-none bg-white text-base"
+                          />
+                        </div>
+
+                        {/* Yêu cầu thử */}
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setYeuCauThuModal({ open: true, spIndex: index })}
+                            className={`w-full text-base rounded px-3 py-2 transition font-medium border ${(sp.yeuCauThu || []).length > 0
+                              ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
+                              : "bg-white text-blue-500 border-blue-300 hover:bg-blue-50"
+                              }`}
+                          >
+                            {(sp.yeuCauThu || []).length > 0
+                              ? `Yêu cầu thử (${sp.yeuCauThu.length})`
+                              : "Yêu cầu thử"}
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-base text-gray-500 mb-1">Màu</label>
-                        <input
-                          type="text"
-                          value={sp.mau}
-                          onChange={(e) => handleSanPhamChange(index, "mau", e.target.value)}
-                          className="w-full border border-blue-200 rounded p-2 outline-none bg-white text-base"
-                        />
+                    ))}
+
+                    {/* Add product button (mobile) */}
+                    <button
+                      onClick={() => {
+                        markDirty();
+                        setFormData({
+                          ...formData,
+                          danhSachSanPham: [
+                            ...formData.danhSachSanPham,
+                            {
+                              loaiDon: "Mới",
+                              sanPham: "",
+                              viTri: [],
+                              viTriText: "",
+                              soLuong: 1,
+                              mau: "",
+                              ghiChu: "",
+                              yeuCauThu: [],
+                            },
+                          ],
+                        });
+                      }}
+                      className="w-full py-4 px-6 bg-[#f0f9ff] text-green-600 font-bold hover:bg-blue-100 cursor-pointer flex items-center justify-start gap-2 transition"
+                    >
+                      <span className="text-3xl leading-none font-black">+</span>
+                      <span className="text-base mt-1">Thêm sản phẩm</span>
+                    </button>
+                  </div>
+
+                </div>
+
+                {/* Section 3: Notes + accessories */}
+                <div className="w-full border-t border-gray-200 shadow-sm">
+                  <div className="flex flex-col sm:flex-row">
+                    {/* Left: notes (flex-1) */}
+                    <div className="flex-1 flex flex-col min-w-0">
+                      <div className="flex flex-col sm:flex-row border-b border-gray-100">
+                        {/* Chỉ định của bác sĩ */}
+                        <div className="flex-1 p-4 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col gap-1">
+                          <label className="text-base text-gray-400 font-medium uppercase tracking-wide">Chỉ định của bác sĩ</label>
+                          <textarea
+                            name="chiDinhBacSi"
+                            value={formData.chiDinhBacSi}
+                            onChange={handleInputChange}
+                            rows={4}
+                            className="w-full min-h-20 md:min-h-36 outline-none text-base text-gray-700 bg-transparent placeholder-gray-300"
+                            placeholder="Nhập chỉ định bác sĩ..."
+                          />
+                        </div>
+                        {/* Ghi chú */}
+                        <div className="flex-1 p-4 flex flex-col gap-1">
+                          <label className="text-base text-gray-400 font-medium uppercase tracking-wide">Ghi chú</label>
+                          <textarea
+                            name="ghiChuChung"
+                            value={formData.ghiChuChung}
+                            onChange={handleInputChange}
+                            rows={4}
+                            className="w-full min-h-20 md:min-h-36 outline-none text-base text-gray-700 bg-transparent placeholder-gray-300"
+                            placeholder="Nhập ghi chú..."
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row border-gray-100">
+                        {/* Ghi chú tài chính */}
+                        <div className="flex-1 p-4 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col gap-1">
+                          <label className="text-base text-gray-400 font-medium uppercase tracking-wide">Ghi chú về tài chính</label>
+                          <textarea
+                            name="ghiChuTaiChinh"
+                            value={formData.ghiChuTaiChinh}
+                            onChange={handleInputChange}
+                            rows={3}
+                            className="w-full min-h-20 md:min-h-36 outline-none text-base text-gray-700 bg-transparent placeholder-gray-300"
+                            placeholder="Nhập ghi chú tài chính..."
+                          />
+                        </div>
+                        {/* Ghi chú sản xuất */}
+                        <div className="flex-1 p-4 flex flex-col gap-1">
+                          <label className="text-base text-gray-400 font-medium uppercase tracking-wide">Ghi chú sản xuất</label>
+                          <textarea
+                            name="ghiChuSanXuat"
+                            value={formData.ghiChuSanXuat || ""}
+                            onChange={handleInputChange}
+                            rows={3}
+                            className="w-full min-h-20 md:min-h-36 outline-none text-base text-gray-700 bg-transparent placeholder-gray-300"
+                            placeholder="Nhập ghi chú sản xuất..."
+                          />
+                        </div>
                       </div>
                     </div>
-
-                    {/* Ghi chú */}
-                    <div>
-                      <label className="block text-base text-gray-500 mb-1">Ghi chú</label>
-                      <input
-                        type="text"
-                        value={sp.ghiChu}
-                        onChange={(e) => handleSanPhamChange(index, "ghiChu", e.target.value)}
-                        className="w-full border border-blue-200 rounded p-2 outline-none bg-white text-base"
-                      />
-                    </div>
-
-                    {/* Yêu cầu thử */}
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setYeuCauThuModal({ open: true, spIndex: index })}
-                        className={`w-full text-base rounded px-3 py-2 transition font-medium border ${(sp.yeuCauThu || []).length > 0
-                          ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
-                          : "bg-white text-blue-500 border-blue-300 hover:bg-blue-50"
-                          }`}
-                      >
-                        {(sp.yeuCauThu || []).length > 0
-                          ? `Yêu cầu thử (${sp.yeuCauThu.length})`
-                          : "Yêu cầu thử"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Add product button (mobile) */}
-                <button
-                  onClick={() => {
-                    markDirty();
-                    setFormData({
-                      ...formData,
-                      danhSachSanPham: [
-                        ...formData.danhSachSanPham,
-                        {
-                          loaiDon: "Mới",
-                          sanPham: "",
-                          viTri: [],
-                          viTriText: "",
-                          soLuong: 1,
-                          mau: "",
-                          ghiChu: "",
-                          yeuCauThu: [],
-                        },
-                      ],
-                    });
-                  }}
-                  className="w-full py-4 px-6 bg-[#f0f9ff] text-green-600 font-bold hover:bg-blue-100 cursor-pointer flex items-center justify-start gap-2 transition"
-                >
-                  <span className="text-3xl leading-none font-black">+</span>
-                  <span className="text-base mt-1">Thêm sản phẩm</span>
-                </button>
-              </div>
-
-            </div>
-
-            {/* Section 3: Notes + accessories */}
-            <div className="w-full border-t border-gray-200 shadow-sm">
-              <div className="flex flex-col sm:flex-row">
-                {/* Left: notes (flex-1) */}
-                <div className="flex-1 flex flex-col min-w-0">
-                  <div className="flex flex-col sm:flex-row border-b border-gray-100">
-                    {/* Chỉ định của bác sĩ */}
-                    <div className="flex-1 p-4 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col gap-1">
-                      <label className="text-base text-gray-400 font-medium uppercase tracking-wide">Chỉ định của bác sĩ</label>
-                      <textarea
-                        name="chiDinhBacSi"
-                        value={formData.chiDinhBacSi}
-                        onChange={handleInputChange}
-                        rows={4}
-                        className="w-full min-h-20 md:min-h-36 outline-none text-base text-gray-700 bg-transparent placeholder-gray-300"
-                        placeholder="Nhập chỉ định bác sĩ..."
-                      />
-                    </div>
-                    {/* Ghi chú */}
-                    <div className="flex-1 p-4 flex flex-col gap-1">
-                      <label className="text-base text-gray-400 font-medium uppercase tracking-wide">Ghi chú</label>
-                      <textarea
-                        name="ghiChuChung"
-                        value={formData.ghiChuChung}
-                        onChange={handleInputChange}
-                        rows={4}
-                        className="w-full min-h-20 md:min-h-36 outline-none text-base text-gray-700 bg-transparent placeholder-gray-300"
-                        placeholder="Nhập ghi chú..."
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row border-gray-100">
-                    {/* Ghi chú tài chính */}
-                    <div className="flex-1 p-4 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col gap-1">
-                      <label className="text-base text-gray-400 font-medium uppercase tracking-wide">Ghi chú về tài chính</label>
-                      <textarea
-                        name="ghiChuTaiChinh"
-                        value={formData.ghiChuTaiChinh}
-                        onChange={handleInputChange}
-                        rows={3}
-                        className="w-full min-h-20 md:min-h-36 outline-none text-base text-gray-700 bg-transparent placeholder-gray-300"
-                        placeholder="Nhập ghi chú tài chính..."
-                      />
-                    </div>
-                    {/* Ghi chú sản xuất */}
-                    <div className="flex-1 p-4 flex flex-col gap-1">
-                      <label className="text-base text-gray-400 font-medium uppercase tracking-wide">Ghi chú sản xuất</label>
-                      <textarea
-                        name="ghiChuSanXuat"
-                        value={formData.ghiChuSanXuat || ""}
-                        onChange={handleInputChange}
-                        rows={3}
-                        className="w-full min-h-20 md:min-h-36 outline-none text-base text-gray-700 bg-transparent placeholder-gray-300"
-                        placeholder="Nhập ghi chú sản xuất..."
+                    {/* Right: phụ kiện */}
+                    <div className="sm:w-[350px] border-t sm:border-t-0 sm:border-l border-gray-200 p-4 shrink-0">
+                      <DanhSachPhuKien
+                        phuKienDaChon={formData.danhSachPhuKien}
+                        setPhuKienDaChon={(data) =>
+                          setFormData({ ...formData, danhSachPhuKien: data })
+                        }
                       />
                     </div>
                   </div>
                 </div>
-                {/* Right: phụ kiện */}
-                <div className="sm:w-[260px] border-t sm:border-t-0 sm:border-l border-gray-200 p-4 shrink-0">
-                  <DanhSachPhuKien
-                    phuKienDaChon={formData.danhSachPhuKien}
-                    setPhuKienDaChon={(data) =>
-                      setFormData({ ...formData, danhSachPhuKien: data })
-                    }
-                  />
-                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Footer save bar */}
-      <div className="bg-gray-100 px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center gap-2 border-t z-10 shadow-lg shrink-0">
-        <div className="flex flex-wrap gap-2">
-          {isEditMode && (
-            <button
-              onClick={() => navigate(`/donhang/${id}/print`)}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1.5 rounded text-base flex items-center gap-1"
-              title="In đơn hàng (F4)"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4" />
-              </svg>
-              In đơn hàng (F4)
-            </button>
-          )}
-          {isEditMode && (
-            <button
-              onClick={() => navigate(`/donhang/${id}/delivery-note`)}
-              className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-1.5 rounded text-base"
-            >
-              In Phiếu giao hàng
-            </button>
-          )}
-          {isEditMode && !isViewOnly && formData.danhSachSanPham?.some(sp => sp.loaiDon === "Mới") && (
-            <button
-              onClick={() => {
-                if (!formData._id) { toast.error("Vui lòng lưu đơn hàng trước khi thêm thẻ bảo hành"); return; }
-                setIsPhieuBaoHanhModalOpen(true);
-              }}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 rounded text-base"
-            >
-              + Thêm thẻ bảo hành
-            </button>
-          )}
-          {isEditMode && validWarranties.length > 0 && (
-            <button
-              onClick={() => { setSelectedWarranty(validWarranties[0]); setOpenPrintWarranty(true); }}
-              className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded text-base flex items-center gap-1"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4" />
-              </svg>
-              In thẻ bảo hành
-            </button>
-          )}
-          {!isViewOnly && hasRouteAccess(user, "/ghi-chu") && (
-            <button
-              type="button"
-              onClick={() => setIsAddTodoOpen(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded text-base flex items-center"
-            >
-              Thêm ghi chú
-            </button>
-          )}
+      {!isPageLoading && (
+        <div className="bg-gray-100 px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center gap-2 border-t z-10 shadow-lg shrink-0">
+          <div className="flex flex-wrap gap-2">
+            {isEditMode && (
+              <button
+                onClick={() => navigate(`/donhang/${id}/print`)}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1.5 rounded text-base flex items-center gap-1"
+                title="In đơn hàng (F4)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4" />
+                </svg>
+                In đơn hàng (F4)
+              </button>
+            )}
+            {isEditMode && (
+              <button
+                onClick={() => navigate(`/donhang/${id}/delivery-note`)}
+                className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-1.5 rounded text-base"
+              >
+                In Phiếu giao hàng
+              </button>
+            )}
+            {isEditMode && !isViewOnly && formData.danhSachSanPham?.some(sp => sp.loaiDon === "Mới") && (
+              <button
+                onClick={() => {
+                  if (!formData._id) { toast.error("Vui lòng lưu đơn hàng trước khi thêm thẻ bảo hành"); return; }
+                  setIsPhieuBaoHanhModalOpen(true);
+                }}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 rounded text-base"
+              >
+                + Thêm thẻ bảo hành
+              </button>
+            )}
+            {isEditMode && validWarranties.length > 0 && (
+              <button
+                onClick={() => { setSelectedWarranty(validWarranties[0]); setOpenPrintWarranty(true); }}
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded text-base flex items-center gap-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2m12 0v7M6 13H2v8a2 2 0 002 2h16a2 2 0 002-2v-8h-4m0 0V9m0 4v8m-6-8h4" />
+                </svg>
+                In thẻ bảo hành
+              </button>
+            )}
+            {!isViewOnly && hasRouteAccess(user, "/ghi-chu") && (
+              <button
+                type="button"
+                onClick={() => setIsAddTodoOpen(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded text-base flex items-center"
+              >
+                Thêm ghi chú
+              </button>
+            )}
 
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={isSubmitting}
+            className="bg-[#4CAF50] hover:bg-green-600 text-white px-8 py-2 rounded shadow-md font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ display: isViewOnly ? 'none' : undefined }}
+          >
+            {isSubmitting ? "Đang lưu..." : "Lưu (F3)"}
+          </button>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={isSubmitting}
-          className="bg-[#4CAF50] hover:bg-green-600 text-white px-8 py-2 rounded shadow-md font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-          style={{ display: isViewOnly ? 'none' : undefined }}
-        >
-          {isSubmitting ? "Đang lưu..." : "Lưu (F3)"}
-        </button>
-      </div>
+      )}
 
       <>
         {isAddTodoOpen && (
@@ -1524,7 +1640,7 @@ const DonHangForm = () => {
               const loaiTinh = getLoaiTinh(formData.danhSachSanPham[viTriHamModal.index]?.sanPham);
               const newDsSp = [...formData.danhSachSanPham];
               newDsSp[viTriHamModal.index] = { ...newDsSp[viTriHamModal.index], viTriText: val };
-              if (loaiTinh === "Bán hàm") {
+              if (loaiTinh === "Bán hàm" || loaiTinh === "Hàm") {
                 const count = val ? val.split(", ").filter(Boolean).length : 0;
                 newDsSp[viTriHamModal.index].soLuong = count || 1;
               }
@@ -1563,7 +1679,7 @@ const DonHangForm = () => {
       {/* Modal cảnh báo thoát chưa lưu */}
       {showExitWarning && ReactDOM.createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-xl mx-4">
             <div className="flex items-center gap-3 mb-3">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7 text-yellow-500 shrink-0">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />

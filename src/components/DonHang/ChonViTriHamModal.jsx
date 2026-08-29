@@ -3,11 +3,11 @@ import ReactDOM from "react-dom";
 
 const OPTIONS = {
     "Bán hàm": ["Bán hàm 1", "Bán hàm 2", "Bán hàm 3", "Bán hàm 4"],
-    Hàm: ["Hàm trên dưới", "Hàm trên", "Hàm dưới"],
+    Hàm: ["Hàm trên", "Hàm dưới"],
 };
 
 export default function ChonViTriHamModal({ open, onClose, onSave, loaiTinh, initialValue = "" }) {
-    const isMulti = loaiTinh === "Bán hàm";
+    const isMulti = loaiTinh === "Bán hàm" || loaiTinh === "Hàm";
 
     // Always store as array; single-select just uses first element
     const [selected, setSelected] = useState([]);
